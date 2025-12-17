@@ -1,51 +1,146 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
+import { useEffect, useState } from "react";
+
+/* ================== KONSTANTA ================== */
+const POSISI_MAGANG = [
+  "IT / Programmer",
+  "Desain Grafis",
+  "Administrasi",
+  "Humas",
+  "Analis Data",
+];
+
+type Wilayah = {
+  id: string;
+  name: string;
+};
+
+type Peserta = {
+  nama: string;
+  posisi: string;
+  tempatLahir: string;
+  tanggalLahir: string;
+  jenisKelamin: string;
+
+  provinsi: string;
+  provinsiId: string;
+  kota: string;
+  kotaId: string;
+  kecamatan: string;
+  kecamatanId: string;
+  kelurahan: string;
+
+  alamatLengkap: string;
+  email: string;
+  wa: string;
+};
 
 export default function PendaftaranPage() {
-  const [form, setForm] = useState({
+  const kosong: Peserta = {
     nama: "",
+    posisi: "",
+    tempatLahir: "",
+    tanggalLahir: "",
+    jenisKelamin: "",
+    provinsi: "",
+    provinsiId: "",
+    kota: "",
+    kotaId: "",
+    kecamatan: "",
+    kecamatanId: "",
+    kelurahan: "",
+    alamatLengkap: "",
     email: "",
-    nohp: "",
-    sekolah: "",
-    jurusan: "",
-    tingkat: "",
-    alamat: "",
-    tanggalMulai: "",
-    tanggalSelesai: "",
-  });
-
-  const [surat, setSurat] = useState<File | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const validateForm = (): boolean => {
-    if (new Date(form.tanggalMulai) >= new Date(form.tanggalSelesai)) {
-      alert("Tanggal mulai harus sebelum tanggal selesai.");
-      return false;
-    }
-    return true;
+    wa: "",
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const [kategori, setKategori] = useState<"sendiri" | "bersama">("sendiri");
+  const [jumlah, setJumlah] = useState(1);
+  const [peserta, setPeserta] = useState<Peserta[]>([kosong]);
+  const [surat, setSurat] = useState<File | null>(null);
 
-    if (!validateForm()) return;
+  const [provinsi, setProvinsi] = useState<Wilayah[]>([]);
+  const [kota, setKota] = useState<Wilayah[]>([]);
+  const [kecamatan, setKecamatan] = useState<Wilayah[]>([]);
+  const [kelurahan, setKelurahan] = useState<Wilayah[]>([]);
 
-    setLoading(true);
-    setError(null);
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
 
-    const formData = new FormData();
-    Object.entries(form).forEach(([key, value]) => {
-      formData.append(key, value);
-    });
+  /* ================== LOAD PROVINSI ================== */
+  useEffect(() => {
+    fetch("https://www.emsifa.com/api-wilayah-indonesia/api/provinces.json")
+      .then((res) => res.json())
+      .then(setProvinsi);
+  }, []);
 
-    if (surat) {
-      formData.append("surat", surat);
+  /* ================== UPDATE DATA ================== */
+  const update = async (
+    i: number,
+    key: keyof Peserta,
+    value: string,
+    id?: string
+  ) => {
+    const data = [...peserta];
+    (data[i] as any)[key] = value;
+    if (id) (data[i] as any)[`${key}Id`] = id;
+
+    if (key === "provinsi") {
+      data[i].kota = "";
+      data[i].kecamatan = "";
+      data[i].kelurahan = "";
+
+      const res = await fetch(
+        `https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${id}.json`
+      );
+      setKota(await res.json());
+      setKecamatan([]);
+      setKelurahan([]);
     }
 
+    if (key === "kota") {
+      data[i].kecamatan = "";
+      data[i].kelurahan = "";
+
+      const res = await fetch(
+        `https://www.emsifa.com/api-wilayah-indonesia/api/districts/${id}.json`
+      );
+      setKecamatan(await res.json());
+      setKelurahan([]);
+    }
+
+    if (key === "kecamatan") {
+      data[i].kelurahan = "";
+
+      const res = await fetch(
+        `https://www.emsifa.com/api-wilayah-indonesia/api/villages/${id}.json`
+      );
+      setKelurahan(await res.json());
+    }
+
+    setPeserta(data);
+  };
+
+  const ubahJumlah = (n: number) => {
+    setJumlah(n);
+    setPeserta(Array.from({ length: n }).map((_, i) => peserta[i] || kosong));
+  };
+
+  /* ================== SUBMIT ================== */
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!surat) return alert("Surat pengantar wajib diupload");
+
+    setLoading(true);
+
     try {
+      const formData = new FormData();
+      formData.append("kategori", kategori);
+      formData.append("jumlahPeserta", jumlah.toString());
+      formData.append("peserta", JSON.stringify(peserta));
+      formData.append("surat", surat);
+
       const res = await fetch("http://localhost:5000/api/pendaftaran", {
         method: "POST",
         body: formData,
@@ -54,199 +149,227 @@ export default function PendaftaranPage() {
       const data = await res.json();
 
       if (res.ok) {
-        alert("✅ Pendaftaran berhasil dikirim!");
-        // Reset form setelah sukses
-        setForm({
-          nama: "",
-          email: "",
-          nohp: "",
-          sekolah: "",
-          jurusan: "",
-          tingkat: "",
-          alamat: "",
-          tanggalMulai: "",
-          tanggalSelesai: "",
-        });
+        setSuccess(true);
+        setPeserta([kosong]);
         setSurat(null);
+        setJumlah(1);
+        setKategori("sendiri");
       } else {
-        throw new Error(data.message || "Gagal mengirim pendaftaran.");
+        alert(data.message || "Gagal mengirim pendaftaran");
       }
-    } catch (err: any) {
-      setError(err.message || "Terjadi kesalahan saat mengirim data.");
-      console.error(err);
-      alert("❌ " + (err.message || "Gagal mengirim pendaftaran."));
-    } finally {
-      setLoading(false);
+    } catch (error) {
+      console.error(error);
+      alert("Terjadi kesalahan saat mengirim data!");
     }
-  };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] || null;
-    if (file) {
-      const validTypes = [
-        "application/pdf",
-        "image/jpeg",
-        "image/png",
-        "image/jpg",
-      ];
-      if (!validTypes.includes(file.type)) {
-        alert("Hanya file PDF atau gambar (JPG/PNG) yang diperbolehkan.");
-        e.target.value = ""; // reset input
-        return;
-      }
-      if (file.size > 5 * 1024 * 1024) {
-        // 5MB limit
-        alert("Ukuran file maksimal 5 MB.");
-        e.target.value = "";
-        return;
-      }
-    }
-    setSurat(file);
+    setLoading(false);
+    setTimeout(() => setSuccess(false), 4000);
   };
 
   return (
-    <div className="max-w-xl mx-auto p-5 mt-10 border rounded-lg shadow-xl bg-white">
-      <h1 className="text-2xl font-bold mb-5 text-center text-gray-800">
-        Form Pendaftaran Magang BPOM
-      </h1>
-
-      {error && (
-        <div className="mb-4 p-3 bg-red-100 text-red-700 rounded text-sm">
-          {error}
+    <div className="min-h-screen bg-white text-black">
+      {/* TOAST */}
+      {success && (
+        <div className="fixed top-5 right-5 bg-green-600 text-white px-6 py-4 rounded-xl shadow-lg animate-slide-in z-50">
+          ✅ Pendaftaran berhasil dikirim
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-5">
-        <input
-          type="text"
-          placeholder="Nama Lengkap"
-          className="w-full p-3 border rounded focus:ring-2 focus:ring-blue-300 outline-none"
-          value={form.nama}
-          onChange={(e) => setForm({ ...form, nama: e.target.value })}
-          required
-        />
+      <div className="max-w-6xl mx-auto p-10">
+        <h1 className="text-3xl font-bold text-center mb-10">
+          Form Pendaftaran Magang BPOM
+        </h1>
 
-        <input
-          type="email"
-          placeholder="Email"
-          className="w-full p-3 border rounded focus:ring-2 focus:ring-blue-300 outline-none"
-          value={form.email}
-          onChange={(e) => setForm({ ...form, email: e.target.value })}
-          required
-        />
-
-        <input
-          type="text"
-          placeholder="Nomor HP"
-          className="w-full p-3 border rounded focus:ring-2 focus:ring-blue-300 outline-none"
-          value={form.nohp}
-          onChange={(e) => setForm({ ...form, nohp: e.target.value })}
-          required
-        />
-
-        <input
-          type="text"
-          placeholder="Asal Sekolah / Universitas"
-          className="w-full p-3 border rounded focus:ring-2 focus:ring-blue-300 outline-none"
-          value={form.sekolah}
-          onChange={(e) => setForm({ ...form, sekolah: e.target.value })}
-          required
-        />
-
-        <input
-          type="text"
-          placeholder="Jurusan"
-          className="w-full p-3 border rounded focus:ring-2 focus:ring-blue-300 outline-none"
-          value={form.jurusan}
-          onChange={(e) => setForm({ ...form, jurusan: e.target.value })}
-          required
-        />
-
-        <input
-          type="text"
-          placeholder="Tingkat (SMA/SMK/D3/S1)"
-          className="w-full p-3 border rounded focus:ring-2 focus:ring-blue-300 outline-none"
-          value={form.tingkat}
-          onChange={(e) => setForm({ ...form, tingkat: e.target.value })}
-          required
-        />
-
-        <textarea
-          placeholder="Alamat Lengkap"
-          className="w-full p-3 border rounded focus:ring-2 focus:ring-blue-300 outline-none"
-          rows={3}
-          value={form.alamat}
-          onChange={(e) => setForm({ ...form, alamat: e.target.value })}
-          required
-        />
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <form className="space-y-10" onSubmit={handleSubmit}>
+          {/* KATEGORI */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">
-              Tanggal Mulai
-            </label>
+            <label className="label">Kategori Pemohon</label>
+            <select
+              className="input w-60"
+              onChange={(e) => setKategori(e.target.value as any)}
+            >
+              <option value="sendiri">Sendiri</option>
+              <option value="bersama">Bersama (Max 5)</option>
+            </select>
+          </div>
+
+          {kategori === "bersama" && (
+            <div>
+              <label className="label">Jumlah Peserta</label>
+              <select
+                className="input w-40"
+                onChange={(e) => ubahJumlah(Number(e.target.value))}
+              >
+                {[2, 3, 4, 5].map((n) => (
+                  <option key={n}>{n}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {peserta.map((_, i) => (
+            <div key={i} className="border rounded-xl p-6 space-y-4">
+              <h2 className="font-semibold text-lg">Data Peserta {i + 1}</h2>
+
+              <input
+                className="input"
+                placeholder="Nama Lengkap"
+                onChange={(e) => update(i, "nama", e.target.value)}
+              />
+
+              <select
+                className="input"
+                onChange={(e) => update(i, "posisi", e.target.value)}
+              >
+                <option value="">-- Posisi Magang --</option>
+                {POSISI_MAGANG.map((p) => (
+                  <option key={p}>{p}</option>
+                ))}
+              </select>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <input
+                  className="input"
+                  placeholder="Tempat Lahir"
+                  onChange={(e) => update(i, "tempatLahir", e.target.value)}
+                />
+                <input
+                  type="date"
+                  className="input"
+                  onChange={(e) => update(i, "tanggalLahir", e.target.value)}
+                />
+              </div>
+
+              <select
+                className="input"
+                onChange={(e) => update(i, "jenisKelamin", e.target.value)}
+              >
+                <option value="">-- Jenis Kelamin --</option>
+                <option>Laki-laki</option>
+                <option>Perempuan</option>
+              </select>
+
+              {/* WILAYAH */}
+              <select
+                className="input"
+                onChange={(e) => {
+                  const o = provinsi.find((x) => x.id === e.target.value);
+                  if (o) update(i, "provinsi", o.name, o.id);
+                }}
+              >
+                <option value="">-- Provinsi --</option>
+                {provinsi.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                className="input"
+                onChange={(e) => {
+                  const o = kota.find((x) => x.id === e.target.value);
+                  if (o) update(i, "kota", o.name, o.id);
+                }}
+              >
+                <option value="">-- Kota / Kabupaten --</option>
+                {kota.map((k) => (
+                  <option key={k.id} value={k.id}>
+                    {k.name}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                className="input"
+                onChange={(e) => {
+                  const o = kecamatan.find((x) => x.id === e.target.value);
+                  if (o) update(i, "kecamatan", o.name, o.id);
+                }}
+              >
+                <option value="">-- Kecamatan --</option>
+                {kecamatan.map((k) => (
+                  <option key={k.id} value={k.id}>
+                    {k.name}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                className="input"
+                onChange={(e) => update(i, "kelurahan", e.target.value)}
+              >
+                <option value="">-- Kelurahan --</option>
+                {kelurahan.map((k) => (
+                  <option key={k.id}>{k.name}</option>
+                ))}
+              </select>
+
+              <textarea
+                className="input h-24"
+                placeholder="Alamat Lengkap"
+                onChange={(e) => update(i, "alamatLengkap", e.target.value)}
+              />
+
+              <input
+                className="input"
+                placeholder="Email"
+                onChange={(e) => update(i, "email", e.target.value)}
+              />
+              <input
+                className="input"
+                placeholder="No WhatsApp"
+                onChange={(e) => update(i, "wa", e.target.value)}
+              />
+            </div>
+          ))}
+
+          {/* SURAT */}
+          <div className="border p-6 rounded-xl">
+            <label className="label">Upload Surat Pengantar</label>
             <input
-              type="date"
-              className="w-full p-3 border rounded focus:ring-2 focus:ring-blue-300 outline-none"
-              value={form.tanggalMulai}
-              onChange={(e) =>
-                setForm({ ...form, tanggalMulai: e.target.value })
-              }
-              required
+              type="file"
+              className="input"
+              onChange={(e) => setSurat(e.target.files?.[0] || null)}
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">
-              Tanggal Selesai
-            </label>
-            <input
-              type="date"
-              className="w-full p-3 border rounded focus:ring-2 focus:ring-blue-300 outline-none"
-              value={form.tanggalSelesai}
-              onChange={(e) =>
-                setForm({ ...form, tanggalSelesai: e.target.value })
-              }
-              required
-            />
-          </div>
-        </div>
-
-        <div>
-          <label className="block font-semibold text-gray-700 mb-1">
-            Upload Surat Pengantar (PDF/JPG/PNG, max 5 MB)
-          </label>
-          <input
-            type="file"
-            accept=".pdf,.jpg,.jpeg,.png"
-            className="w-full p-2 border rounded mt-1 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-            onChange={handleFileChange}
-            required
-          />
-        </div>
-
-        <button
-          type="submit"
-          disabled={loading}
-          className={`w-full py-3 rounded font-semibold text-white transition ${
-            loading
-              ? "bg-gray-400 cursor-not-allowed"
-              : "bg-blue-600 hover:bg-blue-700"
-          }`}
-        >
-          {loading ? "Mengirim..." : "Kirim Pendaftaran"}
-        </button>
-      </form>
-
-      {/* Button Cek Riwayat */}
-      <div className="mt-8 text-center">
-        <Link
-          href="/pendaftaran/riwayat"
-          className="inline-block bg-green-600 text-white px-6 py-3 rounded font-semibold hover:bg-green-700 transition shadow"
-        >
-          📋 Cek Riwayat Pendaftaran
-        </Link>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-blue-700 hover:bg-blue-800 disabled:opacity-60 text-white py-3 rounded-lg font-semibold"
+          >
+            {loading ? "Mengirim..." : "Kirim Pendaftaran"}
+          </button>
+        </form>
       </div>
+
+      <style jsx>{`
+        .input {
+          width: 100%;
+          padding: 12px;
+          border: 1px solid #d1d5db;
+          border-radius: 8px;
+        }
+        .label {
+          font-weight: 600;
+          margin-bottom: 6px;
+          display: block;
+        }
+        @keyframes slide-in {
+          from {
+            opacity: 0;
+            transform: translateX(40px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+        .animate-slide-in {
+          animation: slide-in 0.4s ease-out;
+        }
+      `}</style>
     </div>
   );
 }

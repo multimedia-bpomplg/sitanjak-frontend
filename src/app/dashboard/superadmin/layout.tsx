@@ -106,11 +106,11 @@ export default function SuperadminLayout({
             </Link>
 
             <Link
-              href="/dashboard/superadmin/pendaftaran"
+              href="/dashboard/superadmin/ViewPendaftaran"
               className={`flex py-2 text-sm rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700
                 ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
                 ${
-                  pathname.includes("/pendaftaran")
+                  pathname.includes("/ViewPendaftaran")
                     ? "bg-blue-100 dark:bg-blue-900/30"
                     : ""
                 }`}
@@ -119,11 +119,11 @@ export default function SuperadminLayout({
             </Link>
 
             <Link
-              href="/dashboard/superadmin/logbook"
+              href="/dashboard/superadmin/ViewLogbook"
               className={`flex py-2 text-sm rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700
                 ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
                 ${
-                  pathname.includes("/logbook")
+                  pathname.includes("/ViewLogbook")
                     ? "bg-blue-100 dark:bg-blue-900/30"
                     : ""
                 }`}
@@ -132,11 +132,11 @@ export default function SuperadminLayout({
             </Link>
 
             <Link
-              href="/dashboard/superadmin/peserta"
+              href="/dashboard/superadmin/ViewPeserta"
               className={`flex py-2 text-sm rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700
                 ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
                 ${
-                  pathname.includes("/peserta")
+                  pathname.includes("/ViewPeserta")
                     ? "bg-blue-100 dark:bg-blue-900/30"
                     : ""
                 }`}

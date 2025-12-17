@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Mail, Lock } from "lucide-react";
+import { Mail, Lock, ArrowLeft } from "lucide-react";
+import TurnstileCaptcha from "@/components/TurnstileCaptcha";
 
 const redirectByRole = (roles: string[], router: any) => {
   if (roles.includes("superadmin")) return router.push("/dashboard/superadmin");
@@ -13,10 +14,13 @@ const redirectByRole = (roles: string[], router: any) => {
 
 export default function LoginPage() {
   const router = useRouter();
+
   const [form, setForm] = useState({ email: "", password: "" });
+  const [captchaToken, setCaptchaToken] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  /* ===================== AUTO REDIRECT ===================== */
   useEffect(() => {
     const token = localStorage.getItem("token");
     const roles = JSON.parse(localStorage.getItem("roles") || "[]");
@@ -26,8 +30,15 @@ export default function LoginPage() {
     }
   }, [router]);
 
+  /* ===================== SUBMIT ===================== */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!captchaToken) {
+      setError("Silakan verifikasi CAPTCHA terlebih dahulu");
+      return;
+    }
+
     setLoading(true);
     setError("");
 
@@ -35,7 +46,10 @@ export default function LoginPage() {
       const res = await fetch("http://localhost:5000/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          ...form,
+          captchaToken,
+        }),
       });
 
       const data = await res.json();
@@ -49,7 +63,7 @@ export default function LoginPage() {
       localStorage.setItem("roles", JSON.stringify(data.roles));
 
       redirectByRole(data.roles || [], router);
-    } catch (err) {
+    } catch {
       setError("Server tidak merespons");
     } finally {
       setLoading(false);
@@ -58,7 +72,15 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100 px-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 relative">
+        {/* ===== BUTTON KEMBALI ===== */}
+        <button
+          onClick={() => router.push("/")}
+          className="absolute left-5 top-5 flex items-center gap-1 text-sm text-gray-500 hover:text-blue-600"
+        >
+          <ArrowLeft size={16} /> Kembali
+        </button>
+
         <h1 className="text-3xl font-bold text-center text-blue-700 mb-2">
           Login Sistem
         </h1>
@@ -71,6 +93,7 @@ export default function LoginPage() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* EMAIL */}
           <div className="relative">
             <Mail className="absolute left-3 top-3.5 text-gray-400" size={18} />
             <input
@@ -83,6 +106,7 @@ export default function LoginPage() {
             />
           </div>
 
+          {/* PASSWORD */}
           <div className="relative">
             <Lock className="absolute left-3 top-3.5 text-gray-400" size={18} />
             <input
@@ -93,6 +117,11 @@ export default function LoginPage() {
               onChange={(e) => setForm({ ...form, password: e.target.value })}
               required
             />
+          </div>
+
+          {/* ===== CAPTCHA (DESAIN TIDAK BERUBAH) ===== */}
+          <div className="flex justify-center">
+            <TurnstileCaptcha onVerify={setCaptchaToken} />
           </div>
 
           <button
