@@ -3,204 +3,274 @@
 import { useEffect, useState } from "react";
 
 /* ===================== TYPE ===================== */
-type Pendaftaran = {
-  id: number;
+type Peserta = {
   nama: string;
   email: string;
+  wa: string;
   posisi: string;
-  asal: string;
-  tanggal: string;
-  status: "Pending" | "Diterima" | "Ditolak";
+  tempatLahir: string;
+  tanggalLahir: string;
+  jenisKelamin: string;
+  provinsi: string;
+  kota: string;
+  kecamatan: string;
+  kelurahan: string;
+  alamatLengkap: string;
+  suratPengantar?: string;
 };
 
-/* ===================== KONSTANTA ===================== */
-const PAGE_SIZE = 10;
+type Pendaftaran = {
+  _id: string;
+  email: string;
+  status: "Sedang Diproses" | "Disetujui" | "Ditolak";
+  jawabanAdmin?: string;
+  peserta: Peserta[];
+  suratPendaftaran?: string; // ✅ PDF dari form pendaftaran
+  createdAt: string;
+};
 
+/* ===================== PAGE ===================== */
 export default function ViewPendaftaranPage() {
   const [data, setData] = useState<Pendaftaran[]>([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
 
-  /* ===================== LOAD DATA (DUMMY) ===================== */
+  const [selected, setSelected] = useState<Pendaftaran | null>(null);
+  const [alasan, setAlasan] = useState("");
+
+  const closeModal = () => {
+    setSelected(null);
+    setAlasan("");
+  };
+
+  /* ===================== LOAD DATA ===================== */
+  const loadData = async () => {
+    try {
+      const res = await fetch("http://localhost:5000/api/pendaftaran");
+      const json = await res.json();
+      setData(json);
+    } catch {
+      alert("Gagal mengambil data");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const dummyData: Pendaftaran[] = Array.from({ length: 21 }, (_, index) => ({
-      id: index + 1,
-      nama: `Peserta ${index + 1}`,
-      email: `peserta${index + 1}@gmail.com`,
-      posisi:
-        index % 3 === 0
-          ? "IT / Programmer"
-          : index % 3 === 1
-          ? "Desain Grafis"
-          : "Administrasi",
-      asal: "Universitas Bina Darma",
-      tanggal: "2025-12-10",
-      status:
-        index % 3 === 0 ? "Pending" : index % 3 === 1 ? "Diterima" : "Ditolak",
-    }));
-
-    setData(dummyData);
+    loadData();
   }, []);
 
-  /* ===================== SEARCH FILTER ===================== */
-  const filteredData = data.filter(
-    (item) =>
-      item.nama.toLowerCase().includes(search.toLowerCase()) ||
-      item.email.toLowerCase().includes(search.toLowerCase()) ||
-      item.posisi.toLowerCase().includes(search.toLowerCase()) ||
-      item.asal.toLowerCase().includes(search.toLowerCase())
-  );
+  /* ===================== UPDATE STATUS ===================== */
+  const updateStatus = async (status: "Disetujui" | "Ditolak") => {
+    if (!alasan.trim()) return alert("Alasan wajib diisi");
 
-  /* ===================== PAGINATION ===================== */
-  const totalPages = Math.ceil(filteredData.length / PAGE_SIZE);
-  const startIndex = (currentPage - 1) * PAGE_SIZE;
-  const currentData = filteredData.slice(startIndex, startIndex + PAGE_SIZE);
+    await fetch(`http://localhost:5000/api/pendaftaran/${selected?._id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status, jawabanAdmin: alasan }),
+    });
+
+    alert("Status diperbarui");
+    closeModal();
+    loadData();
+  };
 
   /* ===================== SUMMARY ===================== */
   const totalPendaftar = data.length;
-
-  const jumlahPerPosisi = data.reduce<Record<string, number>>((acc, item) => {
-    acc[item.posisi] = (acc[item.posisi] || 0) + 1;
-    return acc;
-  }, {});
+  const disetujui = data.filter((d) => d.status === "Disetujui").length;
+  const ditolak = data.filter((d) => d.status === "Ditolak").length;
 
   return (
     <div className="space-y-6">
-      {/* ===================== HEADER ===================== */}
-      <div>
-        <h1 className="text-2xl font-semibold text-gray-800 dark:text-white">
-          Data Pendaftaran
-        </h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400">
-          Daftar peserta yang telah melakukan pendaftaran
-        </p>
-      </div>
+      <h1 className="text-2xl font-semibold">Data Pendaftaran</h1>
 
       {/* ===================== SUMMARY CARD ===================== */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-        <div className="bg-white dark:bg-gray-800 border rounded-lg p-3 shadow-sm">
-          <p className="text-xs text-gray-500">Jumlah Pendaftar</p>
-          <h2 className="text-lg font-semibold text-blue-600">
-            {totalPendaftar} Orang
-          </h2>
-        </div>
-
-        {Object.entries(jumlahPerPosisi).map(([posisi, jumlah]) => (
-          <div
-            key={posisi}
-            className="bg-white dark:bg-gray-800 border rounded-lg p-3 shadow-sm"
-          >
-            <p className="text-xs text-gray-500 truncate">{posisi}</p>
-            <h2 className="text-lg font-semibold text-green-600">
-              {jumlah} Org
-            </h2>
-          </div>
-        ))}
-      </div>
-
-      {/* ===================== SEARCH BAR ===================== */}
-      <div className="bg-white dark:bg-gray-800 border rounded-lg p-3 shadow-sm">
-        <input
-          type="text"
-          placeholder="Cari nama, email, posisi, atau asal..."
-          value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            setCurrentPage(1);
-          }}
-          className="w-full sm:w-72 px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-        />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <SummaryCard title="Jumlah Pendaftar" value={totalPendaftar} />
+        <SummaryCard title="Disetujui" value={disetujui} />
+        <SummaryCard title="Ditolak" value={ditolak} />
       </div>
 
       {/* ===================== TABLE ===================== */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow border overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-100 dark:bg-gray-700">
-              <tr>
-                <th className="px-4 py-3 text-left">No</th>
-                <th className="px-4 py-3 text-left">Nama</th>
-                <th className="px-4 py-3 text-left">Email</th>
-                <th className="px-4 py-3 text-left">Posisi</th>
-                <th className="px-4 py-3 text-left">Asal</th>
-                <th className="px-4 py-3 text-left">Tanggal</th>
-                <th className="px-4 py-3 text-left">Status</th>
-                <th className="px-4 py-3 text-center">Aksi</th>
-              </tr>
-            </thead>
+      <div className="bg-white border rounded-xl shadow overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-gray-100">
+            <tr>
+              <th className="px-4 py-3">No</th>
+              <th className="px-4 py-3 text-left">Nama Perwakilan</th>
+              <th className="px-4 py-3 text-left">Email</th>
+              <th className="px-4 py-3 text-left">Posisi</th>
+              <th className="px-4 py-3 text-left">Sendiri / Bersama</th>
+              <th className="px-4 py-3 text-left">Status</th>
+              <th className="px-4 py-3 text-center">Aksi</th>
+            </tr>
+          </thead>
 
-            <tbody>
-              {currentData.map((item, index) => (
-                <tr key={item.id} className="border-t hover:bg-gray-50">
-                  <td className="px-4 py-3">{startIndex + index + 1}</td>
-                  <td className="px-4 py-3 font-medium">{item.nama}</td>
-                  <td className="px-4 py-3">{item.email}</td>
-                  <td className="px-4 py-3">{item.posisi}</td>
-                  <td className="px-4 py-3">{item.asal}</td>
-                  <td className="px-4 py-3">{item.tanggal}</td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`px-3 py-1 rounded-full text-xs font-semibold
-                        ${
-                          item.status === "Diterima"
-                            ? "bg-green-100 text-green-700"
-                            : item.status === "Ditolak"
-                            ? "bg-red-100 text-red-700"
-                            : "bg-yellow-100 text-yellow-700"
-                        }`}
-                    >
-                      {item.status}
-                    </span>
+          <tbody>
+            {loading && (
+              <tr>
+                <td colSpan={7} className="py-8 text-center">
+                  Memuat data...
+                </td>
+              </tr>
+            )}
+
+            {!loading &&
+              data.map((item, i) => (
+                <tr key={item._id} className="border-t hover:bg-gray-50">
+                  <td className="px-4 py-3">{i + 1}</td>
+                  <td className="px-4 py-3 font-medium">
+                    {item.peserta[0]?.nama}
                   </td>
-                  <td className="px-4 py-3 text-center space-x-2">
-                    <button className="px-3 py-1 text-xs bg-blue-600 text-white rounded">
+                  <td className="px-4 py-3">{item.email}</td>
+                  <td className="px-4 py-3">{item.peserta[0]?.posisi}</td>
+                  <td className="px-4 py-3">
+                    {item.peserta.length > 1 ? "Bersama" : "Sendiri"}
+                  </td>
+                  <td className="px-4 py-3">
+                    <StatusBadge status={item.status} />
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    <button
+                      onClick={() => setSelected(item)}
+                      className="px-3 py-1 text-xs bg-blue-600 text-white rounded"
+                    >
                       Detail
-                    </button>
-                    <button className="px-3 py-1 text-xs bg-red-600 text-white rounded">
-                      Hapus
                     </button>
                   </td>
                 </tr>
               ))}
+          </tbody>
+        </table>
+      </div>
 
-              {filteredData.length === 0 && (
-                <tr>
-                  <td colSpan={8} className="py-10 text-center text-gray-500">
-                    Data tidak ditemukan
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* ===================== PAGINATION ===================== */}
-        {filteredData.length > PAGE_SIZE && (
-          <div className="flex justify-between px-4 py-3 border-t">
-            <span className="text-sm text-gray-500">
-              Halaman {currentPage} dari {totalPages}
-            </span>
-
-            <div className="flex gap-2">
+      {/* ===================== MODAL DETAIL ===================== */}
+      {selected && (
+        <div
+          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+          onClick={closeModal}
+        >
+          <div
+            className="bg-white w-full max-w-4xl p-6 rounded-lg overflow-y-auto max-h-[90vh]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold">Detail Pendaftaran</h2>
               <button
-                disabled={currentPage === 1}
-                onClick={() => setCurrentPage((p) => p - 1)}
-                className="px-3 py-1 text-sm border rounded disabled:opacity-50"
+                onClick={closeModal}
+                className="text-gray-500 hover:text-red-600 text-xl font-bold"
               >
-                ◀ Sebelumnya
+                ✕
+              </button>
+            </div>
+
+            {/* ===== PDF PENDAFTARAN ===== */}
+            {selected.suratPendaftaran && (
+              <div className="mb-4">
+                <a
+                  href={selected.suratPendaftaran}
+                  target="_blank"
+                  className="inline-block text-sm text-blue-600 underline"
+                >
+                  📄 Lihat PDF Pendaftaran
+                </a>
+              </div>
+            )}
+
+            <div className="grid md:grid-cols-2 gap-4">
+              {selected.peserta.map((p, i) => (
+                <div key={i} className="border rounded-lg p-4 bg-gray-50">
+                  <h3 className="font-semibold mb-2">Peserta {i + 1}</h3>
+
+                  <Detail label="Nama Lengkap" value={p.nama} />
+                  <Detail label="Posisi Magang" value={p.posisi} />
+                  <Detail label="Tempat Lahir" value={p.tempatLahir} />
+                  <Detail label="Tanggal Lahir" value={p.tanggalLahir} />
+                  <Detail label="Jenis Kelamin" value={p.jenisKelamin} />
+                  <Detail label="Email" value={p.email} />
+                  <Detail label="No WhatsApp" value={p.wa} />
+                  <Detail label="Provinsi" value={p.provinsi} />
+                  <Detail label="Kota / Kabupaten" value={p.kota} />
+                  <Detail label="Kecamatan" value={p.kecamatan} />
+                  <Detail label="Kelurahan" value={p.kelurahan} />
+                  <Detail label="Alamat Lengkap" value={p.alamatLengkap} />
+
+                  {p.suratPengantar && (
+                    <a
+                      href={p.suratPengantar}
+                      target="_blank"
+                      className="text-blue-600 text-sm underline mt-2 inline-block"
+                    >
+                      📎 Lihat Surat Pengantar
+                    </a>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <textarea
+              className="w-full border rounded p-2 mt-4"
+              placeholder="Alasan persetujuan / penolakan"
+              value={alasan}
+              onChange={(e) => setAlasan(e.target.value)}
+            />
+
+            <div className="flex justify-end gap-2 mt-4">
+              <button
+                onClick={closeModal}
+                className="px-4 py-2 bg-gray-300 text-gray-800 rounded"
+              >
+                Tutup
               </button>
 
               <button
-                disabled={currentPage === totalPages}
-                onClick={() => setCurrentPage((p) => p + 1)}
-                className="px-3 py-1 text-sm border rounded disabled:opacity-50"
+                onClick={() => updateStatus("Ditolak")}
+                className="px-4 py-2 bg-red-600 text-white rounded"
               >
-                Selanjutnya ▶
+                Tolak
+              </button>
+
+              <button
+                onClick={() => updateStatus("Disetujui")}
+                className="px-4 py-2 bg-green-600 text-white rounded"
+              >
+                Setujui
               </button>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
+  );
+}
+
+/* ===================== COMPONENT ===================== */
+
+function SummaryCard({ title, value }: { title: string; value: number }) {
+  return (
+    <div className="bg-white border rounded-xl p-4 shadow">
+      <p className="text-sm text-gray-500">{title}</p>
+      <h2 className="text-3xl font-bold">{value}</h2>
+    </div>
+  );
+}
+
+function Detail({ label, value }: { label: string; value?: string }) {
+  return (
+    <p className="text-sm">
+      <b>{label}:</b> {value || "-"}
+    </p>
+  );
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const color =
+    status === "Disetujui"
+      ? "bg-green-100 text-green-700"
+      : status === "Ditolak"
+      ? "bg-red-100 text-red-700"
+      : "bg-yellow-100 text-yellow-700";
+
+  return (
+    <span className={`px-3 py-1 rounded-full text-xs ${color}`}>{status}</span>
   );
 }
