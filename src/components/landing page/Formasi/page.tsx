@@ -1,0 +1,143 @@
+"use client";
+
+import Link from "next/link";
+import { HiBriefcase, HiUsers, HiAcademicCap } from "react-icons/hi";
+import { useEffect, useRef, useState } from "react";
+
+const formasiList = [
+  {
+    title: "Analis Laboratorium",
+    divisi: "Laboratorium Pengujian",
+    kuota: "3 Orang",
+    jurusan: "Kimia, Analis Kimia, Farmasi",
+  },
+  {
+    title: "Administrasi Umum",
+    divisi: "Tata Usaha",
+    kuota: "2 Orang",
+    jurusan: "Administrasi, Manajemen, Akuntansi",
+  },
+  {
+    title: "IT Support",
+    divisi: "Sistem Informasi",
+    kuota: "2 Orang",
+    jurusan: "Informatika, Sistem Informasi",
+  },
+  {
+    title: "Humas & Publikasi",
+    divisi: "Informasi & Komunikasi",
+    kuota: "2 Orang",
+    jurusan: "Ilmu Komunikasi, DKV",
+  },
+];
+
+export default function Formasi() {
+  const sectionRef = useRef<HTMLDivElement | null>(null);
+  const [visible, setVisible] = useState(false);
+  const [hasAnimated, setHasAnimated] = useState(false);
+
+  // 🔥 ANIMASI HANYA SEKALI
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !hasAnimated) {
+          setVisible(true);
+          setHasAnimated(true);
+          observer.disconnect(); // ⛔ STOP → ringan
+        }
+      },
+      { threshold: 0.25 }
+    );
+
+    if (sectionRef.current) observer.observe(sectionRef.current);
+    return () => observer.disconnect();
+  }, [hasAnimated]);
+
+  return (
+    <section
+      id="formasi"
+      ref={sectionRef}
+      className="w-full flex justify-center px-4 mt-24"
+    >
+      <div
+        className={`
+          max-w-6xl w-full
+          bg-gradient-to-br from-blue-100/30 via-cyan-100/30 to-emerald-100/30
+          backdrop-blur-xl rounded-3xl shadow-xl
+          px-8 lg:px-14 py-14
+          transition-all duration-700 ease-out
+          ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}
+        `}
+      >
+        {/* HEADER */}
+        <div
+          className={`
+            text-center mb-12
+            transition-all duration-700 delay-100
+            ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}
+          `}
+        >
+          <h2 className="text-3xl lg:text-4xl font-extrabold text-blue-900">
+            Formasi Magang
+          </h2>
+          <p className="text-gray-700 mt-3 max-w-2xl mx-auto">
+            Berikut adalah daftar formasi magang yang tersedia di Balai Besar POM Palembang.
+            Pilih formasi sesuai dengan jurusan dan minat Anda.
+          </p>
+        </div>
+
+        {/* FORMASI GRID */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+          {formasiList.map((item, i) => (
+            <div
+              key={i}
+              style={{ transitionDelay: `${i * 120}ms` }}
+              className={`
+                bg-white/40 backdrop-blur-lg
+                border border-white/50
+                rounded-3xl p-6
+                shadow-md
+                transition-all duration-700 ease-out
+                ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}
+                hover:shadow-xl hover:-translate-y-1
+              `}
+            >
+              <h3 className="text-xl font-bold text-blue-800 mb-3">
+                {item.title}
+              </h3>
+
+              <div className="space-y-2 text-gray-700 text-sm">
+                <p className="flex items-center gap-2">
+                  <HiBriefcase className="text-blue-600" />
+                  <span><b>Divisi:</b> {item.divisi}</span>
+                </p>
+
+                <p className="flex items-center gap-2">
+                  <HiUsers className="text-emerald-600" />
+                  <span><b>Kuota:</b> {item.kuota}</span>
+                </p>
+
+                <p className="flex items-center gap-2">
+                  <HiAcademicCap className="text-cyan-600" />
+                  <span><b>Jurusan:</b> {item.jurusan}</span>
+                </p>
+              </div>
+
+              <Link
+                href="/pendaftaran"
+                className="
+                  mt-6 inline-flex items-center justify-center w-full
+                  py-2.5 rounded-xl font-semibold text-white
+                  bg-gradient-to-r from-blue-600 via-cyan-600 to-emerald-500
+                  hover:opacity-90 transition
+                "
+              >
+                Daftar Formasi
+              </Link>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
