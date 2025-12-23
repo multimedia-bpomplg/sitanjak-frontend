@@ -16,16 +16,16 @@ type Peserta = {
   kecamatan: string;
   kelurahan: string;
   alamatLengkap: string;
-  suratPengantar?: string;
 };
 
 type Pendaftaran = {
   _id: string;
-  email: string;
-  status: "Sedang Diproses" | "Disetujui" | "Ditolak";
-  jawabanAdmin?: string;
+  kategori: "sendiri" | "bersama";
+  jumlahPeserta: number;
   peserta: Peserta[];
-  suratPendaftaran?: string; // ✅ PDF dari form pendaftaran
+  suratPengantar: string;
+  status: "Menunggu" | "Sedang Diproses" | "Disetujui" | "Ditolak";
+  jawabanAdmin?: string;
   createdAt: string;
 };
 
@@ -66,7 +66,10 @@ export default function ViewPendaftaranPage() {
     await fetch(`http://localhost:5000/api/pendaftaran/${selected?._id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status, jawabanAdmin: alasan }),
+      body: JSON.stringify({
+        status,
+        jawabanAdmin: alasan,
+      }),
     });
 
     alert("Status diperbarui");
@@ -118,17 +121,23 @@ export default function ViewPendaftaranPage() {
               data.map((item, i) => (
                 <tr key={item._id} className="border-t hover:bg-gray-50">
                   <td className="px-4 py-3">{i + 1}</td>
+
                   <td className="px-4 py-3 font-medium">
                     {item.peserta[0]?.nama}
                   </td>
-                  <td className="px-4 py-3">{item.email}</td>
+
+                  <td className="px-4 py-3">{item.peserta[0]?.email}</td>
+
                   <td className="px-4 py-3">{item.peserta[0]?.posisi}</td>
+
                   <td className="px-4 py-3">
-                    {item.peserta.length > 1 ? "Bersama" : "Sendiri"}
+                    {item.kategori === "bersama" ? "Bersama" : "Sendiri"}
                   </td>
+
                   <td className="px-4 py-3">
                     <StatusBadge status={item.status} />
                   </td>
+
                   <td className="px-4 py-3 text-center">
                     <button
                       onClick={() => setSelected(item)}
@@ -163,18 +172,16 @@ export default function ViewPendaftaranPage() {
               </button>
             </div>
 
-            {/* ===== PDF PENDAFTARAN ===== */}
-            {selected.suratPendaftaran && (
-              <div className="mb-4">
-                <a
-                  href={selected.suratPendaftaran}
-                  target="_blank"
-                  className="inline-block text-sm text-blue-600 underline"
-                >
-                  📄 Lihat PDF Pendaftaran
-                </a>
-              </div>
-            )}
+            {/* ===== SURAT PENGANTAR ===== */}
+            <div className="mb-4">
+              <a
+                href={`http://localhost:5000/uploads/${selected.suratPengantar}`}
+                target="_blank"
+                className="text-sm text-blue-600 underline"
+              >
+                📎 Lihat Surat Pengantar
+              </a>
+            </div>
 
             <div className="grid md:grid-cols-2 gap-4">
               {selected.peserta.map((p, i) => (
@@ -193,16 +200,6 @@ export default function ViewPendaftaranPage() {
                   <Detail label="Kecamatan" value={p.kecamatan} />
                   <Detail label="Kelurahan" value={p.kelurahan} />
                   <Detail label="Alamat Lengkap" value={p.alamatLengkap} />
-
-                  {p.suratPengantar && (
-                    <a
-                      href={p.suratPengantar}
-                      target="_blank"
-                      className="text-blue-600 text-sm underline mt-2 inline-block"
-                    >
-                      📎 Lihat Surat Pengantar
-                    </a>
-                  )}
                 </div>
               ))}
             </div>
@@ -217,7 +214,7 @@ export default function ViewPendaftaranPage() {
             <div className="flex justify-end gap-2 mt-4">
               <button
                 onClick={closeModal}
-                className="px-4 py-2 bg-gray-300 text-gray-800 rounded"
+                className="px-4 py-2 bg-gray-300 rounded"
               >
                 Tutup
               </button>

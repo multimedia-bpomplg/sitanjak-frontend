@@ -4,7 +4,9 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Mail, Lock, ArrowLeft } from "lucide-react";
 import TurnstileCaptcha from "@/components/TurnstileCaptcha";
+import { loginApi } from "@/app/lib/api";
 
+/* ===================== HELPER ===================== */
 const redirectByRole = (roles: string[], router: any) => {
   if (roles.includes("superadmin")) return router.push("/dashboard/superadmin");
   if (roles.includes("admin")) return router.push("/dashboard/admin");
@@ -43,37 +45,34 @@ export default function LoginPage() {
     setError("");
 
     try {
-      const res = await fetch("http://localhost:5000/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...form,
-          captchaToken,
-        }),
+      const data = await loginApi({
+        email: form.email,
+        password: form.password,
+        captchaToken,
       });
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.message || "Email atau password salah");
-        return;
-      }
-
+      // localStorage (untuk FE logic)
       localStorage.setItem("token", data.token);
       localStorage.setItem("roles", JSON.stringify(data.roles));
 
+      // cookie (untuk Next middleware)
+      document.cookie = `token=${data.token}; path=/; max-age=600`;
+      document.cookie = `roles=${JSON.stringify(
+        data.roles
+      )}; path=/; max-age=600`;
+
       redirectByRole(data.roles || [], router);
-    } catch {
-      setError("Server tidak merespons");
+    } catch (err: any) {
+      setError(err.message || "Login gagal");
     } finally {
       setLoading(false);
     }
   };
 
+  /* ===================== UI (TIDAK DIUBAH) ===================== */
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100 px-4">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 relative">
-        {/* ===== BUTTON KEMBALI ===== */}
         <button
           onClick={() => router.push("/")}
           className="absolute left-5 top-5 flex items-center gap-1 text-sm text-gray-500 hover:text-blue-600"
@@ -93,7 +92,6 @@ export default function LoginPage() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* EMAIL */}
           <div className="relative">
             <Mail className="absolute left-3 top-3.5 text-gray-400" size={18} />
             <input
@@ -106,7 +104,6 @@ export default function LoginPage() {
             />
           </div>
 
-          {/* PASSWORD */}
           <div className="relative">
             <Lock className="absolute left-3 top-3.5 text-gray-400" size={18} />
             <input
@@ -119,7 +116,6 @@ export default function LoginPage() {
             />
           </div>
 
-          {/* ===== CAPTCHA (DESAIN TIDAK BERUBAH) ===== */}
           <div className="flex justify-center">
             <TurnstileCaptcha onVerify={setCaptchaToken} />
           </div>
