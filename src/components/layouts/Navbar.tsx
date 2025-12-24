@@ -14,12 +14,9 @@ export default function Navbar() {
     const onScroll = () => {
       const currentY = window.scrollY;
 
-      // Scroll ke bawah → sembunyikan
       if (currentY > lastY && currentY > 80) {
         setHide(true);
-      }
-      // Scroll ke atas → tampilkan
-      else {
+      } else {
         setHide(false);
       }
 
@@ -29,6 +26,25 @@ export default function Navbar() {
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
   }, [lastY]);
+
+  // ===============================
+  // 🔥 FUNGSI SCROLL + ANIMASI
+  // ===============================
+  const scrollToSection = (id: string) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+
+    const yOffset = -120; // tinggi navbar
+    const y =
+      el.getBoundingClientRect().top + window.pageYOffset + yOffset;
+
+    window.scrollTo({
+      top: y,
+      behavior: "smooth",
+    });
+
+    setOpen(false);
+  };
 
   return (
     <header
@@ -63,25 +79,28 @@ export default function Navbar() {
         {/* MENU DESKTOP */}
         <ul className="hidden md:flex gap-6 text-white font-semibold">
           {[
-            { label: "Home", href: "/#home" },
-            { label: "Profil", href: "/#profil" },
-            { label: "Formasi", href: "/#formasi" },
-            { label: "Manfaat", href: "/#manfaat" },
-            { label: "Peraturan", href: "/#peraturan" },
+            { label: "Home", id: "home" },
+            { label: "Profil", id: "profil" },
+            { label: "Formasi", id: "formasi" },
+            { label: "Manfaat", id: "manfaat" },
+            { label: "Peraturan", id: "peraturan" },
           ].map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
+            <button
+              key={item.id}
+              onClick={() => scrollToSection(item.id)}
               className="hover:text-blue-900 hover:scale-105 transition"
             >
               {item.label}
-            </Link>
+            </button>
           ))}
         </ul>
 
         {/* AUTH */}
         <div className="hidden md:flex gap-3">
-          <Link href="/auth/login" className="flex items-center gap-2 text-white/90 hover:text-blue-900 transition font-semibold">
+          <Link
+            href="/auth/login"
+            className="flex items-center gap-2 text-white/90 hover:text-blue-900 transition font-semibold"
+          >
             <HiOutlineLogin /> Login
           </Link>
           <Link
@@ -106,36 +125,37 @@ export default function Navbar() {
         <div className="absolute top-[90px] w-[90%] bg-gradient-to-b from-blue-500/95 via-teal-400/95 to-emerald-300/95 rounded-2xl p-6 text-white shadow-xl">
           <ul className="flex flex-col space-y-4 font-semibold">
             {[
-              { label: "Home", href: "/#home" },
-              { label: "Profil", href: "/#profil" },
-              { label: "Formasi", href: "/#formasi" },
-              { label: "Manfaat", href: "/#manfaat" },
-              { label: "Peraturan", href: "/#peraturan" },
+              { label: "Home", id: "home" },
+              { label: "Profil", id: "profil" },
+              { label: "Formasi", id: "formasi" },
+              { label: "Manfaat", id: "manfaat" },
+              { label: "Peraturan", id: "peraturan" },
             ].map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setOpen(false)}
-                className="transition hover:text-blue-900 hover:pl-2"
+              <button
+                key={item.id}
+                onClick={() => scrollToSection(item.id)}
+                className="text-left transition hover:text-blue-900 hover:pl-2"
               >
                 {item.label}
-              </Link>
+              </button>
             ))}
           </ul>
 
           <div className="flex space-x-3 mt-6">
             <Link
               href="/auth/login"
-              className="flex items-center justify-center gap-2 border border-white px-4 py-2 rounded-md w-full hover:bg-white hover:text-blue-600 transition font-semibold">
-                <HiOutlineLogin size={18} />
-                Login
+              className="flex items-center justify-center gap-2 border border-white px-4 py-2 rounded-md w-full hover:bg-white hover:text-blue-600 transition font-semibold"
+            >
+              <HiOutlineLogin size={18} />
+              Login
             </Link>
 
             <Link
               href="/pendaftaran"
-              className="flex items-center justify-center gap-2 bg-white px-4 py-2 rounded-md w-full text-blue-700 hover:bg-blue-700 hover:text-white transition font-semibold">
-                <HiUserAdd size={18}/>
-                Daftar
+              className="flex items-center justify-center gap-2 bg-white px-4 py-2 rounded-md w-full text-blue-700 hover:bg-blue-700 hover:text-white transition font-semibold"
+            >
+              <HiUserAdd size={18} />
+              Daftar
             </Link>
           </div>
         </div>

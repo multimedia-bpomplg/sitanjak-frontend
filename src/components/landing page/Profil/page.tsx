@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { HiCheckCircle } from "react-icons/hi";
 
@@ -13,22 +13,55 @@ const tabs = [
 export default function ProfilPage() {
   const [activeTab, setActiveTab] = useState("tugas");
 
+  // 🔥 ANIMASI SEKALI SAJA
+  const sectionRef = useRef<HTMLDivElement | null>(null);
+  const [visible, setVisible] = useState(false);
+  const [hasAnimated, setHasAnimated] = useState(false);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !hasAnimated) {
+          setVisible(true);
+          setHasAnimated(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.25 }
+    );
+
+    if (sectionRef.current) observer.observe(sectionRef.current);
+    return () => observer.disconnect();
+  }, [hasAnimated]);
+
   return (
-    <section id="profil" className="w-full flex justify-center px-4 mt-16">
+    <section
+      id="profil"
+      ref={sectionRef}
+      className="w-full flex justify-center px-4 mt-16"
+    >
       <div
-        className="
+        className={`
           max-w-6xl w-full
           bg-gradient-to-br
           from-blue-100/30 via-cyan-100/30 to-emerald-100/30
           backdrop-blur-xl
           rounded-3xl shadow-xl
           px-8 lg:px-14 py-12
-        "
+          transition-all duration-700 ease-out
+          ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}
+        `}
       >
         {/* HEADER */}
         <div className="flex flex-col lg:flex-row gap-10 items-center">
           {/* TEXT */}
-          <div className="flex-1">
+          <div
+            className={`
+              flex-1
+              transition-all duration-700 delay-100
+              ${visible ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-8"}
+            `}
+          >
             <h1 className="text-3xl lg:text-4xl font-extrabold text-blue-900 leading-tight">
               Balai Besar Pengawas Obat dan Makanan
               <span className="block text-cyan-700">
@@ -60,10 +93,10 @@ export default function ProfilPage() {
             <div className="mt-6 text-gray-700 leading-relaxed">
               {activeTab === "profil" && (
                 <p>
-                  Balai Besar Pengawas Obat dan Makanan (BBPOM) di Bandar Lampung
+                  Balai Besar Pengawas Obat dan Makanan (BBPOM) di Palembang
                   merupakan Unit Pelaksana Teknis Badan POM yang bertugas
-                  melaksanakan pengawasan Obat dan Makanan di wilayah Provinsi
-                  Lampung untuk menjamin keamanan, mutu, dan manfaat produk.
+                  melaksanakan pengawasan Obat dan Makanan untuk menjamin
+                  keamanan, mutu, dan manfaat produk.
                 </p>
               )}
 
@@ -90,8 +123,7 @@ export default function ProfilPage() {
                 <div className="space-y-4">
                   <p>
                     <strong>Visi:</strong> Terwujudnya Obat dan Makanan yang aman,
-                    bermutu, dan berdaya saing untuk meningkatkan kualitas hidup
-                    masyarakat.
+                    bermutu, dan berdaya saing.
                   </p>
                   <p>
                     <strong>Misi:</strong> Meningkatkan sistem pengawasan Obat
@@ -103,9 +135,15 @@ export default function ProfilPage() {
           </div>
 
           {/* IMAGE */}
-          <div className="flex-1 flex justify-center">
+          <div
+            className={`
+              flex-1 flex justify-center
+              transition-all duration-700 delay-200
+              ${visible ? "opacity-100 translate-x-0" : "opacity-0 translate-x-8"}
+            `}
+          >
             <Image
-              src="/images/landing page/foto profil.png" 
+              src="/images/landing page/foto profil.png"
               alt="Ilustrasi Profil"
               width={420}
               height={420}

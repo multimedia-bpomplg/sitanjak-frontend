@@ -7,6 +7,8 @@ import Datastatistik from "@/components/landing page/Datastatistik/page";
 import Manfaat from "@/components/landing page/Manfaat/page";
 import Peraturan from "@/components/landing page/Peraturan/page";
 
+import AnimatedSection from "@/components/ui/AnimatedSection";
+
 export default function HomePage() {
   return (
     <div
@@ -21,12 +23,27 @@ export default function HomePage() {
     >
       <Navbar />
 
-      <HeroSection />
-      <Profil />
-      <Formasi />
+      <AnimatedSection id="home">
+        <HeroSection />
+      </AnimatedSection>
+
+      <AnimatedSection id="profil">
+        <Profil />
+      </AnimatedSection>
+
+      <AnimatedSection id="formasi">
+        <Formasi />
+      </AnimatedSection>
+
       <Datastatistik />
-      <Manfaat />
-      <Peraturan />
+
+      <AnimatedSection id="manfaat">
+        <Manfaat />
+      </AnimatedSection>
+
+      <AnimatedSection id="peraturan">
+        <Peraturan />
+      </AnimatedSection>
 
       <Footer />
     </div>

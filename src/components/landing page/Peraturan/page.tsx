@@ -71,12 +71,15 @@ export default function Peraturan() {
             {peraturanList.map((item, index) => (
               <div
                 key={index}
-                className="relative flex items-start gap-6"
+                className="relative flex gap-6 pl-16"
               >
                 {/* NUMBER / ICON */}
                 <div
                   className="
-                    flex-shrink-0
+                    absolute
+                    left-0
+                    top-1/2
+                    -translate-y-1/2
                     w-12 h-12
                     rounded-xl
                     bg-gradient-to-r from-blue-500 via-cyan-500 to-emerald-500
