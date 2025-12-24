@@ -31,7 +31,7 @@ export default function RootLayout({
           closeOnClick
           pauseOnHover
           draggable
-          theme="colored"
+          theme="light"
         />
       </body>
     </html>

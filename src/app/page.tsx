@@ -16,6 +16,7 @@ export default function HomePage() {
         from-[#E8F8F1]
         via-[#E6FAFA]
         to-[#EEF7FF]
+        pt-28
       "
     >
       <Navbar />

@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
-import { toast } from "react-toastify";
+import { toast, ToastOptions } from "react-toastify";
 import {
   HiUser,
   HiMail,
@@ -9,6 +10,8 @@ import {
   HiBriefcase,
   HiUpload,
   HiLocationMarker,
+  HiArrowLeft, 
+  HiClipboardList,
 } from "react-icons/hi";
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -81,6 +84,10 @@ export default function PendaftaranPage() {
   const [loading, setLoading] = useState(false);
 
   const [errors, setErrors] = useState<Record<string, boolean>>({});
+
+  /* ===== MODAL STATE ===== */
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [pendingSubmit, setPendingSubmit] = useState(false);
 
   /* ================== LOAD PROVINSI ================== */
   useEffect(() => {
@@ -180,17 +187,28 @@ export default function PendaftaranPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-
-  /* ================== SUBMIT ================== */
-  const handleSubmit = async (e: React.FormEvent) => {
+  /* ================== SUBMIT (TRIGGER MODAL) ================== */
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!validateForm()) {
       toast.warning("❗ Mohon lengkapi semua kolom");
       return;
     }
+    setShowConfirm(true);
+  };
 
+  /* ================== SUBMIT ================== */
+  const submitConfirmed = async () => {
+    if (pendingSubmit) return;
+
+    setPendingSubmit(true);
     setLoading(true);
+    setShowConfirm(false);
+
+    // 🔥 TOAST LOADING
+    const toastId = toast.loading("⏳ Mengirim data pendaftaran...", {
+      position: "bottom-right",
+    });
 
     try {
       const formData = new FormData();
@@ -207,24 +225,76 @@ export default function PendaftaranPage() {
       const data = await res.json();
 
       if (res.ok) {
-        toast.success("🔥 Pendaftaran berhasil dikirim!");
+        // ✅ UPDATE TOAST → SUCCESS
+        toast.update(toastId, {
+          render: "✅ Pendaftaran berhasil dikirim!",
+          type: "success",
+          isLoading: false,
+          autoClose: 3000,
+        });
+
+        // 🔄 RESET FORM
         setPeserta([kosong]);
         setSurat(null);
         setJumlah(1);
         setKategori("sendiri");
+        setErrors({});
       } else {
-        toast.error(data.message || "❌ Gagal mengirim pendaftaran");
+        // ❌ UPDATE TOAST → ERROR
+        toast.update(toastId, {
+          render: data.message || "❌ Gagal mengirim pendaftaran",
+          type: "error",
+          isLoading: false,
+          autoClose: 4000,
+        });
       }
-    } catch {
-      toast.error("⚠️ Terjadi kesalahan server");
+    } catch (error) {
+      toast.update(toastId, {
+        render: "⚠️ Terjadi kesalahan server",
+        type: "error",
+        isLoading: false,
+        autoClose: 4000,
+      });
     }
 
     setLoading(false);
+    setPendingSubmit(false);
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-cyan-50 to-emerald-50 py-16 px-4">
       <div className="max-w-6xl mx-auto">
+        {/* BACK TO HOME BUTTON */}
+        <div className="mb-8">
+          <Link
+            href="/"
+            className="
+              inline-flex items-center gap-3
+              px-5 py-2.5
+              rounded-xl
+              bg-white/80 backdrop-blur
+              border border-gray-200
+              text-gray-700 font-medium
+              shadow-sm
+              hover:bg-white hover:border-blue-300
+              hover:text-blue-700
+              hover:shadow-md
+              transition-all duration-200
+            "
+          >
+            <span className="
+              flex items-center justify-center
+              w-8 h-8
+              rounded-lg
+              bg-blue-50 text-blue-600
+            ">
+              <HiArrowLeft className="text-lg" />
+            </span>
+
+            <span>Kembali ke Beranda</span>
+          </Link>
+        </div>
+
         {/* HEADER */}
         <div className="text-center mb-14">
           <h1 className="text-4xl md:text-5xl font-extrabold text-blue-900 tracking-tight">
@@ -239,6 +309,33 @@ export default function PendaftaranPage() {
           <p className="text-sm text-gray-500 mt-2 max-w-2xl mx-auto">
             Pastikan seluruh kolom wajib <span className="text-red-500">*</span> telah diisi.
           </p>
+        </div>
+
+        {/* CEK RIWAYAT */}
+        <div className="max-w-4xl mx-auto mb-10">
+          <div className="bg-white/80 backdrop-blur rounded-2xl shadow-md px-6 py-5
+                          flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+
+            <div>
+              <h3 className="text-base font-semibold text-gray-800">
+                Sudah pernah mendaftar magang?
+              </h3>
+              <p className="text-sm text-gray-500">
+                Anda dapat melihat status dan riwayat pendaftaran yang telah diajukan.
+              </p>
+            </div>
+
+            <Link
+              href="/pendaftaran/riwayat"
+              className="inline-flex items-center gap-2 px-5 py-2.5
+                        rounded-xl text-sm font-semibold
+                        bg-blue-600 text-white
+                        hover:bg-blue-700 transition"
+            >
+              <HiClipboardList className="text-lg" />
+              Lihat Riwayat Pendaftaran
+            </Link>
+          </div>
         </div>
 
         <form
@@ -319,6 +416,7 @@ export default function PendaftaranPage() {
                 <div className={`form-field ${errors[`nama-${i}`] ? "form-error" : ""}`}>
                   <HiUser className="form-icon" />
                   <input
+                    value={peserta[i].nama}
                     placeholder="Masukkan nama lengkap"
                     onChange={(e) => {
                       update(i, "nama", e.target.value);
@@ -342,6 +440,7 @@ export default function PendaftaranPage() {
                 <div className={`form-field ${errors[`posisi-${i}`] ? "form-error" : ""}`}>
                   <HiBriefcase className="form-icon" />
                   <select
+                    value={peserta[i].posisi}
                     onChange={(e) => {
                       update(i, "posisi", e.target.value);
                       setErrors((prev) => ({ ...prev, [`posisi-${i}`]: false }));
@@ -365,6 +464,7 @@ export default function PendaftaranPage() {
                   <div className={`form-field ${errors[`tempatLahir-${i}`] ? "form-error" : ""}`}>
                     <HiLocationMarker className="form-icon" />
                     <input
+                      value={peserta[i].tempatLahir}
                       placeholder="Tempat lahir"
                       onChange={(e) => {
                         update(i, "tempatLahir", e.target.value);
@@ -383,6 +483,7 @@ export default function PendaftaranPage() {
                   <div className={`form-field ${errors[`tanggalLahir-${i}`] ? "form-error" : ""}`}>
                     <input
                       type="date"
+                      value={peserta[i].tanggalLahir}
                       onChange={(e) => {
                         update(i, "tanggalLahir", e.target.value);
                         setErrors((p) => ({ ...p, [`tanggalLahir-${i}`]: false }));
@@ -399,6 +500,7 @@ export default function PendaftaranPage() {
 
                 <div className={`form-field ${errors[`jenisKelamin-${i}`] ? "form-error" : ""}`}>
                   <select
+                    value={peserta[i].jenisKelamin}
                     onChange={(e) => {
                       update(i, "jenisKelamin", e.target.value);
                       setErrors((p) => ({ ...p, [`jenisKelamin-${i}`]: false }));
@@ -421,6 +523,7 @@ export default function PendaftaranPage() {
 
                   <div className={`form-field ${errors[`provinsi-${i}`] ? "form-error" : ""}`}>
                     <select
+                      value={peserta[i].provinsiId}   
                       onChange={(e) => {
                         const o = provinsi.find((x) => x.id === e.target.value);
                         if (o) update(i, "provinsi", o.name, o.id);
@@ -429,7 +532,9 @@ export default function PendaftaranPage() {
                     >
                       <option value="">Pilih Provinsi</option>
                       {provinsi.map((p) => (
-                        <option key={p.id} value={p.id}>{p.name}</option>
+                        <option key={p.id} value={p.id}>
+                          {p.name}
+                        </option>
                       ))}
                     </select>
                   </div>
@@ -443,6 +548,7 @@ export default function PendaftaranPage() {
 
                   <div className={`form-field ${errors[`kota-${i}`] ? "form-error" : ""}`}>
                     <select
+                      value={peserta[i].kotaId}
                       onChange={(e) => {
                         const o = kota.find((x) => x.id === e.target.value);
                         if (o) update(i, "kota", o.name, o.id);
@@ -451,7 +557,9 @@ export default function PendaftaranPage() {
                     >
                       <option value="">Pilih Kota / Kabupaten</option>
                       {kota.map((k) => (
-                        <option key={k.id} value={k.id}>{k.name}</option>
+                        <option key={k.id} value={k.id}>
+                          {k.name}
+                        </option>
                       ))}
                     </select>
                   </div>
@@ -467,6 +575,7 @@ export default function PendaftaranPage() {
 
                   <div className={`form-field ${errors[`kecamatan-${i}`] ? "form-error" : ""}`}>
                     <select
+                      value={peserta[i].kecamatanId}
                       onChange={(e) => {
                         const o = kecamatan.find((x) => x.id === e.target.value);
                         if (o) update(i, "kecamatan", o.name, o.id);
@@ -475,7 +584,9 @@ export default function PendaftaranPage() {
                     >
                       <option value="">Pilih Kecamatan</option>
                       {kecamatan.map((k) => (
-                        <option key={k.id} value={k.id}>{k.name}</option>
+                        <option key={k.id} value={k.id}>
+                          {k.name}
+                        </option>
                       ))}
                     </select>
                   </div>
@@ -493,6 +604,7 @@ export default function PendaftaranPage() {
 
                   <div className={`form-field ${errors[`kelurahan-${i}`] ? "form-error" : ""}`}>
                     <select
+                      value={peserta[i].kelurahan}
                       onChange={(e) => {
                         update(i, "kelurahan", e.target.value);
                         setErrors((p) => ({ ...p, [`kelurahan-${i}`]: false }));
@@ -500,7 +612,9 @@ export default function PendaftaranPage() {
                     >
                       <option value="">Pilih Kelurahan</option>
                       {kelurahan.map((k) => (
-                        <option key={k.id} value={k.name}>{k.name}</option>
+                        <option key={k.id} value={k.name}>
+                          {k.name}
+                        </option>
                       ))}
                     </select>
                   </div>
@@ -520,6 +634,7 @@ export default function PendaftaranPage() {
                   <textarea
                     rows={3}
                     placeholder="Alamat lengkap sesuai domisili"
+                    value={peserta[i].alamatLengkap}
                     onChange={(e) => {
                       update(i, "alamatLengkap", e.target.value);
                       setErrors((p) => ({ ...p, [`alamat-${i}`]: false }));
@@ -536,6 +651,7 @@ export default function PendaftaranPage() {
                 <div className={`form-field ${errors[`email-${i}`] ? "form-error" : ""}`}>
                   <HiMail className="form-icon" />
                   <input
+                    value={peserta[i].email}
                     placeholder="contoh@email.com"
                     onChange={(e) => {
                       update(i, "email", e.target.value);
@@ -553,6 +669,7 @@ export default function PendaftaranPage() {
                 <div className={`form-field ${errors[`wa-${i}`] ? "form-error" : ""}`}>
                   <HiPhone className="form-icon" />
                   <input
+                    value={peserta[i].wa}
                     placeholder="08xxxxxxxxxx"
                     onChange={(e) => {
                       update(i, "wa", e.target.value);
@@ -612,6 +729,52 @@ export default function PendaftaranPage() {
             {loading ? "Mengirim..." : "Kirim Pendaftaran"}
           </button>
         </form>
+
+        {/* ================= MODAL KONFIRMASI ================= */}
+        {showConfirm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <div
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+              onClick={() => setShowConfirm(false)}
+            />
+            <div className="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md animate-scaleIn">
+              <h3 className="text-lg font-bold text-gray-800 mb-2">
+                Konfirmasi Pendaftaran
+              </h3>
+              <p className="text-sm text-gray-600 mb-6">
+                Apakah Anda yakin semua data yang diinput sudah benar?
+                <br />
+                <span className="text-gray-500">
+                  Data tidak dapat diubah setelah dikirim.
+                </span>
+              </p>
+
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setShowConfirm(false)}
+                  className="
+                    px-4 py-2
+                    rounded-lg
+                    border border-gray-300
+                    bg-white
+                    text-gray-700 font-medium
+                    hover:bg-gray-100
+                    hover:text-gray-900
+                    transition
+                  "
+                >
+                  Cek Ulang
+                </button>
+                <button
+                  onClick={submitConfirmed}
+                  className="px-5 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-semibold hover:opacity-90"
+                >
+                  Ya, Kirim
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

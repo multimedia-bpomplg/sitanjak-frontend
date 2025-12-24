@@ -1,77 +1,145 @@
+"use client";
+
+import Image from "next/image";
 import Link from "next/link";
+import { useState, useEffect } from "react";
+import { HiMenu, HiX, HiOutlineLogin, HiUserAdd } from "react-icons/hi";
 
 export default function Navbar() {
+  const [open, setOpen] = useState(false);
+  const [hide, setHide] = useState(false);
+  const [lastY, setLastY] = useState(0);
+
+  useEffect(() => {
+    const onScroll = () => {
+      const currentY = window.scrollY;
+
+      // Scroll ke bawah → sembunyikan
+      if (currentY > lastY && currentY > 80) {
+        setHide(true);
+      }
+      // Scroll ke atas → tampilkan
+      else {
+        setHide(false);
+      }
+
+      setLastY(currentY);
+    };
+
+    window.addEventListener("scroll", onScroll);
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [lastY]);
+
   return (
-    <nav className="bg-white shadow-md">
-      <div className="container mx-auto px-6 py-4 flex justify-between items-center">
-        {/* Logo */}
-        <Link href="/" className="text-2xl font-bold text-blue-700">
-          BPOM Magang
-        </Link>
+    <header
+      className={`
+        fixed left-0 right-0 top-0
+        z-[100]
+        flex justify-center
+        transition-transform duration-500 ease-in-out
+        ${hide ? "-translate-y-[140%]" : "translate-y-4"}
+      `}
+    >
+      <nav
+        className="
+          max-w-6xl w-full
+          mx-4
+          bg-gradient-to-r from-blue-500 via-cyan-600 to-emerald-500
+          backdrop-blur-xl
+          rounded-full shadow-xl
+          px-6 py-3
+          flex items-center justify-between
+        "
+      >
+        {/* LOGO */}
+        <Image
+          src="/images/icons/SIMAGGO.png"
+          alt="SIMAGGO Logo"
+          width={70}
+          height={70}
+          className="rounded-full"
+        />
 
-        {/* Menu */}
-        <div className="space-x-6 flex items-center">
-          <Link
-            href="/"
-            className="text-gray-700 hover:text-blue-600 font-medium"
-          >
-            Home
+        {/* MENU DESKTOP */}
+        <ul className="hidden md:flex gap-6 text-white font-semibold">
+          {[
+            { label: "Home", href: "/#home" },
+            { label: "Profil", href: "/#profil" },
+            { label: "Formasi", href: "/#formasi" },
+            { label: "Manfaat", href: "/#manfaat" },
+            { label: "Peraturan", href: "/#peraturan" },
+          ].map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="hover:text-blue-900 hover:scale-105 transition"
+            >
+              {item.label}
+            </Link>
+          ))}
+        </ul>
+
+        {/* AUTH */}
+        <div className="hidden md:flex gap-3">
+          <Link href="/auth/login" className="flex items-center gap-2 text-white/90 hover:text-blue-900 transition font-semibold">
+            <HiOutlineLogin /> Login
           </Link>
-
-          <Link
-            href="/features"
-            className="text-gray-700 hover:text-blue-600 font-medium"
-          >
-            Fitur
-          </Link>
-
-          {/* Superadmin */}
-          <Link
-            href="/dashboard/superadmin"
-            className="text-gray-700 hover:text-blue-600 font-medium"
-          >
-            Superadmin
-          </Link>
-
-          {/* Admin */}
-          <Link
-            href="/dashboard/admin"
-            className="text-gray-700 hover:text-blue-600 font-medium"
-          >
-            Admin
-          </Link>
-
-          {/* Mentor */}
-          <Link
-            href="/dashboard/mentor"
-            className="text-gray-700 hover:text-blue-600 font-medium"
-          >
-            Mentor
-          </Link>
-
-          {/* Peserta */}
-          <Link
-            href="/dashboard/peserta"
-            className="text-gray-700 hover:text-blue-600 font-medium"
-          >
-            Peserta
-          </Link>
-
           <Link
             href="/pendaftaran"
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className="flex items-center gap-2 bg-emerald-300/90 text-blue-900 px-4 py-1.5 rounded-md hover:bg-white hover:text-blue-700 hover:shadow-md transition font-semibold"
           >
-            Daftar
-          </Link>
-
-          <Link
-            href="/auth/login"
-            className="px-4 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50"
-          >
-            Login
+            <HiUserAdd /> Daftar
           </Link>
         </div>
-      </div>
-    </nav>
+
+        {/* MOBILE BUTTON */}
+        <button
+          onClick={() => setOpen(!open)}
+          className="md:hidden text-white text-3xl"
+        >
+          {open ? <HiX /> : <HiMenu />}
+        </button>
+      </nav>
+
+      {/* MOBILE MENU */}
+      {open && (
+        <div className="absolute top-[90px] w-[90%] bg-gradient-to-b from-blue-500/95 via-teal-400/95 to-emerald-300/95 rounded-2xl p-6 text-white shadow-xl">
+          <ul className="flex flex-col space-y-4 font-semibold">
+            {[
+              { label: "Home", href: "/#home" },
+              { label: "Profil", href: "/#profil" },
+              { label: "Formasi", href: "/#formasi" },
+              { label: "Manfaat", href: "/#manfaat" },
+              { label: "Peraturan", href: "/#peraturan" },
+            ].map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setOpen(false)}
+                className="transition hover:text-blue-900 hover:pl-2"
+              >
+                {item.label}
+              </Link>
+            ))}
+          </ul>
+
+          <div className="flex space-x-3 mt-6">
+            <Link
+              href="/auth/login"
+              className="flex items-center justify-center gap-2 border border-white px-4 py-2 rounded-md w-full hover:bg-white hover:text-blue-600 transition font-semibold">
+                <HiOutlineLogin size={18} />
+                Login
+            </Link>
+
+            <Link
+              href="/pendaftaran"
+              className="flex items-center justify-center gap-2 bg-white px-4 py-2 rounded-md w-full text-blue-700 hover:bg-blue-700 hover:text-white transition font-semibold">
+                <HiUserAdd size={18}/>
+                Daftar
+            </Link>
+          </div>
+        </div>
+      )}
+    </header>
   );
 }
