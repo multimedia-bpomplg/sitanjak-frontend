@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { toast, ToastOptions } from "react-toastify";
+import { useEffect, useState, useRef } from "react";
+import { toast } from "react-toastify";
 import {
   HiUser,
   HiMail,
@@ -10,18 +10,14 @@ import {
   HiBriefcase,
   HiUpload,
   HiLocationMarker,
-  HiArrowLeft, 
+  HiArrowLeft,
   HiClipboardList,
   HiCalendar,
 } from "react-icons/hi";
-import { useRef } from "react";
-
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const waRegex = /^08[0-9]{8,11}$/;
 
-
-/* ================== KONSTANTA ================== */
 const POSISI_MAGANG = [
   "IT / Programmer",
   "Desain Grafis",
@@ -38,10 +34,11 @@ type Wilayah = {
 type Peserta = {
   nama: string;
   posisi: string;
+  tanggalMulaiMagang: string;
+  tanggalSelesaiMagang: string;
   tempatLahir: string;
   tanggalLahir: string;
   jenisKelamin: string;
-
   provinsi: string;
   provinsiId: string;
   kota: string;
@@ -49,36 +46,38 @@ type Peserta = {
   kecamatan: string;
   kecamatanId: string;
   kelurahan: string;
-
   alamatLengkap: string;
   email: string;
   wa: string;
 };
 
+/* ================== FACTORY ================== */
+const buatPesertaKosong = (): Peserta => ({
+  nama: "",
+  posisi: "",
+  tanggalMulaiMagang: "",
+  tanggalSelesaiMagang: "",
+  tempatLahir: "",
+  tanggalLahir: "",
+  jenisKelamin: "",
+  provinsi: "",
+  provinsiId: "",
+  kota: "",
+  kotaId: "",
+  kecamatan: "",
+  kecamatanId: "",
+  kelurahan: "",
+  alamatLengkap: "",
+  email: "",
+  wa: "",
+});
+
 export default function PendaftaranPage() {
   const dateRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
-  const kosong: Peserta = {
-    nama: "",
-    posisi: "",
-    tempatLahir: "",
-    tanggalLahir: "",
-    jenisKelamin: "",
-    provinsi: "",
-    provinsiId: "",
-    kota: "",
-    kotaId: "",
-    kecamatan: "",
-    kecamatanId: "",
-    kelurahan: "",
-    alamatLengkap: "",
-    email: "",
-    wa: "",
-  };
-
   const [kategori, setKategori] = useState<"sendiri" | "bersama">("sendiri");
   const [jumlah, setJumlah] = useState(1);
-  const [peserta, setPeserta] = useState<Peserta[]>([kosong]);
+  const [peserta, setPeserta] = useState<Peserta[]>([buatPesertaKosong()]);
   const [surat, setSurat] = useState<File | null>(null);
 
   const [provinsi, setProvinsi] = useState<Wilayah[]>([]);
@@ -87,10 +86,7 @@ export default function PendaftaranPage() {
   const [kelurahan, setKelurahan] = useState<Wilayah[]>([]);
 
   const [loading, setLoading] = useState(false);
-
   const [errors, setErrors] = useState<Record<string, boolean>>({});
-
-  /* ===== MODAL STATE ===== */
   const [showConfirm, setShowConfirm] = useState(false);
   const [pendingSubmit, setPendingSubmit] = useState(false);
 
@@ -108,15 +104,14 @@ export default function PendaftaranPage() {
     value: string,
     id?: string
   ) => {
-    const data = [...peserta];
-    (data[i] as any)[key] = value;
-    if (id) (data[i] as any)[`${key}Id`] = id;
+    setPeserta((prev) => {
+      const data = [...prev];
+      data[i] = { ...data[i], [key]: value };
+      if (id) (data[i] as any)[`${key}Id`] = id;
+      return data;
+    });
 
-    if (key === "provinsi") {
-      data[i].kota = "";
-      data[i].kecamatan = "";
-      data[i].kelurahan = "";
-
+    if (key === "provinsi" && id) {
       const res = await fetch(
         `https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${id}.json`
       );
@@ -125,10 +120,7 @@ export default function PendaftaranPage() {
       setKelurahan([]);
     }
 
-    if (key === "kota") {
-      data[i].kecamatan = "";
-      data[i].kelurahan = "";
-
+    if (key === "kota" && id) {
       const res = await fetch(
         `https://www.emsifa.com/api-wilayah-indonesia/api/districts/${id}.json`
       );
@@ -136,23 +128,22 @@ export default function PendaftaranPage() {
       setKelurahan([]);
     }
 
-    if (key === "kecamatan") {
-      data[i].kelurahan = "";
-
+    if (key === "kecamatan" && id) {
       const res = await fetch(
         `https://www.emsifa.com/api-wilayah-indonesia/api/villages/${id}.json`
       );
       setKelurahan(await res.json());
     }
-
-    setPeserta(data);
   };
 
   const ubahJumlah = (n: number) => {
     setJumlah(n);
-    setPeserta(Array.from({ length: n }).map((_, i) => peserta[i] || kosong));
+    setPeserta((prev) =>
+      Array.from({ length: n }).map((_, i) => prev[i] ?? buatPesertaKosong())
+    );
   };
 
+  /* ================== VALIDASI (TAMBAHAN) ================== */
   const validateForm = () => {
     const newErrors: Record<string, boolean> = {};
 
@@ -160,59 +151,43 @@ export default function PendaftaranPage() {
       if (!p.nama) newErrors[`nama-${i}`] = true;
       if (!p.posisi) newErrors[`posisi-${i}`] = true;
       if (!p.tanggalMulaiMagang) newErrors[`tanggalMulaiMagang-${i}`] = true;
-      if (!p.tanggalSelesaiMagang) newErrors[`tanggalSelesaiMagang-${i}`] = true;
-      if (
-        p.tanggalMulaiMagang &&
-        p.tanggalSelesaiMagang &&
-        p.tanggalSelesaiMagang < p.tanggalMulaiMagang
-      ) {
+      if (!p.tanggalSelesaiMagang)
         newErrors[`tanggalSelesaiMagang-${i}`] = true;
-        toast.error(`❌ Tanggal selesai harus setelah tanggal mulai (Peserta ${i + 1})`);
-      }
       if (!p.tempatLahir) newErrors[`tempatLahir-${i}`] = true;
       if (!p.tanggalLahir) newErrors[`tanggalLahir-${i}`] = true;
       if (!p.jenisKelamin) newErrors[`jenisKelamin-${i}`] = true;
-
       if (!p.provinsi) newErrors[`provinsi-${i}`] = true;
       if (!p.kota) newErrors[`kota-${i}`] = true;
       if (!p.kecamatan) newErrors[`kecamatan-${i}`] = true;
       if (!p.kelurahan) newErrors[`kelurahan-${i}`] = true;
-
       if (!p.alamatLengkap) newErrors[`alamat-${i}`] = true;
-      if (!p.email) {
-        newErrors[`email-${i}`] = true;
-      } else if (!emailRegex.test(p.email)) {
-        newErrors[`email-${i}`] = true;
-        toast.error(`❌ Email Peserta ${i + 1} tidak valid`);
-      }
 
-      if (!p.wa) {
-        newErrors[`wa-${i}`] = true;
-      } else if (!waRegex.test(p.wa)) {
-        newErrors[`wa-${i}`] = true;
-        toast.error(
-          `❌ Nomor WhatsApp Peserta ${i + 1} harus diawali 08 & valid`
-        );
-      }
+      if (!p.email || !emailRegex.test(p.email)) newErrors[`email-${i}`] = true;
+
+      if (!p.wa || !waRegex.test(p.wa)) newErrors[`wa-${i}`] = true;
     });
 
     if (!surat) newErrors["surat"] = true;
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
 
-  /* ================== SUBMIT (TRIGGER MODAL) ================== */
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateForm()) {
-      toast.warning("❗ Mohon lengkapi semua kolom");
-      return;
+    if (Object.keys(newErrors).length > 0) {
+      toast.error("❗ Mohon lengkapi semua kolom wajib", {
+        autoClose: 3000,
+      });
+      return false;
     }
-    setShowConfirm(true);
+
+    return true;
   };
 
   /* ================== SUBMIT ================== */
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+    setShowConfirm(true);
+  };
+
   const submitConfirmed = async () => {
     if (pendingSubmit) return;
 
@@ -220,10 +195,7 @@ export default function PendaftaranPage() {
     setLoading(true);
     setShowConfirm(false);
 
-    // 🔥 TOAST LOADING
-    const toastId = toast.loading("⏳ Mengirim data pendaftaran...", {
-      position: "bottom-right",
-    });
+    const toastId = toast.loading("⏳ Mengirim data pendaftaran...");
 
     try {
       const formData = new FormData();
@@ -237,10 +209,7 @@ export default function PendaftaranPage() {
         body: formData,
       });
 
-      const data = await res.json();
-
       if (res.ok) {
-        // ✅ UPDATE TOAST → SUCCESS
         toast.update(toastId, {
           render: "✅ Pendaftaran berhasil dikirim!",
           type: "success",
@@ -248,27 +217,25 @@ export default function PendaftaranPage() {
           autoClose: 3000,
         });
 
-        // 🔄 RESET FORM
-        setPeserta([kosong]);
-        setSurat(null);
+        setPeserta([buatPesertaKosong()]);
         setJumlah(1);
         setKategori("sendiri");
+        setSurat(null);
         setErrors({});
       } else {
-        // ❌ UPDATE TOAST → ERROR
         toast.update(toastId, {
-          render: data.message || "❌ Gagal mengirim pendaftaran",
+          render: "❌ Gagal mengirim pendaftaran",
           type: "error",
           isLoading: false,
-          autoClose: 4000,
+          autoClose: 3000,
         });
       }
-    } catch (error) {
+    } catch {
       toast.update(toastId, {
         render: "⚠️ Terjadi kesalahan server",
         type: "error",
         isLoading: false,
-        autoClose: 4000,
+        autoClose: 3000,
       });
     }
 
@@ -284,25 +251,27 @@ export default function PendaftaranPage() {
           <Link
             href="/"
             className="
-              inline-flex items-center gap-3
-              px-5 py-2.5
-              rounded-xl
-              bg-white/80 backdrop-blur
-              border border-gray-200
-              text-gray-700 font-medium
-              shadow-sm
-              hover:bg-white hover:border-blue-300
-              hover:text-blue-700
-              hover:shadow-md
-              transition-all duration-200
-            "
+                inline-flex items-center gap-3
+                px-5 py-2.5
+                rounded-xl
+                bg-white/80 backdrop-blur
+                border border-gray-200
+                text-gray-700 font-medium
+                shadow-sm
+                hover:bg-white hover:border-blue-300
+                hover:text-blue-700
+                hover:shadow-md
+                transition-all duration-200
+              "
           >
-            <span className="
-              flex items-center justify-center
-              w-8 h-8
-              rounded-lg
-              bg-blue-50 text-blue-600
-            ">
+            <span
+              className="
+                flex items-center justify-center
+                w-8 h-8
+                rounded-lg
+                bg-blue-50 text-blue-600
+              "
+            >
               <HiArrowLeft className="text-lg" />
             </span>
 
@@ -317,35 +286,38 @@ export default function PendaftaranPage() {
           </h1>
 
           <p className="text-gray-600 mt-3 text-lg">
-            Silakan lengkapi data di bawah ini dengan informasi yang benar dan dapat
-            dipertanggungjawabkan.
+            Silakan lengkapi data di bawah ini dengan informasi yang benar dan
+            dapat dipertanggungjawabkan.
           </p>
 
           <p className="text-sm text-gray-500 mt-2 max-w-2xl mx-auto">
-            Pastikan seluruh kolom wajib <span className="text-red-500">*</span> telah diisi.
+            Pastikan seluruh kolom wajib <span className="text-red-500">*</span>{" "}
+            telah diisi.
           </p>
         </div>
 
         {/* CEK RIWAYAT */}
         <div className="max-w-4xl mx-auto mb-10">
-          <div className="bg-white/80 backdrop-blur rounded-2xl shadow-md px-6 py-5
-                          flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-
+          <div
+            className="bg-white/80 backdrop-blur rounded-2xl shadow-md px-6 py-5
+                            flex flex-col md:flex-row md:items-center md:justify-between gap-4"
+          >
             <div>
               <h3 className="text-base font-semibold text-gray-800">
                 Sudah pernah mendaftar magang?
               </h3>
               <p className="text-sm text-gray-500">
-                Anda dapat melihat status dan riwayat pendaftaran yang telah diajukan.
+                Anda dapat melihat status dan riwayat pendaftaran yang telah
+                diajukan.
               </p>
             </div>
 
             <Link
               href="/pendaftaran/riwayat"
               className="inline-flex items-center gap-2 px-5 py-2.5
-                        rounded-xl text-sm font-semibold
-                        bg-blue-600 text-white
-                        hover:bg-blue-700 transition"
+                          rounded-xl text-sm font-semibold
+                          bg-blue-600 text-white
+                          hover:bg-blue-700 transition"
             >
               <HiClipboardList className="text-lg" />
               Lihat Riwayat Pendaftaran
@@ -364,7 +336,8 @@ export default function PendaftaranPage() {
             </h2>
 
             <p className="text-sm text-gray-500">
-              Pilih kategori pendaftaran dan jumlah peserta yang akan mengikuti program magang.
+              Pilih kategori pendaftaran dan jumlah peserta yang akan mengikuti
+              program magang.
             </p>
 
             <div className="grid md:grid-cols-2 gap-6">
@@ -428,7 +401,11 @@ export default function PendaftaranPage() {
                   Nama Lengkap <span className="text-red-500">*</span>
                 </label>
 
-                <div className={`form-field ${errors[`nama-${i}`] ? "form-error" : ""}`}>
+                <div
+                  className={`form-field ${
+                    errors[`nama-${i}`] ? "form-error" : ""
+                  }`}
+                >
                   <HiUser className="form-icon" />
                   <input
                     value={peserta[i].nama}
@@ -452,13 +429,20 @@ export default function PendaftaranPage() {
                   Posisi Magang <span className="text-red-500">*</span>
                 </label>
 
-                <div className={`form-field ${errors[`posisi-${i}`] ? "form-error" : ""}`}>
+                <div
+                  className={`form-field ${
+                    errors[`posisi-${i}`] ? "form-error" : ""
+                  }`}
+                >
                   <HiBriefcase className="form-icon" />
                   <select
                     value={peserta[i].posisi}
                     onChange={(e) => {
                       update(i, "posisi", e.target.value);
-                      setErrors((prev) => ({ ...prev, [`posisi-${i}`]: false }));
+                      setErrors((prev) => ({
+                        ...prev,
+                        [`posisi-${i}`]: false,
+                      }));
                     }}
                   >
                     <option value="">Pilih Posisi Magang</option>
@@ -476,14 +460,21 @@ export default function PendaftaranPage() {
                     Tanggal Mulai Magang <span className="text-red-500">*</span>
                   </label>
 
-                  <div className={`form-field pr-10 relative ${errors[`tanggalMulaiMagang-${i}`] ? "form-error" : ""}`}>
+                  <div
+                    className={`form-field pr-10 relative ${
+                      errors[`tanggalMulaiMagang-${i}`] ? "form-error" : ""
+                    }`}
+                  >
                     <input
                       type="date"
                       ref={(el) => (dateRefs.current[`mulai-${i}`] = el)}
                       value={peserta[i].tanggalMulaiMagang}
                       onChange={(e) => {
                         update(i, "tanggalMulaiMagang", e.target.value);
-                        setErrors((p) => ({ ...p, [`tanggalMulaiMagang-${i}`]: false }));
+                        setErrors((p) => ({
+                          ...p,
+                          [`tanggalMulaiMagang-${i}`]: false,
+                        }));
                       }}
                     />
 
@@ -494,8 +485,8 @@ export default function PendaftaranPage() {
                         dateRefs.current[`mulai-${i}`]?.focus()
                       }
                       className="absolute right-3 top-1/2 -translate-y-1/2
-                                text-blue-600 hover:text-blue-800
-                                p-1 rounded-md hover:bg-blue-50 transition"
+                                  text-blue-600 hover:text-blue-800
+                                  p-1 rounded-md hover:bg-blue-50 transition"
                     >
                       <HiCalendar />
                     </button>
@@ -505,17 +496,25 @@ export default function PendaftaranPage() {
                 {/* Tanggal Perkiraan Selesai */}
                 <div>
                   <label className="text-sm font-medium text-gray-700 mb-1 block">
-                    Tanggal Perkiraan Selesai <span className="text-red-500">*</span>
+                    Tanggal Perkiraan Selesai{" "}
+                    <span className="text-red-500">*</span>
                   </label>
 
-                  <div className={`form-field pr-10 relative ${errors[`tanggalSelesaiMagang-${i}`] ? "form-error" : ""}`}>
+                  <div
+                    className={`form-field pr-10 relative ${
+                      errors[`tanggalSelesaiMagang-${i}`] ? "form-error" : ""
+                    }`}
+                  >
                     <input
                       type="date"
                       ref={(el) => (dateRefs.current[`selesai-${i}`] = el)}
                       value={peserta[i].tanggalSelesaiMagang}
                       onChange={(e) => {
                         update(i, "tanggalSelesaiMagang", e.target.value);
-                        setErrors((p) => ({ ...p, [`tanggalSelesaiMagang-${i}`]: false }));
+                        setErrors((p) => ({
+                          ...p,
+                          [`tanggalSelesaiMagang-${i}`]: false,
+                        }));
                       }}
                     />
 
@@ -526,8 +525,8 @@ export default function PendaftaranPage() {
                         dateRefs.current[`selesai-${i}`]?.focus()
                       }
                       className="absolute right-3 top-1/2 -translate-y-1/2
-                                text-blue-600 hover:text-blue-800
-                                p-1 rounded-md hover:bg-blue-50 transition"
+                                  text-blue-600 hover:text-blue-800
+                                  p-1 rounded-md hover:bg-blue-50 transition"
                     >
                       <HiCalendar />
                     </button>
@@ -542,14 +541,21 @@ export default function PendaftaranPage() {
                     Tempat Lahir <span className="text-red-500">*</span>
                   </label>
 
-                  <div className={`form-field ${errors[`tempatLahir-${i}`] ? "form-error" : ""}`}>
+                  <div
+                    className={`form-field ${
+                      errors[`tempatLahir-${i}`] ? "form-error" : ""
+                    }`}
+                  >
                     <HiLocationMarker className="form-icon" />
                     <input
                       value={peserta[i].tempatLahir}
                       placeholder="Tempat lahir"
                       onChange={(e) => {
                         update(i, "tempatLahir", e.target.value);
-                        setErrors((p) => ({ ...p, [`tempatLahir-${i}`]: false }));
+                        setErrors((p) => ({
+                          ...p,
+                          [`tempatLahir-${i}`]: false,
+                        }));
                       }}
                     />
                   </div>
@@ -561,14 +567,21 @@ export default function PendaftaranPage() {
                     Tanggal Lahir <span className="text-red-500">*</span>
                   </label>
 
-                  <div className={`form-field pr-10 relative ${errors[`tanggalLahir-${i}`] ? "form-error" : ""}`}>
+                  <div
+                    className={`form-field pr-10 relative ${
+                      errors[`tanggalLahir-${i}`] ? "form-error" : ""
+                    }`}
+                  >
                     <input
                       type="date"
                       ref={(el) => (dateRefs.current[`lahir-${i}`] = el)}
                       value={peserta[i].tanggalLahir}
                       onChange={(e) => {
                         update(i, "tanggalLahir", e.target.value);
-                        setErrors((p) => ({ ...p, [`tanggalLahir-${i}`]: false }));
+                        setErrors((p) => ({
+                          ...p,
+                          [`tanggalLahir-${i}`]: false,
+                        }));
                       }}
                     />
 
@@ -579,8 +592,8 @@ export default function PendaftaranPage() {
                         dateRefs.current[`lahir-${i}`]?.focus()
                       }
                       className="absolute right-3 top-1/2 -translate-y-1/2
-                                text-blue-600 hover:text-blue-800
-                                p-1 rounded-md hover:bg-blue-50 transition"
+                                  text-blue-600 hover:text-blue-800
+                                  p-1 rounded-md hover:bg-blue-50 transition"
                     >
                       <HiCalendar />
                     </button>
@@ -593,12 +606,19 @@ export default function PendaftaranPage() {
                   Jenis Kelamin <span className="text-red-500">*</span>
                 </label>
 
-                <div className={`form-field ${errors[`jenisKelamin-${i}`] ? "form-error" : ""}`}>
+                <div
+                  className={`form-field ${
+                    errors[`jenisKelamin-${i}`] ? "form-error" : ""
+                  }`}
+                >
                   <select
                     value={peserta[i].jenisKelamin}
                     onChange={(e) => {
                       update(i, "jenisKelamin", e.target.value);
-                      setErrors((p) => ({ ...p, [`jenisKelamin-${i}`]: false }));
+                      setErrors((p) => ({
+                        ...p,
+                        [`jenisKelamin-${i}`]: false,
+                      }));
                     }}
                   >
                     <option value="">Pilih Jenis Kelamin</option>
@@ -616,9 +636,13 @@ export default function PendaftaranPage() {
                     Provinsi <span className="text-red-500">*</span>
                   </label>
 
-                  <div className={`form-field ${errors[`provinsi-${i}`] ? "form-error" : ""}`}>
+                  <div
+                    className={`form-field ${
+                      errors[`provinsi-${i}`] ? "form-error" : ""
+                    }`}
+                  >
                     <select
-                      value={peserta[i].provinsiId}   
+                      value={peserta[i].provinsiId}
                       onChange={(e) => {
                         const o = provinsi.find((x) => x.id === e.target.value);
                         if (o) update(i, "provinsi", o.name, o.id);
@@ -641,7 +665,11 @@ export default function PendaftaranPage() {
                     Kota / Kabupaten <span className="text-red-500">*</span>
                   </label>
 
-                  <div className={`form-field ${errors[`kota-${i}`] ? "form-error" : ""}`}>
+                  <div
+                    className={`form-field ${
+                      errors[`kota-${i}`] ? "form-error" : ""
+                    }`}
+                  >
                     <select
                       value={peserta[i].kotaId}
                       onChange={(e) => {
@@ -668,11 +696,17 @@ export default function PendaftaranPage() {
                     Kecamatan <span className="text-red-500">*</span>
                   </label>
 
-                  <div className={`form-field ${errors[`kecamatan-${i}`] ? "form-error" : ""}`}>
+                  <div
+                    className={`form-field ${
+                      errors[`kecamatan-${i}`] ? "form-error" : ""
+                    }`}
+                  >
                     <select
                       value={peserta[i].kecamatanId}
                       onChange={(e) => {
-                        const o = kecamatan.find((x) => x.id === e.target.value);
+                        const o = kecamatan.find(
+                          (x) => x.id === e.target.value
+                        );
                         if (o) update(i, "kecamatan", o.name, o.id);
                         setErrors((p) => ({ ...p, [`kecamatan-${i}`]: false }));
                       }}
@@ -687,7 +721,9 @@ export default function PendaftaranPage() {
                   </div>
 
                   {errors[`kecamatan-${i}`] && (
-                    <p className="text-xs text-red-500 mt-1">Kecamatan wajib dipilih</p>
+                    <p className="text-xs text-red-500 mt-1">
+                      Kecamatan wajib dipilih
+                    </p>
                   )}
                 </div>
 
@@ -697,7 +733,11 @@ export default function PendaftaranPage() {
                     Kelurahan <span className="text-red-500">*</span>
                   </label>
 
-                  <div className={`form-field ${errors[`kelurahan-${i}`] ? "form-error" : ""}`}>
+                  <div
+                    className={`form-field ${
+                      errors[`kelurahan-${i}`] ? "form-error" : ""
+                    }`}
+                  >
                     <select
                       value={peserta[i].kelurahan}
                       onChange={(e) => {
@@ -715,7 +755,9 @@ export default function PendaftaranPage() {
                   </div>
 
                   {errors[`kelurahan-${i}`] && (
-                    <p className="text-xs text-red-500 mt-1">Kelurahan wajib dipilih</p>
+                    <p className="text-xs text-red-500 mt-1">
+                      Kelurahan wajib dipilih
+                    </p>
                   )}
                 </div>
               </div>
@@ -725,7 +767,11 @@ export default function PendaftaranPage() {
                   Alamat Lengkap <span className="text-red-500">*</span>
                 </label>
 
-                <div className={`form-field ${errors[`alamat-${i}`] ? "form-error" : ""}`}>
+                <div
+                  className={`form-field ${
+                    errors[`alamat-${i}`] ? "form-error" : ""
+                  }`}
+                >
                   <textarea
                     rows={3}
                     placeholder="Alamat lengkap sesuai domisili"
@@ -743,7 +789,11 @@ export default function PendaftaranPage() {
                   Email <span className="text-red-500">*</span>
                 </label>
 
-                <div className={`form-field ${errors[`email-${i}`] ? "form-error" : ""}`}>
+                <div
+                  className={`form-field ${
+                    errors[`email-${i}`] ? "form-error" : ""
+                  }`}
+                >
                   <HiMail className="form-icon" />
                   <input
                     value={peserta[i].email}
@@ -761,7 +811,11 @@ export default function PendaftaranPage() {
                   No WhatsApp <span className="text-red-500">*</span>
                 </label>
 
-                <div className={`form-field ${errors[`wa-${i}`] ? "form-error" : ""}`}>
+                <div
+                  className={`form-field ${
+                    errors[`wa-${i}`] ? "form-error" : ""
+                  }`}
+                >
                   <HiPhone className="form-icon" />
                   <input
                     value={peserta[i].wa}
@@ -789,8 +843,12 @@ export default function PendaftaranPage() {
 
             <label
               className={`flex items-center justify-between px-4 py-4 border-2 border-dashed rounded-xl cursor-pointer
-                ${errors["surat"] ? "border-red-500 bg-red-50" : "border-gray-300 hover:border-blue-400"}
-              `}
+                  ${
+                    errors["surat"]
+                      ? "border-red-500 bg-red-50"
+                      : "border-gray-300 hover:border-blue-400"
+                  }
+                `}
             >
               <span className="text-gray-600">
                 {surat ? surat.name : "Klik untuk upload surat pengantar"}
@@ -818,8 +876,8 @@ export default function PendaftaranPage() {
             type="submit"
             disabled={loading}
             className="w-full py-4 rounded-xl text-white font-semibold text-lg
-              bg-gradient-to-r from-blue-600 via-cyan-600 to-emerald-500
-              hover:scale-[1.02] transition disabled:opacity-60"
+                bg-gradient-to-r from-blue-600 via-cyan-600 to-emerald-500
+                hover:scale-[1.02] transition disabled:opacity-60"
           >
             {loading ? "Mengirim..." : "Kirim Pendaftaran"}
           </button>
@@ -848,15 +906,15 @@ export default function PendaftaranPage() {
                 <button
                   onClick={() => setShowConfirm(false)}
                   className="
-                    px-4 py-2
-                    rounded-lg
-                    border border-gray-300
-                    bg-white
-                    text-gray-700 font-medium
-                    hover:bg-gray-100
-                    hover:text-gray-900
-                    transition
-                  "
+                      px-4 py-2
+                      rounded-lg
+                      border border-gray-300
+                      bg-white
+                      text-gray-700 font-medium
+                      hover:bg-gray-100
+                      hover:text-gray-900
+                      transition
+                    "
                 >
                   Cek Ulang
                 </button>

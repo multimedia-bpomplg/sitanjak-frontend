@@ -8,6 +8,11 @@ type Peserta = {
   email: string;
   wa: string;
   posisi: string;
+
+  // ✅ TAMBAHAN (TANGGAL MAGANG)
+  tanggalMulaiMagang: string;
+  tanggalSelesaiMagang: string;
+
   tempatLahir: string;
   tanggalLahir: string;
   jenisKelamin: string;
@@ -121,23 +126,17 @@ export default function ViewPendaftaranPage() {
               data.map((item, i) => (
                 <tr key={item._id} className="border-t hover:bg-gray-50">
                   <td className="px-4 py-3">{i + 1}</td>
-
                   <td className="px-4 py-3 font-medium">
                     {item.peserta[0]?.nama}
                   </td>
-
                   <td className="px-4 py-3">{item.peserta[0]?.email}</td>
-
                   <td className="px-4 py-3">{item.peserta[0]?.posisi}</td>
-
                   <td className="px-4 py-3">
                     {item.kategori === "bersama" ? "Bersama" : "Sendiri"}
                   </td>
-
                   <td className="px-4 py-3">
                     <StatusBadge status={item.status} />
                   </td>
-
                   <td className="px-4 py-3 text-center">
                     <button
                       onClick={() => setSelected(item)}
@@ -172,63 +171,165 @@ export default function ViewPendaftaranPage() {
               </button>
             </div>
 
-            {/* ===== SURAT PENGANTAR ===== */}
-            <div className="mb-4">
-              <a
-                href={`http://localhost:5000/uploads/${selected.suratPengantar}`}
-                target="_blank"
-                className="text-sm text-blue-600 underline"
-              >
-                📎 Lihat Surat Pengantar
-              </a>
+            {/* ===================== SURAT PENGANTAR ===================== */}
+            <div className="mb-6">
+              <div className="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-xl px-5 py-4">
+                <div>
+                  <p className="text-sm text-gray-500">Surat Pengantar</p>
+                  <p className="text-base font-semibold text-gray-800">
+                    File Surat Pengantar Magang
+                  </p>
+                </div>
+
+                <a
+                  href={`http://localhost:5000/uploads/${selected.suratPengantar}`}
+                  target="_blank"
+                  className="
+        inline-flex items-center gap-2
+        px-4 py-2
+        rounded-lg
+        bg-blue-600 text-white
+        text-sm font-semibold
+        hover:bg-blue-700
+        transition
+      "
+                >
+                  📎 Lihat Surat
+                </a>
+              </div>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-4">
+            {/* ===================== DATA PESERTA ===================== */}
+            <div className="grid md:grid-cols-2 gap-6">
               {selected.peserta.map((p, i) => (
-                <div key={i} className="border rounded-lg p-4 bg-gray-50">
-                  <h3 className="font-semibold mb-2">Peserta {i + 1}</h3>
+                <div
+                  key={i}
+                  className="
+        bg-white
+        border border-gray-200
+        rounded-2xl
+        shadow-sm
+        p-6
+      "
+                >
+                  {/* HEADER PESERTA */}
+                  <div className="mb-4 flex items-center justify-between">
+                    <h3 className="text-lg font-semibold text-blue-700">
+                      Peserta {i + 1}
+                    </h3>
 
-                  <Detail label="Nama Lengkap" value={p.nama} />
-                  <Detail label="Posisi Magang" value={p.posisi} />
-                  <Detail label="Tempat Lahir" value={p.tempatLahir} />
-                  <Detail label="Tanggal Lahir" value={p.tanggalLahir} />
-                  <Detail label="Jenis Kelamin" value={p.jenisKelamin} />
-                  <Detail label="Email" value={p.email} />
-                  <Detail label="No WhatsApp" value={p.wa} />
-                  <Detail label="Provinsi" value={p.provinsi} />
-                  <Detail label="Kota / Kabupaten" value={p.kota} />
-                  <Detail label="Kecamatan" value={p.kecamatan} />
-                  <Detail label="Kelurahan" value={p.kelurahan} />
-                  <Detail label="Alamat Lengkap" value={p.alamatLengkap} />
+                    <span className="text-xs px-3 py-1 rounded-full bg-blue-100 text-blue-700 font-medium">
+                      {p.posisi}
+                    </span>
+                  </div>
+
+                  {/* INFORMASI UTAMA */}
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+                    <DetailItem label="Nama Lengkap" value={p.nama} />
+                    <DetailItem label="Jenis Kelamin" value={p.jenisKelamin} />
+
+                    <DetailItem
+                      label="Tanggal Mulai Magang"
+                      value={p.tanggalMulaiMagang}
+                    />
+                    <DetailItem
+                      label="Tanggal Selesai Magang"
+                      value={p.tanggalSelesaiMagang}
+                    />
+
+                    <DetailItem label="Tempat Lahir" value={p.tempatLahir} />
+                    <DetailItem label="Tanggal Lahir" value={p.tanggalLahir} />
+
+                    <DetailItem label="Email" value={p.email} />
+                    <DetailItem label="No WhatsApp" value={p.wa} />
+                  </div>
+
+                  {/* ALAMAT */}
+                  <div className="mt-4 border-t pt-4">
+                    <p className="text-xs text-gray-500 mb-1">Alamat Lengkap</p>
+                    <p className="text-sm text-gray-800 leading-relaxed">
+                      {p.alamatLengkap}
+                    </p>
+
+                    <p className="text-xs text-gray-500 mt-2">
+                      {p.kelurahan}, {p.kecamatan}, {p.kota}, {p.provinsi}
+                    </p>
+                  </div>
                 </div>
               ))}
             </div>
 
-            <textarea
-              className="w-full border rounded p-2 mt-4"
-              placeholder="Alasan persetujuan / penolakan"
-              value={alasan}
-              onChange={(e) => setAlasan(e.target.value)}
-            />
+            {/* ===================== ALASAN ADMIN ===================== */}
+            <div className="mt-6">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Alasan Persetujuan / Penolakan
+              </label>
 
-            <div className="flex justify-end gap-2 mt-4">
+              <textarea
+                rows={4}
+                className="
+      w-full
+      rounded-xl
+      border border-gray-300
+      bg-white
+      px-4 py-3
+      text-sm text-gray-800
+      placeholder-gray-400
+      shadow-sm
+      focus:border-blue-500
+      focus:ring-2
+      focus:ring-blue-200
+      transition
+    "
+                placeholder="Tuliskan alasan persetujuan atau penolakan pendaftaran..."
+                value={alasan}
+                onChange={(e) => setAlasan(e.target.value)}
+              />
+            </div>
+
+            {/* ===================== ACTION BUTTON ===================== */}
+            <div className="mt-6 flex flex-col sm:flex-row justify-end gap-3">
               <button
                 onClick={closeModal}
-                className="px-4 py-2 bg-gray-300 rounded"
+                className="
+      inline-flex items-center justify-center
+      px-5 py-2.5
+      rounded-xl
+      bg-gray-100 text-gray-700
+      font-medium
+      hover:bg-gray-200
+      transition
+    "
               >
                 Tutup
               </button>
 
               <button
                 onClick={() => updateStatus("Ditolak")}
-                className="px-4 py-2 bg-red-600 text-white rounded"
+                className="
+      inline-flex items-center justify-center
+      px-5 py-2.5
+      rounded-xl
+      bg-red-600 text-white
+      font-semibold
+      hover:bg-red-700
+      transition
+    "
               >
                 Tolak
               </button>
 
               <button
                 onClick={() => updateStatus("Disetujui")}
-                className="px-4 py-2 bg-green-600 text-white rounded"
+                className="
+      inline-flex items-center justify-center
+      px-5 py-2.5
+      rounded-xl
+      bg-green-600 text-white
+      font-semibold
+      hover:bg-green-700
+      transition
+    "
               >
                 Setujui
               </button>
@@ -269,5 +370,13 @@ function StatusBadge({ status }: { status: string }) {
 
   return (
     <span className={`px-3 py-1 rounded-full text-xs ${color}`}>{status}</span>
+  );
+}
+function DetailItem({ label, value }: { label: string; value?: string }) {
+  return (
+    <div>
+      <p className="text-xs text-gray-500">{label}</p>
+      <p className="font-medium text-gray-800">{value || "-"}</p>
+    </div>
   );
 }
