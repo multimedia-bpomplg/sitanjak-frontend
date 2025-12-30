@@ -174,11 +174,11 @@ export default function SuperadminLayout({
             }`}
           >
             <Link
-              href="/dashboard/superadmin/users/admin"
+              href="/dashboard/superadmin/ManajemenAkun/buatadmin"
               className={`flex py-2 text-sm rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700
                 ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
                 ${
-                  pathname.includes("/users/admin")
+                  pathname.includes("/ManajemenAkun/buatadmin")
                     ? "bg-blue-100 dark:bg-blue-900/30"
                     : ""
                 }`}
@@ -187,11 +187,11 @@ export default function SuperadminLayout({
             </Link>
 
             <Link
-              href="/dashboard/superadmin/users/mentor"
+              href="/dashboard/superadmin/ManajemenAkun/buatmentor"
               className={`flex py-2 text-sm rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700
                 ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
                 ${
-                  pathname.includes("/users/mentor")
+                  pathname.includes("/ManajemenAkun/buatmentor")
                     ? "bg-blue-100 dark:bg-blue-900/30"
                     : ""
                 }`}
@@ -200,16 +200,16 @@ export default function SuperadminLayout({
             </Link>
 
             <Link
-              href="/dashboard/superadmin/users/peserta"
+              href="/dashboard/superadmin/ManajemenAkun/buatpeserta"
               className={`flex py-2 text-sm rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700
                 ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
                 ${
-                  pathname.includes("/users/peserta")
+                  pathname.includes("/ManajemenAkun/buatpeserta")
                     ? "bg-blue-100 dark:bg-blue-900/30"
                     : ""
                 }`}
             >
-              📋 {!collapsed && "Data Peserta"}
+              📋 {!collapsed && "Buat Akun Peserta"}
             </Link>
           </div>
 

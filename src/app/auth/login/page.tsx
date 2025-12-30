@@ -24,8 +24,19 @@ export default function LoginPage() {
   /* ===================== STATE ===================== */
   const [form, setForm] = useState({ email: "", password: "" });
   const [captchaToken, setCaptchaToken] = useState("");
+  const [captchaKey, setCaptchaKey] = useState(0);
+  const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  /* ===================== LOAD REMEMBER EMAIL ===================== */
+  useEffect(() => {
+    const rememberedEmail = localStorage.getItem("remember_email");
+    if (rememberedEmail) {
+      setForm((prev) => ({ ...prev, email: rememberedEmail }));
+      setRememberMe(true);
+    }
+  }, []);
 
   /* ===================== AUTO REDIRECT ===================== */
   useEffect(() => {
@@ -56,15 +67,24 @@ export default function LoginPage() {
         captchaToken,
       });
 
+      if (rememberMe) {
+        localStorage.setItem("remember_email", form.email);
+        document.cookie = `token=${data.token}; path=/; max-age=2592000`;
+        document.cookie = `roles=${JSON.stringify(data.roles)}; path=/; max-age=2592000`;
+      } else {
+        localStorage.removeItem("remember_email");
+        document.cookie = `token=${data.token}; path=/; max-age=600`;
+        document.cookie = `roles=${JSON.stringify(data.roles)}; path=/; max-age=600`;
+      }
+
       localStorage.setItem("token", data.token);
       localStorage.setItem("roles", JSON.stringify(data.roles));
 
-      document.cookie = `token=${data.token}; path=/; max-age=600`;
-      document.cookie = `roles=${JSON.stringify(data.roles)}; path=/; max-age=600`;
-
       redirectByRole(data.roles || [], router);
     } catch (err: any) {
-      setError(err.message || "Login gagal");
+      setError(err.message || "Email atau password salah");
+      setCaptchaToken("");
+      setCaptchaKey((prev) => prev + 1); // reset captcha
     } finally {
       setLoading(false);
     }
@@ -73,7 +93,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex flex-col lg:grid lg:grid-cols-2">
 
-      {/* ===== IMAGE ATAS (MOBILE / TABLET) ===== */}
+      {/* IMAGE ATAS */}
       <div className="lg:hidden w-full relative aspect-[16/9] bg-[#ECFDF5]">
         <Image
           src="/images/logins/icon login.png"
@@ -82,47 +102,35 @@ export default function LoginPage() {
           className="object-cover"
           priority
         />
-        <div className="absolute inset-0" />
       </div>
 
-      {/* ===== FORM SIDE ===== */}
+      {/* FORM */}
       <div className="relative flex items-center justify-center bg-[#F6FFFC] px-6 pt-24 pb-12">
 
-        {/* BACK BUTTON */}
         <button
           onClick={() => router.push("/")}
-          className="
-            absolute top-6 left-6
-            flex items-center gap-2
-            px-4 py-2
-            rounded-full
-            bg-white shadow
-            text-gray-700 font-medium
-            hover:bg-blue-50 hover:text-blue-700
-            transition
-          "
+          className="absolute top-6 left-6 flex items-center gap-2 px-4 py-2 rounded-full bg-white shadow text-black hover:bg-blue-50"
         >
           <ArrowLeft size={16} />
           Kembali
         </button>
 
-        <div className="w-full max-w-lg lg:max-w-xl bg-white/30 rounded-3xl shadow-2xl p-10">
+        <div className="w-full max-w-lg bg-white/30 rounded-3xl shadow-2xl p-10">
 
-          <h1 className="text-3xl font-extrabold text-center text-blue-800 mb-2">
+          <h1 className="text-3xl font-extrabold text-center text-black mb-2">
             Masuk ke Akun
           </h1>
 
-          {/* LOGO */}
           <div className="flex justify-center my-4">
             <Image
               src="/images/icons/SIMAGGO.png"
-              alt="Logo SIMAGGO"
+              alt="Logo"
               width={100}
               height={100}
             />
           </div>
 
-          <p className="text-center text-gray-600 mb-6">
+          <p className="text-center text-black mb-6">
             Silakan login untuk melanjutkan
           </p>
 
@@ -136,7 +144,7 @@ export default function LoginPage() {
 
             {/* EMAIL */}
             <div className="relative">
-              <HiMail className="absolute left-4 top-3.5 text-blue-600" size={20} />
+              <HiMail className="absolute left-4 top-3.5 text-black" size={20} />
               <input
                 type="email"
                 placeholder="Email"
@@ -145,8 +153,8 @@ export default function LoginPage() {
                   rounded-xl
                   bg-white
                   border border-gray-300
-                  text-gray-800
-                  placeholder:text-gray-400
+                  text-black
+                  placeholder:text-gray-500
                   focus:outline-none focus:ring-2 focus:ring-blue-500
                 "
                 value={form.email}
@@ -157,7 +165,7 @@ export default function LoginPage() {
 
             {/* PASSWORD */}
             <div className="relative">
-              <HiLockClosed className="absolute left-4 top-3.5 text-blue-600" size={20} />
+              <HiLockClosed className="absolute left-4 top-3.5 text-black" size={20} />
               <input
                 type="password"
                 placeholder="Password"
@@ -166,8 +174,8 @@ export default function LoginPage() {
                   rounded-xl
                   bg-white
                   border border-gray-300
-                  text-gray-800
-                  placeholder:text-gray-400
+                  text-black
+                  placeholder:text-gray-500
                   focus:outline-none focus:ring-2 focus:ring-blue-500
                 "
                 value={form.password}
@@ -176,12 +184,25 @@ export default function LoginPage() {
               />
             </div>
 
-            {/* CAPTCHA */}
-            <div className="flex justify-center">
-              <TurnstileCaptcha onVerify={setCaptchaToken} />
+            {/* REMEMBER ME */}
+            <div className="flex items-center gap-2 text-sm text-black">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="accent-blue-600"
+              />
+              <span>Ingatkan saya</span>
             </div>
 
-            {/* LOGIN BUTTON */}
+            {/* CAPTCHA */}
+            <div className="flex justify-center">
+              <TurnstileCaptcha
+                key={captchaKey}
+                onVerify={setCaptchaToken}
+              />
+            </div>
+
             <button
               type="submit"
               disabled={loading}
@@ -198,20 +219,20 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <p className="text-center text-gray-600 mt-6">
+          <p className="text-center text-black mt-6">
             Belum melakukan pengajuan?{" "}
             <Link href="/pendaftaran" className="text-blue-700 font-semibold hover:underline">
               Daftar
             </Link>
           </p>
 
-          <p className="mt-6 text-center text-xs text-gray-400">
+          <p className="mt-6 text-center text-xs text-gray-500">
             © BPOM System • Role Based Access
           </p>
         </div>
       </div>
 
-      {/* ===== IMAGE RIGHT (DESKTOP) ===== */}
+      {/* IMAGE KANAN */}
       <div className="hidden lg:block relative w-full h-screen bg-[#ECFDF5]">
         <Image
           src="/images/logins/icon login.png"
@@ -220,7 +241,6 @@ export default function LoginPage() {
           className="object-cover"
           priority
         />
-        <div className="absolute inset-0" />
       </div>
     </div>
   );
