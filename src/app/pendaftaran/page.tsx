@@ -12,7 +12,10 @@ import {
   HiLocationMarker,
   HiArrowLeft, 
   HiClipboardList,
+  HiCalendar,
 } from "react-icons/hi";
+import { useRef } from "react";
+
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const waRegex = /^08[0-9]{8,11}$/;
@@ -53,6 +56,8 @@ type Peserta = {
 };
 
 export default function PendaftaranPage() {
+  const dateRefs = useRef<Record<string, HTMLInputElement | null>>({});
+
   const kosong: Peserta = {
     nama: "",
     posisi: "",
@@ -154,6 +159,16 @@ export default function PendaftaranPage() {
     peserta.forEach((p, i) => {
       if (!p.nama) newErrors[`nama-${i}`] = true;
       if (!p.posisi) newErrors[`posisi-${i}`] = true;
+      if (!p.tanggalMulaiMagang) newErrors[`tanggalMulaiMagang-${i}`] = true;
+      if (!p.tanggalSelesaiMagang) newErrors[`tanggalSelesaiMagang-${i}`] = true;
+      if (
+        p.tanggalMulaiMagang &&
+        p.tanggalSelesaiMagang &&
+        p.tanggalSelesaiMagang < p.tanggalMulaiMagang
+      ) {
+        newErrors[`tanggalSelesaiMagang-${i}`] = true;
+        toast.error(`❌ Tanggal selesai harus setelah tanggal mulai (Peserta ${i + 1})`);
+      }
       if (!p.tempatLahir) newErrors[`tempatLahir-${i}`] = true;
       if (!p.tanggalLahir) newErrors[`tanggalLahir-${i}`] = true;
       if (!p.jenisKelamin) newErrors[`jenisKelamin-${i}`] = true;
@@ -455,6 +470,72 @@ export default function PendaftaranPage() {
               </div>
 
               <div className="grid md:grid-cols-2 gap-6">
+                {/* Tanggal Mulai Magang */}
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">
+                    Tanggal Mulai Magang <span className="text-red-500">*</span>
+                  </label>
+
+                  <div className={`form-field pr-10 relative ${errors[`tanggalMulaiMagang-${i}`] ? "form-error" : ""}`}>
+                    <input
+                      type="date"
+                      ref={(el) => (dateRefs.current[`mulai-${i}`] = el)}
+                      value={peserta[i].tanggalMulaiMagang}
+                      onChange={(e) => {
+                        update(i, "tanggalMulaiMagang", e.target.value);
+                        setErrors((p) => ({ ...p, [`tanggalMulaiMagang-${i}`]: false }));
+                      }}
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        dateRefs.current[`mulai-${i}`]?.showPicker?.() ||
+                        dateRefs.current[`mulai-${i}`]?.focus()
+                      }
+                      className="absolute right-3 top-1/2 -translate-y-1/2
+                                text-blue-600 hover:text-blue-800
+                                p-1 rounded-md hover:bg-blue-50 transition"
+                    >
+                      <HiCalendar />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Tanggal Perkiraan Selesai */}
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">
+                    Tanggal Perkiraan Selesai <span className="text-red-500">*</span>
+                  </label>
+
+                  <div className={`form-field pr-10 relative ${errors[`tanggalSelesaiMagang-${i}`] ? "form-error" : ""}`}>
+                    <input
+                      type="date"
+                      ref={(el) => (dateRefs.current[`selesai-${i}`] = el)}
+                      value={peserta[i].tanggalSelesaiMagang}
+                      onChange={(e) => {
+                        update(i, "tanggalSelesaiMagang", e.target.value);
+                        setErrors((p) => ({ ...p, [`tanggalSelesaiMagang-${i}`]: false }));
+                      }}
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        dateRefs.current[`selesai-${i}`]?.showPicker?.() ||
+                        dateRefs.current[`selesai-${i}`]?.focus()
+                      }
+                      className="absolute right-3 top-1/2 -translate-y-1/2
+                                text-blue-600 hover:text-blue-800
+                                p-1 rounded-md hover:bg-blue-50 transition"
+                    >
+                      <HiCalendar />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-6">
                 {/* Tempat Lahir */}
                 <div>
                   <label className="text-sm font-medium text-gray-700 mb-1 block">
@@ -480,15 +561,29 @@ export default function PendaftaranPage() {
                     Tanggal Lahir <span className="text-red-500">*</span>
                   </label>
 
-                  <div className={`form-field ${errors[`tanggalLahir-${i}`] ? "form-error" : ""}`}>
+                  <div className={`form-field pr-10 relative ${errors[`tanggalLahir-${i}`] ? "form-error" : ""}`}>
                     <input
                       type="date"
+                      ref={(el) => (dateRefs.current[`lahir-${i}`] = el)}
                       value={peserta[i].tanggalLahir}
                       onChange={(e) => {
                         update(i, "tanggalLahir", e.target.value);
                         setErrors((p) => ({ ...p, [`tanggalLahir-${i}`]: false }));
                       }}
                     />
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        dateRefs.current[`lahir-${i}`]?.showPicker?.() ||
+                        dateRefs.current[`lahir-${i}`]?.focus()
+                      }
+                      className="absolute right-3 top-1/2 -translate-y-1/2
+                                text-blue-600 hover:text-blue-800
+                                p-1 rounded-md hover:bg-blue-50 transition"
+                    >
+                      <HiCalendar />
+                    </button>
                   </div>
                 </div>
               </div>

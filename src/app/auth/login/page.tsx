@@ -74,9 +74,9 @@ export default function LoginPage() {
     <div className="min-h-screen flex flex-col lg:grid lg:grid-cols-2">
 
       {/* ===== IMAGE ATAS (MOBILE / TABLET) ===== */}
-      <div className="lg:hidden w-full relative aspect-[16/9]">
+      <div className="lg:hidden w-full relative aspect-[16/9] bg-[#ECFDF5]">
         <Image
-          src="/images/logins/foto login coba.png"
+          src="/images/logins/icon login.png"
           alt="Login Background"
           fill
           className="object-cover"
@@ -86,7 +86,7 @@ export default function LoginPage() {
       </div>
 
       {/* ===== FORM SIDE ===== */}
-      <div className="relative flex items-center justify-center bg-gradient-to-br from-[#EAF6FF] via-[#E6FAFA] to-[#ECFDF5] px-6 py-12">
+      <div className="relative flex items-center justify-center bg-[#F6FFFC] px-6 pt-24 pb-12">
 
         {/* BACK BUTTON */}
         <button
@@ -106,7 +106,7 @@ export default function LoginPage() {
           Kembali
         </button>
 
-        <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl p-8">
+        <div className="w-full max-w-lg lg:max-w-xl bg-white/30 rounded-3xl shadow-2xl p-10">
 
           <h1 className="text-3xl font-extrabold text-center text-blue-800 mb-2">
             Masuk ke Akun
@@ -145,6 +145,8 @@ export default function LoginPage() {
                   rounded-xl
                   bg-white
                   border border-gray-300
+                  text-gray-800
+                  placeholder:text-gray-400
                   focus:outline-none focus:ring-2 focus:ring-blue-500
                 "
                 value={form.email}
@@ -164,6 +166,8 @@ export default function LoginPage() {
                   rounded-xl
                   bg-white
                   border border-gray-300
+                  text-gray-800
+                  placeholder:text-gray-400
                   focus:outline-none focus:ring-2 focus:ring-blue-500
                 "
                 value={form.password}
@@ -208,9 +212,9 @@ export default function LoginPage() {
       </div>
 
       {/* ===== IMAGE RIGHT (DESKTOP) ===== */}
-      <div className="hidden lg:block relative w-full h-screen">
+      <div className="hidden lg:block relative w-full h-screen bg-[#ECFDF5]">
         <Image
-          src="/images/logins/foto login coba.png"
+          src="/images/logins/icon login.png"
           alt="Login Background"
           fill
           className="object-cover"
