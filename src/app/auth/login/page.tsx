@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { HiMail, HiLockClosed, HiOutlineLogin } from "react-icons/hi";
+import { HiMail, HiLockClosed, HiOutlineLogin, HiEye, HiEyeOff } from "react-icons/hi";
 import { ArrowLeft } from "lucide-react";
 
 import TurnstileCaptcha from "@/components/TurnstileCaptcha";
@@ -28,6 +28,7 @@ export default function LoginPage() {
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   /* ===================== LOAD REMEMBER EMAIL ===================== */
   useEffect(() => {
@@ -117,7 +118,7 @@ export default function LoginPage() {
 
         <div className="w-full max-w-lg bg-white/30 rounded-3xl shadow-2xl p-10">
 
-          <h1 className="text-3xl font-extrabold text-center text-black mb-2">
+          <h1 className="text-3xl font-extrabold text-center text-blue-800 mb-2">
             Masuk ke Akun
           </h1>
 
@@ -130,7 +131,7 @@ export default function LoginPage() {
             />
           </div>
 
-          <p className="text-center text-black mb-6">
+          <p className="text-center text-gray-600 mb-6">
             Silakan login untuk melanjutkan
           </p>
 
@@ -144,7 +145,7 @@ export default function LoginPage() {
 
             {/* EMAIL */}
             <div className="relative">
-              <HiMail className="absolute left-4 top-3.5 text-black" size={20} />
+              <HiMail className="absolute left-4 top-3.5 text-blue-600" size={20} />
               <input
                 type="email"
                 placeholder="Email"
@@ -153,8 +154,8 @@ export default function LoginPage() {
                   rounded-xl
                   bg-white
                   border border-gray-300
-                  text-black
-                  placeholder:text-gray-500
+                  text-gray-800
+                  placeholder:text-gray-400
                   focus:outline-none focus:ring-2 focus:ring-blue-500
                 "
                 value={form.email}
@@ -165,34 +166,52 @@ export default function LoginPage() {
 
             {/* PASSWORD */}
             <div className="relative">
-              <HiLockClosed className="absolute left-4 top-3.5 text-black" size={20} />
+              <HiLockClosed className="absolute left-4 top-3.5 text-blue-600" size={20} />
+
               <input
-                type="password"
+                type={showPassword ? "text" : "password"}
                 placeholder="Password"
                 className="
-                  w-full pl-12 pr-4 py-3
+                  w-full pl-12 pr-12 py-3
                   rounded-xl
                   bg-white
                   border border-gray-300
-                  text-black
-                  placeholder:text-gray-500
+                  text-gray-800
+                  placeholder:text-gray-400
                   focus:outline-none focus:ring-2 focus:ring-blue-500
                 "
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
                 required
               />
+
+              <button
+                type="button"
+                onClick={() => setShowPassword((p) => !p)}
+                className="absolute right-4 top-3.5 text-gray-500 hover:text-blue-600"
+              >
+                {showPassword ? <HiEyeOff size={20} /> : <HiEye size={20} />}
+              </button>
             </div>
 
             {/* REMEMBER ME */}
-            <div className="flex items-center gap-2 text-sm text-black">
-              <input
-                type="checkbox"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                className="accent-blue-600"
-              />
-              <span>Ingatkan saya</span>
+            <div className="flex items-center justify-between text-sm">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="accent-blue-600 w-4 h-4"
+                />
+                <span className="text-gray-700">Ingatkan saya</span>
+              </label>
+
+              <Link
+                href="auth/lupa-password"
+                className="text-blue-600 hover:underline"
+              >
+                Lupa password?
+              </Link>
             </div>
 
             {/* CAPTCHA */}
@@ -233,12 +252,12 @@ export default function LoginPage() {
       </div>
 
       {/* IMAGE KANAN */}
-      <div className="hidden lg:block relative w-full h-screen bg-[#ECFDF5]">
+      <div className="hidden lg:block relative w-full min-h-screen bg-[#ECFDF5]">
         <Image
           src="/images/logins/icon login.png"
           alt="Login Background"
           fill
-          className="object-cover"
+          className="object-contain"
           priority
         />
       </div>

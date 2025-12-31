@@ -81,14 +81,19 @@ export default function PendaftaranPage() {
   const [surat, setSurat] = useState<File | null>(null);
 
   const [provinsi, setProvinsi] = useState<Wilayah[]>([]);
-  const [kota, setKota] = useState<Wilayah[]>([]);
-  const [kecamatan, setKecamatan] = useState<Wilayah[]>([]);
-  const [kelurahan, setKelurahan] = useState<Wilayah[]>([]);
+  const [wilayah, setWilayah] = useState<
+    {
+      kota: Wilayah[];
+      kecamatan: Wilayah[];
+      kelurahan: Wilayah[];
+    }[]
+  >([{ kota: [], kecamatan: [], kelurahan: [] }]);
 
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, boolean>>({});
   const [showConfirm, setShowConfirm] = useState(false);
   const [pendingSubmit, setPendingSubmit] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   /* ================== LOAD PROVINSI ================== */
   useEffect(() => {
@@ -106,8 +111,26 @@ export default function PendaftaranPage() {
   ) => {
     setPeserta((prev) => {
       const data = [...prev];
-      data[i] = { ...data[i], [key]: value };
-      if (id) (data[i] as any)[`${key}Id`] = id;
+
+      if (key === "provinsi" && id) {
+        data[i] = {
+          ...data[i],
+          provinsi: value,
+          provinsiId: id,
+          kota: "",
+          kotaId: "",
+          kecamatan: "",
+          kecamatanId: "",
+          kelurahan: "",
+        };
+      } else if (key === "kota" && id) {
+        data[i] = { ...data[i], kota: value, kotaId: id };
+      } else if (key === "kecamatan" && id) {
+        data[i] = { ...data[i], kecamatan: value, kecamatanId: id };
+      } else {
+        data[i] = { ...data[i], [key]: value };
+      }
+
       return data;
     });
 
@@ -115,31 +138,53 @@ export default function PendaftaranPage() {
       const res = await fetch(
         `https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${id}.json`
       );
-      setKota(await res.json());
-      setKecamatan([]);
-      setKelurahan([]);
+      const kotaData = await res.json();
+
+      setWilayah((prev) => {
+        const data = [...prev];
+        data[i] = { kota: kotaData, kecamatan: [], kelurahan: [] };
+        return data;
+      });
     }
 
     if (key === "kota" && id) {
       const res = await fetch(
         `https://www.emsifa.com/api-wilayah-indonesia/api/districts/${id}.json`
       );
-      setKecamatan(await res.json());
-      setKelurahan([]);
+      const kecamatanData = await res.json();
+
+      setWilayah((prev) => {
+        const data = [...prev];
+        data[i] = { ...data[i], kecamatan: kecamatanData, kelurahan: [] };
+        return data;
+      });
     }
 
     if (key === "kecamatan" && id) {
       const res = await fetch(
         `https://www.emsifa.com/api-wilayah-indonesia/api/villages/${id}.json`
       );
-      setKelurahan(await res.json());
+      const kelurahanData = await res.json();
+
+      setWilayah((prev) => {
+        const data = [...prev];
+        data[i] = { ...data[i], kelurahan: kelurahanData };
+        return data;
+      });
     }
   };
 
   const ubahJumlah = (n: number) => {
     setJumlah(n);
+
     setPeserta((prev) =>
       Array.from({ length: n }).map((_, i) => prev[i] ?? buatPesertaKosong())
+    );
+
+    setWilayah((prev) =>
+      Array.from({ length: n }).map(
+        (_, i) => prev[i] ?? { kota: [], kecamatan: [], kelurahan: [] }
+      )
     );
   };
 
@@ -150,21 +195,53 @@ export default function PendaftaranPage() {
     peserta.forEach((p, i) => {
       if (!p.nama) newErrors[`nama-${i}`] = true;
       if (!p.posisi) newErrors[`posisi-${i}`] = true;
-      if (!p.tanggalMulaiMagang) newErrors[`tanggalMulaiMagang-${i}`] = true;
+
+      if (!p.tanggalMulaiMagang)
+        newErrors[`tanggalMulaiMagang-${i}`] = true;
+
       if (!p.tanggalSelesaiMagang)
         newErrors[`tanggalSelesaiMagang-${i}`] = true;
+
+      // 🔥 VALIDASI TANGGAL (SPAM TOAST DIIZINKAN)
+      if (
+        p.tanggalMulaiMagang &&
+        p.tanggalSelesaiMagang &&
+        p.tanggalSelesaiMagang < p.tanggalMulaiMagang
+      ) {
+        newErrors[`tanggalSelesaiMagang-${i}`] = true;
+        toast.error(
+          `❌ Tanggal selesai harus setelah tanggal mulai (Peserta ${i + 1})`
+        );
+      }
+
       if (!p.tempatLahir) newErrors[`tempatLahir-${i}`] = true;
       if (!p.tanggalLahir) newErrors[`tanggalLahir-${i}`] = true;
       if (!p.jenisKelamin) newErrors[`jenisKelamin-${i}`] = true;
+
       if (!p.provinsi) newErrors[`provinsi-${i}`] = true;
       if (!p.kota) newErrors[`kota-${i}`] = true;
       if (!p.kecamatan) newErrors[`kecamatan-${i}`] = true;
       if (!p.kelurahan) newErrors[`kelurahan-${i}`] = true;
+
       if (!p.alamatLengkap) newErrors[`alamat-${i}`] = true;
 
-      if (!p.email || !emailRegex.test(p.email)) newErrors[`email-${i}`] = true;
+      // 🔥 EMAIL (SPAM TOAST)
+      if (!p.email) {
+        newErrors[`email-${i}`] = true;
+      } else if (!emailRegex.test(p.email)) {
+        newErrors[`email-${i}`] = true;
+        toast.error(`❌ Email Peserta ${i + 1} tidak valid`);
+      }
 
-      if (!p.wa || !waRegex.test(p.wa)) newErrors[`wa-${i}`] = true;
+      // 🔥 WHATSAPP (SPAM TOAST)
+      if (!p.wa) {
+        newErrors[`wa-${i}`] = true;
+      } else if (!waRegex.test(p.wa)) {
+        newErrors[`wa-${i}`] = true;
+        toast.error(
+          `❌ Nomor WhatsApp Peserta ${i + 1} harus diawali 08 & valid`
+        );
+      }
     });
 
     if (!surat) newErrors["surat"] = true;
@@ -172,9 +249,7 @@ export default function PendaftaranPage() {
     setErrors(newErrors);
 
     if (Object.keys(newErrors).length > 0) {
-      toast.error("❗ Mohon lengkapi semua kolom wajib", {
-        autoClose: 3000,
-      });
+      toast.warning("❗ Mohon lengkapi semua kolom yang wajib diisi");
       return false;
     }
 
@@ -210,12 +285,9 @@ export default function PendaftaranPage() {
       });
 
       if (res.ok) {
-        toast.update(toastId, {
-          render: "✅ Pendaftaran berhasil dikirim!",
-          type: "success",
-          isLoading: false,
-          autoClose: 3000,
-        });
+        toast.dismiss(toastId);
+
+        setShowSuccess(true);
 
         setPeserta([buatPesertaKosong()]);
         setJumlah(1);
@@ -673,16 +745,14 @@ export default function PendaftaranPage() {
                     <select
                       value={peserta[i].kotaId}
                       onChange={(e) => {
-                        const o = kota.find((x) => x.id === e.target.value);
+                        const o = wilayah[i]?.kota.find((x) => x.id === e.target.value);
                         if (o) update(i, "kota", o.name, o.id);
                         setErrors((p) => ({ ...p, [`kota-${i}`]: false }));
                       }}
                     >
                       <option value="">Pilih Kota / Kabupaten</option>
-                      {kota.map((k) => (
-                        <option key={k.id} value={k.id}>
-                          {k.name}
-                        </option>
+                      {wilayah[i]?.kota.map((k) => (
+                        <option key={k.id} value={k.id}>{k.name}</option>
                       ))}
                     </select>
                   </div>
@@ -704,18 +774,14 @@ export default function PendaftaranPage() {
                     <select
                       value={peserta[i].kecamatanId}
                       onChange={(e) => {
-                        const o = kecamatan.find(
-                          (x) => x.id === e.target.value
-                        );
+                        const o = wilayah[i]?.kecamatan.find((x) => x.id === e.target.value);
                         if (o) update(i, "kecamatan", o.name, o.id);
                         setErrors((p) => ({ ...p, [`kecamatan-${i}`]: false }));
                       }}
                     >
                       <option value="">Pilih Kecamatan</option>
-                      {kecamatan.map((k) => (
-                        <option key={k.id} value={k.id}>
-                          {k.name}
-                        </option>
+                      {wilayah[i]?.kecamatan.map((k) => (
+                        <option key={k.id} value={k.id}>{k.name}</option>
                       ))}
                     </select>
                   </div>
@@ -746,10 +812,8 @@ export default function PendaftaranPage() {
                       }}
                     >
                       <option value="">Pilih Kelurahan</option>
-                      {kelurahan.map((k) => (
-                        <option key={k.id} value={k.name}>
-                          {k.name}
-                        </option>
+                      {wilayah[i]?.kelurahan.map((k) => (
+                        <option key={k.id} value={k.name}>{k.name}</option>
                       ))}
                     </select>
                   </div>
@@ -924,6 +988,73 @@ export default function PendaftaranPage() {
                 >
                   Ya, Kirim
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ================= MODAL SUKSES ================= */}
+        {showSuccess && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            {/* BACKDROP */}
+            <div
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+              onClick={() => setShowSuccess(false)}
+            />
+
+            {/* CARD */}
+            <div className="relative bg-white rounded-3xl shadow-2xl p-8 w-full max-w-md animate-scaleIn text-center">
+              {/* ICON */}
+              <div className="mx-auto mb-4 w-20 h-20 rounded-full
+                              bg-gradient-to-br from-green-500 to-emerald-500
+                              flex items-center justify-center shadow-lg">
+                <svg
+                  className="w-10 h-10 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="3"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+              </div>
+
+              {/* TITLE */}
+              <h3 className="text-2xl font-extrabold text-gray-800 mb-2">
+                Pendaftaran Berhasil 🎉
+              </h3>
+
+              {/* DESC */}
+              <p className="text-gray-600 mb-6 text-sm leading-relaxed">
+                Data pendaftaran magang Anda telah berhasil dikirim.
+                <br />
+                Silakan menunggu proses verifikasi dari admin.
+              </p>
+
+              {/* ACTION */}
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={() => setShowSuccess(false)}
+                  className="
+                    w-full py-3 rounded-xl
+                    bg-gradient-to-r from-blue-600 via-cyan-600 to-emerald-500
+                    text-white font-semibold
+                    hover:scale-[1.02] transition
+                  "
+                >
+                  OK, Mengerti
+                </button>
+
+                <Link
+                  href="/pendaftaran/riwayat"
+                  className="text-sm text-blue-600 hover:underline"
+                >
+                  Lihat Riwayat Pendaftaran
+                </Link>
               </div>
             </div>
           </div>
