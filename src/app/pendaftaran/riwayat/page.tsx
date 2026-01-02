@@ -248,11 +248,11 @@ export default function RiwayatPendaftaran() {
 
       <div className="max-w-4xl mx-auto">
         {/* HEADER */}
-        <div className="text-center mb-10">
-          <h1 className="text-4xl font-extrabold text-blue-900">
+        <div className="text-center mb-14">
+          <h1 className="text-4xl md:text-5xl font-extrabold text-blue-900 tracking-tight">
             Riwayat Pendaftaran Magang
           </h1>
-          <p className="text-gray-600 mt-3">
+          <p className="text-gray-600 mt-3 text-lg">
             Masukkan email yang digunakan saat pendaftaran untuk melihat status
           </p>
         </div>

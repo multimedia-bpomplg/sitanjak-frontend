@@ -827,3 +827,23 @@ span.flatpickr-weekday,
 .animate-scaleIn {
   animation: scaleIn 0.2s ease-out;
 }
+
+@keyframes orbitFast {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes orbitSlow {
+  to {
+    transform: rotate(-360deg);
+  }
+}
+
+.animate-orbitFast {
+  animation: orbitFast 0.9s linear infinite;
+}
+
+.animate-orbitSlow {
+  animation: orbitSlow 1.6s linear infinite;
+}
