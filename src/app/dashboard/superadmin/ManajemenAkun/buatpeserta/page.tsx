@@ -157,6 +157,11 @@ const handleAktifkan = async (id: string) => {
   }
 };
 
+const totalPeserta = data.length;
+const pesertaAktif = data.filter((p) => p.status === "Aktif").length;
+const pesertaNonaktif = data.filter((p) => p.status === "Nonaktif").length;
+
+
 
   /* ================= RENDER ================= */
   return (
@@ -177,6 +182,29 @@ const handleAktifkan = async (id: string) => {
           + Buat Akun Peserta
         </button>
       </div>
+
+      {/* SUMMARY BOX */}
+<div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+  <div className="bg-white rounded-xl shadow p-4">
+    <p className="text-sm text-gray-500">Jumlah Peserta</p>
+    <h2 className="text-2xl font-bold">{totalPeserta}</h2>
+  </div>
+
+  <div className="bg-white rounded-xl shadow p-4">
+    <p className="text-sm text-gray-500">Peserta Aktif</p>
+    <h2 className="text-2xl font-bold text-green-600">
+      {pesertaAktif}
+    </h2>
+  </div>
+
+  <div className="bg-white rounded-xl shadow p-4">
+    <p className="text-sm text-gray-500">Peserta Tidak Aktif</p>
+    <h2 className="text-2xl font-bold text-red-600">
+      {pesertaNonaktif}
+    </h2>
+  </div>
+</div>
+
 
       {/* TABLE (UI TIDAK DIUBAH) */}
       <div className="bg-white rounded-xl shadow">

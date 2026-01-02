@@ -41,14 +41,7 @@ export default function LoginPage() {
 
   const [successPopup, setSuccessPopup] = useState(false);
 
-  /* ===================== LOAD REMEMBER EMAIL ===================== */
-  useEffect(() => {
-    const rememberedEmail = localStorage.getItem("remember_email");
-    if (rememberedEmail) {
-      setForm((prev) => ({ ...prev, email: rememberedEmail }));
-      setRememberMe(true);
-    }
-  }, []);
+    
 
   /* ===================== AUTO REDIRECT ===================== */
   useEffect(() => {
