@@ -119,9 +119,7 @@ export default function BuatAkunAdminPage() {
       <div className="flex justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold">Manajemen Akun Admin</h1>
-          <p className="text-sm text-gray-500">
-            Kelola akun admin sistem
-          </p>
+          <p className="text-sm text-gray-500">Kelola akun admin sistem</p>
         </div>
 
         <button
@@ -155,19 +153,14 @@ export default function BuatAkunAdminPage() {
           <tbody>
             {data.length === 0 ? (
               <tr>
-                <td
-                  colSpan={5}
-                  className="py-8 text-center text-gray-400"
-                >
+                <td colSpan={5} className="py-8 text-center text-gray-400">
                   Belum ada akun admin
                 </td>
               </tr>
             ) : (
               data.map((item, index) => (
                 <tr key={item._id} className="border-t">
-                  <td className="px-4 py-3 text-center">
-                    {index + 1}
-                  </td>
+                  <td className="px-4 py-3 text-center">{index + 1}</td>
 
                   <td
                     className="px-4 py-3 text-blue-600 underline cursor-pointer"
@@ -180,9 +173,7 @@ export default function BuatAkunAdminPage() {
                   </td>
 
                   <td className="px-4 py-3">{item.email}</td>
-                  <td className="px-4 py-3 text-center">
-                    {item.periode}
-                  </td>
+                  <td className="px-4 py-3 text-center">{item.periode}</td>
 
                   <td className="px-4 py-3 text-center">
                     <span
@@ -217,10 +208,7 @@ export default function BuatAkunAdminPage() {
             onChange={(v) => setForm({ ...form, email: v })}
           />
 
-          <PasswordInput
-            value={form.password}
-            onGenerate={generatePassword}
-          />
+          <PasswordInput value={form.password} onGenerate={generatePassword} />
 
           <ModalAction
             onCancel={() => setOpen(false)}
@@ -232,10 +220,7 @@ export default function BuatAkunAdminPage() {
 
       {/* MODAL DETAIL */}
       {openAksi && selected && (
-        <Modal
-          title="Detail Akun Admin"
-          onClose={() => setOpenAksi(false)}
-        >
+        <Modal title="Detail Akun Admin" onClose={() => setOpenAksi(false)}>
           <Detail label="Nama" value={selected.name} />
           <Detail label="Email" value={selected.email} />
           <Detail label="Periode" value={selected.periode} />
@@ -254,7 +239,7 @@ export default function BuatAkunAdminPage() {
   );
 }
 
-/* ================= COMPONENT ================= */
+/* ================= COMPONENT ================= Dayat Kopling */
 
 function Summary({
   title,
@@ -340,15 +325,8 @@ function PasswordInput({
     <div className="mb-4">
       <label className="text-sm text-gray-500">Password</label>
       <div className="flex gap-2 mt-1">
-        <input
-          className="flex-1 p-2 border rounded"
-          value={value}
-          readOnly
-        />
-        <button
-          onClick={onGenerate}
-          className="px-3 py-2 bg-gray-200 rounded"
-        >
+        <input className="flex-1 p-2 border rounded" value={value} readOnly />
+        <button onClick={onGenerate} className="px-3 py-2 bg-gray-200 rounded">
           Generate
         </button>
       </div>
@@ -378,13 +356,7 @@ function ModalAction({
   );
 }
 
-function Detail({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) {
+function Detail({ label, value }: { label: string; value: string }) {
   return (
     <div className="mb-3">
       <p className="text-gray-500 text-sm">{label}</p>
