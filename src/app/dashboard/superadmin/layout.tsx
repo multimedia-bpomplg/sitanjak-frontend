@@ -18,7 +18,7 @@ export default function SuperadminLayout({
   children: React.ReactNode;
 }) {
   const [collapsed, setCollapsed] = useState(false);
-  const [dark, setDark] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [dashboardOpen, setDashboardOpen] = useState(true);
   const [userOpen, setUserOpen] = useState(false);
@@ -27,10 +27,14 @@ export default function SuperadminLayout({
   const router = useRouter();
   const pathname = usePathname();
 
+  const toggleTheme = () => {
+    document.documentElement.classList.toggle("dark");
+  };
+
   /* ===================== DARK MODE ===================== */
   useEffect(() => {
-    document.documentElement.classList.toggle("dark", dark);
-  }, [dark]);
+    setMounted(true);
+  }, []);
 
   /* ===================== AUTO OPEN DASHBOARD ===================== */
   useEffect(() => {
@@ -45,16 +49,43 @@ export default function SuperadminLayout({
     router.replace("/auth/login");
   };
 
+  if (!mounted) {
+    return null; // ⛔ cegah render sebelum client siap
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
+    <div className="
+      min-h-screen
+      bg-gradient-to-br
+      from-emerald-50 via-white to-cyan-50
+
+      dark:from-[#020617]
+      dark:via-[#020617]
+      dark:to-[#0F172A]
+
+      text-gray-800 dark:text-gray-100
+      transition-colors duration-300
+    ">
       {/* ===================== SIDEBAR ===================== */}
-      <aside
-        className={`fixed top-0 left-0 z-30 h-full bg-white dark:bg-gray-800
-        border-r border-black/10 transition-all duration-300
-        ${collapsed ? "w-20" : "w-64"}`}
-      >
+      <aside className={`
+        fixed top-0 left-0 z-30 h-full
+        bg-gradient-to-b
+        from-white via-emerald-50 to-emerald-100
+
+        dark:from-[#020617]
+        dark:via-[#1E1B4B]
+        dark:to-[#3B0764]        
+
+        border-r border-emerald-200 dark:border-indigo-900/40
+        shadow-[4px_0_20px_-5px_rgba(0,0,0,0.15)]
+        transition-all duration-300
+        ${collapsed ? "w-20" : "w-72"}
+      `}>
         {/* LOGO */}
-        <div className="flex items-center gap-3 p-5">
+        <div className="
+          flex items-center gap-3 p-5
+          border-b border-emerald-200 dark:border-slate-800
+        ">
           <img
             src="/images/logo/logo-icon.svg"
             className={`${collapsed ? "w-8 h-8" : "w-12 h-12"}`}
@@ -67,7 +98,7 @@ export default function SuperadminLayout({
           {/* ===== DASHBOARD DROPDOWN ===== */}
           <button
             onClick={() => setDashboardOpen(!dashboardOpen)}
-            className={`flex items-center gap-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700
+            className={`flex items-center gap-3 py-2 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-900/30
               transition w-full
               ${
                 collapsed ? "justify-center px-3" : "pl-5 pr-3 justify-between"
@@ -94,11 +125,27 @@ export default function SuperadminLayout({
           >
             <Link
               href="/dashboard/superadmin"
-              className={`flex py-2 text-sm rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700
+              className={`
+                flex items-center gap-3
+                py-2.5 rounded-xl
+                text-sm
+                text-gray-700 dark:text-gray-300
+                hover:bg-emerald-100/70
+                dark:hover:bg-slate-800
+                transition
                 ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
                 ${
                   pathname === "/dashboard/superadmin"
-                    ? "bg-blue-100 dark:bg-blue-900/30"
+                    ? `
+                        bg-gradient-to-r
+                        from-emerald-500/20 to-cyan-500/20
+                        text-emerald-700
+                        dark:from-indigo-500/30
+                        dark:via-purple-500/25
+                        dark:to-fuchsia-500/30
+                        dark:text-indigo-200
+                        shadow-inner
+                      `
                     : ""
                 }`}
             >
@@ -107,11 +154,27 @@ export default function SuperadminLayout({
 
             <Link
               href="/dashboard/superadmin/ViewPendaftaran"
-              className={`flex py-2 text-sm rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700
+              className={`
+                flex items-center gap-3
+                py-2.5 rounded-xl
+                text-sm
+                text-gray-700 dark:text-gray-300
+                hover:bg-emerald-100/70
+                dark:hover:bg-slate-800
+                transition
                 ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
                 ${
                   pathname.includes("/ViewPendaftaran")
-                    ? "bg-blue-100 dark:bg-blue-900/30"
+                    ? `
+                        bg-gradient-to-r
+                        from-emerald-500/20 to-cyan-500/20
+                        text-emerald-700
+                        dark:from-indigo-500/30
+                        dark:via-purple-500/25
+                        dark:to-fuchsia-500/30
+                        dark:text-indigo-200
+                        shadow-inner
+                      `
                     : ""
                 }`}
             >
@@ -120,11 +183,26 @@ export default function SuperadminLayout({
 
             <Link
               href="/dashboard/superadmin/ViewLogbook"
-              className={`flex py-2 text-sm rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700
+              className={`flex items-center gap-3
+                py-2.5 rounded-xl
+                text-sm
+                text-gray-700 dark:text-gray-300
+                hover:bg-emerald-100/70
+                dark:hover:bg-slate-800
+                transition
                 ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
                 ${
                   pathname.includes("/ViewLogbook")
-                    ? "bg-blue-100 dark:bg-blue-900/30"
+                    ? `
+                        bg-gradient-to-r
+                        from-emerald-500/20 to-cyan-500/20
+                        text-emerald-700
+                        dark:from-indigo-500/30
+                        dark:via-purple-500/25
+                        dark:to-fuchsia-500/30
+                        dark:text-indigo-200
+                        shadow-inner
+                      `
                     : ""
                 }`}
             >
@@ -133,11 +211,27 @@ export default function SuperadminLayout({
 
             <Link
               href="/dashboard/superadmin/ViewPeserta"
-              className={`flex py-2 text-sm rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700
+              className={`
+                flex items-center gap-3
+                py-2.5 rounded-xl
+                text-sm
+                text-gray-700 dark:text-gray-300
+                hover:bg-emerald-100/70
+                dark:hover:bg-slate-800
+                transition
                 ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
                 ${
                   pathname.includes("/ViewPeserta")
-                    ? "bg-blue-100 dark:bg-blue-900/30"
+                    ? `
+                        bg-gradient-to-r
+                        from-emerald-500/20 to-cyan-500/20
+                        text-emerald-700
+                        dark:from-indigo-500/30
+                        dark:via-purple-500/25
+                        dark:to-fuchsia-500/30
+                        dark:text-indigo-200
+                        shadow-inner
+                      `
                     : ""
                 }`}
             >
@@ -148,7 +242,7 @@ export default function SuperadminLayout({
           {/* ===== MANAJEMEN AKUN DROPDOWN ===== */}
           <button
             onClick={() => setUserOpen(!userOpen)}
-            className={`flex items-center gap-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700
+            className={`flex items-center gap-3 py-2 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-900/30
               transition w-full
               ${
                 collapsed ? "justify-center px-3" : "pl-5 pr-3 justify-between"
@@ -175,11 +269,27 @@ export default function SuperadminLayout({
           >
             <Link
               href="/dashboard/superadmin/ManajemenAkun/buatadmin"
-              className={`flex py-2 text-sm rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700
+              className={`
+                flex items-center gap-3
+                py-2.5 rounded-xl
+                text-sm
+                text-gray-700 dark:text-gray-300
+                hover:bg-emerald-100/70
+                dark:hover:bg-slate-800
+                transition
                 ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
                 ${
                   pathname.includes("/ManajemenAkun/buatadmin")
-                    ? "bg-blue-100 dark:bg-blue-900/30"
+                    ? `
+                        bg-gradient-to-r
+                        from-emerald-500/20 to-cyan-500/20
+                        text-emerald-700
+                        dark:from-indigo-500/30
+                        dark:via-purple-500/25
+                        dark:to-fuchsia-500/30
+                        dark:text-indigo-200
+                        shadow-inner
+                      `
                     : ""
                 }`}
             >
@@ -188,11 +298,27 @@ export default function SuperadminLayout({
 
             <Link
               href="/dashboard/superadmin/ManajemenAkun/buatmentor"
-              className={`flex py-2 text-sm rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700
+              className={`
+                flex items-center gap-3
+                py-2.5 rounded-xl
+                text-sm
+                text-gray-700 dark:text-gray-300
+                hover:bg-emerald-100/70
+                dark:hover:bg-slate-800
+                transition
                 ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
                 ${
                   pathname.includes("/ManajemenAkun/buatmentor")
-                    ? "bg-blue-100 dark:bg-blue-900/30"
+                    ? `
+                        bg-gradient-to-r
+                        from-emerald-500/20 to-cyan-500/20
+                        text-emerald-700
+                        dark:from-indigo-500/30
+                        dark:via-purple-500/25
+                        dark:to-fuchsia-500/30
+                        dark:text-indigo-200
+                        shadow-inner
+                      `
                     : ""
                 }`}
             >
@@ -201,11 +327,27 @@ export default function SuperadminLayout({
 
             <Link
               href="/dashboard/superadmin/ManajemenAkun/buatpeserta"
-              className={`flex py-2 text-sm rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700
+              className={`
+                flex items-center gap-3
+                py-2.5 rounded-xl
+                text-sm
+                text-gray-700 dark:text-gray-300
+                hover:bg-emerald-100/70
+                dark:hover:bg-slate-800
+                transition
                 ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
                 ${
                   pathname.includes("/ManajemenAkun/buatpeserta")
-                    ? "bg-blue-100 dark:bg-blue-900/30"
+                    ? `
+                        bg-gradient-to-r
+                        from-emerald-500/20 to-cyan-500/20
+                        text-emerald-700
+                        dark:from-indigo-500/30
+                        dark:via-purple-500/25
+                        dark:to-fuchsia-500/30
+                        dark:text-indigo-200
+                        shadow-inner
+                      `
                     : ""
                 }`}
             >
@@ -216,7 +358,7 @@ export default function SuperadminLayout({
           {/* ===== MANAJEMEN TAMPILAN DROPDOWN ===== */}
           <button
             onClick={() => setLayoutOpen(!layoutOpen)}
-            className={`flex items-center gap-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700
+            className={`flex items-center gap-3 py-2 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-900/30
               transition w-full
               ${
                 collapsed ? "justify-center px-3" : "pl-5 pr-3 justify-between"
@@ -243,11 +385,27 @@ export default function SuperadminLayout({
           >
             <Link
               href="/dashboard/superadmin/layout/utama"
-              className={`flex py-2 text-sm rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700
+              className={`
+                flex items-center gap-3
+                py-2.5 rounded-xl
+                text-sm
+                text-gray-700 dark:text-gray-300
+                hover:bg-emerald-100/70
+                dark:hover:bg-slate-800
+                transition
                 ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
                 ${
                   pathname.includes("/layout/utama")
-                    ? "bg-blue-100 dark:bg-blue-900/30"
+                    ? `
+                        bg-gradient-to-r
+                        from-emerald-500/20 to-cyan-500/20
+                        text-emerald-700
+                        dark:from-indigo-500/30
+                        dark:via-purple-500/25
+                        dark:to-fuchsia-500/30
+                        dark:text-indigo-200
+                        shadow-inner
+                      `
                     : ""
                 }`}
             >
@@ -256,11 +414,27 @@ export default function SuperadminLayout({
 
             <Link
               href="/dashboard/superadmin/layout/konten"
-              className={`flex py-2 text-sm rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700
+              className={`
+                flex items-center gap-3
+                py-2.5 rounded-xl
+                text-sm
+                text-gray-700 dark:text-gray-300
+                hover:bg-emerald-100/70
+                dark:hover:bg-slate-800
+                transition
                 ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
                 ${
                   pathname.includes("/layout/konten")
-                    ? "bg-blue-100 dark:bg-blue-900/30"
+                    ? `
+                        bg-gradient-to-r
+                        from-emerald-500/20 to-cyan-500/20
+                        text-emerald-700
+                        dark:from-indigo-500/30
+                        dark:via-purple-500/25
+                        dark:to-fuchsia-500/30
+                        dark:text-indigo-200
+                        shadow-inner
+                      `
                     : ""
                 }`}
             >
@@ -269,11 +443,27 @@ export default function SuperadminLayout({
 
             <Link
               href="/dashboard/superadmin/layout/banner"
-              className={`flex py-2 text-sm rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700
+              className={`
+                flex items-center gap-3
+                py-2.5 rounded-xl
+                text-sm
+                text-gray-700 dark:text-gray-300
+                hover:bg-emerald-100/70
+                dark:hover:bg-slate-800
+                transition
                 ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
                 ${
                   pathname.includes("/layout/banner")
-                    ? "bg-blue-100 dark:bg-blue-900/30"
+                    ? `
+                        bg-gradient-to-r
+                        from-emerald-500/20 to-cyan-500/20
+                        text-emerald-700
+                        dark:from-indigo-500/30
+                        dark:via-purple-500/25
+                        dark:to-fuchsia-500/30
+                        dark:text-indigo-200
+                        shadow-inner
+                      `
                     : ""
                 }`}
             >
@@ -284,11 +474,17 @@ export default function SuperadminLayout({
       </aside>
 
       {/* ===================== TOPBAR ===================== */}
-      <header
-        className={`fixed top-0 right-0 z-20 h-16 bg-white dark:bg-gray-800 shadow
-        flex items-center px-6 transition-all duration-300
-        ${collapsed ? "left-20" : "left-64"}`}
-      >
+      <header className={`
+        fixed top-0 right-0 z-20 h-16
+        bg-white/70
+        dark:bg-[#020617]/70
+        backdrop-blur-xl
+        border-b border-emerald-200 dark:border-slate-800
+        shadow-sm
+        flex items-center px-6
+        transition-all duration-300
+        ${collapsed ? "left-20" : "left-72"}
+      `}>
         <button
           onClick={() => setCollapsed(!collapsed)}
           className="mr-4 p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 border"
@@ -297,15 +493,27 @@ export default function SuperadminLayout({
         </button>
 
         <input
-          placeholder="Search..."
-          className="w-1/3 min-w-[200px] px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 border outline-none"
+          placeholder="search...."
+          className="
+          w-1/3 min-w-[220px]
+          px-4 py-2 rounded-xl
+          bg-white/80 dark:bg-slate-800
+          border border-emerald-200 dark:border-slate-700
+          focus:ring-2 focus:ring-emerald-400
+          outline-none
+          transition
+          "
         />
 
         <div className="ml-auto flex items-center gap-5">
           <Bell />
 
-          <button onClick={() => setDark(!dark)}>
-            {dark ? <Sun /> : <Moon />}
+          <button
+            onClick={toggleTheme}
+            className="p-2 rounded-full hover:bg-emerald-100 dark:hover:bg-emerald-900/40"
+          >
+            <Sun className="hidden dark:block text-yellow-400" />
+            <Moon className="block dark:hidden text-emerald-600" />
           </button>
 
           <div className="relative">
@@ -317,7 +525,7 @@ export default function SuperadminLayout({
             />
 
             {profileOpen && (
-              <div className="absolute right-0 mt-3 w-64 bg-white dark:bg-gray-800 shadow-xl rounded-xl p-4 z-50">
+              <div className="absolute right-0 mt-3 w-64 bg-white/90 dark:bg-slate-800/90 backdrop-blur-xl shadow-2xl rounded-2xl p-4 border border-emerald-100 dark:border-slate-700 z-50">
                 {/* Foto profil besar */}
                 <div className="flex flex-col items-center gap-2 mb-3">
                   <img
@@ -339,7 +547,7 @@ export default function SuperadminLayout({
                 <div className="flex flex-col gap-2">
                   <Link
                     href="/dashboard/superadmin/profile/edit"
-                    className="flex items-center gap-2 px-3 py-2 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+                    className="flex items-center gap-2 px-3 py-2 text-gray-800 dark:text-gray-200 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-lg"
                   >
                     ✏️ Edit Profile
                   </Link>
@@ -361,13 +569,21 @@ export default function SuperadminLayout({
       </header>
 
       {/* ===================== CONTENT ===================== */}
-      <main
-        className={`pt-20 p-6 transition-all duration-300 ${
-          collapsed ? "ml-20" : "ml-64"
-        }`}
-      >
-        {children}
-      </main>
+      <main className={`
+        pt-20 p-6
+        transition-all duration-300
+        ${collapsed ? "ml-20" : "ml-72"}
+      `}>
+          <div className="
+            rounded-2xl
+            bg-white/80 dark:bg-slate-900/80
+            backdrop-blur-xl
+            shadow-lg
+            p-6
+          ">
+            {children}
+          </div>
+        </main>
     </div>
   );
 }
