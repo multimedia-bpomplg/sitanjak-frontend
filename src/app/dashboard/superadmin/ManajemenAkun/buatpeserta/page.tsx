@@ -1,6 +1,9 @@
 "use client";
 
+import ProcessPopup from "@/components/ui/ProcessPopup";
 import { useState, useEffect } from "react";
+import { showToast } from "@/components/ui/toastDashboard";
+import { useConfirm } from "@/components/ui/ConfirmProvider";
 
 /* ================= TYPE ================= */
 type PesertaAkun = {
@@ -20,11 +23,15 @@ export default function BuatAkunPesertaPage() {
   const [openAksi, setOpenAksi] = useState(false);
   const [selected, setSelected] = useState<PesertaAkun | null>(null);
 
+  const [loadingPopup, setLoadingPopup] = useState(false);
+
   const [form, setForm] = useState({
     name: "",
     email: "",
     password: "",
   });
+
+  const confirm = useConfirm();
 
   /* ================= FETCH DATA ================= */
   const fetchPeserta = async () => {
@@ -40,6 +47,10 @@ export default function BuatAkunPesertaPage() {
 
       const result = await res.json();
 
+      if (!res.ok) {
+        throw new Error(result.message || "Gagal memuat data peserta");
+      }
+
       const mapped: PesertaAkun[] = result.map((item: any) => ({
         _id: item._id,
         name: item.name,
@@ -49,8 +60,8 @@ export default function BuatAkunPesertaPage() {
       }));
 
       setData(mapped);
-    } catch (error) {
-      console.error("[FETCH PESERTA]", error);
+    } catch (error: any) {
+      showToast.error(error.message || "Terjadi kesalahan saat memuat data");
     }
   };
 
@@ -80,9 +91,11 @@ export default function BuatAkunPesertaPage() {
   /* ================= CREATE AKUN ================= */
   const handleCreate = async () => {
     if (!form.name || !form.email || !form.password) {
-      alert("Semua field wajib diisi");
+      showToast.error("Semua field wajib diisi");
       return;
     }
+
+    setLoadingPopup(true);
 
     try {
       const res = await fetch(
@@ -100,25 +113,35 @@ export default function BuatAkunPesertaPage() {
       const result = await res.json();
 
       if (!res.ok) {
-        alert(result.message || "Gagal membuat akun");
-        return;
+        throw new Error(result.message || "Gagal membuat akun peserta");
       }
 
-      alert("Akun peserta berhasil dibuat");
+      showToast.success("Akun peserta berhasil dibuat");
+
       setOpen(false);
       setForm({ name: "", email: "", password: "" });
       fetchPeserta();
-    } catch (error) {
-      alert("Terjadi kesalahan server");
+    } catch (error: any) {
+      showToast.error(error.message || "Terjadi kesalahan server");
+    } finally {
+      setLoadingPopup(false);
     }
   };
 
-  /* ================= NONAKTIFKAN AKUN ================= */
-  const handleNonaktifkan = async (id: string) => {
-    if (!confirm("Yakin nonaktifkan akun ini?")) return;
+  /* ================= NONAKTIF ================= */
+  const handleNonaktifkan = (id: string) => {
+    confirm({
+      title: "Nonaktifkan Akun",
+      message: "Yakin ingin menonaktifkan akun peserta ini?",
+      onConfirm: () => prosesNonaktifkan(id),
+    });
+  };
+
+  const prosesNonaktifkan = async (id: string) => {
+    const toastId = showToast.loading("Menonaktifkan akun peserta...");
 
     try {
-      await fetch(
+      const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/superadmin/peserta/${id}/nonaktif`,
         {
           method: "PATCH",
@@ -128,110 +151,198 @@ export default function BuatAkunPesertaPage() {
         }
       );
 
+      const result = await res.json();
+
+      if (!res.ok) {
+        throw new Error(result.message || "Gagal menonaktifkan akun peserta");
+      }
+
+      setData((prev) =>
+        prev.map((p) =>
+          p._id === id ? { ...p, status: "Nonaktif" } : p
+        )
+      );
+
+      setSelected((prev) =>
+        prev ? { ...prev, status: "Nonaktif" } : prev
+      );
+
+      showToast.updateSuccess(
+        toastId,
+        "Akun peserta berhasil dinonaktifkan"
+      );
+
       setOpenAksi(false);
-      fetchPeserta();
-    } catch (error) {
-      alert("Gagal menonaktifkan akun");
+    } catch (error: any) {
+      showToast.updateError(
+        toastId,
+        error.message || "Terjadi kesalahan server"
+      );
     }
   };
 
-  /* ================= AKTIFKAN AKUN ================= */
-const handleAktifkan = async (id: string) => {
-  if (!confirm("Yakin aktifkan kembali akun ini?")) return;
+  /* ================= AKTIF ================= */
+  const handleAktifkan = (id: string) => {
+    confirm({
+      title: "Aktifkan Akun",
+      message: "Yakin ingin mengaktifkan kembali akun peserta ini?",
+      onConfirm: () => prosesAktifkan(id),
+    });
+  };
 
-  try {
-    await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/superadmin/peserta/${id}/aktif`,
-      {
-        method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
+  const prosesAktifkan = async (id: string) => {
+    const toastId = showToast.loading("Mengaktifkan akun peserta...");
+
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/superadmin/peserta/${id}/aktif`,
+        {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
+      const result = await res.json();
+
+      if (!res.ok) {
+        throw new Error(result.message || "Gagal mengaktifkan akun peserta");
       }
-    );
 
-    setOpenAksi(false);
-    fetchPeserta();
-  } catch (error) {
-    alert("Gagal mengaktifkan akun");
-  }
-};
+      setData((prev) =>
+        prev.map((p) =>
+          p._id === id ? { ...p, status: "Aktif" } : p
+        )
+      );
 
-const totalPeserta = data.length;
-const pesertaAktif = data.filter((p) => p.status === "Aktif").length;
-const pesertaNonaktif = data.filter((p) => p.status === "Nonaktif").length;
+      setSelected((prev) =>
+        prev ? { ...prev, status: "Aktif" } : prev
+      );
 
+      showToast.updateSuccess(
+        toastId,
+        "Akun peserta berhasil diaktifkan"
+      );
 
+      setOpenAksi(false);
+    } catch (error: any) {
+      showToast.updateError(
+        toastId,
+        error.message || "Terjadi kesalahan server"
+      );
+    }
+  };
+
+  /* ================= SUMMARY ================= */
+  const totalPeserta = data.length;
+  const pesertaAktif = data.filter((p) => p.status === "Aktif").length;
+  const pesertaNonaktif = data.filter((p) => p.status === "Nonaktif").length;
 
   /* ================= RENDER ================= */
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
+    <div className="
+      min-h-screen p-6
+      bg-gradient-to-br
+      from-slate-50 via-white to-indigo-50
+      dark:from-[#020617] dark:via-[#020617] dark:to-[#1E1B4B]
+      text-slate-800 dark:text-slate-100
+      transition-colors
+    ">
       {/* HEADER */}
-      <div className="flex justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-2xl font-bold">Manajemen Akun Peserta</h1>
-          <p className="text-sm text-gray-500">
+          <h1 className="text-3xl font-bold tracking-tight">
+            Manajemen Akun Peserta
+          </h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
             Kelola akun peserta magang
           </p>
         </div>
 
         <button
           onClick={() => setOpen(true)}
-          className="px-5 py-2.5 rounded-xl bg-blue-600 text-white font-semibold"
+          className="
+            inline-flex items-center gap-3
+            px-5 py-2.5 rounded-xl
+            bg-gradient-to-r
+            from-blue-600 via-cyan-600 to-emerald-500
+            dark:from-indigo-600 dark:via-blue-600 dark:to-sky-500
+            text-white font-semibold
+            shadow-lg shadow-indigo-600/20
+            hover:opacity-90 transition
+          "
         >
-          + Buat Akun Peserta
+          <span
+            className="
+              w-6 h-6 flex items-center justify-center
+              rounded-full
+              bg-white/90 text-blue-700
+              dark:bg-slate-900 dark:text-sky-400
+              font-bold text-lg
+            "
+          >
+            +
+          </span>
+          <span>Buat Akun Peserta</span>
         </button>
       </div>
 
-      {/* SUMMARY BOX */}
-<div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-  <div className="bg-white rounded-xl shadow p-4">
-    <p className="text-sm text-gray-500">Jumlah Peserta</p>
-    <h2 className="text-2xl font-bold">{totalPeserta}</h2>
-  </div>
+      {/* SUMMARY */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        <Summary title="Jumlah Peserta" value={totalPeserta} />
+        <Summary title="Peserta Aktif" value={pesertaAktif} color="green" />
+        <Summary title="Peserta Tidak Aktif" value={pesertaNonaktif} color="red" />
+      </div>
 
-  <div className="bg-white rounded-xl shadow p-4">
-    <p className="text-sm text-gray-500">Peserta Aktif</p>
-    <h2 className="text-2xl font-bold text-green-600">
-      {pesertaAktif}
-    </h2>
-  </div>
-
-  <div className="bg-white rounded-xl shadow p-4">
-    <p className="text-sm text-gray-500">Peserta Tidak Aktif</p>
-    <h2 className="text-2xl font-bold text-red-600">
-      {pesertaNonaktif}
-    </h2>
-  </div>
-</div>
-
-
-      {/* TABLE (UI TIDAK DIUBAH) */}
-      <div className="bg-white rounded-xl shadow">
+      {/* TABLE */}
+      <div className="
+        rounded-2xl overflow-hidden
+        bg-white/80 dark:bg-slate-900/80
+        backdrop-blur
+        shadow-xl
+        border border-slate-200 dark:border-slate-800
+      ">
         <table className="w-full text-sm">
-          <thead className="bg-gray-100">
+          <thead className="
+            bg-slate-100 dark:bg-slate-800
+            text-slate-600 dark:text-slate-300
+            text-xs uppercase tracking-wider
+          ">
             <tr>
-              <th className="px-4 py-3">No</th>
-              <th className="px-4 py-3">Nama</th>
-              <th className="px-4 py-3">Email</th>
-              <th className="px-4 py-3">Periode</th>
-              <th className="px-4 py-3">Status</th>
+              <th className="px-6 py-4 text-center">No</th>
+              <th className="px-6 py-4 text-left">Nama</th>
+              <th className="px-6 py-4 text-left">Email</th>
+              <th className="px-6 py-4 text-center">Periode</th>
+              <th className="px-6 py-4 text-center">Status</th>
             </tr>
           </thead>
+
           <tbody>
             {data.length === 0 ? (
               <tr>
-                <td colSpan={5} className="py-8 text-center text-gray-400">
+                <td colSpan={5} className="py-10 text-center text-slate-500 dark:text-slate-400">
                   Belum ada akun peserta
                 </td>
               </tr>
             ) : (
               data.map((item, index) => (
-                <tr key={item._id} className="border-t">
-                  <td className="px-4 py-3 text-center">{index + 1}</td>
+                <tr
+                  key={item._id}
+                  className="
+                    border-t border-slate-200 dark:border-slate-800
+                    hover:bg-indigo-50/50 dark:hover:bg-indigo-500/10
+                    transition
+                  "
+                >
+                  <td className="px-6 py-4 text-center">{index + 1}</td>
 
                   <td
-                    className="px-4 py-3 text-blue-600 underline cursor-pointer"
+                    className="
+                      px-6 py-4 font-medium
+                      text-indigo-600 dark:text-indigo-400
+                      hover:underline cursor-pointer
+                    "
                     onClick={() => {
                       setSelected(item);
                       setOpenAksi(true);
@@ -240,16 +351,24 @@ const pesertaNonaktif = data.filter((p) => p.status === "Nonaktif").length;
                     {item.name}
                   </td>
 
-                  <td className="px-4 py-3">{item.email}</td>
-                  <td className="px-4 py-3 text-center">{item.periode}</td>
+                  <td className="px-6 py-4 text-slate-600 dark:text-slate-300">
+                    {item.email}
+                  </td>
 
-                  <td className="px-4 py-3 text-center">
+                  <td className="px-6 py-4 text-center">{item.periode}</td>
+
+                  <td className="px-6 py-4 text-center">
                     <span
-                      className={`font-medium ${
-                        item.status === "Aktif"
-                          ? "text-green-600"
-                          : "text-red-600"
-                      }`}
+                      className={`
+                        inline-flex items-center justify-center
+                        px-3 py-1 rounded-full
+                        text-xs font-semibold
+                        ${
+                          item.status === "Aktif"
+                            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300"
+                            : "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300"
+                        }
+                      `}
                     >
                       {item.status}
                     </span>
@@ -261,122 +380,311 @@ const pesertaNonaktif = data.filter((p) => p.status === "Nonaktif").length;
         </table>
       </div>
 
-      {/* MODAL BUAT AKUN (ASLI – TIDAK DIUBAH) */}
+      {/* MODAL BUAT AKUN */}
       {open && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl w-full max-w-md p-6">
-            <h2 className="text-lg font-bold mb-4">Buat Akun Peserta</h2>
+        <Modal title="Buat Akun Peserta" onClose={() => setOpen(false)}>
+          <Input
+            label="Nama Peserta"
+            value={form.name}
+            onChange={(v) => setForm({ ...form, name: v })}
+          />
 
-            <input
-              placeholder="Nama"
-              className="w-full mb-3 p-2 border rounded"
-              value={form.name}
-              onChange={(e) =>
-                setForm({ ...form, name: e.target.value })
-              }
-            />
+          <Input
+            label="Email Peserta"
+            value={form.email}
+            onChange={(v) => setForm({ ...form, email: v })}
+          />
 
-            <input
-              placeholder="Email"
-              className="w-full mb-3 p-2 border rounded"
-              value={form.email}
-              onChange={(e) =>
-                setForm({ ...form, email: e.target.value })
-              }
-            />
+          <PasswordInput
+            value={form.password}
+            onGenerate={generatePassword}
+          />
 
-            <div className="flex gap-2 mb-4">
-              <input
-                value={form.password}
-                placeholder="Password"
-                className="flex-1 p-2 border rounded"
-                readOnly
-              />
-              <button
-                onClick={generatePassword}
-                className="px-3 py-2 bg-gray-200 rounded"
-              >
-                Generate
-              </button>
-            </div>
-
-            <div className="flex justify-end gap-2">
-              <button onClick={() => setOpen(false)}>Batal</button>
-              <button
-                onClick={handleCreate}
-                className="px-4 py-2 bg-blue-600 text-white rounded"
-              >
-                Buat Akun
-              </button>
-            </div>
-          </div>
-        </div>
+          <ModalAction
+            onCancel={() => setOpen(false)}
+            onSubmit={handleCreate}
+            submitText="Buat Akun Peserta"
+          />
+        </Modal>
       )}
 
-      {/* MODAL AKSI (BARU) */}
+      {/* MODAL AKSI */}
       {openAksi && selected && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl w-full max-w-md p-6">
-            <h2 className="text-lg font-bold mb-4">Detail Akun Peserta</h2>
+        <Modal title="Detail Akun Peserta" onClose={() => setOpenAksi(false)}>
+          <Detail label="Nama" value={selected.name} />
+          <Detail label="Email" value={selected.email} />
+          <Detail label="Periode" value={selected.periode} />
+          <div className="
+            rounded-xl
+            p-4
+            bg-slate-50 dark:bg-slate-800/60
+            border border-slate-200 dark:border-slate-700
+          ">
+            <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              Status
+            </p>
 
-            <div className="space-y-3 text-sm">
-              <div>
-                <p className="text-gray-500">Nama</p>
-                <p className="font-medium">{selected.name}</p>
-              </div>
-
-              <div>
-                <p className="text-gray-500">Email</p>
-                <p className="font-medium">{selected.email}</p>
-              </div>
-
-              <div>
-                <p className="text-gray-500">Periode Magang</p>
-                <p className="font-medium">{selected.periode}</p>
-              </div>
-
-              <div>
-                <p className="text-gray-500">Status</p>
-                <p
-                  className={`font-semibold ${
-                    selected.status === "Aktif"
-                      ? "text-green-600"
-                      : "text-red-600"
-                  }`}
-                >
-                  {selected.status}
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-6 flex justify-between">
-              <button
-                onClick={() => setOpenAksi(false)}
-                className="px-4 py-2 border rounded"
-              >
-                Tutup
-              </button>
-
-             {selected.status === "Aktif" ? (
-  <button
-    onClick={() => handleNonaktifkan(selected._id)}
-    className="px-4 py-2 bg-red-600 text-white rounded"
-  >
-    Nonaktifkan Akun
-  </button>
-) : (
-  <button
-    onClick={() => handleAktifkan(selected._id)}
-    className="px-4 py-2 bg-green-600 text-white rounded"
-  >
-    Aktifkan Akun
-  </button>
-)}
-
-            </div>
+            <p
+              className={`mt-1 text-base font-semibold ${
+                selected.status === "Aktif"
+                  ? "text-emerald-600 dark:text-emerald-400"
+                  : "text-rose-600 dark:text-rose-400"
+              }`}
+            >
+              {selected.status}
+            </p>
           </div>
-        </div>
+
+          <div className="flex justify-end gap-3 pt-4">
+            {selected.status === "Aktif" ? (
+              <button
+                onClick={() => handleNonaktifkan(selected._id)}
+                className="
+                  px-5 py-2.5 rounded-xl
+                  bg-red-600 text-white
+                  hover:opacity-90 transition
+                "
+              >
+                Nonaktifkan Akun
+              </button>
+            ) : (
+              <button
+                onClick={() => handleAktifkan(selected._id)}
+                className="
+                  px-5 py-2.5 rounded-xl
+                  bg-emerald-600 text-white
+                  hover:opacity-90 transition
+                "
+              >
+                Aktifkan Akun
+              </button>
+            )}
+          </div>
+        </Modal>
       )}
+
+      <ProcessPopup
+        open={loadingPopup}
+        title="Membuat Akun Peserta"
+        message="Sedang menyimpan data ke sistem, mohon tunggu..."
+      />
+    </div>
+  );
+}
+
+function Summary({ title, value, color }: any) {
+  const colorMap = {
+    green: "text-emerald-500",
+    red: "text-rose-500",
+    default: "text-blue-400",
+  };
+
+  return (
+    <div className="
+      rounded-2xl p-5
+      bg-white/80 dark:bg-slate-900/80
+      backdrop-blur
+      shadow-lg
+      border border-slate-200 dark:border-slate-800
+    ">
+      <p className="text-sm text-slate-500 dark:text-slate-400">
+        {title}
+      </p>
+      <h2 className={`text-3xl font-bold mt-1 ${colorMap[color || "default"]}`}>
+        {value}
+      </h2>
+    </div>
+  );
+}
+
+function Modal({
+  title,
+  children,
+  onClose,
+}: {
+  title: string;
+  children: React.ReactNode;
+  onClose: () => void;
+}) {
+  return (
+    <div className="
+      fixed inset-0 z-50
+      bg-black/40 backdrop-blur-sm
+      flex items-center justify-center
+      px-4
+    ">
+      <div className="
+        relative w-full max-w-md
+        rounded-3xl
+        bg-white/95 dark:bg-slate-900/95
+        shadow-[0_20px_60px_-15px_rgba(0,0,0,0.35)]
+        border border-slate-200 dark:border-slate-800
+        overflow-hidden
+      ">
+        {/* HEADER */}
+        <div className="
+          flex items-center justify-between
+          px-6 py-4
+          border-b border-slate-200 dark:border-slate-800
+          bg-gradient-to-r
+          from-indigo-50 to-blue-50
+          dark:from-indigo-500/10 dark:to-blue-500/10
+        ">
+          <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
+            {title}
+          </h2>
+
+          <button
+            onClick={onClose}
+            className="
+              w-9 h-9 flex items-center justify-center
+              rounded-full
+              text-slate-500 dark:text-slate-300
+              hover:bg-slate-200 dark:hover:bg-slate-800
+              transition
+            "
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* CONTENT */}
+        <div className="px-6 py-5 space-y-4">
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Input({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div>
+      <label className="block mb-1 text-sm font-medium text-slate-600 dark:text-slate-300">
+        {label}
+      </label>
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="
+          w-full px-4 py-2.5 rounded-xl
+          bg-white dark:bg-slate-800
+          text-slate-800 dark:text-slate-100
+          border border-slate-300 dark:border-slate-700
+          focus:ring-2 focus:ring-indigo-500
+          outline-none transition
+        "
+      />
+    </div>
+  );
+}
+
+function PasswordInput({
+  value,
+  onGenerate,
+}: {
+  value: string;
+  onGenerate: () => void;
+}) {
+  return (
+    <div>
+      <label className="block mb-1 text-sm font-medium text-slate-600 dark:text-slate-300">
+        Password
+      </label>
+
+      <div className="flex gap-2">
+        <input
+          readOnly
+          value={value}
+          className="
+            flex-1 px-4 py-2.5 rounded-xl
+            bg-white dark:bg-slate-800
+            text-slate-800 dark:text-slate-100
+            border border-slate-300 dark:border-slate-700
+          "
+        />
+        <button
+          onClick={onGenerate}
+          className="
+            px-4 py-2.5 rounded-xl
+            bg-slate-200 dark:bg-slate-700
+            text-slate-700 dark:text-slate-200
+            font-medium
+            hover:opacity-90
+            transition
+          "
+        >
+          Generate
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ModalAction({
+  onCancel,
+  onSubmit,
+  submitText,
+}: {
+  onCancel: () => void;
+  onSubmit: () => void;
+  submitText: string;
+}) {
+  return (
+    <div className="flex justify-end gap-3 pt-4">
+      <button
+        onClick={onCancel}
+        className="
+          px-4 py-2 rounded-xl
+          text-slate-600 dark:text-slate-300
+          hover:bg-slate-100 dark:hover:bg-slate-800
+          transition
+        "
+      >
+        Batal
+      </button>
+
+      <button
+        onClick={onSubmit}
+        className="
+          px-6 py-2.5 rounded-xl
+          font-semibold text-white
+          bg-gradient-to-r
+          from-blue-600 via-cyan-600 to-emerald-500
+          dark:from-indigo-600 dark:via-blue-600 dark:to-sky-500
+          shadow-lg shadow-indigo-600/25
+          hover:opacity-90
+          transition
+        "
+      >
+        {submitText}
+      </button>
+    </div>
+  );
+}
+
+function Detail({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="
+      rounded-xl
+      p-4
+      bg-slate-50 dark:bg-slate-800/60
+      border border-slate-200 dark:border-slate-700
+    ">
+      <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
+        {label}
+      </p>
+      <p className="mt-1 text-base font-semibold text-slate-800 dark:text-slate-100">
+        {value}
+      </p>
     </div>
   );
 }

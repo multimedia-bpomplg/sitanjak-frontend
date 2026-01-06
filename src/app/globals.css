@@ -847,3 +847,20 @@ span.flatpickr-weekday,
 .animate-orbitSlow {
   animation: orbitSlow 1.6s linear infinite;
 }
+
+/* ================= TOAST PROGRESS BAR ================= */
+
+/* SUCCESS → HIJAU */
+.toast-progress-success {
+  background: linear-gradient(to right, #22c55e, #16a34a) !important;
+}
+
+/* LOADING → KUNING */
+.toast-progress-loading {
+  background: linear-gradient(to right, #facc15, #eab308) !important;
+}
+
+/* ERROR → MERAH */
+.toast-progress-error {
+  background: linear-gradient(to right, #f43f5e, #e11d48) !important;
+}
