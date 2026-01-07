@@ -230,7 +230,7 @@ export default function BuatAkunAdminPage() {
   return (
     <div
       className="
-      min-h-screen p-6
+      min-h-screen p-4 sm:p-6
       bg-gradient-to-br
       from-slate-50 via-white to-indigo-50
       dark:from-[#020617] dark:via-[#020617] dark:to-[#1E1B4B]
@@ -281,7 +281,7 @@ export default function BuatAkunAdminPage() {
       </div>
 
       {/* SUMMARY */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         <Summary title="Jumlah Admin" value={totalAdmin} />
         <Summary title="Admin Aktif" value={adminAktif} color="green" />
         <Summary title="Admin Nonaktif" value={adminNonaktif} color="red" />
@@ -290,94 +290,96 @@ export default function BuatAkunAdminPage() {
       {/* TABLE */}
       <div
         className="
-        rounded-2xl overflow-hidden
+        rounded-2xl
         bg-white/80 dark:bg-slate-900/80
         backdrop-blur
         shadow-xl
         border border-slate-200 dark:border-slate-800
       "
       >
-        <table className="w-full text-sm">
-          <thead
-            className="
-              bg-slate-100 dark:bg-slate-800
-              text-slate-600 dark:text-slate-300
-              text-xs uppercase tracking-wider
-            "
-          >
-            <tr>
-              <th className="px-6 py-4 text-center">No</th>
-              <th className="px-6 py-4 text-left">Nama</th>
-              <th className="px-6 py-4 text-left">Email</th>
-              <th className="px-6 py-4 text-center">Periode</th>
-              <th className="px-6 py-4 text-center">Status</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {data.length === 0 ? (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead
+              className="
+                bg-slate-100 dark:bg-slate-800
+                text-slate-600 dark:text-slate-300
+                text-xs uppercase tracking-wider
+              "
+            >
               <tr>
-                <td
-                  colSpan={5}
-                  className="py-10 text-center text-slate-500 dark:text-slate-400"
-                >
-                  Belum ada akun admin
-                </td>
+                <th className="px-6 py-4 text-center">No</th>
+                <th className="px-6 py-4 text-left">Nama</th>
+                <th className="px-6 py-4 text-left">Email</th>
+                <th className="px-6 py-4 text-center">Periode</th>
+                <th className="px-6 py-4 text-center">Status</th>
               </tr>
-            ) : (
-              data.map((item, index) => (
-                <tr
-                  key={item._id}
-                  className="
-                    border-t border-slate-200 dark:border-slate-800
-                    hover:bg-indigo-50/50 dark:hover:bg-indigo-500/10
-                    transition
-                  "
-                >
-                  <td className="px-6 py-4 text-center">{index + 1}</td>
+            </thead>
 
+            <tbody>
+              {data.length === 0 ? (
+                <tr>
                   <td
-                    className="
-                      px-6 py-4
-                      font-medium
-                      text-indigo-600 dark:text-indigo-400
-                      hover:underline cursor-pointer
-                    "
-                    onClick={() => {
-                      setSelected(item);
-                      setOpenAksi(true);
-                    }}
+                    colSpan={5}
+                    className="py-10 text-center text-slate-500 dark:text-slate-400"
                   >
-                    {item.name}
-                  </td>
-
-                  <td className="px-6 py-4 text-slate-600 dark:text-slate-300">
-                    {item.email}
-                  </td>
-
-                  <td className="px-6 py-4 text-center">{item.periode}</td>
-
-                  <td className="px-6 py-4 text-center">
-                    <span
-                      className={`
-                        inline-flex items-center justify-center
-                        px-3 py-1 rounded-full
-                        text-xs font-semibold
-                        ${
-                          item.status === "Aktif"
-                            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300"
-                            : "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300"
-                        }
-                      `}
-                    >
-                      {item.status}
-                    </span>
+                    Belum ada akun admin
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : (
+                data.map((item, index) => (
+                  <tr
+                    key={item._id}
+                    className="
+                      border-t border-slate-200 dark:border-slate-800
+                      hover:bg-indigo-50/50 dark:hover:bg-indigo-500/10
+                      transition
+                    "
+                  >
+                    <td className="px-6 py-4 text-center">{index + 1}</td>
+
+                    <td
+                      className="
+                        px-6 py-4
+                        font-medium
+                        text-indigo-600 dark:text-indigo-400
+                        hover:underline cursor-pointer
+                      "
+                      onClick={() => {
+                        setSelected(item);
+                        setOpenAksi(true);
+                      }}
+                    >
+                      {item.name}
+                    </td>
+
+                    <td className="px-6 py-4 text-slate-600 dark:text-slate-300">
+                      {item.email}
+                    </td>
+
+                    <td className="px-6 py-4 text-center">{item.periode}</td>
+
+                    <td className="px-6 py-4 text-center">
+                      <span
+                        className={`
+                          inline-flex items-center justify-center
+                          px-3 py-1 rounded-full
+                          text-xs font-semibold
+                          ${
+                            item.status === "Aktif"
+                              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300"
+                              : "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300"
+                          }
+                        `}
+                      >
+                        {item.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* MODAL BUAT ADMIN */}
@@ -608,7 +610,7 @@ function PasswordInput({
         Password
       </label>
 
-      <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row gap-2">
         <input
           readOnly
           value={value}

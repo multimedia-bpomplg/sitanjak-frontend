@@ -69,7 +69,7 @@ export default function Navbar() {
       >
         {/* LOGO */}
         <Image
-          src="/images/icons/SIMAGGO.png"
+          src="/images/icons/Logo-Simaggo.png"
           alt="SIMAGGO Logo"
           width={70}
           height={70}

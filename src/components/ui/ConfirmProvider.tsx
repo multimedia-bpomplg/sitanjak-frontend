@@ -64,7 +64,7 @@ const ConfirmPopup = ({
   onConfirm: () => void;
   onClose: () => void;
 }) => (
-  <div className="fixed inset-0 z-50 flex items-center justify-center">
+  <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
     <div
       className="absolute inset-0 bg-black/40 backdrop-blur-md"
       onClick={onClose}
@@ -73,7 +73,7 @@ const ConfirmPopup = ({
     <div
       className="
         relative w-full max-w-sm
-        rounded-3xl px-8 py-8 text-center
+        rounded-3xl px-5 py-6 sm:px-8 sm:py-8 text-center
         bg-white dark:bg-[#020617]
         text-slate-800 dark:text-slate-100
         shadow-[0_30px_80px_-20px_rgba(0,0,0,0.5)]
@@ -83,21 +83,21 @@ const ConfirmPopup = ({
     >
       <div
         className="
-          mx-auto mb-4 w-20 h-20 rounded-full
+          mx-auto mb-4 w-16 h-16 sm:w-20 sm:h-20 rounded-full
           bg-gradient-to-br from-rose-500 to-pink-500
           flex items-center justify-center
-          text-white text-4xl shadow-lg
+          text-white text-3xl sm:text-4xl shadow-lg
         "
       >
         ⚠️
       </div>
 
-      <h3 className="text-xl font-bold">{title}</h3>
+      <h3 className="text-lg sm:text-xl font-bold">{title}</h3>
       <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
         {message}
       </p>
 
-      <div className="mt-6 flex gap-3 justify-center">
+      <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
         <button
           onClick={onClose}
           className="
