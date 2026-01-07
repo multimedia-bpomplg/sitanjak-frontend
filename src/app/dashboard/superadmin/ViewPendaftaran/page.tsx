@@ -145,7 +145,8 @@ export default function ViewPendaftaranPage() {
     return value;
   };
 
-  const LIMIT = 20;
+  const LIMIT = 10;
+
   const [page, setPage] = useState(1);
 
   const totalPage = Math.ceil(data.length / LIMIT);
@@ -163,6 +164,14 @@ export default function ViewPendaftaranPage() {
       (akun) => akun.email.toLowerCase() === email.toLowerCase()
     );
   };
+
+  /* ===================== SEARCH ===================== */
+  const [search, setSearch] = useState("");
+
+  /* ===================== FILTER DATA (SEARCH NAMA) ===================== */
+  const filteredData = data.filter((item) =>
+    item.peserta[0]?.nama?.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6 text-gray-800 dark:text-gray-200">
@@ -205,13 +214,13 @@ export default function ViewPendaftaranPage() {
                     <td className="px-4 py-3">{i + 1}</td>
                     <td
                       className="
-    px-4 py-3
-    font-medium
-    text-blue-600
-    underline
-    cursor-pointer
-    hover:text-blue-800
-  "
+      px-4 py-3
+      font-medium
+      text-blue-600
+      underline
+      cursor-pointer
+      hover:text-blue-800
+    "
                       onClick={() => setSelected(item)}
                     >
                       {item.peserta[0]?.nama}
@@ -239,11 +248,11 @@ export default function ViewPendaftaranPage() {
           <div className="fixed inset-0 bg-black/40 z-50" onClick={closeModal}>
             <div
               className="
-      bg-white
-      w-full h-full
-      overflow-y-auto
-      p-6
-    "
+        bg-white
+        w-full h-full
+        overflow-y-auto
+        p-6
+      "
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex justify-between items-center mb-4">
@@ -270,14 +279,14 @@ export default function ViewPendaftaranPage() {
                     href={`http://localhost:5000/uploads/${selected.suratPengantar}`}
                     target="_blank"
                     className="
-        inline-flex items-center gap-2
-        px-4 py-2
-        rounded-lg
-        bg-blue-600 text-white
-        text-sm font-semibold
-        hover:bg-blue-700
-        transition
-      "
+          inline-flex items-center gap-2
+          px-4 py-2
+          rounded-lg
+          bg-blue-600 text-white
+          text-sm font-semibold
+          hover:bg-blue-700
+          transition
+        "
                   >
                     📎 Lihat Surat
                   </a>
@@ -290,12 +299,12 @@ export default function ViewPendaftaranPage() {
                   <div
                     key={i}
                     className="
-        bg-white
-        border border-gray-200
-        rounded-2xl
-        shadow-sm
-        p-6
-      "
+          bg-white
+          border border-gray-200
+          rounded-2xl
+          shadow-sm
+          p-6
+        "
                   >
                     {/* HEADER PESERTA */}
                     <div className="mb-4 flex items-center justify-between">
@@ -376,15 +385,15 @@ export default function ViewPendaftaranPage() {
                               `&name=${encodeURIComponent(p.nama)}`;
                           }}
                           className="
-    text-xs
-    px-3 py-1.5
-    rounded-lg
-    bg-blue-600
-    text-white
-    font-medium
-    hover:bg-blue-700
-    transition
-  "
+      text-xs
+      px-3 py-1.5
+      rounded-lg
+      bg-blue-600
+      text-white
+      font-medium
+      hover:bg-blue-700
+      transition
+    "
                         >
                           Buatkan Akun
                         </button>
@@ -408,13 +417,13 @@ export default function ViewPendaftaranPage() {
                       setSuratBalasan(e.target.files?.[0] || null)
                     }
                     className="
-        block w-full text-sm text-gray-600
-        file:mr-4 file:py-2 file:px-4
-        file:rounded-lg file:border-0
-        file:text-sm file:font-semibold
-        file:bg-blue-50 file:text-blue-700
-        hover:file:bg-blue-100
-      "
+          block w-full text-sm text-gray-600
+          file:mr-4 file:py-2 file:px-4
+          file:rounded-lg file:border-0
+          file:text-sm file:font-semibold
+          file:bg-blue-50 file:text-blue-700
+          hover:file:bg-blue-100
+        "
                   />
 
                   {suratBalasan && (
@@ -438,19 +447,19 @@ export default function ViewPendaftaranPage() {
                 <textarea
                   rows={4}
                   className="
-      w-full
-      rounded-xl
-      border border-gray-300
-      bg-white
-      px-4 py-3
-      text-sm text-gray-800
-      placeholder-gray-400
-      shadow-sm
-      focus:border-blue-500
-      focus:ring-2
-      focus:ring-blue-200
-      transition
-    "
+        w-full
+        rounded-xl
+        border border-gray-300
+        bg-white
+        px-4 py-3
+        text-sm text-gray-800
+        placeholder-gray-400
+        shadow-sm
+        focus:border-blue-500
+        focus:ring-2
+        focus:ring-blue-200
+        transition
+      "
                   placeholder="Tuliskan alasan persetujuan atau penolakan pendaftaran..."
                   value={alasan}
                   onChange={(e) => setAlasan(e.target.value)}
@@ -462,14 +471,14 @@ export default function ViewPendaftaranPage() {
                 <button
                   onClick={closeModal}
                   className="
-      inline-flex items-center justify-center
-      px-5 py-2.5
-      rounded-xl
-      bg-gray-100 text-gray-700
-      font-medium
-      hover:bg-gray-200
-      transition
-    "
+        inline-flex items-center justify-center
+        px-5 py-2.5
+        rounded-xl
+        bg-gray-100 text-gray-700
+        font-medium
+        hover:bg-gray-200
+        transition
+      "
                 >
                   Tutup
                 </button>
@@ -477,14 +486,14 @@ export default function ViewPendaftaranPage() {
                 <button
                   onClick={() => updateStatus("Ditolak")}
                   className="
-      inline-flex items-center justify-center
-      px-5 py-2.5
-      rounded-xl
-      bg-red-600 text-white
-      font-semibold
-      hover:bg-red-700
-      transition
-    "
+        inline-flex items-center justify-center
+        px-5 py-2.5
+        rounded-xl
+        bg-red-600 text-white
+        font-semibold
+        hover:bg-red-700
+        transition
+      "
                 >
                   Tolak
                 </button>
@@ -492,14 +501,14 @@ export default function ViewPendaftaranPage() {
                 <button
                   onClick={() => updateStatus("Disetujui")}
                   className="
-      inline-flex items-center justify-center
-      px-5 py-2.5
-      rounded-xl
-      bg-green-600 text-white
-      font-semibold
-      hover:bg-green-700
-      transition
-    "
+        inline-flex items-center justify-center
+        px-5 py-2.5
+        rounded-xl
+        bg-green-600 text-white
+        font-semibold
+        hover:bg-green-700
+        transition
+      "
                 >
                   Setujui
                 </button>
