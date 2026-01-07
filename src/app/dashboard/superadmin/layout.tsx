@@ -30,6 +30,14 @@ export default function SuperadminLayout({
   const router = useRouter();
   const pathname = usePathname();
 
+  type LoggedUser = {
+    name: string;
+    email: string;
+    roles: string[];
+  };
+
+  const [user, setUser] = useState<LoggedUser | null>(null);
+
   const toggleTheme = () => {
     document.documentElement.classList.toggle("dark");
   };
@@ -52,13 +60,35 @@ export default function SuperadminLayout({
     router.replace("/auth/login");
   };
 
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      handleSignOut();
+      return;
+    }
+
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+
+      setUser({
+        name: payload.name,
+        email: payload.email,
+        roles: payload.roles || [],
+      });
+    } catch (error) {
+      console.error("Token tidak valid");
+      handleSignOut();
+    }
+  }, []);
+
   if (!mounted) {
     return null; // ⛔ cegah render sebelum client siap
   }
 
   return (
     <ConfirmProvider>
-      <div className="
+      <div
+        className="
         min-h-screen
         bg-gradient-to-br
         from-emerald-50 via-white to-cyan-50
@@ -69,9 +99,11 @@ export default function SuperadminLayout({
 
         text-gray-800 dark:text-gray-100
         transition-colors duration-300
-      ">
+      "
+      >
         {/* ===================== SIDEBAR ===================== */}
-        <aside className={`
+        <aside
+          className={`
           fixed top-0 left-0 z-30 h-full
           bg-gradient-to-b
           from-white via-emerald-50 to-emerald-100
@@ -84,17 +116,22 @@ export default function SuperadminLayout({
           shadow-[4px_0_20px_-5px_rgba(0,0,0,0.15)]
           transition-all duration-300
           ${collapsed ? "w-20" : "w-72"}
-        `}>
+        `}
+        >
           {/* LOGO */}
-          <div className="
+          <div
+            className="
             flex items-center gap-3 p-5
             border-b border-emerald-200 dark:border-slate-800
-          ">
+          "
+          >
             <img
               src="/images/logo/logo-icon.svg"
               className={`${collapsed ? "w-8 h-8" : "w-12 h-12"}`}
             />
-            {!collapsed && <h1 className="text-lg font-semibold">Superadmin</h1>}
+            {!collapsed && (
+              <h1 className="text-lg font-semibold">Superadmin</h1>
+            )}
           </div>
 
           {/* MENU */}
@@ -105,7 +142,9 @@ export default function SuperadminLayout({
               className={`flex items-center gap-3 py-2 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-900/30
                 transition w-full
                 ${
-                  collapsed ? "justify-center px-3" : "pl-5 pr-3 justify-between"
+                  collapsed
+                    ? "justify-center px-3"
+                    : "pl-5 pr-3 justify-between"
                 }`}
             >
               <div className="flex items-center gap-3">
@@ -249,7 +288,9 @@ export default function SuperadminLayout({
               className={`flex items-center gap-3 py-2 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-900/30
                 transition w-full
                 ${
-                  collapsed ? "justify-center px-3" : "pl-5 pr-3 justify-between"
+                  collapsed
+                    ? "justify-center px-3"
+                    : "pl-5 pr-3 justify-between"
                 }`}
             >
               <div className="flex items-center gap-3">
@@ -365,7 +406,9 @@ export default function SuperadminLayout({
               className={`flex items-center gap-3 py-2 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-900/30
                 transition w-full
                 ${
-                  collapsed ? "justify-center px-3" : "pl-5 pr-3 justify-between"
+                  collapsed
+                    ? "justify-center px-3"
+                    : "pl-5 pr-3 justify-between"
                 }`}
             >
               <div className="flex items-center gap-3">
@@ -478,7 +521,8 @@ export default function SuperadminLayout({
         </aside>
 
         {/* ===================== TOPBAR ===================== */}
-        <header className={`
+        <header
+          className={`
           fixed top-0 right-0 z-20 h-16
           bg-white/70
           dark:bg-[#020617]/70
@@ -488,7 +532,8 @@ export default function SuperadminLayout({
           flex items-center px-6
           transition-all duration-300
           ${collapsed ? "left-20" : "left-72"}
-        `}>
+        `}
+        >
           <button
             onClick={() => setCollapsed(!collapsed)}
             className="mr-4 p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 border"
@@ -523,7 +568,10 @@ export default function SuperadminLayout({
             <div className="relative">
               {/* Foto profil lingkaran */}
               <img
-                src="https://ui-avatars.com/api/?name=Admin" // ganti dengan foto sebenarnya jika ada
+                ssrc={`https://ui-avatars.com/api/?name=${encodeURIComponent(
+                  user?.name || "User"
+                )}`}
+                // ganti dengan foto sebenarnya jika ada
                 className="w-12 h-12 rounded-full cursor-pointer border-2 border-gray-300 dark:border-gray-600"
                 onClick={() => setProfileOpen(!profileOpen)}
               />
@@ -537,24 +585,20 @@ export default function SuperadminLayout({
                       className="w-16 h-16 rounded-full border-2 border-gray-300 dark:border-gray-600"
                     />
                     <span className="font-semibold text-gray-800 dark:text-gray-100">
-                      Admin Name
+                      {user?.name || "-"}
                     </span>
+
                     <span className="text-sm text-gray-500 dark:text-gray-300">
-                      Superadmin
+                      {user?.roles?.[0] || "-"}
                     </span>
+
                     <span className="text-sm text-gray-500 dark:text-gray-300">
-                      admin@example.com
+                      {user?.email || "-"}
                     </span>
                   </div>
 
                   {/* Tombol */}
                   <div className="flex flex-col gap-2">
-                    <Link
-                      href="/dashboard/superadmin/profile/edit"
-                      className="flex items-center gap-2 px-3 py-2 text-gray-800 dark:text-gray-200 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-lg"
-                    >
-                      ✏️ Edit Profile
-                    </Link>
                     <button
                       onClick={() => {
                         if (window.confirm("Apakah Anda yakin ingin keluar?")) {
@@ -580,13 +624,15 @@ export default function SuperadminLayout({
             ${collapsed ? "ml-20" : "ml-72"}
           `}
         >
-          <div className="
+          <div
+            className="
             rounded-2xl
             bg-white/80 dark:bg-slate-900/80
             backdrop-blur-xl
             shadow-lg
             p-6
-          ">
+          "
+          >
             {children}
           </div>
         </main>

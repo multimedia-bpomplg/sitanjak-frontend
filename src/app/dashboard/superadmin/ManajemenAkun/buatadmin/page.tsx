@@ -56,9 +56,8 @@ export default function BuatAkunAdminPage() {
         name: item.name,
         email: item.email,
         status: item.status || "Aktif",
-        periode: 
-          item.periode ||
-          new Date(item.createdAt).getFullYear().toString(),
+        periode:
+          item.periode || new Date(item.createdAt).getFullYear().toString(),
       }));
 
       setData(mapped);
@@ -118,12 +117,9 @@ export default function BuatAkunAdminPage() {
       setOpen(false);
       setForm({ name: "", email: "", password: "" });
       fetchAdmin();
-
     } catch (error: any) {
       // ✅ SEMUA ERROR MASUK SINI
-      showToast.error(
-        error.message || "Terjadi kesalahan server"
-      );
+      showToast.error(error.message || "Terjadi kesalahan server");
     } finally {
       // ✅ PASTI DIJALANKAN (SUKSES / ERROR)
       setLoadingPopup(false); // 🔥 HIDE POPUP
@@ -140,9 +136,7 @@ export default function BuatAkunAdminPage() {
   };
 
   const prosesNonaktifkan = async (id: string) => {
-    const loadingToast = showToast.loading(
-      "Menonaktifkan akun admin..."
-    );
+    const loadingToast = showToast.loading("Menonaktifkan akun admin...");
 
     try {
       const res = await fetch(
@@ -158,20 +152,14 @@ export default function BuatAkunAdminPage() {
       const result = await res.json();
 
       if (!res.ok) {
-        throw new Error(
-          result.message || "Gagal menonaktifkan akun admin"
-        );
+        throw new Error(result.message || "Gagal menonaktifkan akun admin");
       }
 
       setData((prev) =>
-        prev.map((a) =>
-          a._id === id ? { ...a, status: "Nonaktif" } : a
-        )
+        prev.map((a) => (a._id === id ? { ...a, status: "Nonaktif" } : a))
       );
 
-      setSelected((prev) =>
-        prev ? { ...prev, status: "Nonaktif" } : prev
-      );
+      setSelected((prev) => (prev ? { ...prev, status: "Nonaktif" } : prev));
 
       showToast.updateSuccess(
         loadingToast,
@@ -197,9 +185,7 @@ export default function BuatAkunAdminPage() {
   };
 
   const prosesAktifkan = async (id: string) => {
-    const loadingToast = showToast.loading(
-      "Mengaktifkan akun admin..."
-    );
+    const loadingToast = showToast.loading("Mengaktifkan akun admin...");
 
     try {
       const res = await fetch(
@@ -215,25 +201,16 @@ export default function BuatAkunAdminPage() {
       const result = await res.json();
 
       if (!res.ok) {
-        throw new Error(
-          result.message || "Gagal mengaktifkan akun admin"
-        );
+        throw new Error(result.message || "Gagal mengaktifkan akun admin");
       }
 
       setData((prev) =>
-        prev.map((a) =>
-          a._id === id ? { ...a, status: "Aktif" } : a
-        )
+        prev.map((a) => (a._id === id ? { ...a, status: "Aktif" } : a))
       );
 
-      setSelected((prev) =>
-        prev ? { ...prev, status: "Aktif" } : prev
-      );
+      setSelected((prev) => (prev ? { ...prev, status: "Aktif" } : prev));
 
-      showToast.updateSuccess(
-        loadingToast,
-        "Akun admin berhasil diaktifkan"
-      );
+      showToast.updateSuccess(loadingToast, "Akun admin berhasil diaktifkan");
 
       setOpenAksi(false);
     } catch (error: any) {
@@ -251,14 +228,16 @@ export default function BuatAkunAdminPage() {
 
   /* ================= RENDER ================= */
   return (
-    <div className="
+    <div
+      className="
       min-h-screen p-6
       bg-gradient-to-br
       from-slate-50 via-white to-indigo-50
       dark:from-[#020617] dark:via-[#020617] dark:to-[#1E1B4B]
       text-slate-800 dark:text-slate-100
       transition-colors
-    ">
+    "
+    >
       {/* HEADER */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         <div>
@@ -309,13 +288,15 @@ export default function BuatAkunAdminPage() {
       </div>
 
       {/* TABLE */}
-      <div className="
+      <div
+        className="
         rounded-2xl overflow-hidden
         bg-white/80 dark:bg-slate-900/80
         backdrop-blur
         shadow-xl
         border border-slate-200 dark:border-slate-800
-      ">
+      "
+      >
         <table className="w-full text-sm">
           <thead
             className="
@@ -336,7 +317,10 @@ export default function BuatAkunAdminPage() {
           <tbody>
             {data.length === 0 ? (
               <tr>
-                <td colSpan={5} className="py-10 text-center text-slate-500 dark:text-slate-400">
+                <td
+                  colSpan={5}
+                  className="py-10 text-center text-slate-500 dark:text-slate-400"
+                >
                   Belum ada akun admin
                 </td>
               </tr>
@@ -371,9 +355,7 @@ export default function BuatAkunAdminPage() {
                     {item.email}
                   </td>
 
-                  <td className="px-6 py-4 text-center">
-                    {item.periode}
-                  </td>
+                  <td className="px-6 py-4 text-center">{item.periode}</td>
 
                   <td className="px-6 py-4 text-center">
                     <span
@@ -502,16 +484,16 @@ function Summary({ title, value, color }: any) {
   };
 
   return (
-    <div className="
+    <div
+      className="
       rounded-2xl p-5
       bg-white/80 dark:bg-slate-900/80
       backdrop-blur
       shadow-lg
       border border-slate-200 dark:border-slate-800
-    ">
-      <p className="text-sm text-slate-500 dark:text-slate-400">
-        {title}
-      </p>
+    "
+    >
+      <p className="text-sm text-slate-500 dark:text-slate-400">{title}</p>
       <h2 className={`text-3xl font-bold mt-1 ${colorMap[color || "default"]}`}>
         {value}
       </h2>
@@ -529,29 +511,35 @@ function Modal({
   onClose: () => void;
 }) {
   return (
-    <div className="
+    <div
+      className="
       fixed inset-0 z-50
       bg-black/40 backdrop-blur-sm
       flex items-center justify-center
       px-4
-    ">
-      <div className="
+    "
+    >
+      <div
+        className="
         relative w-full max-w-md
         rounded-3xl
         bg-white/95 dark:bg-slate-900/95
         shadow-[0_20px_60px_-15px_rgba(0,0,0,0.35)]
         border border-slate-200 dark:border-slate-800
         overflow-hidden
-      ">
+      "
+      >
         {/* HEADER */}
-        <div className="
+        <div
+          className="
           flex items-center justify-between
           px-6 py-4
           border-b border-slate-200 dark:border-slate-800
           bg-gradient-to-r
           from-indigo-50 to-blue-50
           dark:from-indigo-500/10 dark:to-blue-500/10
-        ">
+        "
+        >
           <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
             {title}
           </h2>
@@ -571,9 +559,7 @@ function Modal({
         </div>
 
         {/* CONTENT */}
-        <div className="px-6 py-5 space-y-4">
-          {children}
-        </div>
+        <div className="px-6 py-5 space-y-4">{children}</div>
       </div>
     </div>
   );
@@ -695,12 +681,14 @@ function ModalAction({
 
 function Detail({ label, value }: { label: string; value: string }) {
   return (
-    <div className="
+    <div
+      className="
       rounded-xl
       p-4
       bg-slate-50 dark:bg-slate-800/60
       border border-slate-200 dark:border-slate-700
-    ">
+    "
+    >
       <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
         {label}
       </p>

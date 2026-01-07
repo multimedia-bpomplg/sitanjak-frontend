@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { ConfirmProvider } from "@/components/ui/ConfirmProvider";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -22,9 +23,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.variable} antialiased`}>
-        {children}
+        <ConfirmProvider>{children}</ConfirmProvider>
         <ToastContainer
-          position="bottom-right" 
+          position="bottom-right"
           autoClose={3000}
           hideProgressBar={false}
           newestOnTop

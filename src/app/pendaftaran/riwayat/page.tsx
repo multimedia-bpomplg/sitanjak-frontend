@@ -2,15 +2,15 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { 
-  HiMail, 
-  HiSearch, 
-  HiUserGroup, 
-  HiPhone, 
-  HiBriefcase, 
-  HiLocationMarker, 
+import {
+  HiMail,
+  HiSearch,
+  HiUserGroup,
+  HiPhone,
+  HiBriefcase,
+  HiLocationMarker,
   HiArrowLeft,
-  HiOfficeBuilding, 
+  HiOfficeBuilding,
 } from "react-icons/hi";
 
 export default function RiwayatPendaftaran() {
@@ -109,7 +109,7 @@ export default function RiwayatPendaftaran() {
       if (type === "success") {
         const timer = setTimeout(() => {
           onClose();
-        }, 2000); 
+        }, 2000);
 
         return () => clearTimeout(timer);
       }
@@ -180,9 +180,7 @@ export default function RiwayatPendaftaran() {
             {c.title}
           </h3>
 
-          <p className={`mt-2 text-center text-sm ${c.text}`}>
-            {message}
-          </p>
+          <p className={`mt-2 text-center text-sm ${c.text}`}>{message}</p>
 
           {/* ACTION (HANYA ERROR & WARNING) */}
           {type !== "success" && (
@@ -297,7 +295,6 @@ export default function RiwayatPendaftaran() {
         {/* RESULT */}
         {result && (
           <div className="bg-white rounded-3xl shadow-xl p-8 space-y-10">
-
             {/* ================= INFO PENDAFTARAN ================= */}
             <div>
               <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
@@ -319,9 +316,7 @@ export default function RiwayatPendaftaran() {
                   <p className="text-sm font-semibold text-blue-800 mb-1">
                     💬 Jawaban Admin
                   </p>
-                  <p className="text-blue-700 text-sm">
-                    {result.jawabanAdmin}
-                  </p>
+                  <p className="text-blue-700 text-sm">{result.jawabanAdmin}</p>
                 </div>
               )}
 
@@ -338,6 +333,33 @@ export default function RiwayatPendaftaran() {
                 >
                   📄 Lihat Surat Pengantar
                 </a>
+              )}
+
+              {/* SURAT BALASAN */}
+              {result.suratBalasan ? (
+                <a
+                  href={`http://localhost:5000/uploads/${result.suratBalasan}`}
+                  target="_blank"
+                  className="
+        inline-flex items-center gap-2
+        px-5 py-2.5 rounded-xl
+        bg-green-100 text-green-700 font-semibold
+        hover:bg-green-200 transition
+      "
+                >
+                  ✅ Surat Balasan
+                </a>
+              ) : (
+                <div
+                  className="
+        inline-flex items-center gap-2
+        px-5 py-2.5 rounded-xl
+        bg-red-100 text-red-700 font-semibold
+        cursor-not-allowed
+      "
+                >
+                  ❌ Surat Balasan Belum Ada
+                </div>
               )}
             </div>
 
