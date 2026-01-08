@@ -1,6 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import {
+  HiX,
+  HiDocumentText,
+  HiUser,
+  HiMail,
+  HiPhone,
+  HiIdentification,
+  HiLocationMarker,
+  HiCalendar,
+  HiBriefcase,
+  HiCheckCircle,
+  HiXCircle,
+} from "react-icons/hi";
 
 /* ===================== TYPE ===================== */
 type Peserta = {
@@ -174,28 +187,47 @@ export default function ViewPendaftaranPage() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6 text-gray-800 dark:text-gray-200">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow border border-gray-200 dark:border-gray-700 p-6 space-y-6">
-        <h1 className="text-2xl font-semibold">Data Pendaftaran</h1>
+    <div className="
+      min-h-screen p-4 sm:p-6
+      bg-gradient-to-br
+      from-slate-50 via-white to-indigo-50
+      dark:from-[#020617] dark:via-[#020617] dark:to-[#1E1B4B]
+      text-slate-800 dark:text-slate-100
+      transition-colors
+    ">
+      <h1 className="text-3xl font-bold tracking-tight mb-8">Data Pendaftaran</h1>
 
-        {/* ===================== SUMMARY CARD ===================== */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <SummaryCard title="Jumlah Pendaftar" value={totalPendaftar} />
-          <SummaryCard title="Disetujui" value={disetujui} />
-          <SummaryCard title="Ditolak" value={ditolak} />
-        </div>
+      {/* ===================== SUMMARY CARD ===================== */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+        <SummaryCard title="Jumlah Pendaftar" value={totalPendaftar} />
+        <SummaryCard title="Disetujui" value={disetujui} color="green" />
+        <SummaryCard title="Ditolak" value={ditolak} color="red" />
+      </div>
 
-        {/* ===================== TABLE ===================== */}
-        <div className="bg-white border rounded-xl shadow overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-100">
+      {/* ===================== TABLE ===================== */}
+      <div 
+        className="
+        rounded-2xl
+        bg-white/80 dark:bg-slate-900/80
+        backdrop-blur
+        shadow-xl
+        border border-slate-200 dark:border-slate-800
+      "
+      >
+        <div className="overflow-x-auto">
+          <table className="min-w-[720px] w-full text-sm">
+            <thead className="
+              bg-slate-100 dark:bg-slate-800
+              text-slate-600 dark:text-slate-300
+              text-xs uppercase tracking-wider
+            ">
               <tr>
-                <th className="px-4 py-3">No</th>
-                <th className="px-4 py-3 text-left">Nama Perwakilan</th>
-                <th className="px-4 py-3 text-left">Email</th>
-                <th className="px-4 py-3 text-left">Posisi</th>
-                <th className="px-4 py-3 text-left">Sendiri / Bersama</th>
-                <th className="px-4 py-3 text-left">Status</th>
+                <th className="px-6 py-4 text-center">No</th>
+                <th className="px-6 py-4 text-left">Nama Perwakilan</th>
+                <th className="px-6 py-4 text-left">Email</th>
+                <th className="px-6 py-4 text-center">Posisi</th>
+                <th className="px-6 py-4 text-center">Kategori</th>
+                <th className="px-6 py-4 text-center">Status</th>
               </tr>
             </thead>
 
@@ -210,31 +242,35 @@ export default function ViewPendaftaranPage() {
 
               {!loading &&
                 paginatedData.map((item, i) => (
-                  <tr key={item._id} className="border-t hover:bg-gray-50">
-                    <td className="px-4 py-3">{i + 1}</td>
+                  <tr 
+                    key={item._id}
+                    className="
+                      border-t border-slate-200 dark:border-slate-800
+                    hover:bg-indigo-50/50 dark:hover:bg-indigo-500/10
+                      transition
+                    "
+                  >
+                    <td className="px-6 py-4 text-center">{i + 1}</td>
                     <td
                       className="
-      px-4 py-3
-      font-medium
-      text-blue-600
-      underline
-      cursor-pointer
-      hover:text-blue-800
-    "
+                        px-6 py-4 font-medium
+                        text-indigo-600 dark:text-indigo-400
+                        hover:underline cursor-pointer
+                      "
                       onClick={() => setSelected(item)}
                     >
                       {item.peserta[0]?.nama}
                     </td>
 
-                    <td className="px-4 py-3">
+                    <td className="px-6 py-4 text-slate-600 dark:text-slate-300">
                       {showValue(item.peserta[0]?.email)}
                     </td>
 
-                    <td className="px-4 py-3">{item.peserta[0]?.posisi}</td>
-                    <td className="px-4 py-3">
+                    <td className="px-6 py-4 text-center">{item.peserta[0]?.posisi}</td>
+                    <td className="px-6 py-4 text-center">
                       {item.kategori === "bersama" ? "Bersama" : "Sendiri"}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-6 py-4 text-center">
                       <StatusBadge status={item.status} />
                     </td>
                   </tr>
@@ -242,137 +278,264 @@ export default function ViewPendaftaranPage() {
             </tbody>
           </table>
         </div>
+      </div>
 
-        {/* ===================== MODAL DETAIL ===================== */}
-        {selected && (
-          <div className="fixed inset-0 bg-black/40 z-50" onClick={closeModal}>
+      {/* ===================== MODAL DETAIL ===================== */}
+      {selected && (
+        <div className="fixed inset-0 z-[999] flex">
+          {/* OVERLAY (AREA CONTENT SAJA) */}
+          <div
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm lg:ml-72"
+            onClick={closeModal}
+          />
+
+          {/* MODAL CONTAINER */}
+          <div
+            className="
+              relative
+              lg:ml-72
+              w-full h-full
+              bg-gradient-to-br
+              from-white via-blue-20 to-blue-50
+              dark:from-[#0B0614] dark:via-[#120A24] dark:to-[#1E0F3D]
+              flex flex-col
+            "
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* HEADER */}
             <div
               className="
-        bg-white
-        w-full h-full
-        overflow-y-auto
-        p-6
-      "
-              onClick={(e) => e.stopPropagation()}
+                sticky top-0 z-50
+                flex items-center justify-between
+                px-6 py-4
+
+                /* ===== BACKGROUND ===== */
+                bg-gradient-to-r
+                from-blue-200 via-sky-100 to-white/70
+                dark:from-indigo-900 dark:via-violet-800 dark:to-purple-800
+
+                /* ===== BORDER & SHADOW ===== */
+                border-b border-blue-200 dark:border-indigo-800/40
+                shadow-lg
+
+                /* ===== TEXT ===== */
+                text-blue-950 dark:text-indigo-50
+              "
             >
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-semibold">Detail Pendaftaran</h2>
-                <button
-                  onClick={closeModal}
-                  className="text-gray-500 hover:text-red-600 text-xl font-bold"
+              {/* LEFT */}
+              <div className="flex items-center gap-4">
+                <div
+                  className="
+                    w-11 h-11
+                    rounded-xl
+                    bg-white/80 dark:bg-white/10
+                    flex items-center justify-center
+                    shadow
+                  "
                 >
-                  ✕
-                </button>
-              </div>
+                  <HiDocumentText className="text-2xl text-blue-600 dark:text-indigo-300" />
+                </div>
 
-              {/* ===================== SURAT PENGANTAR ===================== */}
-              <div className="mb-6">
-                <div className="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-xl px-5 py-4">
-                  <div>
-                    <p className="text-sm text-gray-500">Surat Pengantar</p>
-                    <p className="text-base font-semibold text-gray-800">
-                      File Surat Pengantar Magang
-                    </p>
-                  </div>
-
-                  <a
-                    href={`http://localhost:5000/uploads/${selected.suratPengantar}`}
-                    target="_blank"
-                    className="
-          inline-flex items-center gap-2
-          px-4 py-2
-          rounded-lg
-          bg-blue-600 text-white
-          text-sm font-semibold
-          hover:bg-blue-700
-          transition
-        "
-                  >
-                    📎 Lihat Surat
-                  </a>
+                <div className="leading-tight">
+                  <p className="text-xs font-medium text-blue-900/70 dark:text-indigo-200/80">
+                    Detail
+                  </p>
+                  <h2 className="text-lg font-semibold tracking-tight text-blue-950 dark:text-white">
+                    Pendaftaran Magang
+                  </h2>
                 </div>
               </div>
 
+              {/* CLOSE BUTTON */}
+              <button
+                onClick={closeModal}
+                className="
+                  w-10 h-10
+                  flex items-center justify-center
+                  rounded-full
+                  text-blue-900 dark:text-indigo-200
+                  hover:bg-white/70 dark:hover:bg-white/10
+                  transition
+                "
+              >
+                <HiX className="text-xl" />
+              </button>
+            </div>
+
+            {/* ================= CONTENT ================= */}
+            <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
+              {/* ================= SURAT PENGANTAR ================= */}
+              <div
+                className="
+                  rounded-2xl
+                  p-5
+                  bg-gradient-to-br
+                  from-blue-50 to-sky-50
+                  dark:from-indigo-500/10 dark:to-violet-500/10
+                  border-blue-200 dark:border-indigo-700/40
+                  flex flex-col sm:flex-row sm:items-center sm:justify-between
+                  gap-4
+                "
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-blue-600 dark:bg-indigo-700 text-white flex items-center justify-center">
+                    <HiDocumentText className="text-xl" />
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                      Surat Pengantar
+                    </p>
+                    <p className="font-semibold text-slate-800 dark:text-white">
+                      File Surat Pengantar Magang
+                    </p>
+                  </div>
+                </div>
+
+                <a
+                  href={`http://localhost:5000/uploads/${selected.suratPengantar}`}
+                  target="_blank"
+                  className="
+                    inline-flex items-center gap-2
+                    px-5 py-2.5
+                    rounded-xl
+                    text-sm font-semibold
+                    text-white
+                    transition
+                    bg-blue-600 hover:bg-blue-700
+                    dark:bg-indigo-600 dark:hover:bg-indigo-700
+                  "
+                >
+                  <HiDocumentText />
+                  Lihat Surat
+                </a>
+              </div>
+              
               {/* ===================== DATA PESERTA ===================== */}
-              <div className="grid md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                 {selected.peserta.map((p, i) => (
                   <div
                     key={i}
                     className="
-          bg-white
-          border border-gray-200
-          rounded-2xl
-          shadow-sm
-          p-6
-        "
+                      rounded-2xl
+                      bg-white/90
+                      dark:bg-[#140B2D]/80
+                      border-blue-200
+                      dark:border-indigo-700/40
+                      p-6
+                      shadow-sm
+                    "
                   >
                     {/* HEADER PESERTA */}
-                    <div className="mb-4 flex items-center justify-between">
-                      <h3 className="text-lg font-semibold text-blue-700">
-                        Peserta {i + 1}
-                      </h3>
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-2">
+                        <HiUser className="text-blue-500 dark:text-indigo-400" />
+                        <h3 className="text-lg font-semibold text-blue-600 dark:text-indigo-400">
+                          Peserta {i + 1}
+                        </h3>
+                      </div>
 
-                      <span className="text-xs px-3 py-1 rounded-full bg-blue-100 text-blue-700 font-medium">
+                      <span
+                        className="
+                          text-xs font-semibold
+                          px-3 py-1 rounded-full
+                          bg-blue-100 text-blue-700
+                          dark:bg-indigo-500/20 dark:text-indigo-300
+                          flex items-center gap-1
+                        "
+                      >
+                        <HiBriefcase />
                         {p.posisi}
                       </span>
                     </div>
 
-                    {/* INFORMASI UTAMA */}
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
-                      <DetailItem label="Nama Lengkap" value={p.nama} />
+                    {/* INFORMASI */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                      <DetailItem
+                        label="Nama Lengkap"
+                        value={p.nama}
+                        icon={<HiUser />}
+                      />
+
                       <DetailItem
                         label="Jenis Kelamin"
                         value={p.jenisKelamin}
+                        icon={<HiIdentification />}
                       />
 
                       <DetailItem
-                        label="Tanggal Mulai Magang"
+                        label="Mulai Magang"
                         value={p.tanggalMulaiMagang}
-                      />
-                      <DetailItem
-                        label="Tanggal Selesai Magang"
-                        value={p.tanggalSelesaiMagang}
+                        icon={<HiCalendar />}
                       />
 
-                      <DetailItem label="Tempat Lahir" value={p.tempatLahir} />
+                      <DetailItem
+                        label="Selesai Magang"
+                        value={p.tanggalSelesaiMagang}
+                        icon={<HiCalendar />}
+                      />
+
+                      <DetailItem
+                        label="Tempat Lahir"
+                        value={p.tempatLahir}
+                        icon={<HiLocationMarker />}
+                      />
+
                       <DetailItem
                         label="Tanggal Lahir"
                         value={p.tanggalLahir}
+                        icon={<HiCalendar />}
                       />
 
-                      <DetailItem label="Email" value={p.email} />
-                      <DetailItem label="No WhatsApp" value={p.wa} />
+                      <DetailItem
+                        label="Email"
+                        value={p.email}
+                        icon={<HiMail />}
+                      />
+
+                      <DetailItem
+                        label="No WhatsApp"
+                        value={p.wa}
+                        icon={<HiPhone />}
+                      />
                     </div>
 
                     {/* ALAMAT */}
-                    <div className="mt-4 border-t pt-4">
-                      <p className="text-xs text-gray-500 mb-1">
+                    <div className="mt-4 border-t border-slate-200 dark:border-slate-700 pt-4">
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">
                         Alamat Lengkap
                       </p>
-                      <p className="text-sm text-gray-800 leading-relaxed">
+                      <p className="text-sm text-slate-700 dark:text-slate-200">
                         {p.alamatLengkap}
                       </p>
-
-                      <p className="text-xs text-gray-500 mt-2">
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                         {p.kelurahan}, {p.kecamatan}, {p.kota}, {p.provinsi}
                       </p>
                     </div>
 
                     {/* STATUS AKUN */}
-                    <div className="mt-4 flex items-center justify-between bg-gray-50 border rounded-xl px-4 py-3">
+                    <div
+                      className="
+                        mt-4
+                        flex items-center justify-between
+                        rounded-xl
+                        bg-slate-50 dark:bg-slate-900/60
+                        border border-slate-200 dark:border-slate-700
+                        px-4 py-3
+                      "
+                    >
                       <div>
-                        <p className="text-xs text-gray-500">Status Akun</p>
-
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          Status Akun
+                        </p>
                         <span
-                          className={`inline-block mt-1 text-xs font-semibold px-3 py-1 rounded-full ${
+                          className={`inline-flex items-center gap-1 mt-1 px-3 py-1 rounded-full text-xs font-semibold ${
                             isAkunTerdaftar(p.email)
-                              ? "bg-green-100 text-green-700"
-                              : "bg-gray-200 text-gray-600"
+                              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300"
+                              : "bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300"
                           }`}
                         >
-                          {isAkunTerdaftar(p.email)
-                            ? "Terdaftar"
-                            : "Tidak Terdaftar"}
+                          {isAkunTerdaftar(p.email) ? <HiCheckCircle /> : <HiXCircle />}
+                          {isAkunTerdaftar(p.email) ? "Terdaftar" : "Tidak Terdaftar"}
                         </span>
                       </div>
 
@@ -385,15 +548,15 @@ export default function ViewPendaftaranPage() {
                               `&name=${encodeURIComponent(p.nama)}`;
                           }}
                           className="
-      text-xs
-      px-3 py-1.5
-      rounded-lg
-      bg-blue-600
-      text-white
-      font-medium
-      hover:bg-blue-700
-      transition
-    "
+                            text-xs
+                            px-3 py-1.5
+                            rounded-lg
+                            font-medium
+                            transition
+                            bg-blue-600 hover:bg-blue-700
+                            text-white
+                            dark:bg-indigo-600 dark:hover:bg-indigo-700
+                          "
                         >
                           Buatkan Akun
                         </button>
@@ -404,34 +567,63 @@ export default function ViewPendaftaranPage() {
               </div>
 
               {/* ===================== SURAT BALASAN (PDF) ===================== */}
-              <div className="mt-6">
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+              <div>
+                <label className="block text-sm font-semibold mb-2">
                   Surat Balasan (PDF)
                 </label>
+                <label
+                  className="
+                    flex flex-col items-center justify-center
+                    w-full
+                    min-h-[140px]
+                    rounded-2xl
+                    border-2 border-dashed
+                    border-blue-400
+                    dark:border-indigo-500/50
+                    bg-blue-50/50
+                    dark:bg-indigo-500/10
+                    cursor-pointer
+                    transition
+                    hover:bg-indigo-100/60 dark:hover:bg-indigo-500/10
+                  "
+                >
+                  <HiDocumentText className="text-4xl text-blue-600 dark:text-indigo-400 mb-2" />
 
-                <div className="flex items-center gap-3">
+                  <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                    Klik untuk upload surat balasan
+                  </p>
+
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    Format PDF • Maksimal 5MB
+                  </p>
+
                   <input
                     type="file"
                     accept="application/pdf"
                     onChange={(e) =>
                       setSuratBalasan(e.target.files?.[0] || null)
                     }
-                    className="
-          block w-full text-sm text-gray-600
-          file:mr-4 file:py-2 file:px-4
-          file:rounded-lg file:border-0
-          file:text-sm file:font-semibold
-          file:bg-blue-50 file:text-blue-700
-          hover:file:bg-blue-100
-        "
+                    className="hidden"
                   />
+                </label>
 
-                  {suratBalasan && (
-                    <span className="text-xs text-green-600 font-medium">
-                      ✔ {suratBalasan.name}
-                    </span>
-                  )}
-                </div>
+                {suratBalasan && (
+                  <div
+                    className="
+                      mt-3
+                      flex items-center gap-2
+                      px-4 py-2
+                      rounded-xl
+                      bg-blue-50 dark:bg-blue-500/10
+                      border border-blue-200 dark:border-blue-500/30
+                      text-blue-700 dark:text-blue-300
+                      text-sm font-medium
+                    "
+                  >
+                    <HiCheckCircle className="text-lg" />
+                    {suratBalasan.name}
+                  </div>
+                )}
 
                 <p className="text-xs text-gray-400 mt-1">
                   Unggah surat balasan resmi (format PDF)
@@ -439,95 +631,96 @@ export default function ViewPendaftaranPage() {
               </div>
 
               {/* ===================== ALASAN ADMIN ===================== */}
-              <div className="mt-6">
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+              <div>
+                <label className="block text-sm font-semibold mb-2">
                   Alasan Persetujuan / Penolakan
                 </label>
-
                 <textarea
                   rows={4}
-                  className="
-        w-full
-        rounded-xl
-        border border-gray-300
-        bg-white
-        px-4 py-3
-        text-sm text-gray-800
-        placeholder-gray-400
-        shadow-sm
-        focus:border-blue-500
-        focus:ring-2
-        focus:ring-blue-200
-        transition
-      "
-                  placeholder="Tuliskan alasan persetujuan atau penolakan pendaftaran..."
                   value={alasan}
                   onChange={(e) => setAlasan(e.target.value)}
+                  className="
+                    w-full rounded-xl
+                    border border-slate-300 dark:border-slate-700
+                    bg-white dark:bg-slate-800
+                    px-4 py-3 text-sm
+                    focus:ring-2 focus:ring-indigo-500
+                    outline-none
+                  "
+                  placeholder="Tuliskan alasan persetujuan atau penolakan pendaftaran..."
                 />
               </div>
+            </div>
 
-              {/* ===================== ACTION BUTTON ===================== */}
-              <div className="mt-6 flex flex-col sm:flex-row justify-end gap-3">
-                <button
-                  onClick={closeModal}
-                  className="
-        inline-flex items-center justify-center
-        px-5 py-2.5
-        rounded-xl
-        bg-gray-100 text-gray-700
-        font-medium
-        hover:bg-gray-200
-        transition
-      "
-                >
-                  Tutup
-                </button>
+            {/* ===================== ACTION BUTTON ===================== */}
+            <div
+              className="
+                sticky bottom-0
+                px-6 py-4
+                bg-white/90 dark:bg-[#0B0614]/95
+                backdrop-blur
+                border-t border-blue-200 dark:border-indigo-800
+                flex flex-col sm:flex-row justify-end gap-3
+              "
+            >
+             <button
+                onClick={() => updateStatus("Ditolak")}
+                className="
+                  inline-flex items-center justify-center gap-2
+                  px-5 py-2.5 rounded-xl
+                  bg-gradient-to-r from-rose-500 to-red-600
+                  text-white font-semibold
+                  hover:opacity-90
+                "
+              >
+                <HiXCircle />
+                Tolak
+              </button>
 
-                <button
-                  onClick={() => updateStatus("Ditolak")}
-                  className="
-        inline-flex items-center justify-center
-        px-5 py-2.5
-        rounded-xl
-        bg-red-600 text-white
-        font-semibold
-        hover:bg-red-700
-        transition
-      "
-                >
-                  Tolak
-                </button>
-
-                <button
-                  onClick={() => updateStatus("Disetujui")}
-                  className="
-        inline-flex items-center justify-center
-        px-5 py-2.5
-        rounded-xl
-        bg-green-600 text-white
-        font-semibold
-        hover:bg-green-700
-        transition
-      "
-                >
-                  Setujui
-                </button>
-              </div>
+              <button
+                onClick={() => updateStatus("Disetujui")}
+                className="
+                  inline-flex items-center justify-center gap-2
+                  px-5 py-2.5 rounded-xl
+                  bg-gradient-to-r from-emerald-500 to-green-600
+                  text-white font-semibold
+                  hover:opacity-90
+                "
+              >
+                <HiCheckCircle />
+                Setujui
+              </button>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
 
 /* ===================== COMPONENT ===================== */
 
-function SummaryCard({ title, value }: { title: string; value: number }) {
+function SummaryCard({ title, value, color }: any) {
+  const colorMap = {
+    green: "text-emerald-500",
+    red: "text-rose-500",
+    default: "text-blue-400",
+  };
+
   return (
-    <div className="bg-white border rounded-xl p-4 shadow">
-      <p className="text-sm text-gray-500">{title}</p>
-      <h2 className="text-3xl font-bold">{value}</h2>
+    <div className="
+      rounded-2xl p-5
+      bg-white/80 dark:bg-slate-900/80
+      backdrop-blur
+      shadow-lg
+      border border-slate-200 dark:border-slate-800
+    ">
+      <p className="text-sm text-slate-500 dark:text-slate-400">
+        {title}
+      </p>
+      <h2 className={`text-3xl font-bold mt-1 ${colorMap[color || "default"]}`}>
+        {value}
+      </h2>
     </div>
   );
 }
@@ -541,22 +734,46 @@ function Detail({ label, value }: { label: string; value?: string }) {
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const color =
-    status === "Disetujui"
-      ? "bg-green-100 text-green-700"
-      : status === "Ditolak"
-      ? "bg-red-100 text-red-700"
-      : "bg-yellow-100 text-yellow-700";
-
   return (
-    <span className={`px-3 py-1 rounded-full text-xs ${color}`}>{status}</span>
+    <span
+      className={`
+        inline-flex items-center justify-center
+        px-3 py-1 rounded-full
+        text-xs font-semibold
+        ${
+          status === "Disetujui"
+            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300"
+            : status === "Ditolak"
+            ? "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300"
+            : "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-300"
+        }
+      `}
+    >
+      {status}
+    </span>
   );
 }
-function DetailItem({ label, value }: { label: string; value?: string }) {
+
+function DetailItem({
+  label,
+  value,
+  icon,
+}: {
+  label: string;
+  value?: string;
+  icon: React.ReactNode;
+}) {
   return (
-    <div>
-      <p className="text-xs text-gray-500">{label}</p>
-      <p className="font-medium text-gray-800">{value || "-"}</p>
+    <div className="flex items-start gap-2">
+      <div className="mt-0.5 text-blue-600 dark:text-indigo-400">
+        {icon}
+      </div>
+      <div>
+        <p className="text-xs text-slate-500 dark:text-slate-400">{label}</p>
+        <p className="font-medium text-slate-800 dark:text-white">
+          {value || "-"}
+        </p>
+      </div>
     </div>
   );
 }
