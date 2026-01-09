@@ -138,7 +138,7 @@ export default function PesertaLayout({
             }`}
           >
             <Link
-              href="/dashboard/peserta/logbook"
+              href="/dashboard/peserta/isi-logbook"
               className={`flex py-2 text-sm rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700
                 ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}`}
             >

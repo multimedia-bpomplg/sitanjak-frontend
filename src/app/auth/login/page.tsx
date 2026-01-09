@@ -4,7 +4,14 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { HiMail, HiLockClosed, HiOutlineLogin, HiEye, HiEyeOff, HiArrowLeft, } from "react-icons/hi";
+import {
+  HiMail,
+  HiLockClosed,
+  HiOutlineLogin,
+  HiEye,
+  HiEyeOff,
+  HiArrowLeft,
+} from "react-icons/hi";
 
 import TurnstileCaptcha from "@/components/TurnstileCaptcha";
 import { loginApi } from "@/app/lib/api";
@@ -40,8 +47,6 @@ export default function LoginPage() {
   });
 
   const [successPopup, setSuccessPopup] = useState(false);
-
-    
 
   /* ===================== AUTO REDIRECT ===================== */
   useEffect(() => {
@@ -93,28 +98,42 @@ export default function LoginPage() {
         captchaToken,
       });
 
+      // ===================== CEK STATUS AKUN =====================
+      const accountStatus = data.status || data.user?.status || "Aktif";
+
+      if (accountStatus === "Nonaktif") {
+        // tutup loading
+        setToast({ show: false, type: "loading", message: "" });
+
+        // tampilkan notifikasi
+        setToast({
+          show: true,
+          type: "error",
+          message: "Akun Anda Nonaktif, silakan hubungi Admin",
+        });
+
+        // reset captcha
+        setCaptchaToken("");
+        setCaptchaKey((prev) => prev + 1);
+
+        return; // ⛔ STOP LOGIN DI SINI
+      }
+
+      // ===================== BARU SIMPAN TOKEN =====================
       document.cookie = `token=${data.token}; path=/`;
       document.cookie = `roles=${JSON.stringify(data.roles)}; path=/`;
 
       localStorage.setItem("token", data.token);
       localStorage.setItem("roles", JSON.stringify(data.roles));
 
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("roles", JSON.stringify(data.roles));
-
-      // CLOSE TOAST
       setToast({ show: false, type: "loading", message: "" });
-
-      // SHOW SUCCESS POPUP
       setSuccessPopup(true);
-      
+
       setTimeout(() => {
         redirectByRole(data.roles || [], router);
       }, 1200);
-
     } catch (err: any) {
-      // TUTUP LOADING TOAST DULU
-      setToast((prev) => ({ ...prev, show: false }));
+      setToast({ show: false, type: "loading", message: "" });
 
       setToast({
         show: true,
@@ -124,8 +143,6 @@ export default function LoginPage() {
 
       setCaptchaToken("");
       setCaptchaKey((prev) => prev + 1);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -161,39 +178,46 @@ export default function LoginPage() {
           {isLoading ? (
             <div className="relative mx-auto mb-6 w-24 h-24">
               {/* OUTER ORBIT */}
-              <div className="
+              <div
+                className="
                 absolute inset-0
                 rounded-full
                 border-4 border-transparent
                 border-t-blue-500
                 border-r-cyan-400
                 animate-orbitFast
-              " />
+              "
+              />
 
               {/* INNER ORBIT */}
-              <div className="
+              <div
+                className="
                 absolute inset-3
                 rounded-full
                 border-4 border-transparent
                 border-b-emerald-500
                 border-l-green-400
                 animate-orbitSlow
-              " />
+              "
+              />
 
               {/* CENTER ICON */}
-              <div className="
+              <div
+                className="
                 absolute inset-6
                 rounded-full
                 bg-white
                 shadow
                 flex items-center justify-center
                 text-2xl
-              ">
+              "
+              >
                 ⏳
               </div>
             </div>
           ) : (
-            <div className="
+            <div
+              className="
               mx-auto mb-6
               w-20 h-20
               rounded-full
@@ -202,7 +226,8 @@ export default function LoginPage() {
               flex items-center justify-center
               text-3xl
               shadow-lg
-            ">
+            "
+            >
               ✕
             </div>
           )}
@@ -213,9 +238,7 @@ export default function LoginPage() {
           </h3>
 
           {/* MESSAGE */}
-          <p className="mt-2 text-sm text-gray-600">
-            {message}
-          </p>
+          <p className="mt-2 text-sm text-gray-600">{message}</p>
 
           {/* ACTION */}
           {!isLoading && (
@@ -297,17 +320,20 @@ export default function LoginPage() {
           {/* RING + CHECK */}
           <div className="relative mx-auto mb-6 w-24 h-24">
             {/* RING */}
-            <div className="
+            <div
+              className="
               absolute inset-0
               rounded-full
               border-4 border-transparent
               border-t-green-500
               border-r-emerald-400
               animate-orbitSlow
-            " />
+            "
+            />
 
             {/* CENTER CHECK */}
-            <div className="
+            <div
+              className="
               absolute inset-4
               rounded-full
               bg-gradient-to-br from-green-500 to-emerald-500
@@ -315,7 +341,8 @@ export default function LoginPage() {
               flex items-center justify-center
               text-4xl
               shadow-lg
-            ">
+            "
+            >
               ✓
             </div>
           </div>
@@ -334,7 +361,6 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex flex-col lg:grid lg:grid-cols-2">
-
       {/* IMAGE ATAS */}
       <div className="lg:hidden w-full relative aspect-[16/9] bg-[#ECFDF5]">
         <Image
@@ -383,7 +409,6 @@ export default function LoginPage() {
         </Link>
 
         <div className="w-full max-w-lg bg-white/30 rounded-3xl shadow-2xl p-10">
-
           <h1 className="text-3xl font-extrabold text-center text-blue-800 mb-2">
             Masuk ke Akun
           </h1>
@@ -402,10 +427,12 @@ export default function LoginPage() {
           </p>
 
           <form onSubmit={handleSubmit} noValidate className="space-y-5">
-
             {/* EMAIL */}
             <div className="relative">
-              <HiMail className="absolute left-4 top-3.5 text-blue-600" size={20} />
+              <HiMail
+                className="absolute left-4 top-3.5 text-blue-600"
+                size={20}
+              />
               <input
                 type="email"
                 placeholder="Email"
@@ -426,7 +453,10 @@ export default function LoginPage() {
 
             {/* PASSWORD */}
             <div className="relative">
-              <HiLockClosed className="absolute left-4 top-3.5 text-blue-600" size={20} />
+              <HiLockClosed
+                className="absolute left-4 top-3.5 text-blue-600"
+                size={20}
+              />
 
               <input
                 type={showPassword ? "text" : "password"}
@@ -485,10 +515,7 @@ export default function LoginPage() {
 
             {/* CAPTCHA */}
             <div className="flex justify-center">
-              <TurnstileCaptcha
-                key={captchaKey}
-                onVerify={setCaptchaToken}
-              />
+              <TurnstileCaptcha key={captchaKey} onVerify={setCaptchaToken} />
             </div>
 
             <button
@@ -509,7 +536,10 @@ export default function LoginPage() {
 
           <p className="text-center text-black mt-6">
             Belum melakukan pengajuan?{" "}
-            <Link href="/pendaftaran" className="text-blue-700 font-semibold hover:underline">
+            <Link
+              href="/pendaftaran"
+              className="text-blue-700 font-semibold hover:underline"
+            >
               Daftar
             </Link>
           </p>
@@ -540,7 +570,6 @@ export default function LoginPage() {
       )}
 
       {successPopup && <SuccessPopup />}
-
     </div>
   );
 }

@@ -14,6 +14,8 @@ import {
   HiCheckCircle,
   HiXCircle,
 } from "react-icons/hi";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
 
 /* ===================== TYPE ===================== */
 type Peserta = {
@@ -64,6 +66,8 @@ export default function ViewPendaftaranPage() {
     setSelected(null);
     setAlasan("");
   };
+
+  const isAktif = selected?.status === "Disetujui";
 
   /* ===================== LOAD DATA ===================== */
   const loadData = async () => {
@@ -158,14 +162,6 @@ export default function ViewPendaftaranPage() {
     return value;
   };
 
-  const LIMIT = 10;
-
-  const [page, setPage] = useState(1);
-
-  const totalPage = Math.ceil(data.length / LIMIT);
-
-  const paginatedData = data.slice((page - 1) * LIMIT, page * LIMIT);
-
   const [suratBalasan, setSuratBalasan] = useState<File | null>(null);
 
   const [akunPeserta, setAkunPeserta] = useState<AkunPeserta[]>([]);
@@ -181,21 +177,132 @@ export default function ViewPendaftaranPage() {
   /* ===================== SEARCH ===================== */
   const [search, setSearch] = useState("");
 
+  /* ===================== PAGINATION ===================== */
+  const LIMIT = 10;
+  const [page, setPage] = useState(1);
+
   /* ===================== FILTER DATA (SEARCH NAMA) ===================== */
   const filteredData = data.filter((item) =>
     item.peserta[0]?.nama?.toLowerCase().includes(search.toLowerCase())
   );
 
+  /* ===================== PAGINATED DATA ===================== */
+  const totalPage = Math.ceil(filteredData.length / LIMIT);
+
+  const paginatedData = filteredData.slice((page - 1) * LIMIT, page * LIMIT);
+
+  /* ===================== DOWNLOAD EXCEL (RAPI) ===================== */
+  const downloadExcel = () => {
+    if (data.length === 0) {
+      alert("Tidak ada data untuk diunduh");
+      return;
+    }
+
+    const excelData = data.flatMap((pendaftaran, index) =>
+      pendaftaran.peserta.map((p) => ({
+        No: index + 1,
+        "Nama Lengkap": p.nama,
+        Email: p.email,
+        "No WhatsApp": p.wa,
+        "Posisi Magang": p.posisi,
+        "Kategori Pendaftaran": pendaftaran.kategori,
+        "Status Pendaftaran": pendaftaran.status,
+        "Mulai Magang": p.tanggalMulaiMagang,
+        "Selesai Magang": p.tanggalSelesaiMagang,
+        "Tempat Lahir": p.tempatLahir,
+        "Tanggal Lahir": p.tanggalLahir,
+        "Jenis Kelamin": p.jenisKelamin,
+        Provinsi: p.provinsi,
+        Kota: p.kota,
+        Kecamatan: p.kecamatan,
+        Kelurahan: p.kelurahan,
+        "Alamat Lengkap": p.alamatLengkap,
+        "Tanggal Daftar": new Date(pendaftaran.createdAt).toLocaleDateString(),
+      }))
+    );
+
+    // Buat worksheet
+    const worksheet = XLSX.utils.json_to_sheet(excelData);
+
+    /* ===================== STYLE HEADER ===================== */
+    const headerStyle = {
+      font: { bold: true },
+      alignment: { horizontal: "center", vertical: "center", wrapText: true },
+    };
+
+    const range = XLSX.utils.decode_range(worksheet["!ref"]!);
+
+    for (let C = range.s.c; C <= range.e.c; ++C) {
+      const cellAddress = XLSX.utils.encode_cell({ r: 0, c: C });
+      if (worksheet[cellAddress]) {
+        worksheet[cellAddress].s = headerStyle;
+      }
+    }
+
+    /* ===================== COLUMN WIDTH (RAPI) ===================== */
+    worksheet["!cols"] = [
+      { wch: 5 }, // No
+      { wch: 25 }, // Nama
+      { wch: 30 }, // Email
+      { wch: 18 }, // WA
+      { wch: 20 }, // Posisi
+      { wch: 18 }, // Kategori
+      { wch: 18 }, // Status
+      { wch: 15 }, // Mulai
+      { wch: 15 }, // Selesai
+      { wch: 20 }, // Tempat lahir
+      { wch: 15 }, // Tgl lahir
+      { wch: 15 }, // Gender
+      { wch: 18 }, // Provinsi
+      { wch: 18 }, // Kota
+      { wch: 18 }, // Kecamatan
+      { wch: 18 }, // Kelurahan
+      { wch: 40 }, // Alamat
+      { wch: 18 }, // Tgl daftar
+    ];
+
+    /* ===================== WRAP TEXT UNTUK ISI ===================== */
+    for (let R = range.s.r + 1; R <= range.e.r; ++R) {
+      for (let C = range.s.c; C <= range.e.c; ++C) {
+        const addr = XLSX.utils.encode_cell({ r: R, c: C });
+        if (worksheet[addr]) {
+          worksheet[addr].s = {
+            alignment: { vertical: "top", wrapText: true },
+          };
+        }
+      }
+    }
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Data Pendaftaran");
+
+    const excelBuffer = XLSX.write(workbook, {
+      bookType: "xlsx",
+      type: "array",
+      cellStyles: true,
+    });
+
+    const file = new Blob([excelBuffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+
+    saveAs(file, `data-pendaftaran-${Date.now()}.xlsx`);
+  };
+
   return (
-    <div className="
+    <div
+      className="
       min-h-screen p-4 sm:p-6
       bg-gradient-to-br
       from-slate-50 via-white to-indigo-50
       dark:from-[#020617] dark:via-[#020617] dark:to-[#1E1B4B]
       text-slate-800 dark:text-slate-100
       transition-colors
-    ">
-      <h1 className="text-3xl font-bold tracking-tight mb-8">Data Pendaftaran</h1>
+    "
+    >
+      <h1 className="text-3xl font-bold tracking-tight mb-8">
+        Data Pendaftaran
+      </h1>
 
       {/* ===================== SUMMARY CARD ===================== */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
@@ -204,8 +311,49 @@ export default function ViewPendaftaranPage() {
         <SummaryCard title="Ditolak" value={ditolak} color="red" />
       </div>
 
+      {/* ===================== SEARCH & EXPORT ===================== */}
+      <div className="mb-4 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+        <input
+          type="text"
+          placeholder="Cari nama peserta..."
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setPage(1);
+          }}
+          className="
+      w-full sm:w-72
+      px-4 py-2
+      rounded-xl
+      border border-slate-300 dark:border-slate-700
+      bg-white dark:bg-slate-800
+      text-sm
+      focus:ring-2 focus:ring-indigo-500
+      outline-none
+    "
+        />
+
+        <button
+          onClick={downloadExcel}
+          className="
+      inline-flex items-center gap-2
+      px-4 py-2
+      rounded-xl
+      text-sm font-semibold
+      bg-emerald-600 hover:bg-emerald-700
+      text-white
+      shadow
+      transition
+      self-start sm:self-auto
+    "
+        >
+          <HiDocumentText className="text-lg" />
+          Download Excel
+        </button>
+      </div>
+
       {/* ===================== TABLE ===================== */}
-      <div 
+      <div
         className="
         rounded-2xl
         bg-white/80 dark:bg-slate-900/80
@@ -216,11 +364,13 @@ export default function ViewPendaftaranPage() {
       >
         <div className="overflow-x-auto">
           <table className="min-w-[720px] w-full text-sm">
-            <thead className="
+            <thead
+              className="
               bg-slate-100 dark:bg-slate-800
               text-slate-600 dark:text-slate-300
               text-xs uppercase tracking-wider
-            ">
+            "
+            >
               <tr>
                 <th className="px-6 py-4 text-center">No</th>
                 <th className="px-6 py-4 text-left">Nama Perwakilan</th>
@@ -242,7 +392,7 @@ export default function ViewPendaftaranPage() {
 
               {!loading &&
                 paginatedData.map((item, i) => (
-                  <tr 
+                  <tr
                     key={item._id}
                     className="
                       border-t border-slate-200 dark:border-slate-800
@@ -266,7 +416,9 @@ export default function ViewPendaftaranPage() {
                       {showValue(item.peserta[0]?.email)}
                     </td>
 
-                    <td className="px-6 py-4 text-center">{item.peserta[0]?.posisi}</td>
+                    <td className="px-6 py-4 text-center">
+                      {item.peserta[0]?.posisi}
+                    </td>
                     <td className="px-6 py-4 text-center">
                       {item.kategori === "bersama" ? "Bersama" : "Sendiri"}
                     </td>
@@ -277,6 +429,53 @@ export default function ViewPendaftaranPage() {
                 ))}
             </tbody>
           </table>
+          {/* ===================== PAGINATION BUTTON ===================== */}
+          {totalPage > 1 && (
+            <div className="flex justify-center items-center gap-2 py-4">
+              <button
+                disabled={page === 1}
+                onClick={() => setPage((p) => p - 1)}
+                className="
+        px-3 py-1.5 rounded-lg text-sm
+        border border-slate-300 dark:border-slate-700
+        disabled:opacity-50
+        hover:bg-slate-100 dark:hover:bg-slate-800
+      "
+              >
+                Prev
+              </button>
+
+              {Array.from({ length: totalPage }).map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setPage(i + 1)}
+                  className={`
+          px-3 py-1.5 rounded-lg text-sm
+          ${
+            page === i + 1
+              ? "bg-indigo-600 text-white"
+              : "border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
+          }
+        `}
+                >
+                  {i + 1}
+                </button>
+              ))}
+
+              <button
+                disabled={page === totalPage}
+                onClick={() => setPage((p) => p + 1)}
+                className="
+        px-3 py-1.5 rounded-lg text-sm
+        border border-slate-300 dark:border-slate-700
+        disabled:opacity-50
+        hover:bg-slate-100 dark:hover:bg-slate-800
+      "
+              >
+                Next
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -409,7 +608,7 @@ export default function ViewPendaftaranPage() {
                   Lihat Surat
                 </a>
               </div>
-              
+
               {/* ===================== DATA PESERTA ===================== */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                 {selected.peserta.map((p, i) => (
@@ -534,8 +733,14 @@ export default function ViewPendaftaranPage() {
                               : "bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300"
                           }`}
                         >
-                          {isAkunTerdaftar(p.email) ? <HiCheckCircle /> : <HiXCircle />}
-                          {isAkunTerdaftar(p.email) ? "Terdaftar" : "Tidak Terdaftar"}
+                          {isAkunTerdaftar(p.email) ? (
+                            <HiCheckCircle />
+                          ) : (
+                            <HiXCircle />
+                          )}
+                          {isAkunTerdaftar(p.email)
+                            ? "Terdaftar"
+                            : "Tidak Terdaftar"}
                         </span>
                       </div>
 
@@ -571,63 +776,126 @@ export default function ViewPendaftaranPage() {
                 <label className="block text-sm font-semibold mb-2">
                   Surat Balasan (PDF)
                 </label>
-                <label
-                  className="
-                    flex flex-col items-center justify-center
-                    w-full
-                    min-h-[140px]
-                    rounded-2xl
-                    border-2 border-dashed
-                    border-blue-400
-                    dark:border-indigo-500/50
-                    bg-blue-50/50
-                    dark:bg-indigo-500/10
-                    cursor-pointer
-                    transition
-                    hover:bg-indigo-100/60 dark:hover:bg-indigo-500/10
-                  "
-                >
-                  <HiDocumentText className="text-4xl text-blue-600 dark:text-indigo-400 mb-2" />
 
-                  <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
-                    Klik untuk upload surat balasan
-                  </p>
+                {isAktif ? (
+                  selected?.suratBalasan ? (
+                    /* ===== MODE AKTIF + FILE ADA ===== */
+                    <div
+                      className="
+          flex items-center justify-between
+          rounded-2xl
+          p-5
+          bg-emerald-50 dark:bg-emerald-500/10
+          border border-emerald-200 dark:border-emerald-500/30
+        "
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-11 h-11 rounded-xl bg-emerald-600 text-white flex items-center justify-center">
+                          <HiDocumentText className="text-xl" />
+                        </div>
 
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                    Format PDF • Maksimal 5MB
-                  </p>
+                        <div>
+                          <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
+                            Surat Balasan Tersedia
+                          </p>
+                          <p className="text-xs text-emerald-600/80 dark:text-emerald-300/70">
+                            File PDF resmi
+                          </p>
+                        </div>
+                      </div>
 
-                  <input
-                    type="file"
-                    accept="application/pdf"
-                    onChange={(e) =>
-                      setSuratBalasan(e.target.files?.[0] || null)
-                    }
-                    className="hidden"
-                  />
-                </label>
+                      <a
+                        href={`http://localhost:5000/uploads/${selected.suratBalasan}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="
+            inline-flex items-center gap-2
+            px-4 py-2
+            rounded-xl
+            bg-emerald-600 hover:bg-emerald-700
+            text-white text-sm font-semibold
+          "
+                      >
+                        <HiDocumentText />
+                        Download
+                      </a>
+                    </div>
+                  ) : (
+                    /* ===== MODE AKTIF + FILE BELUM ADA ===== */
+                    <div
+                      className="
+          rounded-2xl
+          p-5
+          bg-yellow-50 dark:bg-yellow-500/10
+          border border-yellow-200 dark:border-yellow-500/30
+          text-sm text-yellow-700 dark:text-yellow-300
+        "
+                    >
+                      Surat balasan belum tersedia
+                    </div>
+                  )
+                ) : (
+                  /* ===== MODE BELUM AKTIF (UPLOAD – UI AWAL) ===== */
+                  <>
+                    <label
+                      className="
+          flex flex-col items-center justify-center
+          w-full
+          min-h-[140px]
+          rounded-2xl
+          border-2 border-dashed
+          border-blue-400
+          dark:border-indigo-500/50
+          bg-blue-50/50
+          dark:bg-indigo-500/10
+          cursor-pointer
+          transition
+          hover:bg-indigo-100/60 dark:hover:bg-indigo-500/10
+        "
+                    >
+                      <HiDocumentText className="text-4xl text-blue-600 dark:text-indigo-400 mb-2" />
 
-                {suratBalasan && (
-                  <div
-                    className="
-                      mt-3
-                      flex items-center gap-2
-                      px-4 py-2
-                      rounded-xl
-                      bg-blue-50 dark:bg-blue-500/10
-                      border border-blue-200 dark:border-blue-500/30
-                      text-blue-700 dark:text-blue-300
-                      text-sm font-medium
-                    "
-                  >
-                    <HiCheckCircle className="text-lg" />
-                    {suratBalasan.name}
-                  </div>
+                      <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                        Klik untuk upload surat balasan
+                      </p>
+
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                        Format PDF • Maksimal 5MB
+                      </p>
+
+                      <input
+                        type="file"
+                        accept="application/pdf"
+                        onChange={(e) =>
+                          setSuratBalasan(e.target.files?.[0] || null)
+                        }
+                        className="hidden"
+                      />
+                    </label>
+
+                    {suratBalasan && (
+                      <div
+                        className="
+            mt-3
+            flex items-center gap-2
+            px-4 py-2
+            rounded-xl
+            bg-blue-50 dark:bg-blue-500/10
+            border border-blue-200 dark:border-blue-500/30
+            text-blue-700 dark:text-blue-300
+            text-sm font-medium
+          "
+                      >
+                        <HiCheckCircle className="text-lg" />
+                        {suratBalasan.name}
+                      </div>
+                    )}
+
+                    <p className="text-xs text-gray-400 mt-1">
+                      Unggah surat balasan resmi (format PDF)
+                    </p>
+                  </>
                 )}
-
-                <p className="text-xs text-gray-400 mt-1">
-                  Unggah surat balasan resmi (format PDF)
-                </p>
               </div>
 
               {/* ===================== ALASAN ADMIN ===================== */}
@@ -635,62 +903,74 @@ export default function ViewPendaftaranPage() {
                 <label className="block text-sm font-semibold mb-2">
                   Alasan Persetujuan / Penolakan
                 </label>
+
                 <textarea
                   rows={4}
-                  value={alasan}
+                  value={alasan || selected?.jawabanAdmin || ""}
+                  disabled={isAktif}
                   onChange={(e) => setAlasan(e.target.value)}
-                  className="
-                    w-full rounded-xl
-                    border border-slate-300 dark:border-slate-700
-                    bg-white dark:bg-slate-800
-                    px-4 py-3 text-sm
-                    focus:ring-2 focus:ring-indigo-500
-                    outline-none
-                  "
-                  placeholder="Tuliskan alasan persetujuan atau penolakan pendaftaran..."
+                  placeholder={
+                    isAktif
+                      ? "Alasan persetujuan sudah ditetapkan"
+                      : "Tuliskan alasan persetujuan atau penolakan pendaftaran..."
+                  }
+                  className={`
+      w-full rounded-xl
+      border border-slate-300 dark:border-slate-700
+      px-4 py-3 text-sm
+      focus:ring-2 focus:ring-indigo-500
+      outline-none
+      ${
+        isAktif
+          ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed"
+          : "bg-white dark:bg-slate-800"
+      }
+    `}
                 />
               </div>
             </div>
 
             {/* ===================== ACTION BUTTON ===================== */}
-            <div
-              className="
-                sticky bottom-0
-                px-6 py-4
-                bg-white/90 dark:bg-[#0B0614]/95
-                backdrop-blur
-                border-t border-blue-200 dark:border-indigo-800
-                flex flex-col sm:flex-row justify-end gap-3
-              "
-            >
-             <button
-                onClick={() => updateStatus("Ditolak")}
+            {!isAktif && (
+              <div
                 className="
-                  inline-flex items-center justify-center gap-2
-                  px-5 py-2.5 rounded-xl
-                  bg-gradient-to-r from-rose-500 to-red-600
-                  text-white font-semibold
-                  hover:opacity-90
-                "
+      sticky bottom-0
+      px-6 py-4
+      bg-white/90 dark:bg-[#0B0614]/95
+      backdrop-blur
+      border-t border-blue-200 dark:border-indigo-800
+      flex flex-col sm:flex-row justify-end gap-3
+    "
               >
-                <HiXCircle />
-                Tolak
-              </button>
+                <button
+                  onClick={() => updateStatus("Ditolak")}
+                  className="
+        inline-flex items-center justify-center gap-2
+        px-5 py-2.5 rounded-xl
+        bg-gradient-to-r from-rose-500 to-red-600
+        text-white font-semibold
+        hover:opacity-90
+      "
+                >
+                  <HiXCircle />
+                  Tolak
+                </button>
 
-              <button
-                onClick={() => updateStatus("Disetujui")}
-                className="
-                  inline-flex items-center justify-center gap-2
-                  px-5 py-2.5 rounded-xl
-                  bg-gradient-to-r from-emerald-500 to-green-600
-                  text-white font-semibold
-                  hover:opacity-90
-                "
-              >
-                <HiCheckCircle />
-                Setujui
-              </button>
-            </div>
+                <button
+                  onClick={() => updateStatus("Disetujui")}
+                  className="
+        inline-flex items-center justify-center gap-2
+        px-5 py-2.5 rounded-xl
+        bg-gradient-to-r from-emerald-500 to-green-600
+        text-white font-semibold
+        hover:opacity-90
+      "
+                >
+                  <HiCheckCircle />
+                  Setujui
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -708,16 +988,16 @@ function SummaryCard({ title, value, color }: any) {
   };
 
   return (
-    <div className="
+    <div
+      className="
       rounded-2xl p-5
       bg-white/80 dark:bg-slate-900/80
       backdrop-blur
       shadow-lg
       border border-slate-200 dark:border-slate-800
-    ">
-      <p className="text-sm text-slate-500 dark:text-slate-400">
-        {title}
-      </p>
+    "
+    >
+      <p className="text-sm text-slate-500 dark:text-slate-400">{title}</p>
       <h2 className={`text-3xl font-bold mt-1 ${colorMap[color || "default"]}`}>
         {value}
       </h2>
@@ -765,9 +1045,7 @@ function DetailItem({
 }) {
   return (
     <div className="flex items-start gap-2">
-      <div className="mt-0.5 text-blue-600 dark:text-indigo-400">
-        {icon}
-      </div>
+      <div className="mt-0.5 text-blue-600 dark:text-indigo-400">{icon}</div>
       <div>
         <p className="text-xs text-slate-500 dark:text-slate-400">{label}</p>
         <p className="font-medium text-slate-800 dark:text-white">
