@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { HiMail, HiKey, HiLockClosed, HiArrowLeft } from "react-icons/hi";
+import { HiMail, HiKey, HiLockClosed, HiArrowLeft, HiEye, HiEyeOff, } from "react-icons/hi";
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -19,6 +19,7 @@ export default function LupaPasswordPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   /* ===================== TIMER OTP ===================== */
   const [countdown, setCountdown] = useState(0);
@@ -141,122 +142,289 @@ export default function LupaPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#F6FFFC] px-6">
-      <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl p-8 relative">
-        <Link
-          href="/auth/login"
-          className="absolute top-5 left-5 flex items-center gap-2 text-sm text-gray-600 hover:text-blue-600"
-        >
-          <HiArrowLeft /> Kembali
-        </Link>
+    <div className="min-h-screen w-full grid grid-cols-1 lg:grid-cols-2">
+      
+      {/* ================= LEFT SIDE (FORM) ================= */}
+      <div className="relative flex items-center justify-center bg-white px-6">
+        {/* BUTTON KEMBALI */}
+        <div className="absolute top-6 left-6">
+          <Link
+            href="/auth/login"
+            className="
+              group
+              inline-flex items-center gap-2
+              px-3 py-2
+              rounded-full
+              bg-gray-100
+              text-sm font-medium
+              text-gray-700
+              hover:bg-blue-50
+              hover:text-blue-700
+              transition-all
+            "
+          >
+            <span
+              className="
+                flex items-center justify-center
+                w-8 h-8
+                rounded-full
+                bg-white
+                shadow
+                group-hover:bg-blue-600
+                group-hover:text-white
+                transition
+              "
+            >
+              <HiArrowLeft className="text-base" />
+            </span>
+            Kembali
+          </Link>
+        </div>  
 
-        <h1 className="text-2xl font-extrabold text-center text-blue-800 mb-4">
-          Lupa Password
-        </h1>
-
-        {message && (
-          <p className="text-sm text-green-600 text-center mb-4">{message}</p>
-        )}
-        {error && (
-          <p className="text-sm text-red-600 text-center mb-4">{error}</p>
-        )}
-
-        {/* STEP 1 */}
-        {step === "email" && (
-          <form onSubmit={handleSendOtp} className="space-y-5">
-            <div className="relative">
-              <HiMail className="absolute left-4 top-3.5 text-blue-600" />
-              <input
-                type="email"
-                placeholder="Email"
-                className="w-full pl-12 py-3 rounded-xl border focus:ring-2 focus:ring-blue-500"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
+        {/* FORM CONTAINER */}
+        <div className="w-full max-w-md">
+          {/* HEADER */}
+          <div className="text-center mb-8">
+            <div
+              className="
+                mx-auto mb-4
+                w-16 h-16
+                rounded-2xl
+                bg-gradient-to-br from-blue-600 via-cyan-600 to-emerald-500
+                text-white
+                flex items-center justify-center
+                shadow-lg
+              "
+            >
+              <HiKey className="text-2xl" />
             </div>
 
-            <button
-              disabled={loading}
-              className="w-full py-3 rounded-xl bg-blue-600 text-white font-semibold disabled:opacity-60"
-            >
-              {loading ? "Mengirim..." : "Kirim Kode OTP"}
-            </button>
-          </form>
-        )}
-
-        {/* STEP 2 */}
-        {step === "otp" && (
-          <form onSubmit={handleVerifyOtp} className="space-y-5">
-            <div className="relative">
-              <HiKey className="absolute left-4 top-3.5 text-blue-600" />
-              <input
-                type="text"
-                maxLength={6}
-                placeholder="Kode OTP"
-                className="w-full pl-12 py-3 rounded-xl border focus:ring-2 focus:ring-blue-500"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
-              />
-            </div>
-
-            <button
-              disabled={loading}
-              className="w-full py-3 rounded-xl bg-blue-600 text-white font-semibold disabled:opacity-60"
-            >
-              Verifikasi OTP
-            </button>
-
-            <button
-              type="button"
-              disabled={countdown > 0}
-              onClick={handleSendOtp}
-              className="w-full text-sm text-blue-600 disabled:text-gray-400"
-            >
-              {countdown > 0
-                ? `Kirim ulang OTP dalam ${countdown}s`
-                : "Kirim OTP Kembali"}
-            </button>
-          </form>
-        )}
-
-        {/* STEP 3 */}
-        {step === "reset" && (
-          <form onSubmit={handleResetPassword} className="space-y-5">
-            <div className="relative">
-              <HiLockClosed className="absolute left-4 top-3.5 text-blue-600" />
-              <input
-                type="password"
-                placeholder="Password Baru"
-                className="w-full pl-12 py-3 rounded-xl border focus:ring-2 focus:ring-blue-500"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-              />
-            </div>
-
-            <button
-              disabled={loading}
-              className="w-full py-3 rounded-xl bg-green-600 text-white font-semibold disabled:opacity-60"
-            >
-              Simpan Password Baru
-            </button>
-          </form>
-        )}
-
-        {/* SUCCESS */}
-        {step === "success" && (
-          <div className="text-center">
-            <div className="text-5xl mb-4">✅</div>
-            <p className="mb-4 text-green-600 font-semibold">
-              Password berhasil diubah
+            <h1 className="text-2xl font-extrabold text-gray-800">
+              Lupa Password
+            </h1>
+            <p className="text-sm text-gray-500 mt-1">
+              Pulihkan akses akun Anda
             </p>
-            <Link
-              href="/auth/login"
-              className="text-blue-600 font-semibold hover:underline"
-            >
-              Login Sekarang
-            </Link>
           </div>
-        )}
+
+          {message && (
+            <p className="text-sm text-green-600 text-center mb-4">{message}</p>
+          )}
+          {error && (
+            <p className="text-sm text-red-600 text-center mb-4">{error}</p>
+          )}
+
+          {/* STEP 1 */}
+          {step === "email" && (
+            <form onSubmit={handleSendOtp} className="space-y-5">
+              <div className="relative">
+                <HiMail className="absolute left-4 top-3.5 text-blue-600" />
+                <input
+                  type="email"
+                  placeholder="Masukkan email terdaftar"
+                  className="
+                    w-full pl-12 pr-4 py-3
+                    rounded-xl
+                    bg-gray-50
+                     border border-gray-200
+                    text-gray-800
+                    placeholder:text-gray-400
+                    focus:outline-none focus:ring-2 focus:ring-blue-500
+                  "
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+
+              <button
+                disabled={loading}
+                className="
+                  w-full py-3 rounded-xl
+                  bg-gradient-to-r from-blue-600 via-cyan-600 to-emerald-500
+                  text-white font-semibold
+                  hover:opacity-90
+                  disabled:opacity-60
+                  transition
+                "
+              >
+                {loading ? "Mengirim..." : "Kirim Kode OTP"}
+              </button>
+            </form>
+          )}
+
+          {/* STEP 2 */}
+          {step === "otp" && (
+            <form onSubmit={handleVerifyOtp} className="space-y-5">
+              <div className="flex justify-center gap-3">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <input
+                    key={i}
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={1}
+                    value={otp[i] || ""}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, "");
+                      const newOtp = otp.split("");
+                      newOtp[i] = val;
+                      setOtp(newOtp.join(""));
+
+                      // AUTO FOCUS NEXT
+                      if (val && e.target.nextSibling instanceof HTMLInputElement) {
+                        e.target.nextSibling.focus();
+                      }
+                    }}
+                    className="
+                      w-12 h-14
+                      text-center text-xl font-bold
+                      rounded-xl
+                      text-gray-800
+                      border border-gray-300
+                      bg-gray-50
+                      focus:outline-none focus:ring-2 focus:ring-blue-500
+                    "
+                  />
+                ))}
+              </div>
+
+              <button
+                disabled={loading}
+                className="
+                  w-full py-3 rounded-xl
+                  bg-gradient-to-r from-blue-600 via-cyan-600 to-emerald-500
+                  text-white font-semibold
+                  hover:opacity-90
+                  disabled:opacity-60
+                  transition
+                "
+              >
+                Verifikasi OTP
+              </button>
+
+              <button
+                type="button"
+                disabled={countdown > 0}
+                onClick={handleSendOtp}
+                className="w-full text-sm text-blue-600 disabled:text-gray-400"
+              >
+                {countdown > 0
+                  ? `Kirim ulang OTP dalam ${countdown}s`
+                  : "Kirim OTP Kembali"}
+              </button>
+            </form>
+          )}
+
+          {/* STEP 3 */}
+          {step === "reset" && (
+            <form onSubmit={handleResetPassword} className="space-y-5">
+              <div className="relative">
+                <HiLockClosed className="absolute left-4 top-3.5 text-blue-600" />
+                <input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Masukkan password baru"
+                  className="
+                    w-full pl-12 pr-4 py-3
+                    rounded-xl
+                    bg-gray-50
+                    border border-gray-300
+                    text-gray-800
+                    placeholder:text-gray-400
+                    focus:outline-none focus:ring-2 focus:ring-blue-500
+                  "
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                />
+
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((p) => !p)}
+                  className="absolute right-4 top-3.5 text-gray-500 hover:text-blue-600"
+                >
+                  {showPassword ? <HiEyeOff size={20} /> : <HiEye size={20} />}
+                </button>
+              </div>
+
+              <button
+                disabled={loading}
+                className="
+                  w-full py-3 rounded-xl
+                  bg-gradient-to-r from-blue-600 via-cyan-600 to-emerald-500
+                  text-white font-semibold
+                  hover:opacity-90
+                  disabled:opacity-60
+                  transition
+                "
+              >
+                Simpan Password Baru
+              </button>
+            </form>
+          )}
+
+          {/* SUCCESS */}
+          {step === "success" && (
+            <div className="text-center">
+              <div className="
+                mx-auto mb-4
+                w-20 h-20
+                rounded-full
+                bg-gradient-to-br from-green-500 to-emerald-500
+                text-white text-4xl
+                flex items-center justify-center
+                shadow-lg
+              ">
+                ✓
+              </div>
+
+              <p className="mb-4 text-green-600 font-semibold">
+                Password berhasil diubah
+              </p>
+
+              <Link href="/auth/login" className="block w-full">
+                <button
+                  type="button"
+                  className="
+                    w-full
+                    py-3.5
+                    rounded-xl
+                    bg-gradient-to-r from-blue-600 via-cyan-600 to-emerald-500
+                    text-white
+                    font-semibold
+                    shadow-md
+                    hover:shadow-lg
+                    hover:opacity-95
+                    transition-all
+                  "
+                >
+                  Login Sekarang
+                </button>
+              </Link>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ================= RIGHT SIDE (IMAGE) ================= */}
+      <div
+        className="
+          hidden lg:flex
+          items-center justify-center
+          bg-gradient-to-br from-blue-600 via-cyan-600 to-emerald-500
+          px-12
+        "
+      >
+        <div className="text-center text-white max-w-md">
+          <div className="mx-auto mb-6 w-28 h-28 rounded-3xl bg-white/20 flex items-center justify-center">
+            <HiKey className="text-6xl" />
+          </div>
+
+          <h2 className="text-3xl font-bold mb-3">
+            Lupa Password?
+          </h2>
+          <p className="text-white/90 text-base leading-relaxed">
+            Jangan khawatir. Kami akan membantu Anda memulihkan akses akun
+            dengan aman dan cepat.
+          </p>
+        </div>
       </div>
     </div>
   );
