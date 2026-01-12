@@ -57,8 +57,7 @@ export default function BuatAkunMentorPage() {
         email: item.email,
         status: item.status || "Aktif",
         periode:
-          item.periode ||
-          new Date(item.createdAt).getFullYear().toString(),
+          item.periode || new Date(item.createdAt).getFullYear().toString(),
       }));
 
       setData(mapped);
@@ -124,12 +123,9 @@ export default function BuatAkunMentorPage() {
       setOpen(false);
       setForm({ name: "", email: "", password: "" });
       fetchMentor();
-
     } catch (error: any) {
       // ✅ SEMUA ERROR MASUK SINI
-      showToast.error(
-        error.message || "Terjadi kesalahan server"
-      );
+      showToast.error(error.message || "Terjadi kesalahan server");
     } finally {
       // ✅ PASTI DIJALANKAN (SUKSES / ERROR)
       setLoadingPopup(false); // 🔥 HIDE POPUP
@@ -166,14 +162,10 @@ export default function BuatAkunMentorPage() {
       }
 
       setData((prev) =>
-        prev.map((m) =>
-          m._id === id ? { ...m, status: "Nonaktif" } : m
-        )
+        prev.map((m) => (m._id === id ? { ...m, status: "Nonaktif" } : m))
       );
 
-      setSelected((prev) =>
-        prev ? { ...prev, status: "Nonaktif" } : prev
-      );
+      setSelected((prev) => (prev ? { ...prev, status: "Nonaktif" } : prev));
 
       showToast.updateSuccess(
         loadingToast,
@@ -219,19 +211,12 @@ export default function BuatAkunMentorPage() {
       }
 
       setData((prev) =>
-        prev.map((m) =>
-          m._id === id ? { ...m, status: "Aktif" } : m
-        )
+        prev.map((m) => (m._id === id ? { ...m, status: "Aktif" } : m))
       );
 
-      setSelected((prev) =>
-        prev ? { ...prev, status: "Aktif" } : prev
-      );
+      setSelected((prev) => (prev ? { ...prev, status: "Aktif" } : prev));
 
-      showToast.updateSuccess(
-        loadingToast,
-        "Akun mentor berhasil diaktifkan"
-      );
+      showToast.updateSuccess(loadingToast, "Akun mentor berhasil diaktifkan");
 
       setOpenAksi(false);
     } catch (error: any) {
@@ -245,20 +230,20 @@ export default function BuatAkunMentorPage() {
   /* ================= SUMMARY ================= */
   const totalMentor = data.length;
   const mentorAktif = data.filter((m) => m.status === "Aktif").length;
-  const mentorNonaktif = data.filter(
-    (m) => m.status === "Nonaktif"
-  ).length;
+  const mentorNonaktif = data.filter((m) => m.status === "Nonaktif").length;
 
   /* ================= RENDER ================= */
   return (
-    <div className="
+    <div
+      className="
       min-h-screen p-4 sm:p-6
       bg-gradient-to-br
       from-slate-50 via-white to-indigo-50
       dark:from-[#020617] dark:via-[#020617] dark:to-[#1E1B4B]
       text-slate-800 dark:text-slate-100
       transition-colors
-    ">
+    "
+    >
       {/* HEADER */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         <div>
@@ -302,7 +287,11 @@ export default function BuatAkunMentorPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         <Summary title="Jumlah Mentor" value={totalMentor} />
         <Summary title="Mentor Aktif" value={mentorAktif} color="green" />
-        <Summary title="Mentor Tidak Aktif" value={mentorNonaktif} color="red" />
+        <Summary
+          title="Mentor Tidak Aktif"
+          value={mentorNonaktif}
+          color="red"
+        />
       </div>
 
       {/* TABLE */}
@@ -317,11 +306,13 @@ export default function BuatAkunMentorPage() {
       >
         <div className="overflow-x-auto">
           <table className="min-w-[720px] w-full text-sm">
-            <thead className="
+            <thead
+              className="
               bg-slate-100 dark:bg-slate-800
               text-slate-600 dark:text-slate-300
               text-xs uppercase tracking-wider
-            ">
+            "
+            >
               <tr>
                 <th className="px-6 py-4 text-center">No</th>
                 <th className="px-6 py-4 text-left">Nama</th>
@@ -334,7 +325,10 @@ export default function BuatAkunMentorPage() {
             <tbody>
               {data.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-10 text-center text-slate-500 dark:text-slate-400">
+                  <td
+                    colSpan={5}
+                    className="py-10 text-center text-slate-500 dark:text-slate-400"
+                  >
                     Belum ada akun mentor
                   </td>
                 </tr>
@@ -409,10 +403,7 @@ export default function BuatAkunMentorPage() {
             onChange={(v) => setForm({ ...form, email: v })}
           />
 
-          <PasswordInput
-            value={form.password}
-            onGenerate={generatePassword}
-          />
+          <PasswordInput value={form.password} onGenerate={generatePassword} />
 
           <ModalAction
             onCancel={() => setOpen(false)}
@@ -422,19 +413,20 @@ export default function BuatAkunMentorPage() {
         </Modal>
       )}
 
-
       {/* MODAL AKSI */}
       {openAksi && selected && (
         <Modal title="Detail Akun Mentor" onClose={() => setOpenAksi(false)}>
           <Detail label="Nama" value={selected.name} />
           <Detail label="Email" value={selected.email} />
           <Detail label="Periode" value={selected.periode} />
-          <div className="
+          <div
+            className="
             rounded-xl
             p-4
             bg-slate-50 dark:bg-slate-800/60
             border border-slate-200 dark:border-slate-700
-          ">
+          "
+          >
             <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
               Status
             </p>
@@ -495,16 +487,16 @@ function Summary({ title, value, color }: any) {
   };
 
   return (
-    <div className="
+    <div
+      className="
       rounded-2xl p-5
       bg-white/80 dark:bg-slate-900/80
       backdrop-blur
       shadow-lg
       border border-slate-200 dark:border-slate-800
-    ">
-      <p className="text-sm text-slate-500 dark:text-slate-400">
-        {title}
-      </p>
+    "
+    >
+      <p className="text-sm text-slate-500 dark:text-slate-400">{title}</p>
       <h2 className={`text-3xl font-bold mt-1 ${colorMap[color || "default"]}`}>
         {value}
       </h2>
@@ -522,29 +514,35 @@ function Modal({
   onClose: () => void;
 }) {
   return (
-    <div className="
+    <div
+      className="
       fixed inset-0 z-50
       bg-black/40 backdrop-blur-sm
       flex items-center justify-center
       px-4
-    ">
-      <div className="
+    "
+    >
+      <div
+        className="
         relative w-full max-w-md
         rounded-3xl
         bg-white/95 dark:bg-slate-900/95
         shadow-[0_20px_60px_-15px_rgba(0,0,0,0.35)]
         border border-slate-200 dark:border-slate-800
         overflow-hidden
-      ">
+      "
+      >
         {/* HEADER */}
-        <div className="
+        <div
+          className="
           flex items-center justify-between
           px-6 py-4
           border-b border-slate-200 dark:border-slate-800
           bg-gradient-to-r
           from-indigo-50 to-blue-50
           dark:from-indigo-500/10 dark:to-blue-500/10
-        ">
+        "
+        >
           <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
             {title}
           </h2>
@@ -564,9 +562,7 @@ function Modal({
         </div>
 
         {/* CONTENT */}
-        <div className="px-6 py-5 space-y-4">
-          {children}
-        </div>
+        <div className="px-6 py-5 space-y-4">{children}</div>
       </div>
     </div>
   );
@@ -688,12 +684,14 @@ function ModalAction({
 
 function Detail({ label, value }: { label: string; value: string }) {
   return (
-    <div className="
+    <div
+      className="
       rounded-xl
       p-4
       bg-slate-50 dark:bg-slate-800/60
       border border-slate-200 dark:border-slate-700
-    ">
+    "
+    >
       <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
         {label}
       </p>

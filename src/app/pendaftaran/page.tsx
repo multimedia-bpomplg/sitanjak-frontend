@@ -34,11 +34,17 @@ type Wilayah = {
 type Peserta = {
   nama: string;
   posisi: string;
+
+  asalJenis: "Universitas" | "SMK" | "";
+  asalNama: string;
+
   tanggalMulaiMagang: string;
   tanggalSelesaiMagang: string;
+
   tempatLahir: string;
   tanggalLahir: string;
   jenisKelamin: string;
+
   provinsi: string;
   provinsiId: string;
   kota: string;
@@ -46,6 +52,7 @@ type Peserta = {
   kecamatan: string;
   kecamatanId: string;
   kelurahan: string;
+
   alamatLengkap: string;
   email: string;
   wa: string;
@@ -55,11 +62,16 @@ type Peserta = {
 const buatPesertaKosong = (): Peserta => ({
   nama: "",
   posisi: "",
+
+  asalJenis: "",
+  asalNama: "",
+
   tanggalMulaiMagang: "",
   tanggalSelesaiMagang: "",
   tempatLahir: "",
   tanggalLahir: "",
   jenisKelamin: "",
+
   provinsi: "",
   provinsiId: "",
   kota: "",
@@ -196,8 +208,7 @@ export default function PendaftaranPage() {
       if (!p.nama) newErrors[`nama-${i}`] = true;
       if (!p.posisi) newErrors[`posisi-${i}`] = true;
 
-      if (!p.tanggalMulaiMagang)
-        newErrors[`tanggalMulaiMagang-${i}`] = true;
+      if (!p.tanggalMulaiMagang) newErrors[`tanggalMulaiMagang-${i}`] = true;
 
       if (!p.tanggalSelesaiMagang)
         newErrors[`tanggalSelesaiMagang-${i}`] = true;
@@ -314,6 +325,14 @@ export default function PendaftaranPage() {
     setLoading(false);
     setPendingSubmit(false);
   };
+
+  const universitasList = [
+    "UIN Raden Fatah Palembang",
+    "Universitas Sriwijaya",
+    "Universitas Bina Darma",
+  ];
+
+  const smkList = ["SMK Negeri 1", "SMK Negeri 2", "SMK Negeri 3"];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-cyan-50 to-emerald-50 py-16 px-4">
@@ -700,6 +719,50 @@ export default function PendaftaranPage() {
                 </div>
               </div>
 
+              {/* JENIS ASAL */}
+              <select
+                value={peserta[i].asalJenis}
+                onChange={(e) => {
+                  update(i, "asalJenis", e.target.value);
+                  update(i, "asalNama", "");
+                }}
+                className="w-full rounded-xl border px-4 py-3"
+              >
+                <option value="">Pilih Asal</option>
+                <option value="Universitas">Universitas</option>
+                <option value="SMK">SMK</option>
+              </select>
+
+              {peserta[i].asalJenis && (
+                <select
+                  value={peserta[i].asalNama}
+                  onChange={(e) => update(i, "asalNama", e.target.value)}
+                  className="w-full rounded-xl border px-4 py-3 mt-3"
+                >
+                  <option value="">Pilih {peserta[i].asalJenis}</option>
+
+                  {(peserta[i].asalJenis === "Universitas"
+                    ? universitasList
+                    : smkList
+                  ).map((item) => (
+                    <option key={item} value={item}>
+                      {item}
+                    </option>
+                  ))}
+
+                  <option value="LAINNYA">Lainnya</option>
+                </select>
+              )}
+
+              {peserta[i].asalNama === "LAINNYA" && (
+                <input
+                  type="text"
+                  placeholder={`Masukkan nama ${peserta[i].asalJenis}`}
+                  onChange={(e) => update(i, "asalNama", e.target.value)}
+                  className="w-full rounded-xl border px-4 py-3 mt-3"
+                />
+              )}
+
               {/* WILAYAH */}
               <div className="grid md:grid-cols-2 gap-6">
                 {/* Provinsi */}
@@ -745,14 +808,18 @@ export default function PendaftaranPage() {
                     <select
                       value={peserta[i].kotaId}
                       onChange={(e) => {
-                        const o = wilayah[i]?.kota.find((x) => x.id === e.target.value);
+                        const o = wilayah[i]?.kota.find(
+                          (x) => x.id === e.target.value
+                        );
                         if (o) update(i, "kota", o.name, o.id);
                         setErrors((p) => ({ ...p, [`kota-${i}`]: false }));
                       }}
                     >
                       <option value="">Pilih Kota / Kabupaten</option>
                       {wilayah[i]?.kota.map((k) => (
-                        <option key={k.id} value={k.id}>{k.name}</option>
+                        <option key={k.id} value={k.id}>
+                          {k.name}
+                        </option>
                       ))}
                     </select>
                   </div>
@@ -774,14 +841,18 @@ export default function PendaftaranPage() {
                     <select
                       value={peserta[i].kecamatanId}
                       onChange={(e) => {
-                        const o = wilayah[i]?.kecamatan.find((x) => x.id === e.target.value);
+                        const o = wilayah[i]?.kecamatan.find(
+                          (x) => x.id === e.target.value
+                        );
                         if (o) update(i, "kecamatan", o.name, o.id);
                         setErrors((p) => ({ ...p, [`kecamatan-${i}`]: false }));
                       }}
                     >
                       <option value="">Pilih Kecamatan</option>
                       {wilayah[i]?.kecamatan.map((k) => (
-                        <option key={k.id} value={k.id}>{k.name}</option>
+                        <option key={k.id} value={k.id}>
+                          {k.name}
+                        </option>
                       ))}
                     </select>
                   </div>
@@ -813,7 +884,9 @@ export default function PendaftaranPage() {
                     >
                       <option value="">Pilih Kelurahan</option>
                       {wilayah[i]?.kelurahan.map((k) => (
-                        <option key={k.id} value={k.name}>{k.name}</option>
+                        <option key={k.id} value={k.name}>
+                          {k.name}
+                        </option>
                       ))}
                     </select>
                   </div>
@@ -1005,9 +1078,11 @@ export default function PendaftaranPage() {
             {/* CARD */}
             <div className="relative bg-white rounded-3xl shadow-2xl p-8 w-full max-w-md animate-scaleIn text-center">
               {/* ICON */}
-              <div className="mx-auto mb-4 w-20 h-20 rounded-full
+              <div
+                className="mx-auto mb-4 w-20 h-20 rounded-full
                               bg-gradient-to-br from-green-500 to-emerald-500
-                              flex items-center justify-center shadow-lg">
+                              flex items-center justify-center shadow-lg"
+              >
                 <svg
                   className="w-10 h-10 text-white"
                   fill="none"

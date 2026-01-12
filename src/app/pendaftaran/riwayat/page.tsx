@@ -437,6 +437,16 @@ export default function RiwayatPendaftaran() {
                         <span>{p.posisi}</span>
                       </div>
 
+                      {/* ✅ ASAL UNIVERSITAS / SMK */}
+                      {p.asal && (
+                        <div className="flex items-center gap-3">
+                          <HiOfficeBuilding className="text-indigo-600" />
+                          <span>
+                            {p.asal.jenis} - {p.asal.nama}
+                          </span>
+                        </div>
+                      )}
+
                       <div className="flex items-start gap-3">
                         <HiLocationMarker className="text-orange-600 mt-0.5" />
                         <span>
