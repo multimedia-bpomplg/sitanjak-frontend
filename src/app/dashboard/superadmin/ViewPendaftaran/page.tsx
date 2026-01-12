@@ -16,8 +16,9 @@ import {
 } from "react-icons/hi";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
+import AlertPopup from "@/components/ui/AlertPopup";
 
-/* ===================== TYPE TEST ===================== */
+/* ===================== TYPE ===================== */
 type Peserta = {
   nama: string;
   email: string;
@@ -62,6 +63,24 @@ export default function ViewPendaftaranPage() {
   const [selected, setSelected] = useState<Pendaftaran | null>(null);
   const [alasan, setAlasan] = useState("");
 
+  const [alertOpen, setAlertOpen] = useState(false);
+  const [alertTitle, setAlertTitle] = useState<string | undefined>();
+  const [alertMessage, setAlertMessage] = useState("");
+  const [alertType, setAlertType] = useState<
+    "success" | "error" | "warning" | "info"
+  >("info");
+
+  const showAlert = (
+    type: "success" | "error" | "warning" | "info",
+    message: string,
+    title?: string
+  ) => {
+    setAlertType(type);
+    setAlertTitle(title);
+    setAlertMessage(message);
+    setAlertOpen(true);
+  };
+
   const closeModal = () => {
     setSelected(null);
     setAlasan("");
@@ -76,7 +95,11 @@ export default function ViewPendaftaranPage() {
       const json = await res.json();
       setData(json);
     } catch {
-      alert("Gagal mengambil data");
+      showAlert(
+        "error",
+        "Terjadi kesalahan saat mengambil data pendaftaran.",
+        "Gagal Memuat Data"
+      );
     } finally {
       setLoading(false);
     }
@@ -123,34 +146,66 @@ export default function ViewPendaftaranPage() {
 
   /* ===================== UPDATE STATUS ===================== */
   const updateStatus = async (status: "Disetujui" | "Ditolak") => {
+    if (!selected?._id) {
+      showAlert("error", "Data pendaftaran tidak valid", "Kesalahan");
+      return;
+    }
+
     if (!alasan.trim()) {
-      alert("Alasan wajib diisi");
+      showAlert(
+        "warning",
+        "Silakan isi alasan sebelum melanjutkan proses.",
+        "Alasan Wajib Diisi"
+      );
       return;
     }
 
     // ❗ Wajib upload surat jika disetujui
     if (status === "Disetujui" && !suratBalasan) {
-      alert("Surat balasan wajib diupload jika disetujui");
+      showAlert(
+        "warning",
+        "Surat balasan wajib diunggah sebelum pendaftaran disetujui.",
+        "Dokumen Belum Lengkap"
+      );
       return;
     }
 
-    const formData = new FormData();
-    formData.append("status", status);
-    formData.append("jawabanAdmin", alasan);
+    try {
+      const formData = new FormData();
+      formData.append("status", status);
+      formData.append("jawabanAdmin", alasan);
+      if (suratBalasan) formData.append("suratBalasan", suratBalasan);
 
-    if (suratBalasan) {
-      formData.append("suratBalasan", suratBalasan);
+      const res = await fetch(
+        `http://localhost:5000/api/pendaftaran/${selected?._id}`, 
+        {
+          method: "PUT",
+          body: formData,
+        }
+      );
+
+      const result = await res.json();
+
+      if (!res.ok) {
+        throw new Error(result.message || "Gagal memperbarui status");
+      }
+
+      showAlert(
+        "success",
+        "Status pendaftaran dan surat balasan berhasil diproses.",
+        "Berhasil"
+      );
+
+      // 🔥 PENTING: reload data DULU
+      await loadData();
+
+      // 🔥 BARU tutup modal
+      closeModal();
+    } catch (error: any) {
+      showAlert("error", error.message || "Terjadi kesalahan", "Gagal");
     }
-
-    await fetch(`http://localhost:5000/api/pendaftaran/${selected?._id}`, {
-      method: "PUT",
-      body: formData,
-    });
-
-    alert("Status dan surat balasan berhasil dikirim");
-    closeModal();
-    loadData();
   };
+
 
   /* ===================== SUMMARY ===================== */
   const totalPendaftar = data.length;
@@ -194,7 +249,11 @@ export default function ViewPendaftaranPage() {
   /* ===================== DOWNLOAD EXCEL (RAPI) ===================== */
   const downloadExcel = () => {
     if (data.length === 0) {
-      alert("Tidak ada data untuk diunduh");
+      showAlert(
+        "error",
+        "Tidak ada data pendaftaran yang dapat diunduh.",
+        "Data Kosong"
+      );
       return;
     }
 
@@ -481,10 +540,10 @@ export default function ViewPendaftaranPage() {
 
       {/* ===================== MODAL DETAIL ===================== */}
       {selected && (
-        <div className="fixed inset-0 z-[999] flex">
+        <div className="fixed inset-y-0 right-0 left-0 lg:left-72 z-40 flex">
           {/* OVERLAY (AREA CONTENT SAJA) */}
           <div
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm lg:ml-72"
+            className="absolute inset-y-0 right-0 left-0 bg-black/40 backdrop-blur-sm"
             onClick={closeModal}
           />
 
@@ -492,7 +551,6 @@ export default function ViewPendaftaranPage() {
           <div
             className="
               relative
-              lg:ml-72
               w-full h-full
               bg-gradient-to-br
               from-white via-blue-20 to-blue-50
@@ -974,6 +1032,13 @@ export default function ViewPendaftaranPage() {
           </div>
         </div>
       )}
+      <AlertPopup
+        open={alertOpen}
+        type={alertType}
+        title={alertTitle}
+        message={alertMessage}
+        onClose={() => setAlertOpen(false)}
+      />
     </div>
   );
 }
