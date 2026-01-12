@@ -17,7 +17,7 @@ import {
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 
-/* ===================== TYPE ===================== */
+/* ===================== TYPE TEST ===================== */
 type Peserta = {
   nama: string;
   email: string;
