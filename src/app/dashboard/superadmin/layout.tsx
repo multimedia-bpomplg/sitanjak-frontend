@@ -15,6 +15,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { ConfirmProvider } from "@/components/ui/ConfirmProvider";
+import { useConfirm } from "@/components/ui/ConfirmProvider";
 
 export default function SuperadminLayout({
   children,
@@ -31,6 +32,7 @@ export default function SuperadminLayout({
 
   const router = useRouter();
   const pathname = usePathname();
+  const confirm = useConfirm();
 
   type LoggedUser = {
     name: string;
@@ -43,6 +45,7 @@ export default function SuperadminLayout({
   const toggleTheme = () => {
     document.documentElement.classList.toggle("dark");
   };
+
 
   /* ===================== DARK MODE ===================== */
   useEffect(() => {
@@ -92,7 +95,7 @@ export default function SuperadminLayout({
       <div
         className="
         min-h-screen
-        lg:grid lg:grid-cols-[18rem_1fr]
+        flex
         bg-gradient-to-br
         from-emerald-50 via-white to-cyan-50
 
@@ -107,7 +110,8 @@ export default function SuperadminLayout({
         {/* ===================== SIDEBAR ===================== */}
         <aside
           className={`
-            z-30 h-full
+            z-30
+            h-screen
             bg-gradient-to-b
             from-white via-emerald-50 to-emerald-100
             dark:from-[#020617]
@@ -120,7 +124,7 @@ export default function SuperadminLayout({
             w-72
             ${collapsed ? "lg:w-20" : "lg:w-72"}
 
-            fixed lg:static
+            fixed lg:sticky
             top-0 left-0
 
             transform
@@ -603,7 +607,8 @@ export default function SuperadminLayout({
         {/* RIGHT AREA */}
         <div
           className={`
-            flex flex-col min-w-0
+            flex flex-col min-w-0 flex-1
+            transition-all duration-300
           `}
         >
           {/* ===================== TOPBAR ===================== */}
@@ -632,20 +637,6 @@ export default function SuperadminLayout({
                 {collapsed ? <ChevronsRight /> : <ChevronsLeft />}
               </span>
             </button>
-
-            <input
-              placeholder="search...."
-              className="
-                hidden md:block
-                w-1/3 min-w-[220px]
-                px-4 py-2 rounded-xl
-                bg-white/80 dark:bg-slate-800
-                border border-emerald-200 dark:border-slate-700
-                focus:ring-2 focus:ring-emerald-400
-                outline-none
-                transition
-              "
-            />
 
             <div className="ml-auto flex items-center gap-5">
               <Bell />
@@ -693,14 +684,19 @@ export default function SuperadminLayout({
                     {/* Tombol */}
                     <div className="flex flex-col gap-2">
                       <button
-                        onClick={() => {
-                          if (
-                            window.confirm("Apakah Anda yakin ingin keluar?")
-                          ) {
-                            handleSignOut();
-                          }
-                        }}
-                        className="flex items-center gap-2 px-3 py-2 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/40 rounded-lg"
+                        onClick={() =>
+                          confirm({
+                            title: "Keluar dari akun?",
+                            message: "Anda akan keluar dari sistem dan perlu login kembali.",
+                            onConfirm: handleSignOut,
+                          })
+                        }
+                        className="
+                          flex items-center gap-2 px-3 py-2
+                          text-rose-600 dark:text-rose-400
+                          hover:bg-rose-100 dark:hover:bg-rose-900/40
+                          rounded-lg transition
+                        "
                       >
                         <LogOut size={18} /> Sign Out
                       </button>

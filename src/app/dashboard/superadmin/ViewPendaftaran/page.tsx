@@ -17,7 +17,6 @@ import {
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import AlertPopup from "@/components/ui/AlertPopup";
-
 /* ===================== TYPE ===================== */
 type Peserta = {
   nama: string;
@@ -371,40 +370,57 @@ export default function ViewPendaftaranPage() {
       </div>
 
       {/* ===================== SEARCH & EXPORT ===================== */}
-      <div className="mb-4 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
-        <input
-          type="text"
-          placeholder="Cari nama peserta..."
-          value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            setPage(1);
-          }}
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        {/* SEARCH */}
+        <div
           className="
-      w-full sm:w-72
-      px-4 py-2
-      rounded-xl
-      border border-slate-300 dark:border-slate-700
-      bg-white dark:bg-slate-800
-      text-sm
-      focus:ring-2 focus:ring-indigo-500
-      outline-none
-    "
-        />
+            relative
+            w-full sm:max-w-sm
+          "
+        >
+          <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400">
+            🔍
+          </span>
 
+          <input
+            type="text"
+            placeholder="Cari nama peserta..."
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
+            className="
+              w-full
+              pl-10 pr-4 py-2.5
+              rounded-xl
+              border border-slate-300 dark:border-slate-700
+              bg-white dark:bg-slate-800
+              text-sm
+              text-slate-700 dark:text-slate-100
+              placeholder:text-slate-400
+              focus:outline-none
+              focus:ring-2 focus:ring-emerald-500/70 dark:focus:ring-indigo-500/70
+              transition
+            "
+          />
+        </div>
+
+        {/* DOWNLOAD */}
         <button
           onClick={downloadExcel}
           className="
-      inline-flex items-center gap-2
-      px-4 py-2
-      rounded-xl
-      text-sm font-semibold
-      bg-emerald-600 hover:bg-emerald-700
-      text-white
-      shadow
-      transition
-      self-start sm:self-auto
-    "
+            inline-flex items-center justify-center gap-2
+            px-5 py-2.5
+            rounded-xl
+            text-sm font-semibold
+            text-white
+            bg-gradient-to-r from-emerald-500 to-green-600
+            hover:opacity-90
+            shadow-md hover:shadow-lg
+            transition
+            w-full sm:w-auto
+          "
         >
           <HiDocumentText className="text-lg" />
           Download Excel
@@ -490,46 +506,73 @@ export default function ViewPendaftaranPage() {
           </table>
           {/* ===================== PAGINATION BUTTON ===================== */}
           {totalPage > 1 && (
-            <div className="flex justify-center items-center gap-2 py-4">
+            <div className="flex flex-wrap items-center justify-center gap-2 py-5">
+              {/* PREV */}
               <button
                 disabled={page === 1}
                 onClick={() => setPage((p) => p - 1)}
                 className="
-        px-3 py-1.5 rounded-lg text-sm
-        border border-slate-300 dark:border-slate-700
-        disabled:opacity-50
-        hover:bg-slate-100 dark:hover:bg-slate-800
-      "
+                  px-4 py-2
+                  rounded-lg
+                  text-sm font-medium
+                  border
+                  border-slate-300 dark:border-slate-600
+                  bg-white dark:bg-slate-900
+                  text-emerald-700 dark:text-indigo-200
+                  hover:bg-emerald-50 dark:hover:bg-indigo-900/30
+                  disabled:opacity-40 disabled:cursor-not-allowed
+                  transition
+                "
               >
                 Prev
               </button>
 
-              {Array.from({ length: totalPage }).map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setPage(i + 1)}
-                  className={`
-          px-3 py-1.5 rounded-lg text-sm
-          ${
-            page === i + 1
-              ? "bg-indigo-600 text-white"
-              : "border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
-          }
-        `}
-                >
-                  {i + 1}
-                </button>
-              ))}
+              {/* PAGE NUMBER */}
+              {Array.from({ length: totalPage }).map((_, i) => {
+                const active = page === i + 1;
 
+                return (
+                  <button
+                    key={i}
+                    onClick={() => setPage(i + 1)}
+                    className={`
+                      min-w-[38px] h-[38px]
+                      rounded-lg
+                      text-sm font-semibold
+                      transition
+                      ${
+                        active
+                          ? "bg-emerald-600 text-white shadow dark:bg-indigo-600"
+                          : `
+                            bg-white dark:bg-slate-900
+                            text-emerald-700 dark:text-indigo-200
+                            border border-slate-300 dark:border-slate-600
+                            hover:bg-emerald-50 dark:hover:bg-indigo-900/30
+                          `
+                      }
+                    `}
+                  >
+                    {i + 1}
+                  </button>
+                );
+              })}
+
+              {/* NEXT */}
               <button
                 disabled={page === totalPage}
                 onClick={() => setPage((p) => p + 1)}
                 className="
-        px-3 py-1.5 rounded-lg text-sm
-        border border-slate-300 dark:border-slate-700
-        disabled:opacity-50
-        hover:bg-slate-100 dark:hover:bg-slate-800
-      "
+                  px-4 py-2
+                  rounded-lg
+                  text-sm font-medium
+                  border
+                  border-slate-300 dark:border-slate-600
+                  bg-white dark:bg-slate-900
+                  text-emerald-700 dark:text-indigo-200
+                  hover:bg-emerald-50 dark:hover:bg-indigo-900/30
+                  disabled:opacity-40 disabled:cursor-not-allowed
+                  transition
+                "
               >
                 Next
               </button>

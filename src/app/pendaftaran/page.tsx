@@ -861,7 +861,7 @@ export default function PendaftaranPage() {
                   <HiMail className="form-icon" />
                   <input
                     value={peserta[i].email}
-                    placeholder="contoh@email.com"
+                    placeholder="contoh@gmail.com"
                     onChange={(e) => {
                       update(i, "email", e.target.value);
                       setErrors((prev) => ({ ...prev, [`email-${i}`]: false }));
