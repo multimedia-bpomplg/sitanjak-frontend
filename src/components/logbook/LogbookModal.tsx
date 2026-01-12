@@ -1,32 +1,62 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type Status =
   | "hadir"
   | "tidak_hadir_keterangan"
   | "tidak_hadir_tanpa_keterangan";
-mode: "create" | "view";
 
-export default function LogbookModal({
-  date,
-  onClose,
-}: {
+type Props = {
   date: string;
+  mode: "create" | "view";
   onClose: () => void;
-}) {
-  const [status, setStatus] = useState<Status>("hadir");
+};
 
+export default function LogbookModal({ date, mode, onClose }: Props) {
+  const readonly = mode === "view";
+
+  const [status, setStatus] = useState<Status>("hadir");
   const [judul, setJudul] = useState("");
   const [pengalaman, setPengalaman] = useState("");
   const [kendala, setKendala] = useState("");
   const [keterangan, setKeterangan] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [errorFile, setErrorFile] = useState("");
+
+  // ☑️ Persetujuan user
   const [agree, setAgree] = useState(false);
+
+  // 🔔 Approval mentor
+  const [approvedByMentor, setApprovedByMentor] = useState(false);
+
+  /* ================= FETCH DATA (VIEW MODE) ================= */
+  useEffect(() => {
+    if (mode === "view") {
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/logbook/${date}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          setStatus(data.status);
+          setJudul(data.judul || "");
+          setPengalaman(data.pengalaman || "");
+          setKendala(data.kendala || "");
+          setKeterangan(data.keterangan || "");
+          setApprovedByMentor(Boolean(data.approvedByMentor));
+        })
+        .catch(() => {
+          console.error("Gagal memuat detail logbook");
+        });
+    }
+  }, [mode, date]);
 
   /* ================= FILE HANDLER ================= */
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (readonly) return;
+
     const selected = Array.from(e.target.files || []);
 
     if (selected.length > 3) {
@@ -39,7 +69,6 @@ export default function LogbookModal({
         setErrorFile("Hanya file gambar yang diperbolehkan");
         return;
       }
-
       if (file.size > 2 * 1024 * 1024) {
         setErrorFile("Ukuran maksimal 1 foto adalah 2 MB");
         return;
@@ -52,12 +81,16 @@ export default function LogbookModal({
 
   /* ================= VALIDASI ================= */
   const submitDisabled =
+    readonly ||
     !agree ||
     (status === "hadir" &&
       (!judul || !pengalaman || !kendala || files.length === 0)) ||
     (status === "tidak_hadir_keterangan" && !keterangan);
 
+  /* ================= SUBMIT ================= */
   const handleSubmit = async () => {
+    if (readonly) return;
+
     const formData = new FormData();
     formData.append("date", date);
     formData.append("status", status);
@@ -81,10 +114,12 @@ export default function LogbookModal({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center px-4">
-      <div className="bg-white w-full max-w-xl rounded-3xl shadow-2xl overflow-hidden animate-scaleIn">
+      <div className="bg-white w-full max-w-xl rounded-3xl shadow-2xl overflow-hidden">
         {/* HEADER */}
         <div className="px-6 py-4 border-b bg-gradient-to-r from-blue-50 to-indigo-50">
-          <h2 className="text-lg font-bold text-slate-800">Logbook Harian</h2>
+          <h2 className="text-lg font-bold text-slate-800">
+            {mode === "view" ? "Detail Logbook" : "Isi Logbook Harian"}
+          </h2>
           <p className="text-sm text-slate-500">
             Tanggal: <span className="font-medium">{date}</span>
           </p>
@@ -99,8 +134,9 @@ export default function LogbookModal({
             </label>
             <select
               value={status}
+              disabled={readonly}
               onChange={(e) => setStatus(e.target.value as Status)}
-              className="w-full rounded-xl border px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full rounded-xl border px-3 py-2 focus:ring-2 focus:ring-blue-500"
             >
               <option value="hadir">Hadir</option>
               <option value="tidak_hadir_keterangan">
@@ -112,99 +148,99 @@ export default function LogbookModal({
             </select>
           </div>
 
-          {/* HADIR */}
           {status === "hadir" && (
             <>
-              <Input
-                label="Judul Kegiatan"
+              <Textarea
+                label="Uraian Aktivitas"
                 value={judul}
                 onChange={setJudul}
-                placeholder="Contoh: Membuat UI Dashboard"
+                disabled={readonly}
               />
 
               <Textarea
-                label="Pengalaman yang Didapatkan"
+                label="Pembelajaran yang didapatkan"
                 value={pengalaman}
                 onChange={setPengalaman}
-                placeholder="Ceritakan pengalaman hari ini..."
+                disabled={readonly}
               />
-
               <Textarea
-                label="Kendala yang Dialami"
+                label="Kendala"
                 value={kendala}
                 onChange={setKendala}
-                placeholder="Apakah ada kendala?"
+                disabled={readonly}
               />
 
-              {/* UPLOAD FOTO */}
-              <div>
-                <label className="block text-sm font-semibold mb-1">
-                  Dokumentasi Kegiatan
-                </label>
-                <input
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  onChange={handleFileChange}
-                  className="w-full text-sm"
-                />
-                <p className="text-xs text-slate-500 mt-1">
-                  Maks 3 foto • Maks 2MB/foto • Disarankan 1280×720
-                </p>
-                {errorFile && (
-                  <p className="text-xs text-red-600 mt-1">{errorFile}</p>
-                )}
-              </div>
+              {!readonly && (
+                <div className="space-y-1">
+                  <label className="block text-sm font-semibold">
+                    Dokumentasi Kegiatan
+                  </label>
+                  <input type="file" multiple onChange={handleFileChange} />
+                  {errorFile && (
+                    <p className="text-xs text-red-600">{errorFile}</p>
+                  )}
+                </div>
+              )}
             </>
           )}
 
-          {/* TIDAK HADIR + KETERANGAN */}
           {status === "tidak_hadir_keterangan" && (
             <Textarea
               label="Alasan Tidak Hadir"
               value={keterangan}
               onChange={setKeterangan}
-              placeholder="Tuliskan alasan tidak hadir..."
+              disabled={readonly}
             />
           )}
 
-          {/* PERNYATAAN */}
-          <label className="flex items-start gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={agree}
-              onChange={(e) => setAgree(e.target.checked)}
-              className="mt-1"
-            />
-            <span>
-              Saya menyatakan bahwa data yang saya isi adalah benar dan dapat
-              dipertanggungjawabkan.
-            </span>
-          </label>
+          {/* ☑️ PERNYATAAN */}
+          {mode === "create" && (
+            <label className="flex items-start gap-3 text-sm bg-slate-50 border rounded-xl p-4">
+              <input
+                type="checkbox"
+                checked={agree}
+                onChange={(e) => setAgree(e.target.checked)}
+                className="mt-1"
+              />
+              <span className="text-slate-700">
+                Saya menyatakan bahwa seluruh data dan informasi yang saya isi
+                pada logbook ini adalah <b>benar</b>, <b>jujur</b>, dan dapat
+                saya <b>pertanggungjawabkan sepenuhnya</b>.
+              </span>
+            </label>
+          )}
         </div>
+
+        {/* 🔔 NOTIFIKASI APPROVAL */}
+        {mode === "view" && approvedByMentor && (
+          <div className="mx-6 mb-3 rounded-xl bg-emerald-50 border border-emerald-300 p-3 text-sm text-emerald-700">
+            ✅ Laporan logbook ini telah <b>disetujui oleh mentor</b>.
+          </div>
+        )}
 
         {/* FOOTER */}
         <div className="px-6 py-4 border-t flex justify-end gap-3 bg-slate-50">
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-200 transition"
+            className="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-200"
           >
-            Batal
+            Tutup
           </button>
 
-          <button
-            disabled={submitDisabled}
-            onClick={handleSubmit}
-            className={`px-5 py-2.5 rounded-xl font-semibold text-white transition
-              ${
-                submitDisabled
-                  ? "bg-slate-400 cursor-not-allowed"
-                  : "bg-blue-600 hover:bg-blue-700"
-              }
-            `}
-          >
-            Simpan Logbook
-          </button>
+          {mode === "create" && (
+            <button
+              disabled={submitDisabled}
+              onClick={handleSubmit}
+              className={`px-5 py-2.5 rounded-xl font-semibold text-white transition
+                ${
+                  submitDisabled
+                    ? "bg-slate-400 cursor-not-allowed"
+                    : "bg-blue-600 hover:bg-blue-700"
+                }`}
+            >
+              Simpan Logbook
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -213,21 +249,22 @@ export default function LogbookModal({
 
 /* ================= REUSABLE ================= */
 
-function Input({ label, value, onChange, placeholder }: any) {
+function Input({ label, value, onChange, disabled }: any) {
   return (
     <div>
       <label className="block text-sm font-semibold mb-1">{label}</label>
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="w-full rounded-xl border px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+        disabled={disabled}
+        readOnly={disabled}
+        className="w-full rounded-xl border px-3 py-2 focus:ring-2 focus:ring-blue-500"
       />
     </div>
   );
 }
 
-function Textarea({ label, value, onChange, placeholder }: any) {
+function Textarea({ label, value, onChange, disabled }: any) {
   return (
     <div>
       <label className="block text-sm font-semibold mb-1">{label}</label>
@@ -235,8 +272,9 @@ function Textarea({ label, value, onChange, placeholder }: any) {
         rows={4}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="w-full rounded-xl border px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+        disabled={disabled}
+        readOnly={disabled}
+        className="w-full rounded-xl border px-3 py-2 resize-y focus:ring-2 focus:ring-blue-500"
       />
     </div>
   );

@@ -146,7 +146,7 @@ export default function PesertaLayout({
             </Link>
 
             <Link
-              href="/dashboard/peserta/laporan/bulanan"
+              href="/dashboard/peserta/laporan-bulanan"
               className={`flex py-2 text-sm rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700
                 ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}`}
             >
@@ -154,7 +154,7 @@ export default function PesertaLayout({
             </Link>
 
             <Link
-              href="/dashboard/peserta/laporan/akhir"
+              href="/dashboard/peserta/laporan-akhir"
               className={`flex py-2 text-sm rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700
                 ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}`}
             >
