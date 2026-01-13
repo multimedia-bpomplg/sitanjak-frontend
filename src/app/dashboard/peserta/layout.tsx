@@ -40,7 +40,7 @@ export default function PesertaLayout({
     email: string;
     roles: string[];
 
-    avatar?: string;        
+    avatar?: string;
     posisiMagang?: string;
   };
 
@@ -83,8 +83,8 @@ export default function PesertaLayout({
         email: payload.email,
         roles: payload.roles || [],
 
-        avatar: payload.avatar,          
-        posisiMagang: payload.posisi,   
+        avatar: payload.avatar,
+        posisiMagang: payload.posisi,
       });
     } catch (error) {
       console.error("Token tidak valid");
@@ -97,7 +97,7 @@ export default function PesertaLayout({
     return name
       .split(" ")
       .filter(Boolean)
-      .map(word => word[0].toUpperCase())
+      .map((word) => word[0].toUpperCase())
       .join("")
       .slice(0, 3);
   };
@@ -108,7 +108,7 @@ export default function PesertaLayout({
 
   return (
     <ConfirmProvider>
-      <div 
+      <div
         className="
         min-h-screen
         flex
@@ -160,7 +160,9 @@ export default function PesertaLayout({
                 alt="SIMAGGO Logo"
               />
               {!collapsed && (
-                <h1 className="text-lg font-semibold tracking-wide">Peserta Magang</h1>
+                <h1 className="text-lg font-semibold tracking-wide">
+                  Peserta Magang
+                </h1>
               )}
             </div>
 
@@ -204,7 +206,7 @@ export default function PesertaLayout({
                 transition w-full
                 ${
                   collapsed
-                    ? "justify-center px-3" 
+                    ? "justify-center px-3"
                     : "pl-5 pr-3 justify-between"
                 }`}
             >
@@ -263,8 +265,8 @@ export default function PesertaLayout({
               className={`flex items-center gap-3 py-2 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-900/30
                 transition w-full
                 ${
-                  collapsed 
-                    ? "justify-center px-3" 
+                  collapsed
+                    ? "justify-center px-3"
                     : "pl-5 pr-3 justify-between"
                 }`}
             >
@@ -384,8 +386,8 @@ export default function PesertaLayout({
               className={`flex items-center gap-3 py-2 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-900/30
                 transition w-full
                 ${
-                  collapsed 
-                    ? "justify-center px-3" 
+                  collapsed
+                    ? "justify-center px-3"
                     : "pl-5 pr-3 justify-between"
                 }`}
             >
@@ -454,7 +456,6 @@ export default function PesertaLayout({
             transition-all duration-300
           `}
         >
-
           {/* ===================== TOPBAR ===================== */}
           <header
             className={`
@@ -643,6 +644,6 @@ export default function PesertaLayout({
           draggable
         />
       </div>
-      </ConfirmProvider>
+    </ConfirmProvider>
   );
 }

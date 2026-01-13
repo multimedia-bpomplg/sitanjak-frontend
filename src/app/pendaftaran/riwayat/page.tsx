@@ -439,11 +439,18 @@ export default function RiwayatPendaftaran() {
 
                       {/* ✅ ASAL UNIVERSITAS / SMK */}
                       {p.asal && (
-                        <div className="flex items-center gap-3">
-                          <HiOfficeBuilding className="text-indigo-600" />
-                          <span>
-                            {p.asal.jenis} - {p.asal.nama}
-                          </span>
+                        <div className="flex items-start gap-3">
+                          <HiOfficeBuilding className="text-indigo-600 mt-0.5" />
+                          <div>
+                            <p>
+                              {p.asal.jenis} - {p.asal.nama}
+                            </p>
+                            {p.asal.jurusan && (
+                              <p className="text-xs text-gray-500">
+                                Jurusan: {p.asal.jurusan}
+                              </p>
+                            )}
+                          </div>
                         </div>
                       )}
 

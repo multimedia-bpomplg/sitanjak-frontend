@@ -26,6 +26,24 @@ const POSISI_MAGANG = [
   "Analis Data",
 ];
 
+const JURUSAN_UNIVERSITAS = [
+  "Teknik Informatika (TI)",
+  "Sistem Informasi (SI)",
+  "Teknik Elektro (TE)",
+  "Teknik Komputer",
+  "Manajemen Informatika",
+  "Desain Komunikasi Visual (DKV)",
+];
+
+const JURUSAN_SMK = [
+  "Rekayasa Perangkat Lunak (RPL)",
+  "Teknik Komputer dan Jaringan (TKJ)",
+  "Multimedia",
+  "Teknik Elektronika",
+  "Teknik Listrik",
+  "Bisnis Daring dan Pemasaran",
+];
+
 type Wilayah = {
   id: string;
   name: string;
@@ -38,6 +56,8 @@ type Peserta = {
   asalJenis: "Universitas" | "SMK" | "";
   asalNama: string;
   asalNamaLainnya: string;
+  jurusan: string;
+  jurusanLainnya: string;
 
   tanggalMulaiMagang: string;
   tanggalSelesaiMagang: string;
@@ -67,6 +87,8 @@ const buatPesertaKosong = (): Peserta => ({
   asalJenis: "",
   asalNama: "",
   asalNamaLainnya: "",
+  jurusan: "",
+  jurusanLainnya: "", // ⬅️
 
   tanggalMulaiMagang: "",
   tanggalSelesaiMagang: "",
@@ -257,6 +279,7 @@ export default function PendaftaranPage() {
             { autoClose: 4000 }
           );
         }
+        if (!p.jurusan) newErrors[`jurusan-${i}`] = true;
       }
 
       if (!p.provinsi) newErrors[`provinsi-${i}`] = true;
@@ -766,6 +789,7 @@ export default function PendaftaranPage() {
                       update(i, "asalJenis", e.target.value);
                       update(i, "asalNama", "");
                       update(i, "asalNamaLainnya", "");
+                      update(i, "jurusan", "");
                       setErrors((p) => ({ ...p, [`asalJenis-${i}`]: false }));
                     }}
                   >
@@ -783,51 +807,136 @@ export default function PendaftaranPage() {
               </div>
 
               {peserta[i].asalJenis && (
-                <div>
-                  <label className="text-sm font-medium text-gray-700 mb-1 block">
-                    Nama {peserta[i].asalJenis} <span className="text-red-500">*</span>
-                  </label>
+                <>
+                  {/* ================= NAMA ASAL (UNIV / SMK) ================= */}
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 mb-1 block">
+                      Nama {peserta[i].asalJenis}{" "}
+                      <span className="text-red-500">*</span>
+                    </label>
 
-                  <div
-                    className={`form-field ${
-                      errors[`asalNama-${i}`] ? "form-error" : ""
-                    }`}
-                  >
-                    <select
-                      value={peserta[i].asalNama}
-                      onChange={(e) => {
-                        update(i, "asalNama", e.target.value);
-                        update(i, "asalNamaLainnya", "");
-                        setErrors((p) => ({ ...p, [`asalNama-${i}`]: false }));
-                      }}
+                    <div
+                      className={`form-field ${
+                        errors[`asalNama-${i}`] ? "form-error" : ""
+                      }`}
                     >
-                      <option value="">Pilih {peserta[i].asalJenis}</option>
+                      <select
+                        value={peserta[i].asalNama}
+                        onChange={(e) => {
+                          update(i, "asalNama", e.target.value);
+                          update(i, "asalNamaLainnya", "");
+                          setErrors((p) => ({
+                            ...p,
+                            [`asalNama-${i}`]: false,
+                          }));
+                        }}
+                      >
+                        <option value="">Pilih {peserta[i].asalJenis}</option>
 
-                      {(peserta[i].asalJenis === "Universitas"
-                        ? universitasList
-                        : smkList
-                      ).map((item) => (
-                        <option key={item} value={item}>
-                          {item}
-                        </option>
-                      ))}
+                        {(peserta[i].asalJenis === "Universitas"
+                          ? universitasList
+                          : smkList
+                        ).map((item) => (
+                          <option key={item} value={item}>
+                            {item}
+                          </option>
+                        ))}
 
-                      <option value="LAINNYA">Lainnya</option>
-                    </select>
+                        <option value="LAINNYA">Lainnya</option>
+                      </select>
+                    </div>
+
+                    {errors[`asalNama-${i}`] && (
+                      <p className="text-xs text-red-500 mt-1">
+                        Nama {peserta[i].asalJenis} wajib dipilih
+                      </p>
+                    )}
                   </div>
 
-                  {errors[`asalNama-${i}`] && (
-                    <p className="text-xs text-red-500 mt-1">
-                      Nama {peserta[i].asalJenis} wajib dipilih
-                    </p>
+                  {/* ================= JURUSAN ================= */}
+                  {peserta[i].asalJenis && peserta[i].asalNama && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 mb-1 block">
+                        Jurusan <span className="text-red-500">*</span>
+                      </label>
+
+                      <div
+                        className={`form-field ${
+                          errors[`jurusan-${i}`] ? "form-error" : ""
+                        }`}
+                      >
+                        <select
+                          value={peserta[i].jurusan}
+                          onChange={(e) => {
+                            update(i, "jurusan", e.target.value);
+                            update(i, "jurusanLainnya", ""); // reset input
+                          }}
+                        >
+                          <option value="">Pilih Jurusan</option>
+
+                          {(peserta[i].asalJenis === "Universitas"
+                            ? JURUSAN_UNIVERSITAS
+                            : JURUSAN_SMK
+                          ).map((j) => (
+                            <option key={j} value={j}>
+                              {j}
+                            </option>
+                          ))}
+
+                          <option value="LAINNYA">Lainnya</option>
+                        </select>
+                      </div>
+                      {peserta[i].jurusan === "LAINNYA" && (
+                        <div>
+                          <label className="text-sm font-medium text-gray-700 mb-1 block">
+                            Nama Jurusan <span className="text-red-500">*</span>
+                          </label>
+
+                          <div
+                            className={`form-field ${
+                              errors[`jurusanLainnya-${i}`] ? "form-error" : ""
+                            }`}
+                          >
+                            <input
+                              value={peserta[i].jurusanLainnya} // ⬅️ PENTING
+                              placeholder="Contoh: Teknik Industri"
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                update(i, "jurusanLainnya", val);
+
+                                if (isCapitalizeEachWord(val)) {
+                                  setErrors((p) => ({
+                                    ...p,
+                                    [`jurusanLainnya-${i}`]: false,
+                                  }));
+                                }
+                              }}
+                            />
+                          </div>
+
+                          {errors[`jurusanLainnya-${i}`] && (
+                            <p className="text-xs text-red-500 mt-1">
+                              Gunakan huruf kapital di awal setiap kata
+                            </p>
+                          )}
+                        </div>
+                      )}
+
+                      {errors[`jurusan-${i}`] && (
+                        <p className="text-xs text-red-500 mt-1">
+                          Jurusan wajib dipilih
+                        </p>
+                      )}
+                    </div>
                   )}
-                </div>
+                </>
               )}
 
               {peserta[i].asalNama === "LAINNYA" && (
                 <div>
                   <label className="text-sm font-medium text-gray-700 mb-1 block">
-                    Nama {peserta[i].asalJenis} <span className="text-red-500">*</span>
+                    Nama {peserta[i].asalJenis}{" "}
+                    <span className="text-red-500">*</span>
                   </label>
 
                   <div

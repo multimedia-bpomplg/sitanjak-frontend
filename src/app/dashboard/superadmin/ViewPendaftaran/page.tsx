@@ -31,6 +31,8 @@ type Peserta = {
     nama: string;
   };
 
+  jurusan?: string; // ⬅️ TAMBAHKAN
+
   tanggalMulaiMagang: string;
   tanggalSelesaiMagang: string;
 
@@ -967,6 +969,12 @@ export default function ViewPendaftaranPage() {
                           p.asal ? `${p.asal.jenis} – ${p.asal.nama}` : "-"
                         }
                         icon={<HiIdentification />}
+                      />
+
+                      <DetailItem
+                        label="Jurusan"
+                        value={p.jurusan}
+                        icon={<HiBriefcase />}
                       />
 
                       <DetailItem
