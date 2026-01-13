@@ -236,6 +236,43 @@ export default function PendaftaranPage() {
       );
   };
 
+  const isValidNamaInstansi = (
+    jenis: "Universitas" | "SMK",
+    text: string
+  ) => {
+    const trimmed = text.trim();
+
+    if (jenis === "Universitas") {
+      // Universitas → Capitalize Each Word
+      return trimmed
+        .split(" ")
+        .every(
+          (word) =>
+            word[0] === word[0]?.toUpperCase() &&
+            word.slice(1) === word.slice(1)?.toLowerCase()
+        );
+    }
+
+    if (jenis === "SMK") {
+      const parts = trimmed.split(" ");
+
+      // Minimal: SMK + 1 kata
+      if (parts.length < 2) return false;
+
+      // Kata pertama HARUS "SMK"
+      if (parts[0] !== "SMK") return false;
+
+      // Kata setelah SMK → Capitalize Each Word
+      return parts.slice(1).every(
+        (word) =>
+          word[0] === word[0]?.toUpperCase() &&
+          word.slice(1) === word.slice(1)?.toLowerCase()
+      );
+    }
+
+    return false;
+  };
+
   /* ================== VALIDASI (TAMBAHAN) ================== */
   const validateForm = () => {
     const newErrors: Record<string, boolean> = {};
@@ -271,15 +308,37 @@ export default function PendaftaranPage() {
       if (p.asalNama === "LAINNYA") {
         if (!p.asalNamaLainnya) {
           newErrors[`asalNamaLainnya-${i}`] = true;
-        } else if (!isCapitalizeEachWord(p.asalNamaLainnya)) {
+        } else if (
+          p.asalJenis &&
+          !isValidNamaInstansi(p.asalJenis, p.asalNamaLainnya)
+        ) {
           newErrors[`asalNamaLainnya-${i}`] = true;
 
           toast.error(
-            `❌ Nama ${p.asalJenis} harus ditulis dengan huruf kapital di awal setiap kata.\n\nContoh: Universitas Indonesia`,
+            p.asalJenis === "Universitas"
+              ? "❌ Nama Universitas harus ditulis dengan huruf kapital di awal setiap kata.\n\nContoh: Universitas Indonesia"
+              : "❌ Penulisan SMK harus diawali dengan 'SMK' (huruf besar), dan kata setelahnya menggunakan huruf kapital.\n\nContoh: SMK Negeri 1",
+            { autoClose: 4500 }
+          );
+        }
+      }
+
+      // ================= JURUSAN =================
+      if (!p.jurusan) {
+        newErrors[`jurusan-${i}`] = true;
+      }
+
+      if (p.jurusan === "LAINNYA") {
+        if (!p.jurusanLainnya) {
+          newErrors[`jurusanLainnya-${i}`] = true;
+        } else if (!isCapitalizeEachWord(p.jurusanLainnya)) {
+          newErrors[`jurusanLainnya-${i}`] = true;
+
+          toast.error(
+            `❌ Nama jurusan harus ditulis dengan huruf kapital di awal setiap kata.\n\nContoh: Teknik Informatika`,
             { autoClose: 4000 }
           );
         }
-        if (!p.jurusan) newErrors[`jurusan-${i}`] = true;
       }
 
       if (!p.provinsi) newErrors[`provinsi-${i}`] = true;
@@ -327,6 +386,24 @@ export default function PendaftaranPage() {
     setShowConfirm(true);
   };
 
+  const normalizePeserta = (data: Peserta[]): Peserta[] => {
+    return data.map((p) => ({
+      ...p,
+
+      // ✅ TIMPA asalNama (INI YANG DIBACA BACKEND)
+      asalNama:
+        p.asalNama === "LAINNYA"
+          ? p.asalNamaLainnya.trim()
+          : p.asalNama,
+
+      // ✅ TIMPA jurusan (INI JUGA DIBACA BACKEND)
+      jurusan:
+        p.jurusan === "LAINNYA"
+          ? p.jurusanLainnya.trim()
+          : p.jurusan,
+    }));
+  };
+
   const submitConfirmed = async () => {
     if (pendingSubmit) return;
 
@@ -340,7 +417,8 @@ export default function PendaftaranPage() {
       const formData = new FormData();
       formData.append("kategori", kategori);
       formData.append("jumlahPeserta", jumlah.toString());
-      formData.append("peserta", JSON.stringify(peserta));
+      const pesertaFinal = normalizePeserta(peserta);
+      formData.append("peserta", JSON.stringify(pesertaFinal));
       formData.append("surat", surat!);
 
       const res = await fetch("http://localhost:5000/api/pendaftaran", {
@@ -790,6 +868,7 @@ export default function PendaftaranPage() {
                       update(i, "asalNama", "");
                       update(i, "asalNamaLainnya", "");
                       update(i, "jurusan", "");
+                      update(i, "jurusanLainnya", "");
                       setErrors((p) => ({ ...p, [`asalJenis-${i}`]: false }));
                     }}
                   >
@@ -852,83 +931,6 @@ export default function PendaftaranPage() {
                       </p>
                     )}
                   </div>
-
-                  {/* ================= JURUSAN ================= */}
-                  {peserta[i].asalJenis && peserta[i].asalNama && (
-                    <div>
-                      <label className="text-sm font-medium text-gray-700 mb-1 block">
-                        Jurusan <span className="text-red-500">*</span>
-                      </label>
-
-                      <div
-                        className={`form-field ${
-                          errors[`jurusan-${i}`] ? "form-error" : ""
-                        }`}
-                      >
-                        <select
-                          value={peserta[i].jurusan}
-                          onChange={(e) => {
-                            update(i, "jurusan", e.target.value);
-                            update(i, "jurusanLainnya", ""); // reset input
-                          }}
-                        >
-                          <option value="">Pilih Jurusan</option>
-
-                          {(peserta[i].asalJenis === "Universitas"
-                            ? JURUSAN_UNIVERSITAS
-                            : JURUSAN_SMK
-                          ).map((j) => (
-                            <option key={j} value={j}>
-                              {j}
-                            </option>
-                          ))}
-
-                          <option value="LAINNYA">Lainnya</option>
-                        </select>
-                      </div>
-                      {peserta[i].jurusan === "LAINNYA" && (
-                        <div>
-                          <label className="text-sm font-medium text-gray-700 mb-1 block">
-                            Nama Jurusan <span className="text-red-500">*</span>
-                          </label>
-
-                          <div
-                            className={`form-field ${
-                              errors[`jurusanLainnya-${i}`] ? "form-error" : ""
-                            }`}
-                          >
-                            <input
-                              value={peserta[i].jurusanLainnya} // ⬅️ PENTING
-                              placeholder="Contoh: Teknik Industri"
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                update(i, "jurusanLainnya", val);
-
-                                if (isCapitalizeEachWord(val)) {
-                                  setErrors((p) => ({
-                                    ...p,
-                                    [`jurusanLainnya-${i}`]: false,
-                                  }));
-                                }
-                              }}
-                            />
-                          </div>
-
-                          {errors[`jurusanLainnya-${i}`] && (
-                            <p className="text-xs text-red-500 mt-1">
-                              Gunakan huruf kapital di awal setiap kata
-                            </p>
-                          )}
-                        </div>
-                      )}
-
-                      {errors[`jurusan-${i}`] && (
-                        <p className="text-xs text-red-500 mt-1">
-                          Jurusan wajib dipilih
-                        </p>
-                      )}
-                    </div>
-                  )}
                 </>
               )}
 
@@ -973,6 +975,93 @@ export default function PendaftaranPage() {
                     Contoh penulisan yang benar: <b>Universitas Indonesia</b>
                   </p>
                 </div>
+              )}
+
+              {/* ================= JURUSAN ================= */}
+              {peserta[i].asalJenis && peserta[i].asalNama && (
+                <>
+                  {/* ===== SELECT JURUSAN ===== */}
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 mb-1 block">
+                      Jurusan <span className="text-red-500">*</span>
+                    </label>
+
+                    <div
+                      className={`form-field ${
+                        errors[`jurusan-${i}`] ? "form-error" : ""
+                      }`}
+                    >
+                      <select
+                        value={peserta[i].jurusan}
+                        onChange={(e) => {
+                          update(i, "jurusan", e.target.value);
+                          update(i, "jurusanLainnya", "");
+                          setErrors((p) => ({ ...p, [`jurusan-${i}`]: false }));
+                        }}
+                      >
+                        <option value="">Pilih Jurusan</option>
+
+                        {(peserta[i].asalJenis === "Universitas"
+                          ? JURUSAN_UNIVERSITAS
+                          : JURUSAN_SMK
+                        ).map((j) => (
+                          <option key={j} value={j}>
+                            {j}
+                          </option>
+                        ))}
+
+                        <option value="LAINNYA">Lainnya</option>
+                      </select>
+                    </div>
+
+                    {errors[`jurusan-${i}`] && (
+                      <p className="text-xs text-red-500 mt-1">
+                        Jurusan wajib dipilih
+                      </p>
+                    )}
+                  </div>
+
+                  {/* ===== INPUT JURUSAN LAINNYA ===== */}
+                  {peserta[i].jurusan === "LAINNYA" && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 mb-1 block">
+                        Nama Jurusan <span className="text-red-500">*</span>
+                      </label>
+
+                      <div
+                        className={`form-field ${
+                          errors[`jurusanLainnya-${i}`] ? "form-error" : ""
+                        }`}
+                      >
+                        <input
+                          value={peserta[i].jurusanLainnya}
+                          placeholder="Masukkan nama jurusan"
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            update(i, "jurusanLainnya", val);
+
+                            if (isCapitalizeEachWord(val)) {
+                              setErrors((p) => ({
+                                ...p,
+                                [`jurusanLainnya-${i}`]: false,
+                              }));
+                            }
+                          }}
+                        />
+                      </div>
+
+                      {errors[`jurusanLainnya-${i}`] && (
+                        <p className="text-xs text-red-500 mt-1">
+                          Gunakan huruf kapital di awal setiap kata
+                        </p>
+                      )}
+
+                      <p className="text-xs text-gray-400 mt-1">
+                        Contoh penulisan yang benar: <b>Teknik Informatika</b>
+                      </p>
+                    </div>
+                  )}
+                </>
               )}
 
               {/* WILAYAH */}

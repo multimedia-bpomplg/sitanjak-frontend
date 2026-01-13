@@ -38,11 +38,13 @@ export default function RiwayatPendaftaran() {
       return;
     }
 
-    if (!email.endsWith("@gmail.com")) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailRegex.test(email)) {
       setPopup({
         show: true,
         type: "warning",
-        message: "Email harus Gmail. Contoh: nama@gmail.com",
+        message: "Format email tidak valid. Contoh: nama@email.com",
       });
       return;
     }
