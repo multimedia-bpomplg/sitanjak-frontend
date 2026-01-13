@@ -116,6 +116,8 @@ export default function LoginPage() {
         setCaptchaToken("");
         setCaptchaKey((prev) => prev + 1);
 
+        setLoading(false);
+
         return; // ⛔ STOP LOGIN DI SINI
       }
 
@@ -128,6 +130,7 @@ export default function LoginPage() {
 
       setToast({ show: false, type: "loading", message: "" });
       setSuccessPopup(true);
+      setLoading(false);
 
       setTimeout(() => {
         redirectByRole(data.roles || [], router);
@@ -143,6 +146,8 @@ export default function LoginPage() {
 
       setCaptchaToken("");
       setCaptchaKey((prev) => prev + 1);
+
+      setLoading(false);
     }
   };
 
@@ -485,7 +490,7 @@ export default function LoginPage() {
             </div>
 
             {/* PASSWORD ACTIONS */}
-            <div className="flex items-center justify-center gap-3 text-sm text-gray-500">
+            <div className="flex justify-end text-sm text-gray-500">
               <Link
                 href="/auth/lupa-password"
                 className="
@@ -496,20 +501,6 @@ export default function LoginPage() {
                 "
               >
                 Lupa password?
-              </Link>
-
-              <span className="text-gray-300">|</span>
-
-              <Link
-                href="/auth/ganti-password"
-                className="
-                  font-medium text-emerald-600
-                  hover:text-emerald-700
-                  hover:underline
-                  transition
-                "
-              >
-                Ganti password
               </Link>
             </div>
 

@@ -14,8 +14,7 @@ import {
 import { useRouter, usePathname } from "next/navigation";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { ConfirmProvider } from "@/components/ui/ConfirmProvider";
-import { useConfirm } from "@/components/ui/ConfirmProvider";
+import { ConfirmProvider, useConfirm } from "@/components/ui/ConfirmProvider";
 
 export default function SuperadminLayout({
   children,
@@ -45,7 +44,6 @@ export default function SuperadminLayout({
   const toggleTheme = () => {
     document.documentElement.classList.toggle("dark");
   };
-
 
   /* ===================== DARK MODE ===================== */
   useEffect(() => {
@@ -331,29 +329,29 @@ export default function SuperadminLayout({
               <Link
                 href="/dashboard/superadmin/ViewLaporanAkhir"
                 className={`
-    flex items-center gap-3
-    py-2.5 rounded-xl
-    text-sm
-    text-gray-700 dark:text-gray-300
-    hover:bg-emerald-100/70
-    dark:hover:bg-slate-800
-    transition
-    ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
-    ${
-      pathname.includes("/ViewLaporanAkhir")
-        ? `
-            bg-gradient-to-r
-            from-emerald-500/20 to-cyan-500/20
-            text-emerald-700
-            dark:from-indigo-500/30
-            dark:via-purple-500/25
-            dark:to-fuchsia-500/30
-            dark:text-indigo-200
-            shadow-inner
-          `
-        : ""
-    }
-  `}
+                  flex items-center gap-3
+                  py-2.5 rounded-xl
+                  text-sm
+                  text-gray-700 dark:text-gray-300
+                  hover:bg-emerald-100/70
+                  dark:hover:bg-slate-800
+                  transition
+                  ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
+                  ${
+                    pathname.includes("/ViewLaporanAkhir")
+                      ? `
+                          bg-gradient-to-r
+                          from-emerald-500/20 to-cyan-500/20
+                          text-emerald-700
+                          dark:from-indigo-500/30
+                          dark:via-purple-500/25
+                          dark:to-fuchsia-500/30
+                          dark:text-indigo-200
+                          shadow-inner
+                        `
+                      : ""
+                  }
+                `}
               >
                 📑 {!collapsed && "View Laporan Akhir"}
               </Link>
