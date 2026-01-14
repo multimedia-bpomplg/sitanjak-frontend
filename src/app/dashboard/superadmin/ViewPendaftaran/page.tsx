@@ -82,6 +82,28 @@ const POSISI_MAGANG = [
   "Analis Data",
 ];
 
+/* ================== HITUNG DURASI MAGANG ================== */
+const hitungDurasiMagang = (mulai: string, selesai: string) => {
+  if (!mulai || !selesai) return null;
+
+  const start = new Date(mulai);
+  const end = new Date(selesai);
+
+  if (end < start) return null;
+
+  const diffTime = end.getTime() - start.getTime();
+  const totalHari = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  const bulan = Math.floor(totalHari / 30);
+  const sisaHari = totalHari % 30;
+
+  return {
+    totalHari,
+    bulan,
+    sisaHari,
+  };
+};
+
 /* ===================== PAGE ===================== */
 export default function ViewPendaftaranPage() {
   const [data, setData] = useState<Pendaftaran[]>([]);
@@ -101,6 +123,7 @@ export default function ViewPendaftaranPage() {
   const [mentorList, setMentorList] = useState<Mentor[]>([]);
   const [mentorModal, setMentorModal] = useState(false);
   const [selectedMentor, setSelectedMentor] = useState<string>("");
+  const hasMentor = Boolean(selected?.mentor?.name && selected?.mentor?.email);
 
   const showAlert = (
     type: "success" | "error" | "warning" | "info",
@@ -452,13 +475,13 @@ export default function ViewPendaftaranPage() {
   return (
     <div
       className="
-          min-h-screen p-4 sm:p-6
-          bg-gradient-to-br
-          from-slate-50 via-white to-indigo-50
-          dark:from-[#020617] dark:via-[#020617] dark:to-[#1E1B4B]
-          text-slate-800 dark:text-slate-100
-          transition-colors
-        "
+            min-h-screen p-4 sm:p-6
+            bg-gradient-to-br
+            from-slate-50 via-white to-indigo-50
+            dark:from-[#020617] dark:via-[#020617] dark:to-[#1E1B4B]
+            text-slate-800 dark:text-slate-100
+            transition-colors
+          "
     >
       <h1 className="text-3xl font-bold tracking-tight mb-8">
         Data Pendaftaran
@@ -476,9 +499,9 @@ export default function ViewPendaftaranPage() {
         {/* SEARCH */}
         <div
           className="
-                relative
-                w-full sm:max-w-sm
-              "
+                  relative
+                  w-full sm:max-w-sm
+                "
         >
           <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400">
             🔍
@@ -493,18 +516,18 @@ export default function ViewPendaftaranPage() {
               setPage(1);
             }}
             className="
-                  w-full
-                  pl-10 pr-4 py-2.5
-                  rounded-xl
-                  border border-slate-300 dark:border-slate-700
-                  bg-white dark:bg-slate-800
-                  text-sm
-                  text-slate-700 dark:text-slate-100
-                  placeholder:text-slate-400
-                  focus:outline-none
-                  focus:ring-2 focus:ring-emerald-500/70 dark:focus:ring-indigo-500/70
-                  transition
-                "
+                    w-full
+                    pl-10 pr-4 py-2.5
+                    rounded-xl
+                    border border-slate-300 dark:border-slate-700
+                    bg-white dark:bg-slate-800
+                    text-sm
+                    text-slate-700 dark:text-slate-100
+                    placeholder:text-slate-400
+                    focus:outline-none
+                    focus:ring-2 focus:ring-emerald-500/70 dark:focus:ring-indigo-500/70
+                    transition
+                  "
           />
         </div>
 
@@ -512,17 +535,17 @@ export default function ViewPendaftaranPage() {
         <button
           onClick={downloadExcel}
           className="
-                inline-flex items-center justify-center gap-2
-                px-5 py-2.5
-                rounded-xl
-                text-sm font-semibold
-                text-white
-                bg-gradient-to-r from-emerald-500 to-green-600
-                hover:opacity-90
-                shadow-md hover:shadow-lg
-                transition
-                w-full sm:w-auto
-              "
+                  inline-flex items-center justify-center gap-2
+                  px-5 py-2.5
+                  rounded-xl
+                  text-sm font-semibold
+                  text-white
+                  bg-gradient-to-r from-emerald-500 to-green-600
+                  hover:opacity-90
+                  shadow-md hover:shadow-lg
+                  transition
+                  w-full sm:w-auto
+                "
         >
           <HiDocumentText className="text-lg" />
           Download Excel
@@ -532,21 +555,21 @@ export default function ViewPendaftaranPage() {
       {/* ===================== TABLE ===================== */}
       <div
         className="
-            rounded-2xl
-            bg-white/80 dark:bg-slate-900/80
-            backdrop-blur
-            shadow-xl
-            border border-slate-200 dark:border-slate-800
-          "
+              rounded-2xl
+              bg-white/80 dark:bg-slate-900/80
+              backdrop-blur
+              shadow-xl
+              border border-slate-200 dark:border-slate-800
+            "
       >
         <div className="overflow-x-auto">
           <table className="min-w-[720px] w-full text-sm">
             <thead
               className="
-                  bg-slate-100 dark:bg-slate-800
-                  text-slate-600 dark:text-slate-300
-                  text-xs uppercase tracking-wider
-                "
+                    bg-slate-100 dark:bg-slate-800
+                    text-slate-600 dark:text-slate-300
+                    text-xs uppercase tracking-wider
+                  "
             >
               <tr>
                 <th className="px-6 py-4 text-center">No</th>
@@ -572,18 +595,18 @@ export default function ViewPendaftaranPage() {
                   <tr
                     key={item._id}
                     className="
-                          border-t border-slate-200 dark:border-slate-800
-                        hover:bg-indigo-50/50 dark:hover:bg-indigo-500/10
-                          transition
-                        "
+                            border-t border-slate-200 dark:border-slate-800
+                          hover:bg-indigo-50/50 dark:hover:bg-indigo-500/10
+                            transition
+                          "
                   >
                     <td className="px-6 py-4 text-center">{i + 1}</td>
                     <td
                       className="
-                            px-6 py-4 font-medium
-                            text-indigo-600 dark:text-indigo-400
-                            hover:underline cursor-pointer
-                          "
+                              px-6 py-4 font-medium
+                              text-indigo-600 dark:text-indigo-400
+                              hover:underline cursor-pointer
+                            "
                       onClick={() => setSelected(item)}
                     >
                       {item.peserta[0]?.nama}
@@ -614,17 +637,17 @@ export default function ViewPendaftaranPage() {
                 disabled={page === 1}
                 onClick={() => setPage((p) => p - 1)}
                 className="
-                      px-4 py-2
-                      rounded-lg
-                      text-sm font-medium
-                      border
-                      border-slate-300 dark:border-slate-600
-                      bg-white dark:bg-slate-900
-                      text-emerald-700 dark:text-indigo-200
-                      hover:bg-emerald-50 dark:hover:bg-indigo-900/30
-                      disabled:opacity-40 disabled:cursor-not-allowed
-                      transition
-                    "
+                        px-4 py-2
+                        rounded-lg
+                        text-sm font-medium
+                        border
+                        border-slate-300 dark:border-slate-600
+                        bg-white dark:bg-slate-900
+                        text-emerald-700 dark:text-indigo-200
+                        hover:bg-emerald-50 dark:hover:bg-indigo-900/30
+                        disabled:opacity-40 disabled:cursor-not-allowed
+                        transition
+                      "
               >
                 Prev
               </button>
@@ -638,21 +661,21 @@ export default function ViewPendaftaranPage() {
                     key={i}
                     onClick={() => setPage(i + 1)}
                     className={`
-                          min-w-[38px] h-[38px]
-                          rounded-lg
-                          text-sm font-semibold
-                          transition
-                          ${
-                            active
-                              ? "bg-emerald-600 text-white shadow dark:bg-indigo-600"
-                              : `
-                                bg-white dark:bg-slate-900
-                                text-emerald-700 dark:text-indigo-200
-                                border border-slate-300 dark:border-slate-600
-                                hover:bg-emerald-50 dark:hover:bg-indigo-900/30
-                              `
-                          }
-                        `}
+                            min-w-[38px] h-[38px]
+                            rounded-lg
+                            text-sm font-semibold
+                            transition
+                            ${
+                              active
+                                ? "bg-emerald-600 text-white shadow dark:bg-indigo-600"
+                                : `
+                                  bg-white dark:bg-slate-900
+                                  text-emerald-700 dark:text-indigo-200
+                                  border border-slate-300 dark:border-slate-600
+                                  hover:bg-emerald-50 dark:hover:bg-indigo-900/30
+                                `
+                            }
+                          `}
                   >
                     {i + 1}
                   </button>
@@ -664,17 +687,17 @@ export default function ViewPendaftaranPage() {
                 disabled={page === totalPage}
                 onClick={() => setPage((p) => p + 1)}
                 className="
-                      px-4 py-2
-                      rounded-lg
-                      text-sm font-medium
-                      border
-                      border-slate-300 dark:border-slate-600
-                      bg-white dark:bg-slate-900
-                      text-emerald-700 dark:text-indigo-200
-                      hover:bg-emerald-50 dark:hover:bg-indigo-900/30
-                      disabled:opacity-40 disabled:cursor-not-allowed
-                      transition
-                    "
+                        px-4 py-2
+                        rounded-lg
+                        text-sm font-medium
+                        border
+                        border-slate-300 dark:border-slate-600
+                        bg-white dark:bg-slate-900
+                        text-emerald-700 dark:text-indigo-200
+                        hover:bg-emerald-50 dark:hover:bg-indigo-900/30
+                        disabled:opacity-40 disabled:cursor-not-allowed
+                        transition
+                      "
               >
                 Next
               </button>
@@ -695,45 +718,45 @@ export default function ViewPendaftaranPage() {
           {/* MODAL CONTAINER */}
           <div
             className="
-                  relative
-                  w-full h-full
-                  bg-gradient-to-br
-                  from-white via-blue-20 to-blue-50
-                  dark:from-[#0B0614] dark:via-[#120A24] dark:to-[#1E0F3D]
-                  flex flex-col
-                "
+                    relative
+                    w-full h-full
+                    bg-gradient-to-br
+                    from-white via-blue-20 to-blue-50
+                    dark:from-[#0B0614] dark:via-[#120A24] dark:to-[#1E0F3D]
+                    flex flex-col
+                  "
             onClick={(e) => e.stopPropagation()}
           >
             {/* HEADER */}
             <div
               className="
-                    sticky top-0 z-50
-                    flex items-center justify-between
-                    px-6 py-4
+                      sticky top-0 z-50
+                      flex items-center justify-between
+                      px-6 py-4
 
-                    /* ===== BACKGROUND ===== */
-                    bg-gradient-to-r
-                    from-blue-200 via-sky-100 to-white/70
-                    dark:from-indigo-900 dark:via-violet-800 dark:to-purple-800
+                      /* ===== BACKGROUND ===== */
+                      bg-gradient-to-r
+                      from-blue-200 via-sky-100 to-white/70
+                      dark:from-indigo-900 dark:via-violet-800 dark:to-purple-800
 
-                    /* ===== BORDER & SHADOW ===== */
-                    border-b border-blue-200 dark:border-indigo-800/40
-                    shadow-lg
+                      /* ===== BORDER & SHADOW ===== */
+                      border-b border-blue-200 dark:border-indigo-800/40
+                      shadow-lg
 
-                    /* ===== TEXT ===== */
-                    text-blue-950 dark:text-indigo-50
-                  "
+                      /* ===== TEXT ===== */
+                      text-blue-950 dark:text-indigo-50
+                    "
             >
               {/* LEFT */}
               <div className="flex items-center gap-4">
                 <div
                   className="
-                        w-11 h-11
-                        rounded-xl
-                        bg-white/80 dark:bg-white/10
-                        flex items-center justify-center
-                        shadow
-                      "
+                          w-11 h-11
+                          rounded-xl
+                          bg-white/80 dark:bg-white/10
+                          flex items-center justify-center
+                          shadow
+                        "
                 >
                   <HiDocumentText className="text-2xl text-blue-600 dark:text-indigo-300" />
                 </div>
@@ -752,13 +775,13 @@ export default function ViewPendaftaranPage() {
               <button
                 onClick={closeModal}
                 className="
-                      w-10 h-10
-                      flex items-center justify-center
-                      rounded-full
-                      text-blue-900 dark:text-indigo-200
-                      hover:bg-white/70 dark:hover:bg-white/10
-                      transition
-                    "
+                        w-10 h-10
+                        flex items-center justify-center
+                        rounded-full
+                        text-blue-900 dark:text-indigo-200
+                        hover:bg-white/70 dark:hover:bg-white/10
+                        transition
+                      "
               >
                 <HiX className="text-xl" />
               </button>
@@ -769,15 +792,15 @@ export default function ViewPendaftaranPage() {
               {/* ================= SURAT PENGANTAR ================= */}
               <div
                 className="
-                      rounded-2xl
-                      p-5
-                      bg-gradient-to-br
-                      from-blue-50 to-sky-50
-                      dark:from-indigo-500/10 dark:to-violet-500/10
-                      border-blue-200 dark:border-indigo-700/40
-                      flex flex-col sm:flex-row sm:items-center sm:justify-between
-                      gap-4
-                    "
+                        rounded-2xl
+                        p-5
+                        bg-gradient-to-br
+                        from-blue-50 to-sky-50
+                        dark:from-indigo-500/10 dark:to-violet-500/10
+                        border-blue-200 dark:border-indigo-700/40
+                        flex flex-col sm:flex-row sm:items-center sm:justify-between
+                        gap-4
+                      "
               >
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-xl bg-blue-600 dark:bg-indigo-700 text-white flex items-center justify-center">
@@ -797,15 +820,15 @@ export default function ViewPendaftaranPage() {
                   href={`http://localhost:5000/uploads/${selected.suratPengantar}`}
                   target="_blank"
                   className="
-                        inline-flex items-center gap-2
-                        px-5 py-2.5
-                        rounded-xl
-                        text-sm font-semibold
-                        text-white
-                        transition
-                        bg-blue-600 hover:bg-blue-700
-                        dark:bg-indigo-600 dark:hover:bg-indigo-700
-                      "
+                          inline-flex items-center gap-2
+                          px-5 py-2.5
+                          rounded-xl
+                          text-sm font-semibold
+                          text-white
+                          transition
+                          bg-blue-600 hover:bg-blue-700
+                          dark:bg-indigo-600 dark:hover:bg-indigo-700
+                        "
                 >
                   <HiDocumentText />
                   Lihat Surat
@@ -818,14 +841,14 @@ export default function ViewPendaftaranPage() {
                   <div
                     key={i}
                     className="
-                          rounded-2xl
-                          bg-white/90
-                          dark:bg-[#140B2D]/80
-                          border-blue-200
-                          dark:border-indigo-700/40
-                          p-6
-                          shadow-sm
-                        "
+                            rounded-2xl
+                            bg-white/90
+                            dark:bg-[#140B2D]/80
+                            border-blue-200
+                            dark:border-indigo-700/40
+                            p-6
+                            shadow-sm
+                          "
                   >
                     {/* HEADER PESERTA */}
                     <div className="flex items-center justify-between mb-4">
@@ -843,13 +866,13 @@ export default function ViewPendaftaranPage() {
                               value={posisiBaru}
                               onChange={(e) => setPosisiBaru(e.target.value)}
                               className="
-              text-xs
-              px-2 py-1
-              rounded-lg
-              border
-              border-slate-300 dark:border-slate-600
-              bg-white dark:bg-slate-800
-            "
+                text-xs
+                px-2 py-1
+                rounded-lg
+                border
+                border-slate-300 dark:border-slate-600
+                bg-white dark:bg-slate-800
+              "
                             >
                               <option value="">Pilih Posisi</option>
                               {POSISI_MAGANG.map((pos) => (
@@ -862,12 +885,12 @@ export default function ViewPendaftaranPage() {
                             <button
                               onClick={() => simpanPosisi(i)}
                               className="
-              text-xs
-              px-2 py-1
-              rounded-lg
-              bg-emerald-600 hover:bg-emerald-700
-              text-white
-            "
+                text-xs
+                px-2 py-1
+                rounded-lg
+                bg-emerald-600 hover:bg-emerald-700
+                text-white
+              "
                             >
                               Simpan
                             </button>
@@ -875,11 +898,11 @@ export default function ViewPendaftaranPage() {
                             <button
                               onClick={() => setEditPosisiIndex(null)}
                               className="
-              text-xs
-              px-2 py-1
-              rounded-lg
-              bg-slate-300 dark:bg-slate-600
-            "
+                text-xs
+                px-2 py-1
+                rounded-lg
+                bg-slate-300 dark:bg-slate-600
+              "
                             >
                               Batal
                             </button>
@@ -888,12 +911,12 @@ export default function ViewPendaftaranPage() {
                           <>
                             <span
                               className="
-              text-xs font-semibold
-              px-3 py-1 rounded-full
-              bg-blue-100 text-blue-700
-              dark:bg-indigo-500/20 dark:text-indigo-300
-              flex items-center gap-1
-            "
+                text-xs font-semibold
+                px-3 py-1 rounded-full
+                bg-blue-100 text-blue-700
+                dark:bg-indigo-500/20 dark:text-indigo-300
+                flex items-center gap-1
+              "
                             >
                               <HiBriefcase />
                               {p.posisi}
@@ -905,12 +928,12 @@ export default function ViewPendaftaranPage() {
                                 setPosisiBaru(p.posisi);
                               }}
                               className="
-              text-xs
-              px-2 py-1
-              rounded-lg
-              bg-blue-600 hover:bg-blue-700
-              text-white
-            "
+                text-xs
+                px-2 py-1
+                rounded-lg
+                bg-blue-600 hover:bg-blue-700
+                text-white
+              "
                             >
                               Ubah
                             </button>
@@ -982,6 +1005,55 @@ export default function ViewPendaftaranPage() {
                         value={p.wa}
                         icon={<HiPhone />}
                       />
+
+                      {/* ===== DURASI MAGANG (KANAN SAJA) ===== */}
+                      {(() => {
+                        const durasi = hitungDurasiMagang(
+                          p.tanggalMulaiMagang,
+                          p.tanggalSelesaiMagang
+                        );
+
+                        if (!durasi) return null;
+
+                        return (
+                          <div
+                            className="
+          flex items-center gap-2
+          px-3 py-1.5
+          rounded-xl
+          bg-blue-50 dark:bg-indigo-500/10
+          border border-blue-200 dark:border-indigo-500/30
+        "
+                          >
+                            {/* LINGKARAN BIRU */}
+                            <div
+                              className="
+            w-8 h-8
+            rounded-full
+            bg-blue-600
+            text-white
+            flex items-center justify-center
+            text-xs font-bold
+            shadow
+          "
+                            >
+                              {durasi.bulan}
+                            </div>
+
+                            {/* TEXT */}
+                            <div className="leading-tight">
+                              <p className="text-[11px] font-semibold text-blue-800 dark:text-indigo-300">
+                                Durasi Magang
+                              </p>
+                              <p className="text-[10px] text-blue-600 dark:text-indigo-300">
+                                {durasi.bulan} bulan
+                                {durasi.sisaHari > 0 &&
+                                  ` ${durasi.sisaHari} hari`}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </div>
 
                     {/* ALAMAT */}
@@ -1000,29 +1072,46 @@ export default function ViewPendaftaranPage() {
                     {/* ===================== MENTOR ===================== */}
                     <div
                       className="
-        mt-4
-        flex items-center justify-between
-        rounded-xl
-        bg-slate-50 dark:bg-slate-900/60
-        border border-slate-200 dark:border-slate-700
-        px-4 py-3
-      "
+          mt-4
+          flex items-center justify-between
+          rounded-xl
+          bg-slate-50 dark:bg-slate-900/60
+          border border-slate-200 dark:border-slate-700
+          px-4 py-3
+        "
                     >
                       <div>
                         <p className="text-xs text-slate-500 dark:text-slate-400">
                           Mentor
                         </p>
 
-                        <p className="text-sm font-semibold text-slate-800 dark:text-white">
-                          {selected.mentor?.trim() || "Belum ada"}
-                        </p>
+                        {selected.mentor ? (
+                          <div>
+                            <p className="text-sm font-semibold text-slate-800 dark:text-white">
+                              {selected.mentor.name}
+                            </p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                              {selected.mentor.email}
+                            </p>
+                          </div>
+                        ) : (
+                          <p className="text-sm text-slate-400">
+                            Belum ada mentor
+                          </p>
+                        )}
                       </div>
 
                       <button
                         onClick={() => setMentorModal(true)}
-                        className="text-xs px-3 py-1.5 rounded-lg bg-blue-600 text-white"
+                        className={`text-xs px-3 py-1.5 rounded-lg text-white transition
+      ${
+        hasMentor
+          ? "bg-amber-600 hover:bg-amber-700"
+          : "bg-blue-600 hover:bg-blue-700"
+      }
+    `}
                       >
-                        Tambahkan Mentor
+                        {hasMentor ? "Ganti Mentor" : "Tambahkan Mentor"}
                       </button>
 
                       {mentorModal && (
@@ -1053,28 +1142,56 @@ export default function ViewPendaftaranPage() {
                               </button>
                               <button
                                 onClick={async () => {
-                                  await fetch(
-                                    `${process.env.NEXT_PUBLIC_API_URL}/pendaftaran/${selected?._id}/mentor`,
-                                    {
-                                      method: "PUT",
-                                      headers: {
-                                        "Content-Type": "application/json",
-                                        Authorization: `Bearer ${localStorage.getItem(
-                                          "token"
-                                        )}`,
-                                      },
-                                      body: JSON.stringify({
-                                        mentorId: selectedMentor,
-                                      }),
-                                    }
-                                  );
+                                  if (!selected || !selectedMentor) {
+                                    showAlert(
+                                      "warning",
+                                      "Silakan pilih mentor terlebih dahulu"
+                                    );
+                                    return;
+                                  }
 
-                                  await loadData();
-                                  setMentorModal(false);
-                                  showAlert(
-                                    "success",
-                                    "Mentor berhasil ditambahkan"
-                                  );
+                                  try {
+                                    const res = await fetch(
+                                      `${process.env.NEXT_PUBLIC_API_URL}/pendaftaran/${selected._id}/mentor`,
+                                      {
+                                        method: "PUT",
+                                        headers: {
+                                          "Content-Type": "application/json",
+                                          Authorization: `Bearer ${localStorage.getItem(
+                                            "token"
+                                          )}`,
+                                        },
+                                        body: JSON.stringify({
+                                          mentorId: selectedMentor,
+                                        }),
+                                      }
+                                    );
+
+                                    const result = await res.json();
+
+                                    if (!res.ok) {
+                                      throw new Error(
+                                        result.message ||
+                                          "Gagal menyimpan mentor"
+                                      );
+                                    }
+
+                                    // ✅ UPDATE STATE DARI RESPONSE BACKEND (YANG SUDAH POPULATE)
+                                    setSelected(result.data);
+
+                                    setMentorModal(false);
+                                    setSelectedMentor("");
+
+                                    showAlert(
+                                      "success",
+                                      "Mentor berhasil disimpan"
+                                    );
+                                  } catch (err: any) {
+                                    showAlert(
+                                      "error",
+                                      err.message || "Terjadi kesalahan"
+                                    );
+                                  }
                                 }}
                                 className="bg-blue-600 text-white px-4 py-2 rounded-lg"
                               >
@@ -1089,13 +1206,13 @@ export default function ViewPendaftaranPage() {
                     {/* ===================== STATUS AKUN ===================== */}
                     <div
                       className="
-        mt-3
-        flex items-center justify-between
-        rounded-xl
-        bg-slate-50 dark:bg-slate-900/60
-        border border-slate-200 dark:border-slate-700
-        px-4 py-3
-      "
+          mt-3
+          flex items-center justify-between
+          rounded-xl
+          bg-slate-50 dark:bg-slate-900/60
+          border border-slate-200 dark:border-slate-700
+          px-4 py-3
+        "
                     >
                       <div>
                         <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -1129,15 +1246,15 @@ export default function ViewPendaftaranPage() {
                               `&name=${encodeURIComponent(p.nama)}`;
                           }}
                           className="
-            text-xs
-            px-3 py-1.5
-            rounded-lg
-            font-medium
-            transition
-            bg-blue-600 hover:bg-blue-700
-            text-white
-            dark:bg-indigo-600 dark:hover:bg-indigo-700
-          "
+              text-xs
+              px-3 py-1.5
+              rounded-lg
+              font-medium
+              transition
+              bg-blue-600 hover:bg-blue-700
+              text-white
+              dark:bg-indigo-600 dark:hover:bg-indigo-700
+            "
                         >
                           Buatkan Akun
                         </button>
@@ -1158,12 +1275,12 @@ export default function ViewPendaftaranPage() {
                     /* ===== MODE AKTIF + FILE ADA ===== */
                     <div
                       className="
-              flex items-center justify-between
-              rounded-2xl
-              p-5
-              bg-emerald-50 dark:bg-emerald-500/10
-              border border-emerald-200 dark:border-emerald-500/30
-            "
+                flex items-center justify-between
+                rounded-2xl
+                p-5
+                bg-emerald-50 dark:bg-emerald-500/10
+                border border-emerald-200 dark:border-emerald-500/30
+              "
                     >
                       <div className="flex items-center gap-3">
                         <div className="w-11 h-11 rounded-xl bg-emerald-600 text-white flex items-center justify-center">
@@ -1185,12 +1302,12 @@ export default function ViewPendaftaranPage() {
                         target="_blank"
                         rel="noopener noreferrer"
                         className="
-                inline-flex items-center gap-2
-                px-4 py-2
-                rounded-xl
-                bg-emerald-600 hover:bg-emerald-700
-                text-white text-sm font-semibold
-              "
+                  inline-flex items-center gap-2
+                  px-4 py-2
+                  rounded-xl
+                  bg-emerald-600 hover:bg-emerald-700
+                  text-white text-sm font-semibold
+                "
                       >
                         <HiDocumentText />
                         Download
@@ -1200,12 +1317,12 @@ export default function ViewPendaftaranPage() {
                     /* ===== MODE AKTIF + FILE BELUM ADA ===== */
                     <div
                       className="
-              rounded-2xl
-              p-5
-              bg-yellow-50 dark:bg-yellow-500/10
-              border border-yellow-200 dark:border-yellow-500/30
-              text-sm text-yellow-700 dark:text-yellow-300
-            "
+                rounded-2xl
+                p-5
+                bg-yellow-50 dark:bg-yellow-500/10
+                border border-yellow-200 dark:border-yellow-500/30
+                text-sm text-yellow-700 dark:text-yellow-300
+              "
                     >
                       Surat balasan belum tersedia
                     </div>
@@ -1215,19 +1332,19 @@ export default function ViewPendaftaranPage() {
                   <>
                     <label
                       className="
-              flex flex-col items-center justify-center
-              w-full
-              min-h-[140px]
-              rounded-2xl
-              border-2 border-dashed
-              border-blue-400
-              dark:border-indigo-500/50
-              bg-blue-50/50
-              dark:bg-indigo-500/10
-              cursor-pointer
-              transition
-              hover:bg-indigo-100/60 dark:hover:bg-indigo-500/10
-            "
+                flex flex-col items-center justify-center
+                w-full
+                min-h-[140px]
+                rounded-2xl
+                border-2 border-dashed
+                border-blue-400
+                dark:border-indigo-500/50
+                bg-blue-50/50
+                dark:bg-indigo-500/10
+                cursor-pointer
+                transition
+                hover:bg-indigo-100/60 dark:hover:bg-indigo-500/10
+              "
                     >
                       <HiDocumentText className="text-4xl text-blue-600 dark:text-indigo-400 mb-2" />
 
@@ -1252,15 +1369,15 @@ export default function ViewPendaftaranPage() {
                     {suratBalasan && (
                       <div
                         className="
-                mt-3
-                flex items-center gap-2
-                px-4 py-2
-                rounded-xl
-                bg-blue-50 dark:bg-blue-500/10
-                border border-blue-200 dark:border-blue-500/30
-                text-blue-700 dark:text-blue-300
-                text-sm font-medium
-              "
+                  mt-3
+                  flex items-center gap-2
+                  px-4 py-2
+                  rounded-xl
+                  bg-blue-50 dark:bg-blue-500/10
+                  border border-blue-200 dark:border-blue-500/30
+                  text-blue-700 dark:text-blue-300
+                  text-sm font-medium
+                "
                       >
                         <HiCheckCircle className="text-lg" />
                         {suratBalasan.name}
@@ -1291,17 +1408,17 @@ export default function ViewPendaftaranPage() {
                       : "Tuliskan alasan persetujuan atau penolakan pendaftaran..."
                   }
                   className={`
-          w-full rounded-xl
-          border border-slate-300 dark:border-slate-700
-          px-4 py-3 text-sm
-          focus:ring-2 focus:ring-indigo-500
-          outline-none
-          ${
-            isAktif
-              ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed"
-              : "bg-white dark:bg-slate-800"
-          }
-        `}
+            w-full rounded-xl
+            border border-slate-300 dark:border-slate-700
+            px-4 py-3 text-sm
+            focus:ring-2 focus:ring-indigo-500
+            outline-none
+            ${
+              isAktif
+                ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed"
+                : "bg-white dark:bg-slate-800"
+            }
+          `}
                 />
               </div>
             </div>
@@ -1310,23 +1427,23 @@ export default function ViewPendaftaranPage() {
             {!isAktif && (
               <div
                 className="
-          sticky bottom-0
-          px-6 py-4
-          bg-white/90 dark:bg-[#0B0614]/95
-          backdrop-blur
-          border-t border-blue-200 dark:border-indigo-800
-          flex flex-col sm:flex-row justify-end gap-3
-        "
+            sticky bottom-0
+            px-6 py-4
+            bg-white/90 dark:bg-[#0B0614]/95
+            backdrop-blur
+            border-t border-blue-200 dark:border-indigo-800
+            flex flex-col sm:flex-row justify-end gap-3
+          "
               >
                 <button
                   onClick={() => updateStatus("Ditolak")}
                   className="
-            inline-flex items-center justify-center gap-2
-            px-5 py-2.5 rounded-xl
-            bg-gradient-to-r from-rose-500 to-red-600
-            text-white font-semibold
-            hover:opacity-90
-          "
+              inline-flex items-center justify-center gap-2
+              px-5 py-2.5 rounded-xl
+              bg-gradient-to-r from-rose-500 to-red-600
+              text-white font-semibold
+              hover:opacity-90
+            "
                 >
                   <HiXCircle />
                   Tolak
@@ -1335,12 +1452,12 @@ export default function ViewPendaftaranPage() {
                 <button
                   onClick={() => updateStatus("Disetujui")}
                   className="
-            inline-flex items-center justify-center gap-2
-            px-5 py-2.5 rounded-xl
-            bg-gradient-to-r from-emerald-500 to-green-600
-            text-white font-semibold
-            hover:opacity-90
-          "
+              inline-flex items-center justify-center gap-2
+              px-5 py-2.5 rounded-xl
+              bg-gradient-to-r from-emerald-500 to-green-600
+              text-white font-semibold
+              hover:opacity-90
+            "
                 >
                   <HiCheckCircle />
                   Setujui
@@ -1373,12 +1490,12 @@ function SummaryCard({ title, value, color }: any) {
   return (
     <div
       className="
-          rounded-2xl p-5
-          bg-white/80 dark:bg-slate-900/80
-          backdrop-blur
-          shadow-lg
-          border border-slate-200 dark:border-slate-800
-        "
+            rounded-2xl p-5
+            bg-white/80 dark:bg-slate-900/80
+            backdrop-blur
+            shadow-lg
+            border border-slate-200 dark:border-slate-800
+          "
     >
       <p className="text-sm text-slate-500 dark:text-slate-400">{title}</p>
       <h2 className={`text-3xl font-bold mt-1 ${colorMap[color || "default"]}`}>
@@ -1400,17 +1517,17 @@ function StatusBadge({ status }: { status: string }) {
   return (
     <span
       className={`
-            inline-flex items-center justify-center
-            px-3 py-1 rounded-full
-            text-xs font-semibold
-            ${
-              status === "Disetujui"
-                ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300"
-                : status === "Ditolak"
-                ? "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300"
-                : "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-300"
-            }
-          `}
+              inline-flex items-center justify-center
+              px-3 py-1 rounded-full
+              text-xs font-semibold
+              ${
+                status === "Disetujui"
+                  ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300"
+                  : status === "Ditolak"
+                  ? "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300"
+                  : "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-300"
+              }
+            `}
     >
       {status}
     </span>

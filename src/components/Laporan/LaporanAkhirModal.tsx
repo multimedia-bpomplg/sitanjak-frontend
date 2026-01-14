@@ -90,6 +90,30 @@ export default function LaporanAkhirModal({ mode, onClose }: Props) {
     }
   };
 
+  const handleDownloadPdf = async () => {
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/laporan-akhir/pdf`
+      );
+
+      if (!res.ok) throw new Error();
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "Laporan_Akhir_Magang.pdf";
+      document.body.appendChild(a);
+      a.click();
+
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      alert("❌ Gagal mengunduh PDF laporan akhir");
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center px-4">
       <div className="bg-white w-full max-w-3xl rounded-3xl shadow-[0_25px_70px_rgba(0,0,0,0.3)] overflow-hidden animate-scaleIn">
@@ -187,28 +211,41 @@ export default function LaporanAkhirModal({ mode, onClose }: Props) {
         )}
 
         {/* FOOTER */}
-        <div className="px-8 py-4 border-t flex justify-end gap-3 bg-slate-50">
-          <button
-            onClick={() => onClose()}
-            className="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-200"
-          >
-            Tutup
-          </button>
-
-          {mode === "create" && (
+        <div className="px-8 py-4 border-t flex justify-between items-center bg-slate-50">
+          {/* KIRI: DOWNLOAD PDF */}
+          {mode === "view" && approvedByMentor && (
             <button
-              disabled={submitDisabled}
-              onClick={() => setShowConfirm(true)}
-              className={`px-6 py-2.5 rounded-xl font-semibold text-white
-                ${
-                  submitDisabled
-                    ? "bg-slate-400"
-                    : "bg-indigo-600 hover:bg-indigo-700 shadow-lg"
-                }`}
+              onClick={handleDownloadPdf}
+              className="px-5 py-2 rounded-xl font-semibold bg-emerald-600 text-white hover:bg-emerald-700"
             >
-              Kirim Laporan Akhir
+              📄 Download PDF
             </button>
           )}
+
+          {/* KANAN: AKSI */}
+          <div className="flex gap-3">
+            <button
+              onClick={() => onClose()}
+              className="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-200"
+            >
+              Tutup
+            </button>
+
+            {mode === "create" && (
+              <button
+                disabled={submitDisabled}
+                onClick={() => setShowConfirm(true)}
+                className={`px-6 py-2.5 rounded-xl font-semibold text-white
+          ${
+            submitDisabled
+              ? "bg-slate-400"
+              : "bg-indigo-600 hover:bg-indigo-700 shadow-lg"
+          }`}
+              >
+                Kirim Laporan Akhir
+              </button>
+            )}
+          </div>
         </div>
       </div>
 

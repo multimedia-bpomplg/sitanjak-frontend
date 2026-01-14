@@ -22,15 +22,15 @@ export default function LogbookModal({ date, mode, onClose }: Props) {
   const [kendala, setKendala] = useState("");
   const [keterangan, setKeterangan] = useState("");
   const [files, setFiles] = useState<File[]>([]);
-  const [errorFile, setErrorFile] = useState("");
+  const [fileUrls, setFileUrls] = useState<string[]>([]);
 
-  // ☑️ Persetujuan user
   const [agree, setAgree] = useState(false);
-
-  // 🔔 Approval mentor
+  const [errorFile, setErrorFile] = useState("");
   const [approvedByMentor, setApprovedByMentor] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [mentorNote, setMentorNote] = useState("");
 
-  /* ================= FETCH DATA (VIEW MODE) ================= */
+  /* ================= FETCH VIEW ================= */
   useEffect(() => {
     if (mode === "view") {
       fetch(`${process.env.NEXT_PUBLIC_API_URL}/logbook/${date}`, {
@@ -45,10 +45,9 @@ export default function LogbookModal({ date, mode, onClose }: Props) {
           setPengalaman(data.pengalaman || "");
           setKendala(data.kendala || "");
           setKeterangan(data.keterangan || "");
+          setFileUrls(data.files || []);
           setApprovedByMentor(Boolean(data.approvedByMentor));
-        })
-        .catch(() => {
-          console.error("Gagal memuat detail logbook");
+          setMentorNote(data.mentorNote || ""); // ✅ TAMBAHAN
         });
     }
   }, [mode, date]);
@@ -60,17 +59,17 @@ export default function LogbookModal({ date, mode, onClose }: Props) {
     const selected = Array.from(e.target.files || []);
 
     if (selected.length > 3) {
-      setErrorFile("Maksimal 3 foto diperbolehkan");
+      setErrorFile("Maksimal 3 foto");
       return;
     }
 
     for (const file of selected) {
       if (!file.type.startsWith("image/")) {
-        setErrorFile("Hanya file gambar yang diperbolehkan");
+        setErrorFile("Hanya gambar");
         return;
       }
       if (file.size > 2 * 1024 * 1024) {
-        setErrorFile("Ukuran maksimal 1 foto adalah 2 MB");
+        setErrorFile("Maksimal 2MB / foto");
         return;
       }
     }
@@ -98,7 +97,6 @@ export default function LogbookModal({ date, mode, onClose }: Props) {
     formData.append("pengalaman", pengalaman);
     formData.append("kendala", kendala);
     formData.append("keterangan", keterangan);
-
     files.forEach((f) => formData.append("files", f));
 
     await fetch(`${process.env.NEXT_PUBLIC_API_URL}/logbook`, {
@@ -113,113 +111,162 @@ export default function LogbookModal({ date, mode, onClose }: Props) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center px-4">
-      <div className="bg-white w-full max-w-xl rounded-3xl shadow-2xl overflow-hidden">
-        {/* HEADER */}
-        <div className="px-6 py-4 border-b bg-gradient-to-r from-blue-50 to-indigo-50">
-          <h2 className="text-lg font-bold text-slate-800">
-            {mode === "view" ? "Detail Logbook" : "Isi Logbook Harian"}
-          </h2>
-          <p className="text-sm text-slate-500">
-            Tanggal: <span className="font-medium">{date}</span>
-          </p>
+    <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur flex items-center justify-center p-4">
+      <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden">
+        {/* ================= HEADER ================= */}
+        <div className="px-6 py-5 border-b bg-gradient-to-r from-blue-50 to-indigo-50">
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-xl font-bold text-slate-800">
+                {mode === "view" ? "Detail Logbook" : "Isi Logbook Harian"}
+              </h2>
+              <p className="text-sm text-slate-500">{date}</p>
+            </div>
+            <span
+              className={`px-3 py-1 text-xs font-semibold rounded-full
+              ${
+                mode === "view"
+                  ? "bg-emerald-100 text-emerald-700"
+                  : "bg-blue-100 text-blue-700"
+              }`}
+            >
+              {mode.toUpperCase()}
+            </span>
+          </div>
         </div>
 
-        {/* BODY */}
-        <div className="px-6 py-5 space-y-5 max-h-[70vh] overflow-y-auto">
-          {/* STATUS */}
-          <div>
-            <label className="block text-sm font-semibold mb-1">
-              Status Kehadiran
-            </label>
+        {/* 🔔 NOTIFIKASI STATUS MENTOR */}
+        {mode === "view" && (
+          <>
+            {approvedByMentor ? (
+              <div className="mx-6 mt-4 rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+                ✅ <b>Logbook ini telah diperiksa oleh mentor</b>
+              </div>
+            ) : (
+              <div className="mx-6 mt-4 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                ⏳ <b>Logbook ini belum diperiksa oleh mentor</b>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* ================= BODY ================= */}
+        <div className="px-6 py-6 space-y-6 max-h-[70vh] overflow-y-auto">
+          <Field label="Status Kehadiran">
             <select
               value={status}
               disabled={readonly}
               onChange={(e) => setStatus(e.target.value as Status)}
-              className="w-full rounded-xl border px-3 py-2 focus:ring-2 focus:ring-blue-500"
+              className="input"
             >
               <option value="hadir">Hadir</option>
               <option value="tidak_hadir_keterangan">
-                Tidak Hadir dengan Keterangan
+                Tidak Hadir (Keterangan)
               </option>
               <option value="tidak_hadir_tanpa_keterangan">
-                Tidak Hadir tanpa Keterangan
+                Tidak Hadir (Tanpa)
               </option>
             </select>
-          </div>
+          </Field>
 
           {status === "hadir" && (
             <>
-              <Textarea
-                label="Uraian Aktivitas"
-                value={judul}
-                onChange={setJudul}
-                disabled={readonly}
-              />
+              <Field label="Uraian Aktivitas">
+                <Textarea
+                  value={judul}
+                  onChange={setJudul}
+                  disabled={readonly}
+                />
+              </Field>
 
-              <Textarea
-                label="Pembelajaran yang didapatkan"
-                value={pengalaman}
-                onChange={setPengalaman}
-                disabled={readonly}
-              />
-              <Textarea
-                label="Kendala"
-                value={kendala}
-                onChange={setKendala}
-                disabled={readonly}
-              />
+              <Field label="Pembelajaran">
+                <Textarea
+                  value={pengalaman}
+                  onChange={setPengalaman}
+                  disabled={readonly}
+                />
+              </Field>
+
+              <Field label="Kendala">
+                <Textarea
+                  value={kendala}
+                  onChange={setKendala}
+                  disabled={readonly}
+                />
+              </Field>
 
               {!readonly && (
-                <div className="space-y-1">
-                  <label className="block text-sm font-semibold">
-                    Dokumentasi Kegiatan
-                  </label>
+                <Field label="Dokumentasi (max 3 foto)">
                   <input type="file" multiple onChange={handleFileChange} />
                   {errorFile && (
                     <p className="text-xs text-red-600">{errorFile}</p>
                   )}
-                </div>
+                </Field>
+              )}
+
+              {readonly && fileUrls.length > 0 && (
+                <Field label="Dokumentasi">
+                  <div className="grid grid-cols-3 gap-3">
+                    {fileUrls.map((url, i) => (
+                      <img
+                        key={i}
+                        src={`${process.env.NEXT_PUBLIC_BASE_URL}/${url}`}
+                        onClick={() =>
+                          setPreviewImage(
+                            `${process.env.NEXT_PUBLIC_BASE_URL}/${url}`
+                          )
+                        }
+                        className="h-28 w-full object-cover rounded-xl cursor-pointer hover:scale-105 transition"
+                        alt={`Dokumentasi ${i + 1}`}
+                      />
+                    ))}
+                  </div>
+                </Field>
               )}
             </>
           )}
 
           {status === "tidak_hadir_keterangan" && (
-            <Textarea
-              label="Alasan Tidak Hadir"
-              value={keterangan}
-              onChange={setKeterangan}
-              disabled={readonly}
-            />
+            <Field label="Alasan Tidak Hadir">
+              <Textarea
+                value={keterangan}
+                onChange={setKeterangan}
+                disabled={readonly}
+              />
+            </Field>
           )}
 
-          {/* ☑️ PERNYATAAN */}
           {mode === "create" && (
-            <label className="flex items-start gap-3 text-sm bg-slate-50 border rounded-xl p-4">
+            <label className="flex gap-3 text-sm bg-blue-50 border border-blue-200 rounded-xl p-4">
               <input
                 type="checkbox"
                 checked={agree}
                 onChange={(e) => setAgree(e.target.checked)}
-                className="mt-1"
               />
-              <span className="text-slate-700">
-                Saya menyatakan bahwa seluruh data dan informasi yang saya isi
-                pada logbook ini adalah <b>benar</b>, <b>jujur</b>, dan dapat
-                saya <b>pertanggungjawabkan sepenuhnya</b>.
-              </span>
+              <span>Saya menyatakan data yang diisi benar</span>
             </label>
+          )}
+
+          {mode === "view" && approvedByMentor && (
+            <div className="bg-emerald-50 border border-emerald-300 rounded-xl p-3 text-sm text-emerald-700">
+              ✅ Disetujui Mentor
+            </div>
+          )}
+
+          {mode === "view" && approvedByMentor && mentorNote && (
+            <Field label="Balasan Mentor">
+              <textarea
+                value={mentorNote}
+                readOnly
+                className="w-full rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm text-emerald-900 resize-none"
+                rows={4}
+              />
+            </Field>
           )}
         </div>
 
-        {/* 🔔 NOTIFIKASI APPROVAL */}
-        {mode === "view" && approvedByMentor && (
-          <div className="mx-6 mb-3 rounded-xl bg-emerald-50 border border-emerald-300 p-3 text-sm text-emerald-700">
-            ✅ Laporan logbook ini telah <b>disetujui oleh mentor</b>.
-          </div>
-        )}
-
-        {/* FOOTER */}
-        <div className="px-6 py-4 border-t flex justify-end gap-3 bg-slate-50">
+        {/* ================= FOOTER ================= */}
+        <div className="px-6 py-4 border-t bg-slate-50 flex justify-end gap-3">
           <button
             onClick={onClose}
             className="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-200"
@@ -231,17 +278,30 @@ export default function LogbookModal({ date, mode, onClose }: Props) {
             <button
               disabled={submitDisabled}
               onClick={handleSubmit}
-              className={`px-5 py-2.5 rounded-xl font-semibold text-white transition
+              className={`px-5 py-2 rounded-xl font-semibold text-white
                 ${
                   submitDisabled
-                    ? "bg-slate-400 cursor-not-allowed"
+                    ? "bg-slate-400"
                     : "bg-blue-600 hover:bg-blue-700"
                 }`}
             >
-              Simpan Logbook
+              Simpan
             </button>
           )}
         </div>
+
+        {/* ================= PREVIEW FOTO ================= */}
+        {previewImage && (
+          <div
+            className="fixed inset-0 bg-black/80 z-[999] flex items-center justify-center"
+            onClick={() => setPreviewImage(null)}
+          >
+            <img
+              src={previewImage}
+              className="max-w-full max-h-[90vh] rounded-2xl"
+            />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -249,33 +309,25 @@ export default function LogbookModal({ date, mode, onClose }: Props) {
 
 /* ================= REUSABLE ================= */
 
-function Input({ label, value, onChange, disabled }: any) {
+function Field({ label, children }: any) {
   return (
     <div>
-      <label className="block text-sm font-semibold mb-1">{label}</label>
-      <input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        disabled={disabled}
-        readOnly={disabled}
-        className="w-full rounded-xl border px-3 py-2 focus:ring-2 focus:ring-blue-500"
-      />
+      <label className="text-sm font-semibold text-slate-700 mb-1 block">
+        {label}
+      </label>
+      {children}
     </div>
   );
 }
 
-function Textarea({ label, value, onChange, disabled }: any) {
+function Textarea({ value, onChange, disabled }: any) {
   return (
-    <div>
-      <label className="block text-sm font-semibold mb-1">{label}</label>
-      <textarea
-        rows={4}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        disabled={disabled}
-        readOnly={disabled}
-        className="w-full rounded-xl border px-3 py-2 resize-y focus:ring-2 focus:ring-blue-500"
-      />
-    </div>
+    <textarea
+      rows={4}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      disabled={disabled}
+      className="w-full rounded-xl border px-3 py-2 focus:ring-2 focus:ring-blue-500 resize-none"
+    />
   );
 }

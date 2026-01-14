@@ -11,7 +11,7 @@ type MentorAkun = {
   name: string;
   email: string;
   status: "Aktif" | "Nonaktif";
-  periode: string;
+  posisiMentor: string;
 };
 
 /* ================= PAGE ================= */
@@ -29,6 +29,7 @@ export default function BuatAkunMentorPage() {
     name: "",
     email: "",
     password: "",
+    posisiMentor: "",
   });
 
   const confirm = useConfirm();
@@ -56,8 +57,7 @@ export default function BuatAkunMentorPage() {
         name: item.name,
         email: item.email,
         status: item.status || "Aktif",
-        periode:
-          item.periode || new Date(item.createdAt).getFullYear().toString(),
+        posisiMentor: item.posisiMentor || "-",
       }));
 
       setData(mapped);
@@ -91,7 +91,7 @@ export default function BuatAkunMentorPage() {
 
   /* ================= CREATE AKUN ================= */
   const handleCreate = async () => {
-    if (!form.name || !form.email || !form.password) {
+    if (!form.name || !form.email || !form.password || !form.posisiMentor) {
       showToast.error("Semua field wajib diisi");
       return;
     }
@@ -121,7 +121,13 @@ export default function BuatAkunMentorPage() {
       showToast.success("Akun mentor berhasil dibuat");
 
       setOpen(false);
-      setForm({ name: "", email: "", password: "" });
+      setForm({
+        name: "",
+        email: "",
+        password: "",
+        posisiMentor: "",
+      });
+
       fetchMentor();
     } catch (error: any) {
       // ✅ SEMUA ERROR MASUK SINI
@@ -317,7 +323,7 @@ export default function BuatAkunMentorPage() {
                 <th className="px-6 py-4 text-center">No</th>
                 <th className="px-6 py-4 text-left">Nama</th>
                 <th className="px-6 py-4 text-left">Email</th>
-                <th className="px-6 py-4 text-center">Periode</th>
+                <th className="px-6 py-4 text-center">Posisi Mentor</th>
                 <th className="px-6 py-4 text-center">Status</th>
               </tr>
             </thead>
@@ -362,7 +368,9 @@ export default function BuatAkunMentorPage() {
                       {item.email}
                     </td>
 
-                    <td className="px-6 py-4 text-center">{item.periode}</td>
+                    <td className="px-6 py-4 text-center">
+                      {item.posisiMentor}
+                    </td>
 
                     <td className="px-6 py-4 text-center">
                       <span
@@ -405,6 +413,30 @@ export default function BuatAkunMentorPage() {
 
           <PasswordInput value={form.password} onGenerate={generatePassword} />
 
+          <div>
+            <label className="block mb-1 text-sm font-medium">
+              Posisi Mentor
+            </label>
+            <select
+              value={form.posisiMentor}
+              onChange={(e) =>
+                setForm({ ...form, posisiMentor: e.target.value })
+              }
+              className="
+      w-full px-4 py-2.5 rounded-xl
+      bg-white dark:bg-slate-800
+      border border-slate-300 dark:border-slate-700
+    "
+            >
+              <option value="">-- Pilih Posisi Mentor --</option>
+              <option value="IT / Programmer">IT / Programmer</option>
+              <option value="Desain Grafis">Desain Grafis</option>
+              <option value="Administrasi">Administrasi</option>
+              <option value="Humas">Humas</option>
+              <option value="Analis Data">Analis Data</option>
+            </select>
+          </div>
+
           <ModalAction
             onCancel={() => setOpen(false)}
             onSubmit={handleCreate}
@@ -418,7 +450,8 @@ export default function BuatAkunMentorPage() {
         <Modal title="Detail Akun Mentor" onClose={() => setOpenAksi(false)}>
           <Detail label="Nama" value={selected.name} />
           <Detail label="Email" value={selected.email} />
-          <Detail label="Periode" value={selected.periode} />
+          <Detail label="Posisi Mentor" value={selected.posisiMentor} />
+
           <div
             className="
             rounded-xl

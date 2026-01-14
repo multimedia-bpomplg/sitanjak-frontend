@@ -5,12 +5,12 @@ import { useState, useEffect } from "react";
 import {
   ChevronsLeft,
   ChevronsRight,
-  Bell,
   Sun,
   Moon,
   LogOut,
   X,
 } from "lucide-react";
+
 import { useRouter, usePathname } from "next/navigation";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -380,20 +380,18 @@ export default function PesertaLayout({
               </Link>
             </div>
 
-            {/* ===== RIWAYAT ===== */}
+            {/* ===== PROFILE ===== */}
             <button
               onClick={() => setHistoryOpen(!historyOpen)}
               className={`flex items-center gap-3 py-2 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-900/30
-                transition w-full
-                ${
-                  collapsed
-                    ? "justify-center px-3"
-                    : "pl-5 pr-3 justify-between"
-                }`}
+    transition w-full
+    ${collapsed ? "justify-center px-3" : "pl-5 pr-3 justify-between"}
+  `}
             >
               <div className="flex items-center gap-3">
-                🕘 {!collapsed && <span>Riwayat</span>}
+                🕘 {!collapsed && <span>Profile</span>}
               </div>
+
               {!collapsed && (
                 <span
                   className={`transition-transform ${
@@ -411,32 +409,33 @@ export default function PesertaLayout({
               }`}
             >
               <Link
-                href="/dashboard/peserta/riwayat"
+                href="/dashboard/peserta/ganti-password"
                 className={`
-                  flex items-center gap-3
-                  py-2.5 rounded-xl
-                  text-sm
-                  text-gray-700 dark:text-gray-300
-                  hover:bg-emerald-100/70
-                  dark:hover:bg-slate-800
-                  transition
-                  ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
-                  ${
-                    pathname === "/dashboard/peserta/riwayat"
-                      ? `
-                          bg-gradient-to-r
-                          from-emerald-500/20 to-cyan-500/20
-                          text-emerald-700
-                          dark:from-indigo-500/30
-                          dark:via-purple-500/25
-                          dark:to-fuchsia-500/30
-                          dark:text-indigo-200
-                          shadow-inner
-                        `
-                      : ""
-                  }`}
+      flex items-center gap-3
+      py-2.5 rounded-xl
+      text-sm
+      text-gray-700 dark:text-gray-300
+      hover:bg-emerald-100/70
+      dark:hover:bg-slate-800
+      transition
+      ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
+      ${
+        pathname === "/dashboard/peserta/ganti-password"
+          ? `
+              bg-gradient-to-r
+              from-emerald-500/20 to-cyan-500/20
+              text-emerald-700
+              dark:from-indigo-500/30
+              dark:via-purple-500/25
+              dark:to-fuchsia-500/30
+              dark:text-indigo-200
+              shadow-inner
+            `
+          : ""
+      }
+    `}
               >
-                📜 {!collapsed && "Riwayat Pengajuan"}
+                📜 {!collapsed && "Ganti Password"}
               </Link>
             </div>
           </nav>
@@ -484,8 +483,6 @@ export default function PesertaLayout({
             </button>
 
             <div className="ml-auto flex items-center gap-5">
-              <Bell />
-
               <button
                 onClick={toggleTheme}
                 className="p-2 rounded-full hover:bg-emerald-100 dark:hover:bg-emerald-900/40"

@@ -236,10 +236,7 @@ export default function PendaftaranPage() {
       );
   };
 
-  const isValidNamaInstansi = (
-    jenis: "Universitas" | "SMK",
-    text: string
-  ) => {
+  const isValidNamaInstansi = (jenis: "Universitas" | "SMK", text: string) => {
     const trimmed = text.trim();
 
     if (jenis === "Universitas") {
@@ -263,11 +260,13 @@ export default function PendaftaranPage() {
       if (parts[0] !== "SMK") return false;
 
       // Kata setelah SMK → Capitalize Each Word
-      return parts.slice(1).every(
-        (word) =>
-          word[0] === word[0]?.toUpperCase() &&
-          word.slice(1) === word.slice(1)?.toLowerCase()
-      );
+      return parts
+        .slice(1)
+        .every(
+          (word) =>
+            word[0] === word[0]?.toUpperCase() &&
+            word.slice(1) === word.slice(1)?.toLowerCase()
+        );
     }
 
     return false;
@@ -392,15 +391,10 @@ export default function PendaftaranPage() {
 
       // ✅ TIMPA asalNama (INI YANG DIBACA BACKEND)
       asalNama:
-        p.asalNama === "LAINNYA"
-          ? p.asalNamaLainnya.trim()
-          : p.asalNama,
+        p.asalNama === "LAINNYA" ? p.asalNamaLainnya.trim() : p.asalNama,
 
       // ✅ TIMPA jurusan (INI JUGA DIBACA BACKEND)
-      jurusan:
-        p.jurusan === "LAINNYA"
-          ? p.jurusanLainnya.trim()
-          : p.jurusan,
+      jurusan: p.jurusan === "LAINNYA" ? p.jurusanLainnya.trim() : p.jurusan,
     }));
   };
 
@@ -419,7 +413,7 @@ export default function PendaftaranPage() {
       formData.append("jumlahPeserta", jumlah.toString());
       const pesertaFinal = normalizePeserta(peserta);
       formData.append("peserta", JSON.stringify(pesertaFinal));
-      formData.append("surat", surat!);
+      formData.append("suratPengantar", surat!);
 
       const res = await fetch("http://localhost:5000/api/pendaftaran", {
         method: "POST",
