@@ -49,71 +49,201 @@ export default function LaporanAkhirPage() {
   };
 
   return (
-    <div className="p-6 space-y-6">
-      {/* HEADER */}
-      <div>
-        <h1 className="text-2xl font-bold text-slate-800">
-          Laporan Akhir Magang
+    <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 py-8 space-y-10">
+      {/* ================= HEADER ================= */}
+      <div className="space-y-2">
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+          📄 Laporan Akhir Magang
         </h1>
-        <p className="text-sm text-slate-500">
-          Laporan akhir hanya dapat diisi satu kali dan bersifat final
+        <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 max-w-2xl">
+          Laporan akhir hanya dapat diisi satu kali dan bersifat <b>final</b>.
+          Pastikan seluruh data telah benar sebelum dikirim.
         </p>
       </div>
 
-      {/* RIWAYAT */}
-      {laporan && (
-        <div className="rounded-2xl border bg-white shadow p-6 space-y-4">
-          <div className="flex justify-between items-start">
-            <div>
-              <h2 className="text-lg font-bold text-slate-800">
-                {laporan.judul}
-              </h2>
-              <p className="text-sm text-slate-500">
-                Dikirim pada{" "}
-                {new Date(laporan.createdAt).toLocaleDateString("id-ID")}
-              </p>
+      {/* ================= KONTEN ================= */}
+      <div className="grid gap-6">
+        {/* ===== CARD LAPORAN ===== */}
+        {laporan && (
+          <div
+            className="
+              relative overflow-hidden
+              rounded-3xl
+              bg-white dark:bg-slate-900
+              border border-slate-200 dark:border-slate-800
+              shadow-[0_20px_50px_-20px_rgba(0,0,0,0.35)]
+              p-6 sm:p-8
+              space-y-6
+            "
+          >
+            {/* Accent */}
+            <div
+              className="
+                absolute top-0 left-0 right-0 h-[3px]
+                bg-gradient-to-r
+                from-emerald-400 via-teal-400 to-cyan-400
+                dark:from-indigo-500 dark:via-violet-500 dark:to-fuchsia-500
+              "
+            />
+
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+              <div className="space-y-1">
+                <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">
+                  {laporan.judul}
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+                  Dikirim pada{" "}
+                  {new Date(laporan.createdAt).toLocaleDateString("id-ID")}
+                </p>
+              </div>
+
+              <span
+                className="
+                  shrink-0
+                  inline-flex items-center gap-1
+                  px-3 py-1.5
+                  rounded-full
+                  text-xs font-semibold
+                  bg-rose-100 text-rose-700
+                  dark:bg-rose-900/30 dark:text-rose-300
+                "
+              >
+                🔒 FINAL
+              </span>
             </div>
 
-            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700">
-              FINAL
-            </span>
-          </div>
+            {/* Action */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                onClick={() => setShowModal(true)}
+                className="
+                  group
+                  inline-flex items-center justify-center gap-2
+                  px-5 py-2.5
+                  rounded-full
+                  text-sm font-semibold
+                  text-emerald-700 dark:text-indigo-300
+                  border border-emerald-300 dark:border-indigo-500
+                  bg-white dark:bg-slate-900
+                  hover:bg-gradient-to-r
+                  hover:from-emerald-500 hover:to-teal-500
+                  dark:hover:from-indigo-500 dark:hover:to-violet-600
+                  hover:text-white
+                  shadow-sm hover:shadow-lg
+                  transition-all
+                "
+              >
+                <span className="group-hover:scale-110 transition">📑</span>
+                Lihat Detail
+              </button>
 
-          <div className="flex flex-wrap gap-3 pt-2">
+              <button
+                onClick={downloadPdf}
+                className="
+                  inline-flex items-center justify-center gap-2
+                  px-5 py-2.5
+                  rounded-full
+                  text-sm font-semibold
+                  text-white
+                  bg-gradient-to-r from-emerald-500 to-teal-600
+                  hover:from-emerald-600 hover:to-teal-700
+                  shadow-md hover:shadow-xl
+                  transition-all
+                "
+              >
+                ⬇️ Download PDF
+              </button>
+            </div>
+
+            {/* Approval */}
+            {laporan.approvedByMentor && (
+              <div
+                className="
+                  rounded-2xl
+                  border border-emerald-300
+                  bg-emerald-50 dark:bg-emerald-900/30
+                  px-4 py-3
+                  text-sm
+                  text-emerald-800 dark:text-emerald-200
+                "
+              >
+                ✅ <b>Laporan akhir telah disetujui oleh mentor</b>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ===== CTA ISI LAPORAN ===== */}
+        {!laporan && (
+          <div
+            className="
+              rounded-3xl
+              border border-dashed
+              border-slate-300 dark:border-slate-700
+              bg-slate-50 dark:bg-slate-900
+              p-8
+              flex flex-col items-center justify-center
+              text-center
+              space-y-4
+            "
+          >
+            <div className="text-4xl">📝</div>
+            <h3 className="text-lg font-bold text-slate-800 dark:text-white">
+              Belum Ada Laporan Akhir
+            </h3>
+            <p className="text-sm text-slate-600 dark:text-slate-400 max-w-md">
+              Silakan isi laporan akhir magang Anda.
+            </p>
+
+            {/* ⚠️ WARNING */}
+            <div
+              className="
+                mt-1
+                inline-flex items-center gap-2
+                rounded-full
+                px-4 py-1.5
+                text-xs font-semibold
+                bg-amber-50 text-amber-700
+                dark:bg-amber-900/30 dark:text-amber-300
+                border border-amber-300 dark:border-amber-600
+              "
+            >
+              ⚠️ Laporan hanya dapat dikirim <b>satu kali</b>
+            </div>
+
+            {/* CTA BUTTON */}
             <button
               onClick={() => setShowModal(true)}
-              className="px-4 py-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700"
-            >
-              👁 Lihat Detail
-            </button>
+              className="
+                mt-4
+                group
+                inline-flex items-center gap-3
+                px-7 py-3.5
+                rounded-full
+                text-sm font-bold
+                transition-all
+                shadow-lg hover:shadow-2xl
+                hover:-translate-y-0.5
 
-            <button
-              onClick={downloadPdf}
-              className="px-4 py-2 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700"
+                /* LIGHT MODE */
+                bg-gradient-to-r from-emerald-500 to-teal-600
+                text-white
+                hover:from-emerald-600 hover:to-teal-700
+
+                /* DARK MODE */
+                dark:bg-gradient-to-r dark:from-indigo-500 dark:to-violet-600
+                dark:hover:from-indigo-600 dark:hover:to-violet-700
+              "
             >
-              ⬇️ Download PDF
+              <span className="text-lg group-hover:rotate-6 transition">✍️</span>
+              Isi Laporan Akhir
             </button>
           </div>
+        )}
+      </div>
 
-          {laporan.approvedByMentor && (
-            <div className="rounded-xl bg-emerald-50 border border-emerald-300 p-3 text-sm text-emerald-700">
-              ✅ Laporan akhir telah disetujui oleh mentor
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* TOMBOL ISI */}
-      {!laporan && (
-        <button
-          onClick={() => setShowModal(true)}
-          className="px-6 py-3 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-700"
-        >
-          ✍️ Isi Laporan Akhir
-        </button>
-      )}
-
-      {/* MODAL */}
+      {/* ================= MODAL ================= */}
       {showModal && (
         <LaporanAkhirModal
           mode={mode}

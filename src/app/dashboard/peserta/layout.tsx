@@ -41,7 +41,6 @@ export default function PesertaLayout({
     roles: string[];
 
     avatar?: string;
-    posisiMagang?: string;
   };
 
   const [user, setUser] = useState<LoggedUser | null>(null);
@@ -84,7 +83,6 @@ export default function PesertaLayout({
         roles: payload.roles || [],
 
         avatar: payload.avatar,
-        posisiMagang: payload.posisi,
       });
     } catch (error) {
       console.error("Token tidak valid");
@@ -389,7 +387,7 @@ export default function PesertaLayout({
   `}
             >
               <div className="flex items-center gap-3">
-                🕘 {!collapsed && <span>Profile</span>}
+                🛠️ {!collapsed && <span>Setting</span>}
               </div>
 
               {!collapsed && (
@@ -411,29 +409,29 @@ export default function PesertaLayout({
               <Link
                 href="/dashboard/peserta/ganti-password"
                 className={`
-      flex items-center gap-3
-      py-2.5 rounded-xl
-      text-sm
-      text-gray-700 dark:text-gray-300
-      hover:bg-emerald-100/70
-      dark:hover:bg-slate-800
-      transition
-      ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
-      ${
-        pathname === "/dashboard/peserta/ganti-password"
-          ? `
-              bg-gradient-to-r
-              from-emerald-500/20 to-cyan-500/20
-              text-emerald-700
-              dark:from-indigo-500/30
-              dark:via-purple-500/25
-              dark:to-fuchsia-500/30
-              dark:text-indigo-200
-              shadow-inner
-            `
-          : ""
-      }
-    `}
+                  flex items-center gap-3
+                  py-2.5 rounded-xl
+                  text-sm
+                  text-gray-700 dark:text-gray-300
+                  hover:bg-emerald-100/70
+                  dark:hover:bg-slate-800
+                  transition
+                  ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
+                  ${
+                    pathname === "/dashboard/peserta/ganti-password"
+                      ? `
+                          bg-gradient-to-r
+                          from-emerald-500/20 to-cyan-500/20
+                          text-emerald-700
+                          dark:from-indigo-500/30
+                          dark:via-purple-500/25
+                          dark:to-fuchsia-500/30
+                          dark:text-indigo-200
+                          shadow-inner
+                        `
+                      : ""
+                  }
+                `}
               >
                 📜 {!collapsed && "Ganti Password"}
               </Link>
@@ -576,11 +574,15 @@ export default function PesertaLayout({
                           px-3 py-1
                           rounded-full
                           text-xs font-semibold
+
                           bg-emerald-100 text-emerald-700
-                          dark:bg-emerald-900/40 dark:text-emerald-300
+
+                          dark:bg-purple-900/40
+                          dark:text-purple-300
+                          dark:ring-1 dark:ring-purple-800/60
                         "
                       >
-                        {user?.posisiMagang || "Peserta Magang"}
+                        Peserta Magang
                       </span>
                     </div>
 

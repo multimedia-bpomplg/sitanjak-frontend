@@ -49,43 +49,118 @@ export default function LaporanBulananPage() {
   };
 
   return (
-    <div className="p-6 space-y-6">
-      {/* HEADER */}
-      <div>
-        <h1 className="text-2xl font-bold text-slate-800">Laporan Bulanan</h1>
-        <p className="text-sm text-slate-500">
-          Isi dan lihat laporan bulanan kegiatan magang
+    <div className="relative p-4 sm:p-6 lg:p-10 max-w-7xl mx-auto space-y-10">
+      {/* ================= PAGE TITLE ================= */}
+      <div className="space-y-1">
+        <h1 className="flex items-center gap-3 text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">
+          <span className="text-2xl">📘</span>
+          Laporan Bulanan
+        </h1>
+        <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 max-w-2xl">
+          Kelola dan pantau laporan bulanan kegiatan magang Anda secara terstruktur.
         </p>
       </div>
 
-      {/* PILIH BULAN */}
-      <div className="bg-white rounded-2xl shadow p-6 max-w-md">
-        <label className="block text-sm font-semibold mb-2">
-          Pilih Bulan Laporan
-        </label>
-
-        <input
-          type="month"
-          value={selectedMonth}
-          onChange={(e) => setSelectedMonth(e.target.value)}
-          className="w-full rounded-xl border px-3 py-2 focus:ring-2 focus:ring-indigo-500"
-        />
-
-        <button
-          disabled={!selectedMonth}
-          onClick={() => checkLaporan(selectedMonth)}
-          className={`mt-4 w-full py-2.5 rounded-xl font-semibold text-white ${
-            !selectedMonth
-              ? "bg-slate-400 cursor-not-allowed"
-              : "bg-indigo-600 hover:bg-indigo-700"
-          }`}
+      {/* ================= CARD PILIH BULAN ================= */}
+      <div className="flex justify-center pt-4">
+        <div
+          className="
+            w-full max-w-2xl
+            rounded-2xl
+            bg-white dark:bg-slate-900
+            border border-slate-200 dark:border-slate-800
+            shadow-[0_18px_45px_-20px_rgba(0,0,0,0.35)]
+            p-6 sm:p-7
+            space-y-5
+          "
         >
-          Lihat / Isi Laporan
-        </button>
+          <h2 className="text-base sm:text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
+            📅 Pilih Bulan Laporan
+          </h2>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
+              Bulan
+            </label>
+
+            <div className="relative">
+              {/* INPUT */}
+              <input
+                type="month"
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                className="
+                  w-full rounded-xl
+                  bg-slate-50 dark:bg-slate-800
+                  border border-slate-300 dark:border-slate-700
+                  px-4 py-3 pr-12
+                  text-sm
+                  focus:outline-none
+                  focus:ring-2 focus:ring-emerald-500
+                  cursor-pointer
+
+                  /* sembunyikan icon default */
+                  [&::-webkit-calendar-picker-indicator]:opacity-0
+                  [&::-webkit-calendar-picker-indicator]:absolute
+                  [&::-webkit-calendar-picker-indicator]:right-0
+                  [&::-webkit-calendar-picker-indicator]:w-full
+                  [&::-webkit-calendar-picker-indicator]:h-full
+                "
+              />
+
+              {/* ICON KALENDER CUSTOM */}
+              <div
+                className="
+                  pointer-events-none
+                  absolute right-3 top-1/2 -translate-y-1/2
+                  h-8 w-8
+                  rounded-lg
+                  border border-emerald-400 dark:border-emerald-500
+                  flex items-center justify-center
+                  text-emerald-600 dark:text-emerald-400
+                  bg-white dark:bg-slate-900
+                "
+              >
+                📅
+              </div>
+            </div>
+
+            <p className="mt-1 text-xs text-slate-400">
+              Klik area input atau ikon kalender untuk memilih bulan
+            </p>
+          </div>
+
+          <button
+            disabled={!selectedMonth}
+            onClick={() => checkLaporan(selectedMonth)}
+            className={`
+              w-full rounded-xl py-3
+              text-sm font-semibold text-white
+              transition
+              ${
+                !selectedMonth
+                  ? "bg-slate-400 cursor-not-allowed"
+                  : "bg-emerald-600 hover:bg-emerald-700"
+              }
+            `}
+          >
+            📂 Lihat / Isi Laporan
+          </button>
+        </div>
       </div>
 
-      {/* RIWAYAT */}
-      {riwayat.length > 0 && (
+      {/* ================= RIWAYAT LAPORAN ================= */}
+      <div className="pt-6 space-y-4">
+        <h2 className="text-base sm:text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
+          🕘 Riwayat Laporan
+        </h2>
+
+        {riwayat.length === 0 && (
+          <div className="rounded-xl border border-dashed p-6 text-center text-sm text-slate-500 dark:text-slate-400">
+            Belum ada laporan bulanan
+          </div>
+        )}
+
         <div className="space-y-3">
           {riwayat.map((item) => (
             <button
@@ -95,25 +170,58 @@ export default function LaporanBulananPage() {
                 setModalMode("view");
                 setShowModal(true);
               }}
-              className="w-full text-left border rounded-xl p-4 hover:bg-slate-50"
+              className="
+                relative w-full
+                rounded-xl
+                bg-white dark:bg-slate-900
+                border border-slate-200 dark:border-slate-800
+                p-4
+                text-left
+                hover:shadow-md
+                transition
+              "
             >
-              <div className="flex justify-between">
+              {/* accent */}
+              <div
+                className={`
+                  absolute left-4 right-4 top-0 h-0.5 rounded-full
+                  ${
+                    item.approvedByMentor
+                      ? "bg-emerald-500"
+                      : "bg-amber-400"
+                  }
+                `}
+              />
+
+              <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-semibold">{item.month}</p>
-                  <p className="text-xs text-slate-500">
-                    {new Date(item.createdAt).toLocaleDateString("id-ID")}
+                  <p className="font-semibold text-slate-800 dark:text-white">
+                    {item.month}
+                  </p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Dibuat {new Date(item.createdAt).toLocaleDateString("id-ID")}
                   </p>
                 </div>
-                <span className="text-xs font-semibold">
-                  {item.approvedByMentor ? "Disetujui" : "Menunggu"}
+
+                <span
+                  className={`
+                    text-xs font-semibold px-3 py-1 rounded-full
+                    ${
+                      item.approvedByMentor
+                        ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
+                        : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
+                    }
+                  `}
+                >
+                  {item.approvedByMentor ? "✔ Disetujui" : "⏳ Menunggu"}
                 </span>
               </div>
             </button>
           ))}
         </div>
-      )}
+      </div>
 
-      {/* MODAL */}
+      {/* ================= MODAL ================= */}
       {showModal && selectedMonth && (
         <LaporanBulananModal
           month={selectedMonth}
