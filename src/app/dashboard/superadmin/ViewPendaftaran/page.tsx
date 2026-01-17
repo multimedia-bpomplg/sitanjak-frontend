@@ -31,6 +31,13 @@ type Peserta = {
     nama: string;
   };
 
+  mentor?: {
+    _id: string;
+    name: string;
+    email: string;
+    posisiMentor: string;
+  };
+
   jurusan?: string; // ⬅️ TAMBAHKAN
 
   tanggalMulaiMagang: string;
@@ -124,6 +131,7 @@ export default function ViewPendaftaranPage() {
   const [mentorModal, setMentorModal] = useState(false);
   const [selectedMentor, setSelectedMentor] = useState<string>("");
   const hasMentor = Boolean(selected?.mentor?.name && selected?.mentor?.email);
+  const [selectedPesertaEmail, setSelectedPesertaEmail] = useState<string>("");
 
   const showAlert = (
     type: "success" | "error" | "warning" | "info",
@@ -1069,29 +1077,29 @@ export default function ViewPendaftaranPage() {
                       </p>
                     </div>
 
-                    {/* ===================== MENTOR ===================== */}
+                    {/* ===================== MENTOR PER PESERTA ===================== */}
                     <div
                       className="
-          mt-4
-          flex items-center justify-between
-          rounded-xl
-          bg-slate-50 dark:bg-slate-900/60
-          border border-slate-200 dark:border-slate-700
-          px-4 py-3
-        "
+    mt-4
+    flex items-center justify-between
+    rounded-xl
+    bg-slate-50 dark:bg-slate-900/60
+    border border-slate-200 dark:border-slate-700
+    px-4 py-3
+  "
                     >
                       <div>
                         <p className="text-xs text-slate-500 dark:text-slate-400">
-                          Mentor
+                          Mentor Peserta
                         </p>
 
-                        {selected.mentor ? (
+                        {p.mentor ? (
                           <div>
                             <p className="text-sm font-semibold text-slate-800 dark:text-white">
-                              {selected.mentor.name}
+                              {p.mentor.name}
                             </p>
                             <p className="text-xs text-slate-500 dark:text-slate-400">
-                              {selected.mentor.email}
+                              {p.mentor.email}
                             </p>
                           </div>
                         ) : (
@@ -1102,16 +1110,20 @@ export default function ViewPendaftaranPage() {
                       </div>
 
                       <button
-                        onClick={() => setMentorModal(true)}
+                        onClick={() => {
+                          setMentorModal(true);
+                          setSelectedMentor("");
+                          setSelectedPesertaEmail(p.email); // 🔑 PENTING
+                        }}
                         className={`text-xs px-3 py-1.5 rounded-lg text-white transition
       ${
-        hasMentor
+        p.mentor
           ? "bg-amber-600 hover:bg-amber-700"
           : "bg-blue-600 hover:bg-blue-700"
       }
     `}
                       >
-                        {hasMentor ? "Ganti Mentor" : "Tambahkan Mentor"}
+                        {p.mentor ? "Ganti Mentor" : "Tambahkan Mentor"}
                       </button>
 
                       {mentorModal && (
@@ -1142,17 +1154,21 @@ export default function ViewPendaftaranPage() {
                               </button>
                               <button
                                 onClick={async () => {
-                                  if (!selected || !selectedMentor) {
+                                  if (
+                                    !selected ||
+                                    !selectedMentor ||
+                                    !selectedPesertaEmail
+                                  ) {
                                     showAlert(
                                       "warning",
-                                      "Silakan pilih mentor terlebih dahulu"
+                                      "Data mentor atau peserta belum lengkap"
                                     );
                                     return;
                                   }
 
                                   try {
                                     const res = await fetch(
-                                      `${process.env.NEXT_PUBLIC_API_URL}/pendaftaran/${selected._id}/mentor`,
+                                      `${process.env.NEXT_PUBLIC_API_URL}/pendaftaran/${selected._id}/mentor-peserta`,
                                       {
                                         method: "PUT",
                                         headers: {
@@ -1162,6 +1178,7 @@ export default function ViewPendaftaranPage() {
                                           )}`,
                                         },
                                         body: JSON.stringify({
+                                          email: selectedPesertaEmail, // ✅ KUNCI UTAMA
                                           mentorId: selectedMentor,
                                         }),
                                       }
@@ -1176,15 +1193,16 @@ export default function ViewPendaftaranPage() {
                                       );
                                     }
 
-                                    // ✅ UPDATE STATE DARI RESPONSE BACKEND (YANG SUDAH POPULATE)
+                                    // ✅ UPDATE STATE DARI RESPONSE BACKEND
                                     setSelected(result.data);
 
                                     setMentorModal(false);
                                     setSelectedMentor("");
+                                    setSelectedPesertaEmail("");
 
                                     showAlert(
                                       "success",
-                                      "Mentor berhasil disimpan"
+                                      "Mentor peserta berhasil disimpan"
                                     );
                                   } catch (err: any) {
                                     showAlert(
