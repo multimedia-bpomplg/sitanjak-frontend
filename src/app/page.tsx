@@ -6,46 +6,59 @@ import Formasi from "@/components/landing page/Formasi/page";
 import Datastatistik from "@/components/landing page/Datastatistik/page";
 import Manfaat from "@/components/landing page/Manfaat/page";
 import Peraturan from "@/components/landing page/Peraturan/page";
-
 import AnimatedSection from "@/components/ui/AnimatedSection";
+import LandingPopup from "@/components/ui/Banner";
+import WhatsAppBubble from "@/components/ui/WhatappBubble";
 
 export default function HomePage() {
   return (
-    <div
-      className="
-        min-h-screen
-        bg-gradient-to-br
-        from-[#E8F8F1]
-        via-[#E6FAFA]
-        to-[#EEF7FF]
-        pt-28
-      "
-    >
-      <Navbar />
+    <>
+      {/* POPUP PROMO */}
+      <LandingPopup
+        image="/popup-magang.jpg"
+        title="Pendaftaran Magang Dibuka 🎉"
+        description="Bergabunglah bersama mentor profesional dan dapatkan pengalaman kerja nyata."
+      />
 
-      <AnimatedSection id="home">
-        <HeroSection />
-      </AnimatedSection>
+      {/* WHATSAPP FLOAT */}
+      <WhatsAppBubble />
 
-      <AnimatedSection id="profil">
-        <Profil />
-      </AnimatedSection>
+      <div
+        className="
+          min-h-screen
+          bg-gradient-to-br
+          from-[#E8F8F1]
+          via-[#E6FAFA]
+          to-[#EEF7FF]
+          pt-28
+        "
+      >
+        <Navbar />
 
-      <AnimatedSection id="formasi">
-        <Formasi />
-      </AnimatedSection>
+        <AnimatedSection id="home">
+          <HeroSection />
+        </AnimatedSection>
 
-      <Datastatistik />
+        <AnimatedSection id="profil">
+          <Profil />
+        </AnimatedSection>
 
-      <AnimatedSection id="manfaat">
-        <Manfaat />
-      </AnimatedSection>
+        <AnimatedSection id="formasi">
+          <Formasi />
+        </AnimatedSection>
 
-      <AnimatedSection id="peraturan">
-        <Peraturan />
-      </AnimatedSection>
+        <Datastatistik />
 
-      <Footer />
-    </div>
+        <AnimatedSection id="manfaat">
+          <Manfaat />
+        </AnimatedSection>
+
+        <AnimatedSection id="peraturan">
+          <Peraturan />
+        </AnimatedSection>
+
+        <Footer />
+      </div>
+    </>
   );
 }
