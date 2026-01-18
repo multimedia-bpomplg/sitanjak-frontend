@@ -19,6 +19,11 @@ type Peserta = {
   kecamatan: string;
   kelurahan: string;
   alamatLengkap: string;
+  mentor?: {
+    name: string;
+    email: string;
+    posisiMentor: string;
+  };
 
   // fallback mentor (jika backend taruh di peserta)
   mentorNama?: string;
@@ -59,7 +64,7 @@ function hitungDurasi(mulai?: string, selesai?: string) {
     return null;
 
   const totalHari = Math.ceil(
-    (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)
+    (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24),
   );
 
   return {
@@ -82,8 +87,7 @@ export default function PesertaDashboard() {
   const [pendaftaran, setPendaftaran] = useState<Pendaftaran | null>(null);
   const [open, setOpen] = useState(false);
 
-  const FILE_BASE_URL =
-    process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") || "";
+  const FILE_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
   const fetchData = useCallback(async () => {
     try {
@@ -96,9 +100,15 @@ export default function PesertaDashboard() {
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/pendaftaran/cek?email=${email}`,
         {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
       );
+
+      if (!res.ok) {
+        throw new Error("Gagal mengambil data pendaftaran");
+      }
 
       const data = await res.json();
       setPendaftaran(data);
@@ -121,13 +131,21 @@ export default function PesertaDashboard() {
     );
   }
 
-  const peserta = pendaftaran.peserta?.[0];
+  // ambil email login dari token
+  const token = localStorage.getItem("token");
+  const payload = token ? JSON.parse(atob(token.split(".")[1])) : null;
+  const emailLogin = payload?.email;
+
+  // cari peserta sesuai email login
+  const peserta = pendaftaran.peserta.find(
+    (p) => p.email.toLowerCase() === emailLogin?.toLowerCase(),
+  );
 
   if (!peserta) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
         <span className="text-slate-400">
-          Data peserta belum tersedia
+          Data peserta untuk akun ini tidak ditemukan
         </span>
       </div>
     );
@@ -136,14 +154,14 @@ export default function PesertaDashboard() {
   /* ================= RESOLVE MENTOR (ANTI GAGAL) ================= */
 
   const mentor = {
-    nama: pendaftaran.mentor?.name || "Belum Ditentukan",
-    email: pendaftaran.mentor?.email || "-",
-    posisi: pendaftaran.mentor?.posisiMentor || "-",
+    nama: peserta?.mentor?.name || "Belum Ditentukan",
+    email: peserta?.mentor?.email || "-",
+    posisi: peserta?.mentor?.posisiMentor || "-",
   };
 
   const durasi = hitungDurasi(
     peserta?.tanggalMulaiMagang,
-    peserta?.tanggalSelesaiMagang
+    peserta?.tanggalSelesaiMagang,
   );
 
   const durasiText = durasi
@@ -154,7 +172,7 @@ export default function PesertaDashboard() {
 
   const progressMagang = hitungProgressMagang(
     peserta.tanggalMulaiMagang,
-    peserta.tanggalSelesaiMagang
+    peserta.tanggalSelesaiMagang,
   );
 
   /* ================= UI ================= */
@@ -163,14 +181,14 @@ export default function PesertaDashboard() {
       {/* ================= HERO ================= */}
       <div
         className="
-          relative overflow-hidden
-          rounded-[2.25rem]
-          bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500
-          dark:from-indigo-600 dark:via-purple-600 dark:to-fuchsia-600
-          px-10 py-12
-          shadow-[0_24px_60px_-20px_rgba(0,0,0,0.45)]
-          text-white
-        "
+            relative overflow-hidden
+            rounded-[2.25rem]
+            bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500
+            dark:from-indigo-600 dark:via-purple-600 dark:to-fuchsia-600
+            px-10 py-12
+            shadow-[0_24px_60px_-20px_rgba(0,0,0,0.45)]
+            text-white
+          "
       >
         {/* decorative glow */}
         <div className="absolute -top-24 -right-24 w-96 h-96 bg-white/20 rounded-full blur-3xl" />
@@ -180,13 +198,13 @@ export default function PesertaDashboard() {
           {/* Avatar */}
           <div
             className="
-              flex h-24 w-24 items-center justify-center
-              rounded-full
-              bg-white/25 backdrop-blur
-              text-3xl font-extrabold
-              ring-4 ring-white/40
-              shadow-xl
-            "
+                flex h-24 w-24 items-center justify-center
+                rounded-full
+                bg-white/25 backdrop-blur
+                text-3xl font-extrabold
+                ring-4 ring-white/40
+                shadow-xl
+              "
           >
             {getInitial(peserta?.nama)}
           </div>
@@ -194,7 +212,8 @@ export default function PesertaDashboard() {
           {/* Text */}
           <div className="text-center sm:text-left space-y-2">
             <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">
-              Halo, {peserta?.nama || "Peserta"} <span className="inline-block ml-1">👋</span>
+              Halo, {peserta?.nama || "Peserta"}{" "}
+              <span className="inline-block ml-1">👋</span>
             </h1>
 
             <p className="text-white/85 text-base md:text-lg">
@@ -203,12 +222,12 @@ export default function PesertaDashboard() {
 
             <span
               className="
-                inline-flex items-center gap-2
-                mt-3 px-5 py-2
-                rounded-full
-                text-sm font-semibold
-                bg-white/25 backdrop-blur
-              "
+                  inline-flex items-center gap-2
+                  mt-3 px-5 py-2
+                  rounded-full
+                  text-sm font-semibold
+                  bg-white/25 backdrop-blur
+                "
             >
               Peserta Magang Aktif
             </span>
@@ -245,11 +264,11 @@ export default function PesertaDashboard() {
             <div className="h-2 w-full rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
               <div
                 className="
-                  h-full
-                  bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500
-                  dark:from-indigo-500 dark:via-purple-500 dark:to-fuchsia-500
-                  transition-all duration-500
-                "
+                    h-full
+                    bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500
+                    dark:from-indigo-500 dark:via-purple-500 dark:to-fuchsia-500
+                    transition-all duration-500
+                  "
                 style={{
                   width: `${progressMagang}%`,
                 }}
@@ -276,17 +295,15 @@ export default function PesertaDashboard() {
           accent="emerald"
         />
 
-        <StatCard
-          title="Posisi"
-          value={peserta.posisi}
-          accent="cyan"
-        />
+        <StatCard title="Posisi" value={peserta.posisi} accent="cyan" />
 
         <StatCard
           title="Periode"
           value={
             <>
-              <div>{peserta.tanggalMulaiMagang} – {peserta.tanggalSelesaiMagang}</div>
+              <div>
+                {peserta.tanggalMulaiMagang} – {peserta.tanggalSelesaiMagang}
+              </div>
               {durasiText && (
                 <div className="text-xs opacity-70">{durasiText}</div>
               )}
@@ -299,13 +316,15 @@ export default function PesertaDashboard() {
           title="Mentor"
           value={
             <div className="flex gap-3">
-              <div className="
-                flex h-9 w-9 items-center justify-center
-                rounded-full
-                bg-emerald-100 text-emerald-700
-                dark:bg-indigo-900/60 dark:text-indigo-200
-                font-bold text-xs
-              ">
+              <div
+                className="
+                  flex h-9 w-9 items-center justify-center
+                  rounded-full
+                  bg-emerald-100 text-emerald-700
+                  dark:bg-indigo-900/60 dark:text-indigo-200
+                  font-bold text-xs
+                "
+              >
                 {getInitial(mentor.nama)}
               </div>
               <div>
@@ -319,21 +338,23 @@ export default function PesertaDashboard() {
       </div>
 
       {/* ================= DETAIL ACCORDION ================= */}
-      <div className="
-        overflow-hidden rounded-3xl
-        border border-white/40
-        bg-white/70 dark:bg-slate-900/70
-        backdrop-blur-xl
-        shadow-2xl
-      ">
+      <div
+        className="
+          overflow-hidden rounded-3xl
+          border border-white/40
+          bg-white/70 dark:bg-slate-900/70
+          backdrop-blur-xl
+          shadow-2xl
+        "
+      >
         <button
-          onClick={() => setOpen(v => !v)}
+          onClick={() => setOpen((v) => !v)}
           className="
-            w-full flex items-center justify-between
-            px-8 py-6
-            hover:bg-white/40 dark:hover:bg-white/5
-            transition
-          "
+              w-full flex items-center justify-between
+              px-8 py-6
+              hover:bg-white/40 dark:hover:bg-white/5
+              transition
+            "
         >
           <div>
             <h2 className="text-xl font-bold">📂 Detail Informasi Peserta</h2>
@@ -342,7 +363,11 @@ export default function PesertaDashboard() {
             </p>
           </div>
 
-          <span className={`text-2xl transition-transform ${open ? "rotate-180" : ""}`}>
+          <span
+            className={`text-2xl transition-transform ${
+              open ? "rotate-180" : ""
+            }`}
+          >
             ⌄
           </span>
         </button>
@@ -374,10 +399,12 @@ export default function PesertaDashboard() {
                 <Item label="Kelurahan" value={peserta.kelurahan} />
               </Grid>
 
-              <div className="
-                mt-4 rounded-xl p-4
-                bg-slate-50 dark:bg-slate-800
-              ">
+              <div
+                className="
+                  mt-4 rounded-xl p-4
+                  bg-slate-50 dark:bg-slate-800
+                "
+              >
                 <p className="text-xs opacity-60">Alamat Lengkap</p>
                 <p className="font-medium">{peserta.alamatLengkap}</p>
               </div>
@@ -399,16 +426,17 @@ export default function PesertaDashboard() {
             </Section>
 
             <Section title="📝 Catatan Admin">
-              <div className="
-                rounded-xl p-5
-                bg-yellow-50 text-yellow-800
-                dark:bg-yellow-900/30 dark:text-yellow-200
-                border-l-4 border-yellow-400
-              ">
+              <div
+                className="
+                  rounded-xl p-5
+                  bg-yellow-50 text-yellow-800
+                  dark:bg-yellow-900/30 dark:text-yellow-200
+                  border-l-4 border-yellow-400
+                "
+              >
                 {pendaftaran.jawabanAdmin || "Belum ada catatan dari admin"}
               </div>
             </Section>
-
           </div>
         )}
       </div>
@@ -422,29 +450,27 @@ function StatCard({ title, value, accent }: any) {
   return (
     <div
       className="
-        relative overflow-hidden
-        rounded-2xl p-6
-        bg-white dark:bg-slate-900
-        border border-slate-200 dark:border-slate-700
-        shadow-lg
-        transition hover:-translate-y-1 hover:shadow-2xl
-      "
+          relative overflow-hidden
+          rounded-2xl p-6
+          bg-white dark:bg-slate-900
+          border border-slate-200 dark:border-slate-700
+          shadow-lg
+          transition hover:-translate-y-1 hover:shadow-2xl
+        "
     >
       {/* accent glow */}
       <div
         className={`
-          absolute -top-20 -right-20
-          w-40 h-40
-          rounded-full blur-3xl opacity-30
-          bg-${accent}-400
-        `}
+            absolute -top-20 -right-20
+            w-40 h-40
+            rounded-full blur-3xl opacity-30
+            bg-${accent}-400
+          `}
       />
 
       {/* header */}
       <div className="relative z-10 space-y-2">
-        <p className="text-sm text-slate-500 dark:text-slate-400">
-          {title}
-        </p>
+        <p className="text-sm text-slate-500 dark:text-slate-400">{title}</p>
 
         <div className="text-lg font-bold text-slate-900 dark:text-white">
           {value}
@@ -460,16 +486,16 @@ function Section({ title, children }: any) {
       {/* TITLE */}
       <div
         className="
-          flex items-center gap-3
-          px-5 py-3
-          rounded-2xl
-          bg-gradient-to-r from-emerald-50 to-teal-50
-          text-emerald-800
-          dark:from-indigo-900/40 dark:to-purple-900/30
-          dark:text-indigo-200
-          text-base font-semibold
-          shadow-sm
-        "
+            flex items-center gap-3
+            px-5 py-3
+            rounded-2xl
+            bg-gradient-to-r from-emerald-50 to-teal-50
+            text-emerald-800
+            dark:from-indigo-900/40 dark:to-purple-900/30
+            dark:text-indigo-200
+            text-base font-semibold
+            shadow-sm
+          "
       >
         {title}
       </div>
@@ -479,7 +505,6 @@ function Section({ title, children }: any) {
     </div>
   );
 }
-
 
 function Grid({ children }: any) {
   return (
@@ -491,10 +516,12 @@ function Grid({ children }: any) {
 
 function Item({ label, value }: any) {
   return (
-    <div className="
-      rounded-xl p-4
-      bg-slate-50 dark:bg-slate-800
-    ">
+    <div
+      className="
+        rounded-xl p-4
+        bg-slate-50 dark:bg-slate-800
+      "
+    >
       <p className="text-xs opacity-60">{label}</p>
       <p className="font-medium">{value || "-"}</p>
     </div>
@@ -506,45 +533,44 @@ function hitungSisaHari(selesai?: string) {
 
   // WAKTU WIB
   const todayWIB = new Date(
-    new Date().toLocaleString("en-US", { timeZone: "Asia/Jakarta" })
+    new Date().toLocaleString("en-US", { timeZone: "Asia/Jakarta" }),
   );
 
   const endWIB = new Date(
-    new Date(selesai).toLocaleString("en-US", { timeZone: "Asia/Jakarta" })
+    new Date(selesai).toLocaleString("en-US", { timeZone: "Asia/Jakarta" }),
   );
 
   const diff = Math.ceil(
-    (endWIB.getTime() - todayWIB.getTime()) / (1000 * 60 * 60 * 24)
+    (endWIB.getTime() - todayWIB.getTime()) / (1000 * 60 * 60 * 24),
   );
 
   return diff >= 0 ? diff : 0;
 }
 
-
 function hitungProgressMagang(mulai?: string, selesai?: string): number {
   if (!mulai || !selesai) return 0;
 
   const start = new Date(
-    new Date(mulai).toLocaleString("en-US", { timeZone: "Asia/Jakarta" })
+    new Date(mulai).toLocaleString("en-US", { timeZone: "Asia/Jakarta" }),
   );
 
   const end = new Date(
-    new Date(selesai).toLocaleString("en-US", { timeZone: "Asia/Jakarta" })
+    new Date(selesai).toLocaleString("en-US", { timeZone: "Asia/Jakarta" }),
   );
 
   const now = new Date(
-    new Date().toLocaleString("en-US", { timeZone: "Asia/Jakarta" })
+    new Date().toLocaleString("en-US", { timeZone: "Asia/Jakarta" }),
   );
 
   if (end <= start) return 0;
 
   const totalHari = Math.ceil(
-    (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)
+    (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24),
   );
 
   const sisaHari = Math.max(
     0,
-    Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+    Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)),
   );
 
   return Math.min(100, Math.max(0, ((totalHari - sisaHari) / totalHari) * 100));
