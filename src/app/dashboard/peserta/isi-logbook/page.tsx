@@ -57,7 +57,8 @@ export default function IsiLogbookPage() {
           📘 Logbook Kegiatan
         </h1>
         <p className="text-slate-600 dark:text-slate-400 max-w-4xl leading-relaxed">
-          Catat aktivitas harian selama magang, pantau kehadiran, dan kelola laporan harian dengan rapi.
+          Catat aktivitas harian selama magang, pantau kehadiran, dan kelola
+          laporan harian dengan rapi.
         </p>
       </div>
 

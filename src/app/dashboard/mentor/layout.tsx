@@ -2,21 +2,22 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import {
-  ChevronsLeft,
-  ChevronsRight,
-  Bell,
-  Sun,
-  Moon,
-  LogOut,
-} from "lucide-react";
+import { ChevronsLeft, ChevronsRight, Sun, Moon, LogOut } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
+
+type LoggedUser = {
+  name: string;
+  email: string;
+  roles: string[];
+  avatar?: string;
+};
 
 export default function MentorLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const [user, setUser] = useState<LoggedUser | null>(null);
   const [collapsed, setCollapsed] = useState(false);
   const [dark, setDark] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -32,7 +33,7 @@ export default function MentorLayout({
     document.documentElement.classList.toggle("dark", dark);
   }, [dark]);
 
-  /* ===================== AUTO OPEN DASHBOARD ===================== */
+  /* ===================== AUTO OPEN ===================== */
   useEffect(() => {
     if (pathname.startsWith("/dashboard/mentor")) {
       setDashboardOpen(true);
@@ -43,6 +44,38 @@ export default function MentorLayout({
   const handleSignOut = () => {
     localStorage.clear();
     router.replace("/auth/login");
+  };
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      handleSignOut();
+      return;
+    }
+
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+
+      setUser({
+        name: payload.name,
+        email: payload.email,
+        roles: payload.roles || [],
+        avatar: payload.avatar,
+      });
+    } catch (error) {
+      console.error("Token tidak valid");
+      handleSignOut();
+    }
+  }, []);
+
+  const getInitials = (name?: string) => {
+    if (!name) return "M";
+    return name
+      .split(" ")
+      .filter(Boolean)
+      .map((n) => n[0].toUpperCase())
+      .join("")
+      .slice(0, 2);
   };
 
   return (
@@ -89,7 +122,7 @@ export default function MentorLayout({
 
           <div
             className={`overflow-hidden transition-all duration-300 ${
-              dashboardOpen ? "max-h-64" : "max-h-0"
+              dashboardOpen ? "max-h-40" : "max-h-0"
             }`}
           >
             <Link
@@ -110,25 +143,12 @@ export default function MentorLayout({
               className={`flex py-2 text-sm rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700
                 ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
                 ${
-                  pathname.includes("/peserta")
+                  pathname.includes("/mentor/peserta")
                     ? "bg-blue-100 dark:bg-blue-900/30"
                     : ""
                 }`}
             >
               👥 {!collapsed && "View Peserta"}
-            </Link>
-
-            <Link
-              href="/dashboard/mentor/logbook"
-              className={`flex py-2 text-sm rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700
-                ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
-                ${
-                  pathname.includes("/logbook")
-                    ? "bg-blue-100 dark:bg-blue-900/30"
-                    : ""
-                }`}
-            >
-              📘 {!collapsed && "View Logbook"}
             </Link>
           </div>
 
@@ -157,23 +177,46 @@ export default function MentorLayout({
 
           <div
             className={`overflow-hidden transition-all duration-300 ${
-              reportOpen ? "max-h-40" : "max-h-0"
+              reportOpen ? "max-h-64" : "max-h-0"
             }`}
           >
             <Link
-              href="/dashboard/mentor/laporan"
+              href="/dashboard/mentor/ViewLogbook"
               className={`flex py-2 text-sm rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700
-                ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}`}
+                ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
+                ${
+                  pathname.includes("ViewLogbook")
+                    ? "bg-blue-100 dark:bg-blue-900/30"
+                    : ""
+                }`}
             >
-              📊 {!collapsed && "Rekap Laporan"}
+              📘 {!collapsed && "View Logbook"}
             </Link>
 
             <Link
-              href="/dashboard/mentor/laporan/peserta"
+              href="/dashboard/mentor/ViewLaporanBulanan"
               className={`flex py-2 text-sm rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700
-                ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}`}
+                ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
+                ${
+                  pathname.includes("ViewLaporanBulanan")
+                    ? "bg-blue-100 dark:bg-blue-900/30"
+                    : ""
+                }`}
             >
-              📂 {!collapsed && "Laporan per Peserta"}
+              📊 {!collapsed && "Laporan Bulanan"}
+            </Link>
+
+            <Link
+              href="/dashboard/mentor/ViewLaporanAkhir"
+              className={`flex py-2 text-sm rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700
+                ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
+                ${
+                  pathname.includes("ViewLaporanAkhir")
+                    ? "bg-blue-100 dark:bg-blue-900/30"
+                    : ""
+                }`}
+            >
+              📂 {!collapsed && "Laporan Akhir"}
             </Link>
           </div>
         </nav>
@@ -198,18 +241,21 @@ export default function MentorLayout({
         />
 
         <div className="ml-auto flex items-center gap-5">
-          <Bell />
-
           <button onClick={() => setDark(!dark)}>
             {dark ? <Sun /> : <Moon />}
           </button>
 
           <div className="relative">
-            <img
-              src="https://ui-avatars.com/api/?name=Mentor"
-              className="w-12 h-12 rounded-full cursor-pointer border-2"
+            <div
               onClick={() => setProfileOpen(!profileOpen)}
-            />
+              className="
+    w-12 h-12 rounded-full cursor-pointer border-2
+    flex items-center justify-center font-bold
+    bg-blue-600 text-white
+  "
+            >
+              {getInitials(user?.name)}
+            </div>
 
             {profileOpen && (
               <div className="absolute right-0 mt-3 w-64 bg-white dark:bg-gray-800 shadow-xl rounded-xl p-4 z-50">
@@ -218,9 +264,21 @@ export default function MentorLayout({
                     src="https://ui-avatars.com/api/?name=Mentor"
                     className="w-16 h-16 rounded-full"
                   />
-                  <span className="font-semibold">Mentor</span>
+                  <span className="font-semibold">{user?.name || "-"}</span>
+
                   <span className="text-sm text-gray-500">
-                    mentor@example.com
+                    {user?.email || "-"}
+                  </span>
+
+                  <span
+                    className="
+    mt-1 inline-flex items-center
+    px-3 py-1 rounded-full
+    text-xs font-semibold
+    bg-blue-100 text-blue-700
+  "
+                  >
+                    Mentor
                   </span>
                 </div>
 

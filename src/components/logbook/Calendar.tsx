@@ -11,14 +11,13 @@ function getNowWIB() {
   return new Date(
     new Date().toLocaleString("en-US", {
       timeZone: "Asia/Jakarta",
-    })
+    }),
   );
 }
 
 export default function Calendar({ onSelectDate, filledDates }: Props) {
   const today = getNowWIB();
   today.setHours(0, 0, 0, 0);
-
 
   const [currentMonth, setCurrentMonth] = useState(getNowWIB());
   const [holidays, setHolidays] = useState<Record<string, string>>({});
@@ -50,7 +49,14 @@ export default function Calendar({ onSelectDate, filledDates }: Props) {
 
   const days: (Date | null)[] = [];
   for (let i = 0; i < startDay; i++) days.push(null);
-  for (let i = 1; i <= lastDate; i++) days.push(new Date(new Date(year, month, i).toLocaleString("en-US", {timeZone: "Asia/Jakarta",})));
+  for (let i = 1; i <= lastDate; i++)
+    days.push(
+      new Date(
+        new Date(year, month, i).toLocaleString("en-US", {
+          timeZone: "Asia/Jakarta",
+        }),
+      ),
+    );
 
   const dayNames = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"];
 
@@ -171,8 +177,8 @@ export default function Calendar({ onSelectDate, filledDates }: Props) {
                     isFilled
                       ? "bg-emerald-50 dark:bg-emerald-900/30 border-emerald-400"
                       : isToday
-                      ? "bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600"
-                      : "bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-not-allowed"
+                        ? "bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600"
+                        : "bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-not-allowed"
                   }
                 `}
               >
