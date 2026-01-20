@@ -211,6 +211,11 @@ export default function LogbookModal({
     showToast.success(approved ? "Logbook disetujui" : "Logbook ditolak");
   };
 
+  const getImageUrl = (path: string) => {
+    if (!path) return "";
+    return `${process.env.NEXT_PUBLIC_BASE_URL}/api/${path}`;
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-3 sm:p-6">
       <div className="w-full max-w-3xl rounded-3xl bg-white dark:bg-slate-900 shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
@@ -412,13 +417,8 @@ export default function LogbookModal({
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     {fileUrls.map((url, i) => (
                       <img
-                        key={i}
-                        src={`${process.env.NEXT_PUBLIC_BASE_URL}/${url}`}
-                        onClick={() =>
-                          setPreviewImage(
-                            `${process.env.NEXT_PUBLIC_BASE_URL}/${url}`,
-                          )
-                        }
+                        src={getImageUrl(url)}
+                        onClick={() => setPreviewImage(getImageUrl(url))}
                         className="h-28 w-full rounded-xl object-cover cursor-pointer hover:scale-105 transition"
                         alt={`Dokumentasi ${i + 1}`}
                       />

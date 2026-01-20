@@ -160,8 +160,7 @@ export default function Calendar({ onSelectDate, filledDates }: Props) {
             const isFilled = Boolean(filledDates?.[isoDate]);
             const isToday = date.getTime() === today.getTime();
 
-            const canClick = (!isFilled && isToday) || isFilled;
-            const disabled = isSunday || isHoliday || !canClick;
+            const disabled = isSunday || isHoliday || (!isFilled && !isToday); // ⬅️ KUNCI FIX
 
             return (
               <button
