@@ -13,26 +13,31 @@ const peraturanList = [
     title: "Persyaratan Umum",
     desc: "Peserta merupakan mahasiswa aktif dari perguruan tinggi yang telah bekerja sama dan mendapat rekomendasi resmi dari institusi.",
     icon: HiClipboardCheck,
+    color: "from-[#FACC15] to-[#EAB308]", 
   },
   {
     title: "Durasi Magang",
     desc: "Pelaksanaan magang berlangsung minimal 1 bulan dan maksimal 6 bulan sesuai ketentuan instansi.",
     icon: HiClock,
+    color: "from-[#F97316] to-[#9A3412]",
   },
   {
     title: "Kehadiran & Disiplin",
     desc: "Peserta wajib mematuhi jam kerja, tata tertib, serta menjaga etika selama mengikuti program magang.",
     icon: HiUserGroup,
+    color: "from-[#DC2626] to-[#7F1D1D]",
   },
   {
     title: "Laporan & Evaluasi",
     desc: "Peserta diwajibkan menyusun laporan magang dan mengikuti evaluasi di akhir periode.",
     icon: HiDocumentText,
+    color: "from-[#84CC16] to-[#365314]",
   },
   {
     title: "Sanksi & Pembatalan",
     desc: "Pelanggaran terhadap peraturan dapat mengakibatkan teguran hingga pembatalan keikutsertaan magang.",
     icon: HiExclamation,
+    color: "from-[#7F1D1D] to-[#450A0A]", 
   },
 ];
 
@@ -45,15 +50,12 @@ export default function Peraturan() {
       <div
         className="
           max-w-6xl w-full
-          bg-gradient-to-br from-blue-100/20 via-cyan-100/20 to-emerald-100/20
-          backdrop-blur-xl
-          rounded-3xl shadow-xl
           px-8 lg:px-14 py-16
         "
       >
         {/* HEADER */}
         <div className="text-center mb-14">
-          <h2 className="text-3xl lg:text-4xl font-extrabold text-blue-900">
+          <h2 className="text-3xl lg:text-4xl font-extrabold text-[#7F1D1D]">
             Peraturan Program Magang
           </h2>
           <p className="text-gray-700 mt-4 max-w-2xl mx-auto">
@@ -65,7 +67,7 @@ export default function Peraturan() {
         {/* TIMELINE */}
         <div className="relative">
           {/* LINE */}
-          <div className="absolute left-6 top-0 bottom-0 w-[2px] bg-gradient-to-b from-blue-400 via-cyan-400 to-emerald-400 hidden sm:block" />
+          <div className="absolute left-6 top-0 bottom-0 w-[2px] bg-gradient-to-b from-[#FACC15] via-[#B91C1C] to-[#7F1D1D] hidden sm:block" />
 
           <div className="space-y-10">
             {peraturanList.map((item, index) => (
@@ -75,18 +77,19 @@ export default function Peraturan() {
               >
                 {/* NUMBER / ICON */}
                 <div
-                  className="
+                  className={`
                     absolute
                     left-0
                     top-1/2
                     -translate-y-1/2
                     w-12 h-12
                     rounded-xl
-                    bg-gradient-to-r from-blue-500 via-cyan-500 to-emerald-500
+                    bg-gradient-to-r ${item.color}
                     text-white
                     flex items-center justify-center
                     shadow-lg
-                  "
+                    ring-2 ring-[#FDE68A]/40
+                  `}
                 >
                   <item.icon size={22} />
                 </div>
@@ -104,7 +107,7 @@ export default function Peraturan() {
                     w-full
                   "
                 >
-                  <h3 className="text-lg font-bold text-blue-800 mb-2">
+                  <h3 className="text-lg font-bold text-[#7F1D1D] mb-2">
                     {item.title}
                   </h3>
                   <p className="text-gray-700 text-sm leading-relaxed">

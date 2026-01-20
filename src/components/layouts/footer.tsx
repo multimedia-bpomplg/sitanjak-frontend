@@ -13,7 +13,7 @@ export default function Footer() {
       <div
         className="
           max-w-6xl w-full
-          bg-gradient-to-r from-blue-600 via-cyan-600 to-emerald-500
+          bg-gradient-to-r from-[#D4AF37] via-[#B91C1C] to-[#7F1D1D]
           text-white
           rounded-3xl shadow-xl
           px-10 py-10
@@ -65,12 +65,12 @@ export default function Footer() {
                     href={menu.href}
                     className="
                       flex items-center gap-2 
-                      hover:text-blue-900 
+                      hover:text-[#FACC15]
                       hover:pl-1 
                       transition font-medium
                     "
                   >
-                    <menu.icon size={18} className="text-blue-900" />
+                    <menu.icon size={18} className="hover:bg-[#FACC15]/30" />
                     {menu.label}
                   </Link>
                 </li>

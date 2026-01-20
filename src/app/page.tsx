@@ -26,11 +26,11 @@ export default function HomePage() {
       <div
         className="
           min-h-screen
-          bg-gradient-to-br
-          from-[#E8F8F1]
-          via-[#E6FAFA]
-          to-[#EEF7FF]
-          pt-28
+          bg-gradient-to-br 
+          from-[#FFF7E6] 
+          via-[#F3FDFB] 
+          to-[#FFFFFF]
+          pt-23
         "
       >
         <Navbar />

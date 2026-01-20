@@ -227,9 +227,14 @@ export default function LaporanAkhirPage() {
                 hover:-translate-y-0.5
 
                 /* LIGHT MODE */
-                bg-gradient-to-r from-emerald-500 to-teal-600
+                bg-gradient-to-r
+                from-[#7F1D1D]
+                via-[#B91C1C]
+                to-[#D97706]
                 text-white
-                hover:from-emerald-600 hover:to-teal-700
+                hover:from-[#991B1B]
+                hover:via-[#B91C1C]
+                hover:to-[#F59E0B]
 
                 /* DARK MODE */
                 dark:bg-gradient-to-r dark:from-indigo-500 dark:to-violet-600

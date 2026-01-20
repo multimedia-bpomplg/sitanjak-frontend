@@ -60,7 +60,7 @@ export default function Navbar() {
         className="
           max-w-6xl w-full
           mx-4
-          bg-gradient-to-r from-blue-500 via-cyan-600 to-emerald-500
+          bg-gradient-to-r from-[#D4AF37] via-[#B91C1C] to-[#7F1D1D]
           backdrop-blur-xl
           rounded-full shadow-xl
           px-6 py-3
@@ -69,7 +69,7 @@ export default function Navbar() {
       >
         {/* LOGO */}
         <Image
-          src="/images/icons/Logo-Simaggo.png"
+          src="/images/icons/sitanjak.png"
           alt="SIMAGGO Logo"
           width={70}
           height={70}
@@ -88,7 +88,7 @@ export default function Navbar() {
             <button
               key={item.id}
               onClick={() => scrollToSection(item.id)}
-              className="hover:text-blue-900 hover:scale-105 transition"
+              className="hover:text-[#FFE08A] hover:-translate-y-[1px] hover:scale-105 transition"
             >
               {item.label}
             </button>
@@ -99,13 +99,13 @@ export default function Navbar() {
         <div className="hidden md:flex gap-3">
           <Link
             href="/auth/login"
-            className="flex items-center gap-2 text-white/90 hover:text-blue-900 transition font-semibold"
+            className="flex items-center gap-2 text-white/90 hover:text-[#FFE08A] transition font-semibold"
           >
             <HiOutlineLogin /> Login
           </Link>
           <Link
             href="/pendaftaran"
-            className="flex items-center gap-2 bg-emerald-300/90 text-blue-900 px-4 py-1.5 rounded-md hover:bg-white hover:text-blue-700 hover:shadow-md transition font-semibold"
+            className="flex items-center gap-2 bg-[#FACC15] text-[#4A2C00] px-4 py-1.5 rounded-full hover:bg-[#EAB308] hover:text-white/70 hover:shadow-md transition font-semibold"
           >
             <HiUserAdd /> Daftar
           </Link>
@@ -122,7 +122,7 @@ export default function Navbar() {
 
       {/* MOBILE MENU */}
       {open && (
-        <div className="absolute top-[90px] w-[90%] bg-gradient-to-b from-blue-500/95 via-teal-400/95 to-emerald-300/95 rounded-2xl p-6 text-white shadow-xl">
+        <div className="absolute top-[90px] w-[90%] bg-gradient-to-r from-[#D4AF37] via-[#B91C1C] to-[#7F1D1D] rounded-2xl p-6 text-white shadow-xl">
           <ul className="flex flex-col space-y-4 font-semibold">
             {[
               { label: "Home", id: "home" },
@@ -134,7 +134,7 @@ export default function Navbar() {
               <button
                 key={item.id}
                 onClick={() => scrollToSection(item.id)}
-                className="text-left transition hover:text-blue-900 hover:pl-2"
+                className="text-left transition hover:text-[#FFE08A] hover:pl-2"
               >
                 {item.label}
               </button>
@@ -144,7 +144,7 @@ export default function Navbar() {
           <div className="flex space-x-3 mt-6">
             <Link
               href="/auth/login"
-              className="flex items-center justify-center gap-2 border border-white px-4 py-2 rounded-md w-full hover:bg-white hover:text-blue-600 transition font-semibold"
+              className="flex items-center justify-center gap-2 border border-white px-4 py-2 rounded-md w-full hover:bg-white hover:text-[#7F1D1D] transition font-semibold"
             >
               <HiOutlineLogin size={18} />
               Login
@@ -152,7 +152,7 @@ export default function Navbar() {
 
             <Link
               href="/pendaftaran"
-              className="flex items-center justify-center gap-2 bg-white px-4 py-2 rounded-md w-full text-blue-700 hover:bg-blue-700 hover:text-white transition font-semibold"
+              className="flex items-center justify-center gap-2 bg-[#FACC15] px-4 py-2 rounded-md w-full text-[#4A2C00] hover:bg-[#EAB308] hover:text-white transition font-semibold"
             >
               <HiUserAdd size={18} />
               Daftar

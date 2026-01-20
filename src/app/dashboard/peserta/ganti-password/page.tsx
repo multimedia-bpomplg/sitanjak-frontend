@@ -117,7 +117,7 @@ export default function GantiPasswordPage() {
         <div
           className="
             px-6 py-6
-            bg-gradient-to-r from-emerald-500 to-teal-500
+            bg-gradient-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
             dark:from-indigo-600 dark:to-violet-600
             text-white
           "

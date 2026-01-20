@@ -6,7 +6,6 @@ import {
   HiCheckCircle,
   HiXCircle,
   HiClipboardList,
-  HiTrendingUp,
 } from "react-icons/hi";
 import { useEffect, useRef, useState } from "react";
 
@@ -15,37 +14,31 @@ const stats = [
     label: "Total Lowongan Dibuka",
     value: 12,
     icon: HiBriefcase,
-    color: "from-blue-500 to-cyan-500",
+    color: "from-[#FACC15] to-[#EAB308]",
   },
   {
     label: "Sedang Magang",
     value: 18,
     icon: HiUserGroup,
-    color: "from-emerald-500 to-teal-400",
+    color: "from-[#B91C1C] to-[#7F1D1D]",
   },
   {
     label: "Selesai Magang",
     value: 42,
     icon: HiCheckCircle,
-    color: "from-cyan-500 to-emerald-500",
+    color: "from-[#84CC16] to-[#365314]",
   },
   {
     label: "Tidak Diterima / Batal",
     value: 9,
     icon: HiXCircle,
-    color: "from-rose-500 to-pink-500",
+    color: "from-[#92400E] to-[#451A03]",
   },
   {
     label: "Total Pendaftar",
     value: 75,
     icon: HiClipboardList,
-    color: "from-indigo-500 to-blue-500",
-  },
-  {
-    label: "Tingkat Kelulusan",
-    value: "68%",
-    icon: HiTrendingUp,
-    color: "from-emerald-400 to-lime-400",
+    color: "from-[#F97316] to-[#9A3412]",
   },
 ];
 
@@ -112,14 +105,12 @@ export default function Statistik() {
       <div
         className="
           max-w-6xl w-full
-          bg-gradient-to-br from-blue-100/30 via-cyan-100/30 to-emerald-100/30
-          backdrop-blur-xl rounded-3xl shadow-xl
           px-8 lg:px-14 py-14
         "
       >
         {/* HEADER */}
         <div className="text-center mb-12">
-          <h2 className="text-3xl lg:text-4xl font-extrabold text-blue-900">
+          <h2 className="text-3xl lg:text-4xl font-extrabold text-[#7F1D1D]">
             Statistik Program Magang
           </h2>
           <p className="text-gray-700 mt-3 max-w-2xl mx-auto">
@@ -134,8 +125,8 @@ export default function Statistik() {
             <div
               key={index}
               className="
-                bg-white/40 backdrop-blur-lg
-                border border-white/50
+                bg-white/45 backdrop-blur-lg
+                border border-white/60
                 rounded-3xl p-6
                 shadow-md
                 hover:shadow-xl hover:-translate-y-1
@@ -148,12 +139,13 @@ export default function Statistik() {
                   rounded-2xl mb-4
                   bg-gradient-to-r ${item.color}
                   text-white shadow-lg
+                  ring-2 ring-[#FDE68A]/40
                 `}
               >
                 <item.icon size={28} />
               </div>
 
-              <h3 className="text-3xl font-extrabold text-blue-900">
+              <h3 className="text-3xl font-extrabold text-[#7F1D1D]">
                 {counts[index]}
               </h3>
 

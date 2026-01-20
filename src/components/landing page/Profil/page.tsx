@@ -38,16 +38,14 @@ export default function ProfilPage() {
     <section
       id="profil"
       ref={sectionRef}
-      className="w-full flex justify-center px-4 mt-16"
+      className="w-full flex justify-center px-4 pt-6 pb-16"
     >
       <div
         className={`
-          max-w-6xl w-full
-          bg-gradient-to-br
-          from-blue-100/30 via-cyan-100/30 to-emerald-100/30
-          backdrop-blur-xl
-          rounded-3xl shadow-xl
-          px-8 lg:px-14 py-12
+          max-w-6xl w-full 
+          flex flex-col lg:flex-row items-center justify-between
+          gap-8 lg:gap-16
+          px-4 lg:px-0
           transition-all duration-700 ease-out
           ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}
         `}
@@ -62,29 +60,34 @@ export default function ProfilPage() {
               ${visible ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-8"}
             `}
           >
-            <h1 className="text-3xl lg:text-4xl font-extrabold text-blue-900 leading-tight">
+            <h1 className="text-3xl lg:text-4xl font-extrabold text-[#7F1D1D] leading-tight">
               Balai Besar Pengawas Obat dan Makanan
-              <span className="block text-cyan-700">
+              <span className="block text-[#B91C1C]">
                 di Palembang
               </span>
             </h1>
 
             {/* TABS */}
-            <div className="flex gap-6 mt-6 border-b border-blue-200">
+            <div className="mt-6 border-b border-[#FDE68A] flex gap-8">
               {tabs.map((tab) => (
                 <button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
                   className={`
-                    pb-2 font-semibold transition
+                    relative pb-3 text-sm font-semibold transition-colors
                     ${
                       activeTab === tab.key
-                        ? "text-blue-700 border-b-2 border-blue-600"
-                        : "text-gray-500 hover:text-blue-600"
+                        ? "text-[#7F1D1D]"
+                        : "text-gray-500 hover:text-[#7F1D1D]"
                     }
                   `}
                 >
                   {tab.label}
+
+                  {/* UNDERLINE */}
+                  {activeTab === tab.key && (
+                    <span className="absolute left-0 -bottom-[1px] w-full h-[2px] bg-[#7F1D1D] rounded-full" />
+                  )}
                 </button>
               ))}
             </div>
@@ -112,7 +115,7 @@ export default function ProfilPage() {
                     "Investigasi dan penyidikan",
                   ].map((item, i) => (
                     <li key={i} className="flex items-start gap-2">
-                      <HiCheckCircle className="text-blue-600 mt-1" size={18} />
+                      <HiCheckCircle className="text-[#B91C1C] mt-1" size={18} />
                       <span>{item}</span>
                     </li>
                   ))}
@@ -122,12 +125,14 @@ export default function ProfilPage() {
               {activeTab === "visi" && (
                 <div className="space-y-4">
                   <p>
-                    <strong>Visi:</strong> Terwujudnya Obat dan Makanan yang aman,
-                    bermutu, dan berdaya saing.
+                    <strong className="text-[#7F1D1D]">Visi:</strong>{" "}
+                    Terwujudnya Obat dan Makanan yang aman, bermutu, dan berdaya saing
+                    untuk meningkatkan kualitas hidup masyarakat.
                   </p>
                   <p>
-                    <strong>Misi:</strong> Meningkatkan sistem pengawasan Obat
-                    dan Makanan yang efektif, transparan, dan terpercaya.
+                    <strong className="text-[#7F1D1D]">Misi:</strong>{" "}
+                    Meningkatkan sistem pengawasan Obat dan Makanan yang efektif,
+                    transparan, dan terpercaya.
                   </p>
                 </div>
               )}

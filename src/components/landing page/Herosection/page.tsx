@@ -29,16 +29,18 @@ export default function HeroSection() {
     <section
       id="home"
       ref={sectionRef}
-      className="w-full flex justify-center px-4"
+      className="
+        w-full flex justify-center
+        px-4
+        pt-12 pb-24
+      "
     >
       <div
         className={`
           max-w-6xl w-full min-h-[70vh]
           flex flex-col lg:flex-row items-center justify-between
           gap-12 lg:gap-24
-          px-8 lg:px-14 py-14
-          bg-gradient-to-br from-blue-100/30 via-cyan-100/30 to-emerald-100/30
-          backdrop-blur-xl rounded-3xl shadow-xl
+          px-4 lg:px-0
           transition-all duration-700 ease-out
           ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}
         `}
@@ -51,9 +53,9 @@ export default function HeroSection() {
             ${visible ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-8"}
           `}
         >
-          <h1 className="text-4xl lg:text-5xl font-extrabold text-blue-900">
+          <h1 className="text-4xl lg:text-5xl font-extrabold text-[#7F1D1D]">
             Pendaftaran Magang <br />
-            <span className="text-cyan-700">
+            <span className="text-[#B91C1C]">
               Balai Besar POM Palembang
             </span>
           </h1>
@@ -68,9 +70,10 @@ export default function HeroSection() {
             className="
               inline-flex items-center justify-center
               px-8 py-3 rounded-xl
-              text-white font-semibold text-lg
-              bg-gradient-to-r from-blue-600 via-cyan-600 to-emerald-500
-              hover:scale-105 transition
+              font-semibold text-lg
+              bg-gradient-to-r from-[#FACC15] via-[#F59E0B] to-[#EA580C]
+              text-white
+              hover:scale-105 hover:shadow-lg transition
             "
           >
             Daftar Magang

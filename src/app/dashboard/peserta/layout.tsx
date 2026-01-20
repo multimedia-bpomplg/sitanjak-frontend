@@ -111,7 +111,9 @@ export default function PesertaLayout({
         min-h-screen
         flex
         bg-gradient-to-br
-        from-emerald-50 via-white to-cyan-50
+        from-[#FBF7F2]   
+        via-[#F9FAFB]    
+        to-[#F3F4F6]     
 
         dark:from-[#020617]
         dark:via-[#020617]
@@ -127,11 +129,13 @@ export default function PesertaLayout({
             z-30
             h-screen
             bg-gradient-to-b
-            from-white via-emerald-50 to-emerald-100
+            from-[#FFF7ED]   
+            via-[#FEF3C7]   
+            to-[#FDE68A]
             dark:from-[#020617]
             dark:via-[#1E1B4B]
             dark:to-[#3B0764]
-            border-r border-emerald-200 dark:border-indigo-900/40
+            border-r border-[#F1C40F]/40 dark:border-indigo-900/40
             shadow-[4px_0_20px_-5px_rgba(0,0,0,0.15)]
             transition-all duration-300
 
@@ -150,7 +154,7 @@ export default function PesertaLayout({
           <div className="flex items-center justify-between p-5">
             <div className="flex items-center gap-3">
               <img
-                src="/images/icons/Logo-Simaggo.png"
+                src="/images/icons/sitanjak.png"
                 className={`
                   object-contain
                   ${collapsed ? "w-9 h-9" : "w-14 h-14"}
@@ -176,11 +180,11 @@ export default function PesertaLayout({
                 border
 
                 bg-white/80
-                border-emerald-200
-                text-emerald-700
+                border-[#FDE68A]
+                text-[#7F1D1D]
 
-                hover:bg-emerald-100
-                hover:border-emerald-300
+                hover:bg-[#FEF3C7]
+                hover:border-[#FACC15]
 
                 dark:bg-slate-800/80
                 dark:border-slate-600
@@ -200,7 +204,7 @@ export default function PesertaLayout({
             {/* ===== DASHBOARD ===== */}
             <button
               onClick={() => setDashboardOpen(!dashboardOpen)}
-              className={`flex items-center gap-3 py-2 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-900/30
+              className={`flex items-center gap-3 py-2 rounded-xl hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm dark:hover:bg-[#312E81]/40 dark:hover:text-white
                 transition w-full
                 ${
                   collapsed
@@ -234,7 +238,7 @@ export default function PesertaLayout({
                   py-2.5 rounded-xl
                   text-sm
                   text-gray-700 dark:text-gray-300
-                  hover:bg-emerald-100/70
+                  hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm
                   dark:hover:bg-slate-800
                   transition
                   ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
@@ -242,8 +246,9 @@ export default function PesertaLayout({
                     pathname === "/dashboard/peserta"
                       ? `
                           bg-gradient-to-r
-                          from-emerald-500/20 to-cyan-500/20
-                          text-emerald-700
+                          from-[#FDE68A]/60
+                          to-[#FACC15]/40
+                          text-[#7F1D1D]
                           dark:from-indigo-500/30
                           dark:via-purple-500/25
                           dark:to-fuchsia-500/30
@@ -260,7 +265,7 @@ export default function PesertaLayout({
             {/* ===== AKTIVITAS MAGANG ===== */}
             <button
               onClick={() => setActivityOpen(!activityOpen)}
-              className={`flex items-center gap-3 py-2 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-900/30
+              className={`flex items-center gap-3 py-2 rounded-xl hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm dark:hover:bg-[#312E81]/40 dark:hover:text-white
                 transition w-full
                 ${
                   collapsed
@@ -294,7 +299,7 @@ export default function PesertaLayout({
                   py-2.5 rounded-xl
                   text-sm
                   text-gray-700 dark:text-gray-300
-                  hover:bg-emerald-100/70
+                  hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm
                   dark:hover:bg-slate-800
                   transition
                   ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
@@ -303,8 +308,9 @@ export default function PesertaLayout({
                     pathname.startsWith("/dashboard/peserta/isi-logbook")
                       ? `
                           bg-gradient-to-r
-                          from-emerald-500/20 to-cyan-500/20
-                          text-emerald-700
+                          from-[#FDE68A]/60
+                          to-[#FACC15]/40
+                          text-[#7F1D1D]
                           dark:from-indigo-500/30
                           dark:via-purple-500/25
                           dark:to-fuchsia-500/30
@@ -324,7 +330,7 @@ export default function PesertaLayout({
                   py-2.5 rounded-xl
                   text-sm
                   text-gray-700 dark:text-gray-300
-                  hover:bg-emerald-100/70
+                  hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm
                   dark:hover:bg-slate-800
                   transition
                   ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
@@ -333,8 +339,9 @@ export default function PesertaLayout({
                     pathname.startsWith("/dashboard/peserta/laporan-bulanan")
                       ? `
                           bg-gradient-to-r
-                          from-emerald-500/20 to-cyan-500/20
-                          text-emerald-700
+                          from-[#FDE68A]/60
+                          to-[#FACC15]/40
+                          text-[#7F1D1D]
                           dark:from-indigo-500/30
                           dark:via-purple-500/25
                           dark:to-fuchsia-500/30
@@ -354,7 +361,7 @@ export default function PesertaLayout({
                   py-2.5 rounded-xl
                   text-sm
                   text-gray-700 dark:text-gray-300
-                  hover:bg-emerald-100/70
+                  hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm
                   dark:hover:bg-slate-800
                   transition
                   ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
@@ -363,8 +370,9 @@ export default function PesertaLayout({
                     pathname.startsWith("/dashboard/peserta/laporan-akhir")
                       ? `
                           bg-gradient-to-r
-                          from-emerald-500/20 to-cyan-500/20
-                          text-emerald-700
+                          from-[#FDE68A]/60
+                          to-[#FACC15]/40
+                          text-[#7F1D1D]
                           dark:from-indigo-500/30
                           dark:via-purple-500/25
                           dark:to-fuchsia-500/30
@@ -381,10 +389,10 @@ export default function PesertaLayout({
             {/* ===== PROFILE ===== */}
             <button
               onClick={() => setHistoryOpen(!historyOpen)}
-              className={`flex items-center gap-3 py-2 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-900/30
-    transition w-full
-    ${collapsed ? "justify-center px-3" : "pl-5 pr-3 justify-between"}
-  `}
+              className={`flex items-center gap-3 py-2 rounded-xl hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm dark:hover:bg-[#312E81]/40 dark:hover:text-white
+                transition w-full
+                ${collapsed ? "justify-center px-3" : "pl-5 pr-3 justify-between"}
+              `}
             >
               <div className="flex items-center gap-3">
                 🛠️ {!collapsed && <span>Setting</span>}
@@ -413,7 +421,7 @@ export default function PesertaLayout({
                   py-2.5 rounded-xl
                   text-sm
                   text-gray-700 dark:text-gray-300
-                  hover:bg-emerald-100/70
+                  hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm
                   dark:hover:bg-slate-800
                   transition
                   ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
@@ -421,8 +429,9 @@ export default function PesertaLayout({
                     pathname === "/dashboard/peserta/ganti-password"
                       ? `
                           bg-gradient-to-r
-                          from-emerald-500/20 to-cyan-500/20
-                          text-emerald-700
+                          from-[#FDE68A]/60
+                          to-[#FACC15]/40
+                          text-[#7F1D1D]
                           dark:from-indigo-500/30
                           dark:via-purple-500/25
                           dark:to-fuchsia-500/30
@@ -457,9 +466,9 @@ export default function PesertaLayout({
           <header
             className={`
               sticky top-0 z-20 h-16
-              bg-white/70 dark:bg-[#020617]/70
+              dark:bg-[#020617]/70
               backdrop-blur-xl
-              border-b border-emerald-200 dark:border-slate-800
+              border-b border-[#FDE68A]/60 bg-white/80 dark:border-slate-800
               shadow-sm
               flex items-center px-4 lg:px-6
             `}
@@ -483,10 +492,10 @@ export default function PesertaLayout({
             <div className="ml-auto flex items-center gap-5">
               <button
                 onClick={toggleTheme}
-                className="p-2 rounded-full hover:bg-emerald-100 dark:hover:bg-emerald-900/40"
+                className="p-2 rounded-full hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm dark:hover:bg-[#312E81]/40"
               >
                 <Sun className="hidden dark:block text-yellow-400" />
-                <Moon className="block dark:hidden text-emerald-600" />
+                <Moon className="block dark:hidden text-[#7F1D1D]" />
               </button>
 
               <div className="relative">
@@ -499,9 +508,9 @@ export default function PesertaLayout({
                     flex items-center justify-center
                     font-bold
 
-                    bg-gradient-to-br from-emerald-500 to-teal-500
+                    bg-gradient-to-br from-[#B91C1C] to-[#7F1D1D]
                     text-white
-                    ring-2 ring-emerald-200
+                    ring-2 ring-[#FDE68A]
                     shadow-md
 
                     dark:bg-gradient-to-br dark:from-indigo-500 dark:via-purple-500 dark:to-fuchsia-500
@@ -524,7 +533,7 @@ export default function PesertaLayout({
                       rounded-3xl
                       bg-white/90 dark:bg-slate-900/90
                       backdrop-blur-xl
-                      border border-emerald-100 dark:border-slate-700
+                      border border-[#FDE68A]/60 dark:border-slate-700
                       shadow-[0_20px_60px_-15px_rgba(0,0,0,0.4)]
                       p-6
                       z-50
@@ -540,9 +549,9 @@ export default function PesertaLayout({
                           rounded-full
                           flex items-center justify-center
                           
-                          bg-gradient-to-br from-emerald-500 to-teal-500
+                          bg-gradient-to-br from-[#B91C1C] to-[#7F1D1D]
                           text-white
-                          ring-4 ring-emerald-200
+                          ring-4 ring-[#FDE68A]
 
                           dark:bg-gradient-to-br dark:from-indigo-500 dark:via-purple-500 dark:to-fuchsia-500
                           dark:text-white
@@ -575,7 +584,7 @@ export default function PesertaLayout({
                           rounded-full
                           text-xs font-semibold
 
-                          bg-emerald-100 text-emerald-700
+                          bg-[#FDE68A] text-[#7F1D1D]
 
                           dark:bg-purple-900/40
                           dark:text-purple-300

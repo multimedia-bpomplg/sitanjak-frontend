@@ -15,37 +15,37 @@ const manfaatList = [
     title: "Pengalaman Kerja Nyata",
     desc: "Mahasiswa memperoleh pengalaman langsung di lingkungan kerja profesional sesuai bidangnya.",
     icon: HiBriefcase,
-    color: "from-blue-500 to-cyan-500",
+    color: "from-[#FACC15] to-[#EAB308]",
   },
   {
     title: "Pengembangan Kompetensi",
     desc: "Meningkatkan kemampuan teknis dan soft skill yang dibutuhkan di dunia kerja.",
     icon: HiAcademicCap,
-    color: "from-cyan-500 to-emerald-500",
+    color: "from-[#DC2626] to-[#7F1D1D]",
   },
   {
     title: "Sertifikat Magang",
     desc: "Peserta yang menyelesaikan magang akan mendapatkan sertifikat resmi dari instansi.",
     icon: HiBadgeCheck,
-    color: "from-emerald-500 to-teal-400",
+    color: "from-[#FB923C] to-[#C2410C]",
   },
   {
     title: "Pembimbing Profesional",
     desc: "Didampingi oleh pembimbing berpengalaman selama pelaksanaan magang.",
     icon: HiUserGroup,
-    color: "from-indigo-500 to-blue-500",
+    color: "from-[#84CC16] to-[#365314]",
   },
   {
     title: "Peningkatan Daya Saing",
     desc: "Menjadi nilai tambah dalam dunia kerja dan meningkatkan daya saing lulusan.",
     icon: HiTrendingUp,
-    color: "from-emerald-400 to-lime-400",
+    color: "from-[#92400E] to-[#451A03]",
   },
   {
     title: "Relasi & Jaringan",
     desc: "Memperluas relasi profesional yang bermanfaat untuk karier di masa depan.",
     icon: HiSparkles,
-    color: "from-pink-500 to-rose-500",
+    color: "from-[#FDE68A] to-[#FACC15]",
   },
 ];
 
@@ -80,8 +80,6 @@ export default function Manfaat() {
       <div
         className={`
           max-w-6xl w-full
-          bg-gradient-to-br from-blue-100/30 via-cyan-100/30 to-emerald-100/30
-          backdrop-blur-xl rounded-3xl shadow-xl
           px-8 lg:px-14 py-14
           transition-all duration-700 ease-out
           ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}
@@ -95,7 +93,7 @@ export default function Manfaat() {
             ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}
           `}
         >
-          <h2 className="text-3xl lg:text-4xl font-extrabold text-blue-900">
+          <h2 className="text-3xl lg:text-4xl font-extrabold text-[#7F1D1D]">
             Manfaat Program Magang
           </h2>
           <p className="text-gray-700 mt-3 max-w-2xl mx-auto">
@@ -111,8 +109,8 @@ export default function Manfaat() {
               key={index}
               style={{ transitionDelay: `${index * 120}ms` }}
               className={`
-                bg-white/40 backdrop-blur-lg
-                border border-white/50
+                bg-white/45 backdrop-blur-lg
+                border border-white/60
                 rounded-3xl p-6
                 shadow-md
                 transition-all duration-700 ease-out
@@ -131,7 +129,7 @@ export default function Manfaat() {
                 <item.icon size={28} />
               </div>
 
-              <h3 className="text-xl font-bold text-blue-800 mb-2">
+              <h3 className="text-xl font-bold text-[#7F1D1D] mb-2">
                 {item.title}
               </h3>
 

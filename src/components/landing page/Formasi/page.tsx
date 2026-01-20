@@ -29,6 +29,12 @@ const formasiList = [
     kuota: "2 Orang",
     jurusan: "Ilmu Komunikasi, DKV",
   },
+  {
+    title: "Humas & Publikasi",
+    divisi: "Informasi & Komunikasi",
+    kuota: "2 Orang",
+    jurusan: "Ilmu Komunikasi, DKV",
+  },
 ];
 
 export default function Formasi() {
@@ -57,14 +63,12 @@ export default function Formasi() {
     <section
       id="formasi"
       ref={sectionRef}
-      className="w-full flex justify-center px-4 mt-24"
+      className="w-full flex justify-center px-4 mt-13"
     >
       <div
         className={`
           max-w-6xl w-full
-          bg-gradient-to-br from-blue-100/30 via-cyan-100/30 to-emerald-100/30
-          backdrop-blur-xl rounded-3xl shadow-xl
-          px-8 lg:px-14 py-14
+          px-8 lg:px-14 py-10
           transition-all duration-700 ease-out
           ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}
         `}
@@ -72,12 +76,12 @@ export default function Formasi() {
         {/* HEADER */}
         <div
           className={`
-            text-center mb-12
+            text-center mb-8
             transition-all duration-700 delay-100
             ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}
           `}
         >
-          <h2 className="text-3xl lg:text-4xl font-extrabold text-blue-900">
+          <h2 className="text-3xl lg:text-4xl font-extrabold text-[#7F1D1D]">
             Formasi Magang
           </h2>
           <p className="text-gray-700 mt-3 max-w-2xl mx-auto">
@@ -93,8 +97,8 @@ export default function Formasi() {
               key={i}
               style={{ transitionDelay: `${i * 120}ms` }}
               className={`
-                bg-white/40 backdrop-blur-lg
-                border border-white/50
+                bg-white/45 backdrop-blur-lg
+                border border-white/60
                 rounded-3xl p-6
                 shadow-md
                 transition-all duration-700 ease-out
@@ -102,23 +106,23 @@ export default function Formasi() {
                 hover:shadow-xl hover:-translate-y-1
               `}
             >
-              <h3 className="text-xl font-bold text-blue-800 mb-3">
+              <h3 className="text-xl font-bold text-[#7F1D1D] mb-3">
                 {item.title}
               </h3>
 
               <div className="space-y-2 text-gray-700 text-sm">
                 <p className="flex items-center gap-2">
-                  <HiBriefcase className="text-blue-600" />
+                  <HiBriefcase className="text-[#B91C1C]" />
                   <span><b>Divisi:</b> {item.divisi}</span>
                 </p>
 
                 <p className="flex items-center gap-2">
-                  <HiUsers className="text-emerald-600" />
+                  <HiUsers className="text-[#FACC15]" />
                   <span><b>Kuota:</b> {item.kuota}</span>
                 </p>
 
                 <p className="flex items-center gap-2">
-                  <HiAcademicCap className="text-cyan-600" />
+                  <HiAcademicCap className="text-[#7F1D1D]" />
                   <span><b>Jurusan:</b> {item.jurusan}</span>
                 </p>
               </div>
@@ -127,8 +131,8 @@ export default function Formasi() {
                 href="/pendaftaran"
                 className="
                   mt-6 inline-flex items-center justify-center w-full
-                  py-2.5 rounded-xl font-semibold text-white
-                  bg-gradient-to-r from-blue-600 via-cyan-600 to-emerald-500
+                  py-2.5 rounded-xl font-semibold text-[#7F1D1D]
+                  bg-gradient-to-r from-[#FACC15] to-[#EAB308]
                   hover:opacity-90 transition
                 "
               >

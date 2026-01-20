@@ -183,7 +183,11 @@ export default function PesertaDashboard() {
         className="
             relative overflow-hidden
             rounded-[2.25rem]
-            bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500
+            bg-gradient-to-r
+            from-[#7F1D1D]
+            via-[#991B1B]
+            via-[#B91C1C]
+            to-[#D97706]
             dark:from-indigo-600 dark:via-purple-600 dark:to-fuchsia-600
             px-10 py-12
             shadow-[0_24px_60px_-20px_rgba(0,0,0,0.45)]
@@ -265,7 +269,11 @@ export default function PesertaDashboard() {
               <div
                 className="
                     h-full
-                    bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500
+                    bg-gradient-to-r
+                    from-[#FEF3C7]
+                    via-[#FACC15]
+                    via-[#F59E0B]
+                    to-[#B45309]
                     dark:from-indigo-500 dark:via-purple-500 dark:to-fuchsia-500
                     transition-all duration-500
                   "
@@ -292,10 +300,10 @@ export default function PesertaDashboard() {
         <StatCard
           title="Status Magang"
           value={pendaftaran.status}
-          accent="emerald"
+          accent="gold"
         />
 
-        <StatCard title="Posisi" value={peserta.posisi} accent="cyan" />
+        <StatCard title="Posisi" value={peserta.posisi} accent="maroon" />
 
         <StatCard
           title="Periode"
@@ -309,7 +317,7 @@ export default function PesertaDashboard() {
               )}
             </>
           }
-          accent="violet"
+          accent="amber"
         />
 
         <StatCard
@@ -320,7 +328,7 @@ export default function PesertaDashboard() {
                 className="
                   flex h-9 w-9 items-center justify-center
                   rounded-full
-                  bg-emerald-100 text-emerald-700
+                  bg-[#FDE68A] text-[#7F1D1D]
                   dark:bg-indigo-900/60 dark:text-indigo-200
                   font-bold text-xs
                 "
@@ -333,7 +341,7 @@ export default function PesertaDashboard() {
               </div>
             </div>
           }
-          accent="pink"
+          accent="rose"
         />
       </div>
 
@@ -447,31 +455,28 @@ export default function PesertaDashboard() {
 /* ================= UI COMPONENTS ================= */
 
 function StatCard({ title, value, accent }: any) {
+  const accentMap: any = {
+    gold: "bg-[#FACC15]",
+    amber: "bg-[#F59E0B]",
+    maroon: "bg-[#7F1D1D]",
+    rose: "bg-[#BE123C]",
+  };
+
   return (
-    <div
-      className="
-          relative overflow-hidden
-          rounded-2xl p-6
-          bg-white dark:bg-slate-900
-          border border-slate-200 dark:border-slate-700
-          shadow-lg
-          transition hover:-translate-y-1 hover:shadow-2xl
-        "
-    >
-      {/* accent glow */}
+    <div className="
+      relative overflow-hidden
+      rounded-2xl p-6
+      bg-white dark:bg-slate-900
+      border border-slate-200 dark:border-slate-700
+      shadow-lg
+      transition hover:-translate-y-1 hover:shadow-2xl
+    ">
       <div
-        className={`
-            absolute -top-20 -right-20
-            w-40 h-40
-            rounded-full blur-3xl opacity-30
-            bg-${accent}-400
-          `}
+        className={`absolute -top-20 -right-20 w-40 h-40 rounded-full blur-3xl opacity-30 ${accentMap[accent]}`}
       />
 
-      {/* header */}
       <div className="relative z-10 space-y-2">
         <p className="text-sm text-slate-500 dark:text-slate-400">{title}</p>
-
         <div className="text-lg font-bold text-slate-900 dark:text-white">
           {value}
         </div>
@@ -489,8 +494,8 @@ function Section({ title, children }: any) {
             flex items-center gap-3
             px-5 py-3
             rounded-2xl
-            bg-gradient-to-r from-emerald-50 to-teal-50
-            text-emerald-800
+            bg-gradient-to-r from-[#FFF7ED] to-[#FDE68A]
+            text-[#7F1D1D]
             dark:from-indigo-900/40 dark:to-purple-900/30
             dark:text-indigo-200
             text-base font-semibold
@@ -599,7 +604,7 @@ function FileItem({
           href={`${baseUrl}/uploads/${file}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-sm font-semibold text-emerald-600 hover:underline"
+          className="text-sm font-semibold text-[#B91C1C] hover:text-[#7F1D1D] hover:underline"
         >
           Lihat
         </a>

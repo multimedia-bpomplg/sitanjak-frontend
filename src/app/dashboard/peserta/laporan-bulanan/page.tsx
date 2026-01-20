@@ -95,9 +95,11 @@ export default function LaporanBulananPage() {
                   border border-slate-300 dark:border-slate-700
                   px-4 py-3 pr-12
                   text-sm
-                  focus:outline-none
-                  focus:ring-2 focus:ring-emerald-500
                   cursor-pointer
+                  transition
+
+                  focus:outline-none
+                  focus:ring-2 focus:ring-[#B91C1C]
 
                   /* sembunyikan icon default */
                   [&::-webkit-calendar-picker-indicator]:opacity-0
@@ -115,10 +117,11 @@ export default function LaporanBulananPage() {
                   absolute right-3 top-1/2 -translate-y-1/2
                   h-8 w-8
                   rounded-lg
-                  border border-emerald-400 dark:border-emerald-500
+                  border border-[#FACC15]
                   flex items-center justify-center
-                  text-emerald-600 dark:text-emerald-400
+                  text-[#7F1D1D]
                   bg-white dark:bg-slate-900
+                  shadow-sm
                 "
               >
                 📅
@@ -136,11 +139,22 @@ export default function LaporanBulananPage() {
             className={`
               w-full rounded-xl py-3
               text-sm font-semibold text-white
-              transition
+              transition-all
+              shadow-md
               ${
                 !selectedMonth
                   ? "bg-slate-400 cursor-not-allowed"
-                  : "bg-emerald-600 hover:bg-emerald-700"
+                  : `
+                      bg-gradient-to-r
+                      from-[#7F1D1D]
+                      via-[#B91C1C]
+                      to-[#F59E0B]
+                      hover:from-[#991B1B]
+                      hover:via-[#B91C1C]
+                      hover:to-[#FACC15]
+                      hover:shadow-lg
+                      hover:-translate-y-0.5
+                    `
               }
             `}
           >
