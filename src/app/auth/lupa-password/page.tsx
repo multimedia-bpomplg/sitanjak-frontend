@@ -158,8 +158,8 @@ export default function LupaPasswordPage() {
               bg-gray-100
               text-sm font-medium
               text-gray-700
-              hover:bg-blue-50
-              hover:text-blue-700
+              hover:bg-[#FEF3C7]
+              hover:text-[#7F1D1D]
               transition-all
             "
           >
@@ -170,7 +170,7 @@ export default function LupaPasswordPage() {
                 rounded-full
                 bg-white
                 shadow
-                group-hover:bg-blue-600
+                group-hover:bg-[#B91C1C]
                 group-hover:text-white
                 transition
               "
@@ -190,7 +190,7 @@ export default function LupaPasswordPage() {
                 mx-auto mb-4
                 w-16 h-16
                 rounded-2xl
-                bg-gradient-to-br from-blue-600 via-cyan-600 to-emerald-500
+                bg-gradient-to-br from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
                 text-white
                 flex items-center justify-center
                 shadow-lg
@@ -218,7 +218,7 @@ export default function LupaPasswordPage() {
           {step === "email" && (
             <form onSubmit={handleSendOtp} className="space-y-5">
               <div className="relative">
-                <HiMail className="absolute left-4 top-3.5 text-blue-600" />
+                <HiMail className="absolute left-4 top-3.5 text-[#B91C1C]" />
                 <input
                   type="email"
                   placeholder="Masukkan email terdaftar"
@@ -229,7 +229,7 @@ export default function LupaPasswordPage() {
                      border border-gray-200
                     text-gray-800
                     placeholder:text-gray-400
-                    focus:outline-none focus:ring-2 focus:ring-blue-500
+                    focus:outline-none focus:ring-2 focus:ring-[#F59E0B]
                   "
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -240,7 +240,7 @@ export default function LupaPasswordPage() {
                 disabled={loading}
                 className="
                   w-full py-3 rounded-xl
-                  bg-gradient-to-r from-blue-600 via-cyan-600 to-emerald-500
+                  bg-gradient-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
                   text-white font-semibold
                   hover:opacity-90
                   disabled:opacity-60
@@ -281,7 +281,7 @@ export default function LupaPasswordPage() {
                       text-gray-800
                       border border-gray-300
                       bg-gray-50
-                      focus:outline-none focus:ring-2 focus:ring-blue-500
+                      focus:outline-none focus:ring-2 focus:ring-[#F59E0B]
                     "
                   />
                 ))}
@@ -291,7 +291,7 @@ export default function LupaPasswordPage() {
                 disabled={loading}
                 className="
                   w-full py-3 rounded-xl
-                  bg-gradient-to-r from-blue-600 via-cyan-600 to-emerald-500
+                  bg-gradient-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
                   text-white font-semibold
                   hover:opacity-90
                   disabled:opacity-60
@@ -305,7 +305,7 @@ export default function LupaPasswordPage() {
                 type="button"
                 disabled={countdown > 0}
                 onClick={handleSendOtp}
-                className="w-full text-sm text-blue-600 disabled:text-gray-400"
+                className="w-full text-sm text-[#B91C1C] disabled:text-gray-400"
               >
                 {countdown > 0
                   ? `Kirim ulang OTP dalam ${countdown}s`
@@ -318,7 +318,7 @@ export default function LupaPasswordPage() {
           {step === "reset" && (
             <form onSubmit={handleResetPassword} className="space-y-5">
               <div className="relative">
-                <HiLockClosed className="absolute left-4 top-3.5 text-blue-600" />
+                <HiLockClosed className="absolute left-4 top-3.5 text-[#B91C1C]" />
                 <input
                   type={showPassword ? "text" : "password"}
                   placeholder="Masukkan password baru"
@@ -329,7 +329,7 @@ export default function LupaPasswordPage() {
                     border border-gray-300
                     text-gray-800
                     placeholder:text-gray-400
-                    focus:outline-none focus:ring-2 focus:ring-blue-500
+                    focus:outline-none focus:ring-2 focus:ring-[#F59E0B]
                   "
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
@@ -338,7 +338,7 @@ export default function LupaPasswordPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword((p) => !p)}
-                  className="absolute right-4 top-3.5 text-gray-500 hover:text-blue-600"
+                  className="absolute right-4 top-3.5 text-gray-500 hover:text-[#B91C1C]"
                 >
                   {showPassword ? <HiEyeOff size={20} /> : <HiEye size={20} />}
                 </button>
@@ -348,7 +348,7 @@ export default function LupaPasswordPage() {
                 disabled={loading}
                 className="
                   w-full py-3 rounded-xl
-                  bg-gradient-to-r from-blue-600 via-cyan-600 to-emerald-500
+                  bg-gradient-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
                   text-white font-semibold
                   hover:opacity-90
                   disabled:opacity-60
@@ -367,7 +367,7 @@ export default function LupaPasswordPage() {
                 mx-auto mb-4
                 w-20 h-20
                 rounded-full
-                bg-gradient-to-br from-green-500 to-emerald-500
+                bg-gradient-to-br from-[#F59E0B] to-[#FACC15]
                 text-white text-4xl
                 flex items-center justify-center
                 shadow-lg
@@ -375,7 +375,7 @@ export default function LupaPasswordPage() {
                 ✓
               </div>
 
-              <p className="mb-4 text-green-600 font-semibold">
+              <p className="mb-4 text-[#7F1D1D] font-semibold">
                 Password berhasil diubah
               </p>
 
@@ -386,7 +386,7 @@ export default function LupaPasswordPage() {
                     w-full
                     py-3.5
                     rounded-xl
-                    bg-gradient-to-r from-blue-600 via-cyan-600 to-emerald-500
+                    bg-gradient-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
                     text-white
                     font-semibold
                     shadow-md
@@ -408,12 +408,12 @@ export default function LupaPasswordPage() {
         className="
           hidden lg:flex
           items-center justify-center
-          bg-gradient-to-br from-blue-600 via-cyan-600 to-emerald-500
+          bg-gradient-to-br from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
           px-12
         "
       >
         <div className="text-center text-white max-w-md">
-          <div className="mx-auto mb-6 w-28 h-28 rounded-3xl bg-white/20 flex items-center justify-center">
+          <div className="mx-auto mb-6 w-28 h-28 rounded-3xl bg-[#FEF3C7]/30 flex items-center justify-center">
             <HiKey className="text-6xl" />
           </div>
 

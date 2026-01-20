@@ -460,7 +460,7 @@ export default function PendaftaranPage() {
   const smkList = ["SMK Negeri 1", "SMK Negeri 2", "SMK Negeri 3"];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-cyan-50 to-emerald-50 py-16 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-[#FFF7ED] via-[#FEF3C7] to-[#FFFFFF] py-16 px-4">
       <div className="max-w-6xl mx-auto">
         {/* BACK TO HOME BUTTON */}
         <div className="mb-8">
@@ -474,8 +474,9 @@ export default function PendaftaranPage() {
                 border border-gray-200
                 text-gray-700 font-medium
                 shadow-sm
-                hover:bg-white hover:border-blue-300
-                hover:text-blue-700
+                hover:bg-white 
+                hover:border-[#F59E0B]
+                hover:text-[#7F1D1D]
                 hover:shadow-md
                 transition-all duration-200
               "
@@ -485,7 +486,7 @@ export default function PendaftaranPage() {
                 flex items-center justify-center
                 w-8 h-8
                 rounded-lg
-                bg-blue-50 text-blue-600
+                bg-[#FEF3C7] text-[#7F1D1D]
               "
             >
               <HiArrowLeft className="text-lg" />
@@ -497,7 +498,7 @@ export default function PendaftaranPage() {
 
         {/* HEADER */}
         <div className="text-center mb-14">
-          <h1 className="text-4xl md:text-5xl font-extrabold text-blue-900 tracking-tight">
+          <h1 className="text-4xl md:text-5xl font-extrabold text-[#7F1D1D] tracking-tight">
             Form Pendaftaran Magang
           </h1>
 
@@ -532,8 +533,8 @@ export default function PendaftaranPage() {
               href="/pendaftaran/riwayat"
               className="inline-flex items-center gap-2 px-5 py-2.5
                           rounded-xl text-sm font-semibold
-                          bg-blue-600 text-white
-                          hover:bg-blue-700 transition"
+                          bg-gradient-to-r from-[#7F1D1D] to-[#B91C1C] text-white
+                          hover:brightness-110 transition"
             >
               <HiClipboardList className="text-lg" />
               Lihat Riwayat Pendaftaran
@@ -547,7 +548,7 @@ export default function PendaftaranPage() {
         >
           {/* INFORMASI PERMOHONAN */}
           <div className="bg-white rounded-2xl shadow-md p-8 space-y-6">
-            <h2 className="text-lg font-semibold text-blue-800">
+            <h2 className="text-lg font-semibold text-[#7F1D1D]">
               Informasi Permohonan
             </h2>
 
@@ -608,7 +609,7 @@ export default function PendaftaranPage() {
               key={i}
               className="bg-white rounded-2xl shadow-md p-8 space-y-4"
             >
-              <h2 className="text-xl font-bold text-blue-800">
+              <h2 className="text-xl font-bold text-[#7F1D1D]">
                 Data Peserta {i + 1}
               </h2>
 
@@ -701,8 +702,8 @@ export default function PendaftaranPage() {
                         dateRefs.current[`mulai-${i}`]?.focus()
                       }
                       className="absolute right-3 top-1/2 -translate-y-1/2
-                                  text-blue-600 hover:text-blue-800
-                                  p-1 rounded-md hover:bg-blue-50 transition"
+                                  text-[#B91C1C] hover:text-[#7F1D1D]
+                                  p-1 rounded-md hover:bg-[#FEF3C7] transition"
                     >
                       <HiCalendar />
                     </button>
@@ -741,8 +742,8 @@ export default function PendaftaranPage() {
                         dateRefs.current[`selesai-${i}`]?.focus()
                       }
                       className="absolute right-3 top-1/2 -translate-y-1/2
-                                  text-blue-600 hover:text-blue-800
-                                  p-1 rounded-md hover:bg-blue-50 transition"
+                                  text-[#B91C1C] hover:text-[#7F1D1D]
+                                  p-1 rounded-md hover:bg-[#FEF3C7] transition"
                     >
                       <HiCalendar />
                     </button>
@@ -808,8 +809,8 @@ export default function PendaftaranPage() {
                         dateRefs.current[`lahir-${i}`]?.focus()
                       }
                       className="absolute right-3 top-1/2 -translate-y-1/2
-                                  text-blue-600 hover:text-blue-800
-                                  p-1 rounded-md hover:bg-blue-50 transition"
+                                  text-[#B91C1C] hover:text-[#7F1D1D]
+                                  p-1 rounded-md hover:bg-[#FEF3C7] transition"
                     >
                       <HiCalendar />
                     </button>
@@ -1278,14 +1279,14 @@ export default function PendaftaranPage() {
                   ${
                     errors["surat"]
                       ? "border-red-500 bg-red-50"
-                      : "border-gray-300 hover:border-blue-400"
+                      : "border-gray-300 hover:border-[#F59E0B]"
                   }
                 `}
             >
               <span className="text-gray-600">
                 {surat ? surat.name : "Klik untuk upload surat pengantar"}
               </span>
-              <span className="text-sm text-blue-600 font-medium">Browse</span>
+              <span className="text-sm text-[#7F1D1D] font-medium">Browse</span>
 
               <input
                 type="file"
@@ -1308,7 +1309,7 @@ export default function PendaftaranPage() {
             type="submit"
             disabled={loading}
             className="w-full py-4 rounded-xl text-white font-semibold text-lg
-                bg-gradient-to-r from-blue-600 via-cyan-600 to-emerald-500
+                bg-gradient-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
                 hover:scale-[1.02] transition disabled:opacity-60"
           >
             {loading ? "Mengirim..." : "Kirim Pendaftaran"}
@@ -1352,7 +1353,7 @@ export default function PendaftaranPage() {
                 </button>
                 <button
                   onClick={submitConfirmed}
-                  className="px-5 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-semibold hover:opacity-90"
+                  className="px-5 py-2 rounded-lg bg-gradient-to-r from-[#7F1D1D] to-[#B91C1C] text-white font-semibold hover:opacity-90"
                 >
                   Ya, Kirim
                 </button>
@@ -1375,7 +1376,7 @@ export default function PendaftaranPage() {
               {/* ICON */}
               <div
                 className="mx-auto mb-4 w-20 h-20 rounded-full
-                              bg-gradient-to-br from-green-500 to-emerald-500
+                              bg-gradient-to-br from-[#F59E0B] to-[#FACC15]
                               flex items-center justify-center shadow-lg"
               >
                 <svg
@@ -1411,7 +1412,7 @@ export default function PendaftaranPage() {
                   onClick={() => setShowSuccess(false)}
                   className="
                     w-full py-3 rounded-xl
-                    bg-gradient-to-r from-blue-600 via-cyan-600 to-emerald-500
+                    bg-gradient-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
                     text-white font-semibold
                     hover:scale-[1.02] transition
                   "
@@ -1421,7 +1422,7 @@ export default function PendaftaranPage() {
 
                 <Link
                   href="/pendaftaran/riwayat"
-                  className="text-sm text-blue-600 hover:underline"
+                  className="text-sm text-[#7F1D1D] hover:underline"
                 >
                   Lihat Riwayat Pendaftaran
                 </Link>

@@ -188,8 +188,8 @@ export default function LoginPage() {
                 absolute inset-0
                 rounded-full
                 border-4 border-transparent
-                border-t-blue-500
-                border-r-cyan-400
+                border-t-[#7F1D1D]   
+                border-l-[#B91C1C]  
                 animate-orbitFast
               "
               />
@@ -200,8 +200,8 @@ export default function LoginPage() {
                 absolute inset-3
                 rounded-full
                 border-4 border-transparent
-                border-b-emerald-500
-                border-l-green-400
+                border-b-[#F59E0B]  
+                border-r-[#15803D]   
                 animate-orbitSlow
               "
               />
@@ -211,10 +211,12 @@ export default function LoginPage() {
                 className="
                 absolute inset-6
                 rounded-full
-                bg-white
+                bg-gradient-to-br from-[#FEF3C7] to-[#FFF7ED]
                 shadow
                 flex items-center justify-center
                 text-2xl
+                text-[#7F1D1D]
+                font-bold
               "
               >
                 ⏳
@@ -223,15 +225,15 @@ export default function LoginPage() {
           ) : (
             <div
               className="
-              mx-auto mb-6
-              w-20 h-20
-              rounded-full
-              bg-gradient-to-br from-red-500 to-pink-500
-              text-white
-              flex items-center justify-center
-              text-3xl
-              shadow-lg
-            "
+                mx-auto mb-6
+                w-20 h-20
+                rounded-full
+                bg-gradient-to-br from-[#B91C1C] to-[#7F1D1D]
+                text-white
+                flex items-center justify-center
+                text-3xl
+                shadow-lg
+              "
             >
               ✕
             </div>
@@ -378,7 +380,7 @@ export default function LoginPage() {
       </div>
 
       {/* FORM */}
-      <div className="relative flex items-center justify-center bg-[#F6FFFC] px-6 pt-24 pb-12">
+      <div className="relative flex items-center justify-center bg-gradient-to-br from-[#FFFBF5] via-[#FFF7ED] to-[#FFFFFF] px-6 pt-24 pb-12">
         {/* BUTTON KEMBALI */}
         <Link
           href="/"
@@ -392,8 +394,8 @@ export default function LoginPage() {
             text-gray-700 font-medium text-sm
             shadow-sm
             hover:bg-white
-            hover:border-blue-300
-            hover:text-blue-700
+            hover:border-[#F59E0B]
+            hover:text-[#7F1D1D]
             hover:shadow-md
             transition-all duration-200
           "
@@ -403,8 +405,8 @@ export default function LoginPage() {
               flex items-center justify-center
               w-8 h-8
               rounded-lg
-              bg-blue-50
-              text-blue-600
+              bg-[#FEF3C7] 
+              text-[#7F1D1D]
             "
           >
             <HiArrowLeft className="text-lg" />
@@ -413,14 +415,14 @@ export default function LoginPage() {
           <span>Kembali</span>
         </Link>
 
-        <div className="w-full max-w-lg bg-white/30 rounded-3xl shadow-2xl p-10">
-          <h1 className="text-3xl font-extrabold text-center text-blue-800 mb-2">
+        <div className="w-full max-w-lg bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl p-10">
+          <h1 className="text-3xl font-extrabold text-center text-[#7F1D1D] mb-2">
             Masuk ke Akun
           </h1>
 
           <div className="flex justify-center my-4">
             <Image
-              src="/images/icons/SIMAGGO.png"
+              src="/images/icons/sitanjak.png"
               alt="Logo"
               width={100}
               height={100}
@@ -435,7 +437,7 @@ export default function LoginPage() {
             {/* EMAIL */}
             <div className="relative">
               <HiMail
-                className="absolute left-4 top-3.5 text-blue-600"
+                className="absolute left-4 top-3.5 text-[#B91C1C]"
                 size={20}
               />
               <input
@@ -448,7 +450,9 @@ export default function LoginPage() {
                   border border-gray-300
                   text-gray-800
                   placeholder:text-gray-400
-                  focus:outline-none focus:ring-2 focus:ring-blue-500
+                  focus:outline-none 
+                  focus:ring-2 focus:ring-[#FACC15] 
+                  focus:border-[#F59E0B]
                 "
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
@@ -459,7 +463,7 @@ export default function LoginPage() {
             {/* PASSWORD */}
             <div className="relative">
               <HiLockClosed
-                className="absolute left-4 top-3.5 text-blue-600"
+                className="absolute left-4 top-3.5 text-[#B91C1C]"
                 size={20}
               />
 
@@ -473,7 +477,9 @@ export default function LoginPage() {
                   border border-gray-300
                   text-gray-800
                   placeholder:text-gray-400
-                  focus:outline-none focus:ring-2 focus:ring-blue-500
+                  focus:outline-none 
+                  focus:ring-2 focus:ring-[#FACC15] 
+                  focus:border-[#F59E0B]
                 "
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
@@ -494,10 +500,10 @@ export default function LoginPage() {
               <Link
                 href="/auth/lupa-password"
                 className="
-                  font-medium text-blue-600
-                  hover:text-blue-700
+                  font-medium
+                  text-[#7F1D1D]
+                  hover:text-[#B91C1C]
                   hover:underline
-                  transition
                 "
               >
                 Lupa password?
@@ -514,9 +520,11 @@ export default function LoginPage() {
               disabled={loading}
               className="
                 w-full flex items-center justify-center gap-2
-                py-3 rounded-xl font-semibold text-white
-                bg-gradient-to-r from-blue-600 via-cyan-600 to-emerald-500
-                hover:opacity-90 transition
+                py-3 rounded-xl
+                font-semibold text-white
+                bg-gradient-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
+                hover:brightness-110
+                transition
                 disabled:opacity-60
               "
             >
@@ -542,7 +550,10 @@ export default function LoginPage() {
       </div>
 
       {/* IMAGE KANAN */}
-      <div className="hidden lg:block relative w-full min-h-screen bg-[#ECFDF5]">
+      <div className="
+        hidden lg:block relative w-full min-h-screen 
+        bg-gradient-to-br from-[#FFFBF5] via-[#FFF7ED] to-[#FEF3C7]
+      ">
         <Image
           src="/images/logins/icon login.png"
           alt="Login Background"
@@ -550,6 +561,7 @@ export default function LoginPage() {
           className="object-contain"
           priority
         />
+        <div className="absolute inset-0 bg-gradient-to-tr from-[#7F1D1D]/10 via-transparent to-[#FACC15]/15" />
       </div>
 
       {toast.show && (

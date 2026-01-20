@@ -211,7 +211,7 @@ export default function RiwayatPendaftaran() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-cyan-50 to-emerald-50 py-16 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-[#FFF7ED] via-[#FEF3C7] to-[#FFFFFF] py-16 px-4">
       {/* BUTTON KEMBALI */}
       <div className="mb-10 max-w-4xl mx-auto">
         <Link
@@ -224,8 +224,8 @@ export default function RiwayatPendaftaran() {
             border border-gray-200
             text-gray-700 font-medium
             shadow-sm
-            hover:bg-white hover:border-blue-300
-            hover:text-blue-700
+            hover:bg-white hover:border-[#F59E0B]
+            hover:text-[#7F1D1D]
             hover:shadow-md
             transition-all duration-200
           "
@@ -235,8 +235,8 @@ export default function RiwayatPendaftaran() {
               flex items-center justify-center
               w-8 h-8
               rounded-lg
-              bg-blue-50
-              text-blue-600
+              bg-[#FEF3C7]
+              text-[#7F1D1D]
             "
           >
             <HiArrowLeft className="text-lg" />
@@ -249,7 +249,7 @@ export default function RiwayatPendaftaran() {
       <div className="max-w-4xl mx-auto">
         {/* HEADER */}
         <div className="text-center mb-14">
-          <h1 className="text-4xl md:text-5xl font-extrabold text-blue-900 tracking-tight">
+          <h1 className="text-4xl md:text-5xl font-extrabold text-[#7F1D1D] tracking-tight">
             Riwayat Pendaftaran Magang
           </h1>
           <p className="text-gray-600 mt-3 text-lg">
@@ -261,7 +261,7 @@ export default function RiwayatPendaftaran() {
         <div className="bg-white/80 backdrop-blur rounded-2xl shadow-lg p-6 mb-10">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="relative flex-1">
-              <HiMail className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-600 text-xl" />
+              <HiMail className="absolute left-4 top-1/2 -translate-y-1/2 text-[#B91C1C] text-xl" />
               <input
                 type="email"
                 placeholder="nama@gmail.com"
@@ -270,7 +270,7 @@ export default function RiwayatPendaftaran() {
                   border border-gray-300
                   text-gray-800
                   placeholder:text-gray-400
-                  focus:ring-2 focus:ring-blue-500
+                  focus:ring-2 focus:ring-[#F59E0B]
                   outline-none
                 "
                 value={email}
@@ -283,8 +283,9 @@ export default function RiwayatPendaftaran() {
               className="
                 flex items-center justify-center gap-2
                 px-6 py-3 rounded-xl
-                bg-blue-600 text-white font-semibold
-                hover:bg-blue-700
+                bg-gradient-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
+                text-white font-semibold
+                hover:brightness-110
                 transition
               "
             >
@@ -314,8 +315,8 @@ export default function RiwayatPendaftaran() {
               </div>
 
               {result.jawabanAdmin && (
-                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4">
-                  <p className="text-sm font-semibold text-blue-800 mb-1">
+                <div className="bg-[#FFF7ED] border border-[#FACC15] rounded-xl p-4 mb-4">
+                  <p className="text-sm font-semibold text-[#7F1D1D] mb-1">
                     💬 Jawaban Admin
                   </p>
                   <p className="text-blue-700 text-sm">{result.jawabanAdmin}</p>
@@ -329,8 +330,8 @@ export default function RiwayatPendaftaran() {
                   className="
                     inline-flex items-center gap-2
                     px-5 py-2.5 rounded-xl
-                    bg-blue-100 text-blue-700 font-semibold
-                    hover:bg-blue-200 transition
+                    bg-[#FEF3C7] text-[#7F1D1D] font-semibold
+                    hover:bg-[#FACC15] transition
                   "
                 >
                   📄 Lihat Surat Pengantar
@@ -343,22 +344,22 @@ export default function RiwayatPendaftaran() {
                   href={`http://localhost:5000/uploads/${result.suratBalasan}`}
                   target="_blank"
                   className="
-        inline-flex items-center gap-2
-        px-5 py-2.5 rounded-xl
-        bg-green-100 text-green-700 font-semibold
-        hover:bg-green-200 transition
-      "
+                    inline-flex items-center gap-2
+                    px-5 py-2.5 rounded-xl
+                    bg-green-100 text-green-700 font-semibold
+                    hover:bg-green-200 transition
+                  "
                 >
                   ✅ Surat Balasan
                 </a>
               ) : (
                 <div
                   className="
-        inline-flex items-center gap-2
-        px-5 py-2.5 rounded-xl
-        bg-red-100 text-red-700 font-semibold
-        cursor-not-allowed
-      "
+                    inline-flex items-center gap-2
+                    px-5 py-2.5 rounded-xl
+                    bg-red-100 text-red-700 font-semibold
+                    cursor-not-allowed
+                  "
                 >
                   ❌ Surat Balasan Belum Ada
                 </div>
@@ -395,7 +396,7 @@ export default function RiwayatPendaftaran() {
                       className="
                         absolute top-5 right-5
                         text-xs px-3 py-1 rounded-full
-                        bg-blue-100 text-blue-700 font-semibold
+                        bg-[#FEF3C7] text-[#7F1D1D] font-semibold
                       "
                     >
                       Peserta {i + 1}
@@ -407,7 +408,7 @@ export default function RiwayatPendaftaran() {
                       <div
                         className="
                           w-12 h-12 rounded-full
-                          bg-gradient-to-br from-blue-600 to-cyan-500
+                          bg-gradient-to-br from-[#7F1D1D] to-[#B91C1C]
                           text-white font-bold text-lg
                           flex items-center justify-center
                           shadow

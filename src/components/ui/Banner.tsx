@@ -21,12 +21,10 @@ export default function PopupPromo({
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    const lastClosed = localStorage.getItem("popupClosedAt");
+    const lastHidden = localStorage.getItem("popupHideUntil");
 
-    // jika pernah ditutup & belum lewat 1 hari
-    if (lastClosed) {
-      const diff = Date.now() - Number(lastClosed);
-      if (diff < ONE_DAY) return;
+    if (lastHidden && Date.now() < Number(lastHidden)) {
+      return; // masih dalam periode sembunyi
     }
 
     const timer = setTimeout(() => {
@@ -36,53 +34,118 @@ export default function PopupPromo({
     return () => clearTimeout(timer);
   }, [delay]);
 
-  /* === HANDLE TUTUP === */
+  // ❌ Close biasa (tidak simpan apa-apa)
   const closePopup = () => {
-    localStorage.setItem("popupClosedAt", Date.now().toString());
+    setOpen(false);
+  };
+
+  // 🚫 Jangan tampilkan hari ini
+  const hideForToday = () => {
+    const hideUntil = Date.now() + ONE_DAY;
+    localStorage.setItem("popupHideUntil", hideUntil.toString());
     setOpen(false);
   };
 
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-md mx-4 overflow-hidden">
-        {/* CLOSE ICON */}
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md">
+      {/* CARD */}
+      <div
+        className="
+          relative w-full max-w-md mx-4
+          rounded-3xl overflow-hidden
+          bg-white/90 dark:bg-slate-900/90
+          backdrop-blur-xl
+          shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)]
+          animate-[scaleIn_0.4s_ease-out]
+        "
+      >
+        {/* CLOSE */}
         <button
           onClick={closePopup}
-          className="absolute top-3 right-3 text-gray-500 hover:text-red-500 text-xl"
+          className="
+            absolute top-4 right-4 z-10
+            w-9 h-9 rounded-full
+            flex items-center justify-center
+            bg-white/80 dark:bg-slate-800/80
+            text-gray-700 dark:text-gray-200
+            hover:text-red-600
+            hover:scale-110
+            transition
+          "
         >
           ✕
         </button>
 
-        {/* IMAGE */}
-        <div className="relative w-full h-48">
+        {/* IMAGE HEADER */}
+        <div className="relative h-52">
           <Image
             src={image}
-            alt="Popup Image"
+            alt="Popup Promo"
             fill
-            className="object-cover"
             priority
+            className="object-cover"
           />
+
+          {/* GRADIENT OVERLAY */}
+          <div
+            className="
+              absolute inset-0
+              bg-gradient-to-t
+              from-black/25 via-black/10 to-transparent
+            "
+          />
+
+          {/* BADGE */}
+          <div
+            className="
+              absolute bottom-4 left-4
+              px-4 py-1.5
+              rounded-full
+              text-xs font-bold
+              bg-gradient-to-r from-[#FACC15] to-[#F59E0B]
+              text-[#7F1D1D]
+              shadow-lg
+            "
+          >
+            🎉 INFO PENTING
+          </div>
         </div>
 
         {/* CONTENT */}
-        <div className="p-5 text-center">
-          <h3 className="text-xl font-bold mb-2">{title}</h3>
-          <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
+        <div className="px-6 py-7 text-center">
+          <h3 className="text-2xl font-extrabold text-[#7F1D1D] mb-3">
+            {title}
+          </h3>
+
+          <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed mb-6">
             {description}
           </p>
 
-          {/* BUTTON HILANGKAN 1 HARI */}
+          {/* CTA */}
           <button
             onClick={closePopup}
             className="
-              text-sm
-              px-4 py-2
-              rounded-lg
-              bg-slate-200 dark:bg-slate-700
-              text-slate-700 dark:text-slate-200
-              hover:bg-slate-300 dark:hover:bg-slate-600
+              w-full
+              py-3 rounded-xl
+              font-bold text-sm
+              text-white
+              bg-gradient-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
+              hover:shadow-xl
+              hover:-translate-y-0.5
+              transition-all
+            "
+          >
+            🚀 Saya Mengerti
+          </button>
+
+          {/* SECONDARY */}
+          <button
+            onClick={hideForToday}
+            className="
+              mt-4 text-xs
+              text-slate-500 hover:text-[#7F1D1D]
               transition
             "
           >
@@ -90,6 +153,20 @@ export default function PopupPromo({
           </button>
         </div>
       </div>
+
+      {/* KEYFRAMES */}
+      <style jsx>{`
+        @keyframes scaleIn {
+          0% {
+            opacity: 0;
+            transform: scale(0.92);
+          }
+          100% {
+            opacity: 1;
+            transform: scale(1);
+          }
+        }
+      `}</style>
     </div>
   );
 }
