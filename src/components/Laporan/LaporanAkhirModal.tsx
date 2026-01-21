@@ -184,8 +184,10 @@ export default function LaporanAkhirModal({ mode, onClose }: Props) {
           className="
             px-5 sm:px-6 py-4
             border-b border-slate-200 dark:border-slate-800
-            bg-gradient-to-r from-indigo-50 to-blue-50
-            dark:from-slate-800 dark:to-slate-900
+            bg-gradient-to-r
+            from-[#FCA5A5] via-[#FDE68A] to-[#FFF7ED]
+            dark:from-indigo-800 dark:via-indigo-700 dark:to-indigo-900
+            text-slate-900 dark:text-white
           "
         >
           <div className="flex items-start justify-between gap-4">
@@ -678,14 +680,27 @@ function TextBlock({ value }: { value: string }) {
   return (
     <div
       className="
+        w-full
+        rounded-xl
+        border
+        px-4 py-3
         text-sm sm:text-base
-        text-slate-800 dark:text-slate-200
         leading-relaxed
         whitespace-pre-line
         text-justify
+
+        bg-white
+        border-slate-200
+        text-slate-800
+
+        dark:bg-slate-800/80
+        dark:border-slate-700
+        dark:text-slate-200
+        
+        shadow-sm
       "
     >
-      {value || "-"}
+      {value || <span className="text-slate-400">-</span>}
     </div>
   );
 }

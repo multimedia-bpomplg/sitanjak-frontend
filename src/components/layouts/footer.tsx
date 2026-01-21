@@ -26,15 +26,15 @@ export default function Footer() {
           {/* LOGO WEBSITE */}
           <div className="flex flex-col items-center md:items-start text-center md:text-left">
             <Image
-              src="/images/icons/SIMAGGO.png"
+              src="/images/icons/sitanjak.png"
               alt="Logo Website"
               width={130}
               height={130}
             />
 
-            <p className="text-xl font-bold mt-3">Sistem Informasi Magang</p>
+            <p className="text-md font-bold mt-3">Sistem Informasi Tahapan dan Jangkauan Magang Akademik</p>
 
-            <div className="flex items-center gap-2 mt-1">
+            <div className="flex items-center gap-2 mt-3">
               <Image
                 src="/images/footer/indonesia.png"
                 alt="Icon Info"
@@ -81,11 +81,11 @@ export default function Footer() {
           {/* LOGO INSTANSI + SOSIAL MEDIA */}
           <div className="flex flex-col items-center md:items-end text-center md:text-right">
             <Image
-              src="/images/footer/logo bpom.png"
+              src="/images/footer/BPOM.png"
               alt="Logo Instansi"
-              width={90}
-              height={90}
-              className="rounded-xl shadow-lg"
+              width={100}
+              height={100}
+              className="drop-shadow-[0_6px_14px_rgba(0,0,0,0.45)]"
             />
 
             <h3 className="text-xl font-bold mt-3">Balai Besar POM Palembang</h3>

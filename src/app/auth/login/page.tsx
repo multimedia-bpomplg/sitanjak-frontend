@@ -369,7 +369,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex flex-col lg:grid lg:grid-cols-2">
       {/* IMAGE ATAS */}
-      <div className="lg:hidden w-full relative aspect-[16/9] bg-[#ECFDF5]">
+      <div className="lg:hidden w-full relative aspect-[16/9] bg-gradient-to-br from-[#FFFBF5] via-[#FFF7ED] to-[#FEF3C7]">
         <Image
           src="/images/logins/icon login.png"
           alt="Login Background"

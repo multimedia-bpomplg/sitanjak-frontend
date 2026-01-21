@@ -108,20 +108,20 @@ export default function PesertaLayout({
     <ConfirmProvider>
       <div
         className="
-        min-h-screen
-        flex
-        bg-gradient-to-br
-        from-[#FBF7F2]   
-        via-[#F9FAFB]    
-        to-[#F3F4F6]     
+          min-h-screen
+          flex
+          bg-gradient-to-br
+          from-[#FBF7F2]   
+          via-[#F9FAFB]    
+          to-[#F3F4F6]     
 
-        dark:from-[#020617]
-        dark:via-[#020617]
-        dark:to-[#0F172A]
+          dark:from-[#020617]
+          dark:via-[#020617]
+          dark:to-[#0F172A]
 
-        text-gray-800 dark:text-gray-100
-        transition-colors duration-300
-      "
+          text-gray-800 dark:text-gray-100
+          transition-colors duration-300
+        "
       >
         {/* ===================== SIDEBAR ===================== */}
         <aside
@@ -159,7 +159,7 @@ export default function PesertaLayout({
                   object-contain
                   ${collapsed ? "w-9 h-9" : "w-14 h-14"}
                 `}
-                alt="SIMAGGO Logo"
+                alt="SiTanjak Logo"
               />
               {!collapsed && (
                 <h1 className="text-lg font-semibold tracking-wide">
@@ -210,7 +210,8 @@ export default function PesertaLayout({
                   collapsed
                     ? "justify-center px-3"
                     : "pl-5 pr-3 justify-between"
-                }`}
+                }
+              `}
             >
               <div className="flex items-center gap-3">
                 🏠 {!collapsed && <span>Dashboard</span>}

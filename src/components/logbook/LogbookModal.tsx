@@ -387,6 +387,15 @@ export default function LogbookModal({
     );
   };
 
+  const statusStyle = {
+    hadir:
+      "border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
+    tidak_hadir_keterangan:
+      "border-amber-500 bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
+    tidak_hadir_tanpa_keterangan:
+      "border-red-500 bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300",
+  };
+
   if (isLoading) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
@@ -401,22 +410,42 @@ export default function LogbookModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="w-full max-w-4xl bg-white rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-3 sm:p-6">
+      <div 
+        className="
+          w-full max-w-3xl
+          rounded-3xl
+          bg-white dark:bg-slate-900
+          shadow-2xl
+          flex flex-col
+          max-h-[90vh]
+          overflow-hidden
+        "
+      >
         {/* Header */}
-        <div className="px-6 py-5 bg-gradient-to-r from-indigo-500 to-purple-600 text-white">
+        <div 
+          className="
+            px-5 sm:px-6 py-4
+            border-b border-slate-200 dark:border-slate-800
+            bg-gradient-to-r
+            from-[#FCA5A5] via-[#FDE68A] to-[#FFF7ED]
+            dark:from-indigo-800 dark:via-indigo-700 dark:to-indigo-900
+            text-slate-900 dark:text-white
+            shadow-lg
+          "
+        >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-white/20 rounded-lg">
                 <FiCalendar className="text-xl" />
               </div>
               <div>
-                <h2 className="text-xl font-bold">
+                <h2 className="text-lg sm:text-xl font-bold leading-tight">
                   {mode === "view"
                     ? "Detail Logbook Harian"
                     : "Isi Logbook Harian"}
                 </h2>
-                <p className="text-sm opacity-90">
+                <p className="text-xs sm:text-sm opacity-90">
                   {formatDate(date)} •{" "}
                   {mode === "view" ? "Mode Baca" : "Mode Buat"}
                 </p>
@@ -424,7 +453,7 @@ export default function LogbookModal({
             </div>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-white/20 rounded-lg transition"
+              className="p-2 text-red-600 hover:bg-red-100 dark:text-red-400 dark:hover:bg-red-900/30 rounded-lg transition"
             >
               <FiX className="text-xl" />
             </button>
@@ -432,7 +461,7 @@ export default function LogbookModal({
         </div>
 
         {/* Approval Status */}
-        <div className="mt-3">
+        <div className="mt-4 sm:mt-6 px-4 sm:px-6">
           <ApprovalBadge />
         </div>
 
@@ -441,8 +470,8 @@ export default function LogbookModal({
           {/* Status Kehadiran */}
           <div className="space-y-3">
             <div className="flex items-center gap-2">
-              <FiUserCheck className="text-slate-500" />
-              <label className="font-semibold text-slate-700">
+              <FiUserCheck className="text-slate-500 dark:text-white" />
+              <label className="font-semibold text-slate-700 dark:text-white">
                 Status Kehadiran
               </label>
             </div>
@@ -471,13 +500,24 @@ export default function LogbookModal({
                       flex items-center gap-3 p-4 rounded-xl border transition-all
                       ${
                         status === option.value
-                          ? "border-indigo-500 bg-indigo-50 text-indigo-700"
-                          : "border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-600"
+                          ? statusStyle[option.value]
+                          : "border-slate-200 hover:bg-slate-50 text-slate-600 dark:text-slate-300"
                       }
                     `}
                   >
                     <div
-                      className={`p-2 rounded-lg ${status === option.value ? "bg-indigo-100" : "bg-slate-100"}`}
+                      className={`
+                        p-2 rounded-lg
+                        ${
+                          status === option.value
+                            ? option.value === "hadir"
+                              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
+                              : option.value === "tidak_hadir_keterangan"
+                              ? "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
+                              : "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300"
+                            : "bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-300"
+                        }
+                      `}
                     >
                       {option.icon}
                     </div>
@@ -527,8 +567,8 @@ export default function LogbookModal({
               {/* File Upload/Display */}
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
-                  <FiImage className="text-slate-500" />
-                  <label className="font-semibold text-slate-700">
+                  <FiImage className="text-slate-500 dark:text-white" />
+                  <label className="font-semibold text-slate-700 dark:text-white">
                     Dokumentasi{" "}
                     {!readonly && `(Max ${MAX_FILES} foto, 2MB/foto)`}
                   </label>
@@ -538,7 +578,15 @@ export default function LogbookModal({
                   <>
                     {files.length === 0 ? (
                       <label className="block">
-                        <div className="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center cursor-pointer hover:border-indigo-400 hover:bg-indigo-50 transition">
+                        <div className="
+                          border-2 border-dashed 
+                          border-amber-300 bg-amber-50/60
+                          rounded-xl p-8 text-center cursor-pointer 
+                          hover:border-amber-400
+                          hover:bg-amber-100
+                          dark:bg-indigo-900/30
+                          dark:border-indigo-700 
+                          transition">
                           <FiUpload className="text-3xl text-slate-400 mx-auto mb-3" />
                           <p className="font-medium text-slate-700">
                             Klik untuk upload foto
@@ -645,14 +693,14 @@ export default function LogbookModal({
             <div className="space-y-4">
               {/* Catatan Mentor (Tampilkan jika ada catatan) */}
               {mentorNote && approvalStatus !== "menunggu" && (
-                <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 dark:bg-indigo-900/30 dark:border-indigo-700">
                   <div className="flex items-center gap-2 mb-2">
                     <FiEdit className="text-slate-500" />
                     <span className="font-semibold text-slate-700">
                       Catatan Mentor:
                     </span>
                   </div>
-                  <p className="text-slate-600 whitespace-pre-line">
+                  <p className="text-amber-800 dark:text-indigo-200 whitespace-pre-line">
                     {mentorNote}
                   </p>
                 </div>
@@ -662,31 +710,55 @@ export default function LogbookModal({
 
           {/* Agreement Checkbox (Create Mode) */}
           {mode === "create" && (
-            <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+            <div
+              className={`
+                p-4 rounded-xl border transition
+                ${
+                  agree
+                    ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30"
+                    : "border-slate-200 bg-slate-50 dark:bg-slate-800 dark:border-slate-700"
+                }
+              `}
+            >
               <button
                 type="button"
                 onClick={() => setAgree(!agree)}
                 className="flex items-start gap-3 w-full text-left"
               >
+                {/* CHECKBOX */}
                 <div
                   className={`
-                  w-6 h-6 flex items-center justify-center rounded border-2 mt-0.5 flex-shrink-0
-                  ${
-                    agree
-                      ? "bg-indigo-600 border-indigo-600 text-white"
-                      : "border-slate-300"
-                  }
-                `}
+                    w-6 h-6 rounded border-2
+                    flex items-center justify-center flex-shrink-0 mt-0.5
+                    transition
+                    ${
+                      agree
+                        ? "bg-emerald-600 border-emerald-600 text-white"
+                        : "border-slate-400 dark:border-slate-500 bg-transparent"
+                    }
+                  `}
                 >
                   {agree && <FiCheck className="text-sm" />}
                 </div>
+
+                {/* TEXT */}
                 <div>
-                  <p className="font-medium text-slate-700">
-                    Konfirmasi Keabsahan Data
+                  <p
+                    className={`
+                      font-medium
+                      ${agree ? "text-emerald-700 dark:text-emerald-300" : "text-slate-700 dark:text-slate-200"}
+                    `}
+                  >
+                    Konfirmasi
                   </p>
-                  <p className="text-sm text-slate-500 mt-1">
-                    Saya menyatakan bahwa semua data yang diisi adalah benar dan
-                    dapat dipertanggungjawabkan
+                  <p
+                    className={`
+                      text-sm mt-1
+                      ${agree ? "text-emerald-600 dark:text-emerald-400" : "text-slate-500 dark:text-slate-400"}
+                    `}
+                  >
+                    Saya menyatakan bahwa semua data yang diisi adalah benar dan dapat
+                    dipertanggungjawabkan
                   </p>
                 </div>
               </button>
@@ -708,7 +780,15 @@ export default function LogbookModal({
                   value={mentorNote}
                   onChange={(e) => setMentorNote(e.target.value)}
                   rows={4}
-                  className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition resize-none"
+                  className="
+                    w-full px-4 py-3
+                    border rounded-xl
+                    resize-y
+                    max-h-[40vh]
+                    transition
+                    focus:border-indigo-500
+                    focus:ring-2 focus:ring-indigo-200
+                  "
                   placeholder="Berikan catatan atau komentar untuk peserta..."
                 />
                 <p className="text-sm text-slate-500">
@@ -719,27 +799,42 @@ export default function LogbookModal({
         </div>
 
         {/* Footer Actions */}
-        <div className="px-6 py-5 border-t border-slate-200 bg-slate-50">
-          <div className="flex flex-col sm:flex-row gap-3 justify-between items-center">
+        <div className="px-6 py-5 border-t bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700">
+          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
             <button
               onClick={onClose}
-              className="px-6 py-3 font-medium text-slate-600 hover:text-slate-800 transition"
+              className="
+                w-full sm:w-auto
+                px-6 py-3
+                rounded-full
+                font-medium
+                border
+                border-red-500 text-red-600
+                hover:bg-red-50
+                dark:border-red-400 dark:text-red-400 dark:hover:bg-red-900/30
+                transition
+              "
             >
               {mode === "view" ? "Tutup" : "Batalkan"}
             </button>
 
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
               {/* Create Mode: Save Button */}
               {mode === "create" && (
                 <button
                   disabled={submitDisabled}
                   onClick={handleSubmit}
                   className={`
-                    px-6 py-3 rounded-xl font-medium transition-all flex items-center gap-2
+                    w-full sm:w-auto justify-center
+                    px-8 py-3
+                    rounded-full
+                    font-semibold
+                    flex items-center gap-2
+                    transition-all
                     ${
                       submitDisabled
                         ? "bg-slate-300 text-slate-500 cursor-not-allowed"
-                        : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg hover:shadow-xl"
+                        : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg hover:shadow-xl active:scale-[0.98]"
                     }
                   `}
                 >
@@ -757,13 +852,17 @@ export default function LogbookModal({
                       onClick={() => handleApprove(false)}
                       disabled={!mentorNote.trim()}
                       className={`
-                      px-6 py-3 rounded-xl font-medium transition-all flex items-center gap-2
-                      ${
-                        !mentorNote.trim()
-                          ? "bg-slate-300 text-slate-500 cursor-not-allowed"
-                          : "bg-red-600 hover:bg-red-700 text-white shadow-lg hover:shadow-xl"
-                      }
-                    `}
+                        w-full sm:w-auto justify-center
+                        px-6 py-3 rounded-full
+                        font-semibold
+                        flex items-center gap-2
+                        transition-all
+                        ${
+                          !mentorNote.trim()
+                            ? "bg-slate-300 text-slate-500 cursor-not-allowed"
+                            : "bg-red-600 hover:bg-red-700 text-white shadow-lg"
+                        }
+                      `}
                     >
                       <FiX />
                       Tolak
@@ -772,13 +871,17 @@ export default function LogbookModal({
                       onClick={() => handleApprove(true)}
                       disabled={!mentorNote.trim()}
                       className={`
-                      px-6 py-3 rounded-xl font-medium transition-all flex items-center gap-2
-                      ${
-                        !mentorNote.trim()
-                          ? "bg-slate-300 text-slate-500 cursor-not-allowed"
-                          : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg hover:shadow-xl"
-                      }
-                    `}
+                        w-full sm:w-auto justify-center
+                        px-6 py-3 rounded-full
+                        font-semibold
+                        flex items-center gap-2
+                        transition-all
+                        ${
+                          !mentorNote.trim()
+                            ? "bg-slate-300 text-slate-500 cursor-not-allowed"
+                            : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg"
+                        }
+                      `}
                     >
                       <FiCheck />
                       Setujui
@@ -843,36 +946,64 @@ function FieldSection({
     <div className="space-y-3">
       <div className="flex items-center gap-2">
         {icon}
-        <label className="font-semibold text-slate-700">{label}</label>
+        <label className="font-semibold text-slate-700 dark:text-white">{label}</label>
       </div>
 
       {readonly ? (
-        <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 min-h-[100px] whitespace-pre-line">
+        <div
+          className="
+            p-4 rounded-xl border min-h-[100px] whitespace-pre-line
+            bg-white text-slate-800
+            dark:bg-slate-800 dark:text-slate-200
+            border-slate-200 dark:border-slate-700
+          "
+        >
           {value || <span className="text-slate-400">-</span>}
         </div>
       ) : (
         <>
           <textarea
             value={value}
-            onChange={(e) => onChange(e.target.value)}
+            onChange={(e) => {
+              onChange(e.target.value);
+
+              e.target.style.height = "auto";
+              e.target.style.height = e.target.scrollHeight + "px";
+            }}
             rows={4}
-            className="w-full px-4 py-3 border rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition resize-none"
+            className={`
+              w-full
+              px-4 py-3
+              rounded-2xl
+              resize-y
+              max-h-[45vh]
+              text-sm sm:text-base
+              leading-relaxed sm:leading-loose
+              border
+              transition-all
+              focus:outline-none focus:ring-2
+              ${
+                isError
+                  ? "border-red-500 focus:ring-red-300 bg-white dark:bg-slate-800"
+                  : isValid
+                  ? "border-emerald-500 focus:ring-emerald-300 bg-white dark:bg-slate-800"
+                  : "border-slate-300 bg-white dark:bg-slate-800 focus:ring-slate-400"
+              }
+            `}
             placeholder={placeholder}
           />
-          <div className="flex justify-between items-center text-sm">
-            <div className="flex items-center gap-2">
-              {isError && (
-                <span className="text-red-600">
-                  Minimal {minLength} karakter
-                </span>
-              )}
-              {isValid && (
-                <span className="text-emerald-600 flex items-center gap-1">
-                  <FiCheck /> Memenuhi syarat
-                </span>
-              )}
-            </div>
-            <span className={`${isError ? "text-red-600" : "text-slate-500"}`}>
+          <div className="flex justify-between items-center text-sm mt-1">
+            {isError && (
+              <span className="text-red-600">
+                Minimal {minLength} karakter
+              </span>
+            )}
+            {isValid && (
+              <span className="text-emerald-600 flex items-center gap-1">
+                <FiCheck /> Sudah memenuhi
+              </span>
+            )}
+            <span className="text-slate-500">
               {length}/{minLength}
             </span>
           </div>

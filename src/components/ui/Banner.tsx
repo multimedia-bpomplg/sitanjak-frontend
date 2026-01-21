@@ -49,16 +49,18 @@ export default function PopupPromo({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
       {/* CARD */}
       <div
         className="
-          relative w-full max-w-md mx-4
-          rounded-3xl overflow-hidden
-          bg-white/90 dark:bg-slate-900/90
-          backdrop-blur-xl
-          shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)]
-          animate-[scaleIn_0.4s_ease-out]
+          relative
+          w-full max-w-md
+          mx-4 sm:mx-6
+          rounded-3xl
+          overflow-hidden
+          bg-white dark:bg-slate-900
+          shadow-[0_30px_80px_-20px_rgba(0,0,0,0.45)]
+          animate-[scaleIn_0.35s_ease-out]
         "
       >
         {/* CLOSE */}
