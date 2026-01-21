@@ -550,10 +550,12 @@ export default function LoginPage() {
       </div>
 
       {/* IMAGE KANAN */}
-      <div className="
+      <div
+        className="
         hidden lg:block relative w-full min-h-screen 
         bg-gradient-to-br from-[#FFFBF5] via-[#FFF7ED] to-[#FEF3C7]
-      ">
+      "
+      >
         <Image
           src="/images/logins/icon login.png"
           alt="Login Background"

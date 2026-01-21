@@ -1,6 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import {
+  FiUpload,
+  FiCheck,
+  FiX,
+  FiCalendar,
+  FiFileText,
+  FiImage,
+  FiClock,
+  FiUserCheck,
+  FiUserX,
+  FiEdit,
+} from "react-icons/fi";
 import { showToast } from "@/components/ui/toastDashboard";
 
 type Status =
@@ -42,6 +54,23 @@ export default function LogbookModal({
   const [approvedByMentor, setApprovedByMentor] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [mentorNote, setMentorNote] = useState("");
+  const [approvalStatus, setApprovalStatus] = useState<
+    "menunggu" | "disetujui" | "ditolak"
+  >("menunggu");
+  const [approvedAt, setApprovedAt] = useState<string>("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [logbookId, setLogbookId] = useState<string | null>(null);
+
+  // Format tanggal untuk display
+  const formatDate = (dateString: string) => {
+    const dateObj = new Date(dateString);
+    return dateObj.toLocaleDateString("id-ID", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  };
 
   // API Endpoints
   const getEndpoint = () => {
@@ -56,6 +85,7 @@ export default function LogbookModal({
     if (mode !== "view") return;
 
     const fetchLogbook = async () => {
+      setIsLoading(true);
       try {
         const res = await fetch(getEndpoint(), {
           headers: {
@@ -63,11 +93,18 @@ export default function LogbookModal({
           },
         });
 
-        if (res.status === 404) return;
+        if (res.status === 404) {
+          setIsLoading(false);
+          return;
+        }
+
         if (!res.ok) throw new Error("Gagal mengambil logbook");
 
         const data = await res.json();
-        if (!data) return;
+        if (!data) {
+          setIsLoading(false);
+          return;
+        }
 
         setStatus(data.status);
         setJudul(data.judul || "");
@@ -76,9 +113,15 @@ export default function LogbookModal({
         setKeterangan(data.keterangan || "");
         setFileUrls(data.files || []);
         setApprovedByMentor(Boolean(data.approvedByMentor));
+        setApprovalStatus(data.approvalStatus || "menunggu");
         setMentorNote(data.mentorNote || "");
+        setApprovedAt(data.approvedAt || "");
+        setLogbookId(data._id || null);
       } catch (error) {
         console.error(error);
+        showToast.error("Gagal memuat data logbook");
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -172,7 +215,7 @@ export default function LogbookModal({
 
       if (!res.ok) throw new Error("Gagal menyimpan logbook");
 
-      showToast.updateSuccess(toastId, "Logbook berhasil disimpan");
+      showToast.updateSuccess(toastId, "Logbook berhasil disimpan! ✅");
       onClose();
     } catch (err: any) {
       showToast.updateError(
@@ -182,219 +225,328 @@ export default function LogbookModal({
     }
   };
 
-  // Approve Handler for Mentor
+  // Handle Approve/Reject
   const handleApprove = async (approved: boolean) => {
-    // Note: logbookId tidak didefinisikan di komponen ini
-    // Anda perlu menambahkan logbookId ke props atau state
-    const logbookId = ""; // Ganti dengan ID yang sesuai
-
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/logbook/mentor/approve/${logbookId}`,
-      {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-        body: JSON.stringify({
-          approvedByMentor: approved,
-          mentorNote,
-        }),
-      },
-    );
-
-    if (!res.ok) {
-      showToast.error("Gagal memproses logbook");
+    if (!logbookId) {
+      showToast.error("Logbook tidak ditemukan");
       return;
     }
 
-    showToast.success(approved ? "Logbook disetujui" : "Logbook ditolak");
+    // 🔥 PERBAIKAN: Catatan wajib untuk approve ATAU reject
+    if (!mentorNote.trim()) {
+      showToast.error("Harap berikan catatan terlebih dahulu");
+      return;
+    }
+
+    const toastId = showToast.loading("Memproses logbook...");
+
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/logbook/mentor/approve/${logbookId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+          body: JSON.stringify({
+            approvalStatus: approved ? "disetujui" : "ditolak",
+            mentorNote: mentorNote.trim(),
+          }),
+        },
+      );
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || "Gagal memproses logbook");
+      }
+
+      setApprovalStatus(approved ? "disetujui" : "ditolak");
+      setApprovedByMentor(approved);
+
+      showToast.updateSuccess(
+        toastId,
+        approved
+          ? "Logbook berhasil disetujui! ✅"
+          : "Logbook berhasil ditolak! ❌",
+      );
+
+      setTimeout(() => {
+        onClose();
+      }, 1500);
+    } catch (err: any) {
+      showToast.updateError(toastId, err.message || "Terjadi kesalahan");
+    }
   };
 
+  // 🔥 PERBAIKAN: Fungsi untuk mendapatkan URL gambar yang benar
   const getImageUrl = (path: string) => {
     if (!path) return "";
-    return `${process.env.NEXT_PUBLIC_BASE_URL}/api/${path}`;
+
+    // Jika sudah full URL
+    if (path.startsWith("http://") || path.startsWith("https://")) {
+      return path;
+    }
+
+    // Jika path dimulai dengan uploads/
+    if (path.startsWith("uploads/")) {
+      const baseUrl =
+        process.env.NEXT_PUBLIC_API_URL ||
+        process.env.NEXT_PUBLIC_BASE_URL ||
+        "";
+      // Hapus slash ganda jika ada
+      return `${baseUrl.replace(/\/$/, "")}/${path}`;
+    }
+
+    // Jika hanya nama file, tambahkan base URL
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || window.location.origin;
+    return `${baseUrl}/${path}`;
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-3 sm:p-6">
-      <div className="w-full max-w-3xl rounded-3xl bg-white dark:bg-slate-900 shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
-        {/* Header */}
-        <div className="px-5 sm:px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-slate-800 dark:to-slate-900">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h2 className="text-lg sm:text-xl font-extrabold text-slate-800 dark:text-white">
-                {mode === "view" ? "Detail Logbook" : "Isi Logbook Harian"}
-              </h2>
-              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-                {date}
-              </p>
-            </div>
+  // Status badge component
+  const StatusBadge = ({ status }: { status: Status }) => {
+    const config = {
+      hadir: {
+        icon: <FiUserCheck className="text-emerald-600" />,
+        text: "Hadir",
+        bg: "bg-emerald-50",
+        border: "border-emerald-200",
+        textColor: "text-emerald-700",
+      },
+      tidak_hadir_keterangan: {
+        icon: <FiUserX className="text-blue-600" />,
+        text: "Tidak Hadir (Keterangan)",
+        bg: "bg-blue-50",
+        border: "border-blue-200",
+        textColor: "text-blue-700",
+      },
+      tidak_hadir_tanpa_keterangan: {
+        icon: <FiUserX className="text-red-600" />,
+        text: "Tidak Hadir (Tanpa Keterangan)",
+        bg: "bg-red-50",
+        border: "border-red-200",
+        textColor: "text-red-700",
+      },
+    };
 
-            <span
-              className={`
-                  shrink-0 rounded-full px-3 py-1 text-xs font-semibold
-                  ${
-                    mode === "view"
-                      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200"
-                      : "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-200"
-                  }
-                `}
+    const { icon, text, bg, border, textColor } = config[status];
+
+    return (
+      <div
+        className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl ${bg} ${border} border`}
+      >
+        {icon}
+        <span className={`font-semibold ${textColor}`}>{text}</span>
+      </div>
+    );
+  };
+
+  // Approval Status Badge
+  const ApprovalBadge = () => {
+    const config = {
+      menunggu: {
+        icon: <FiClock className="text-amber-600" />,
+        text: "Menunggu Persetujuan",
+        bg: "bg-amber-50",
+        border: "border-amber-200",
+        textColor: "text-amber-700",
+      },
+      disetujui: {
+        icon: <FiCheck className="text-emerald-600" />,
+        text: "Disetujui Mentor",
+        bg: "bg-emerald-50",
+        border: "border-emerald-200",
+        textColor: "text-emerald-700",
+      },
+      ditolak: {
+        icon: <FiX className="text-red-600" />,
+        text: "Ditolak Mentor",
+        bg: "bg-red-50",
+        border: "border-red-200",
+        textColor: "text-red-700",
+      },
+    };
+
+    const { icon, text, bg, border, textColor } = config[approvalStatus];
+
+    return (
+      <div
+        className={`flex items-center gap-3 p-4 rounded-xl ${bg} ${border} border`}
+      >
+        <div className="text-xl">{icon}</div>
+        <div className="flex-1">
+          <p className={`font-semibold ${textColor}`}>{text}</p>
+          {approvedAt && approvalStatus !== "menunggu" && (
+            <p className="text-sm text-slate-500 mt-1">
+              Diproses: {new Date(approvedAt).toLocaleDateString("id-ID")}
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  if (isLoading) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+        <div className="bg-white rounded-2xl p-8 shadow-2xl">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+          <p className="mt-4 text-center text-slate-600">
+            Memuat data logbook...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+      <div className="w-full max-w-4xl bg-white rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
+        {/* Header */}
+        <div className="px-6 py-5 bg-gradient-to-r from-indigo-500 to-purple-600 text-white">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-white/20 rounded-lg">
+                <FiCalendar className="text-xl" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold">
+                  {mode === "view"
+                    ? "Detail Logbook Harian"
+                    : "Isi Logbook Harian"}
+                </h2>
+                <p className="text-sm opacity-90">
+                  {formatDate(date)} •{" "}
+                  {mode === "view" ? "Mode Baca" : "Mode Buat"}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-white/20 rounded-lg transition"
             >
-              {mode.toUpperCase()}
-            </span>
+              <FiX className="text-xl" />
+            </button>
           </div>
         </div>
 
-        {/* Mentor Status Notification */}
-        {mode === "view" && (
-          <div className="px-5 sm:px-6 pt-4 space-y-3">
-            {approvedByMentor ? (
-              <div className="rounded-xl border border-emerald-300 bg-emerald-50 dark:bg-emerald-900/30 px-4 py-3 text-sm text-emerald-800 dark:text-emerald-200">
-                ✅ <b>Logbook disetujui mentor</b>
-              </div>
-            ) : mentorNote ? (
-              <div className="rounded-xl border border-red-300 bg-red-50 dark:bg-red-900/30 px-4 py-3 text-sm text-red-800 dark:text-red-200">
-                ❌ <b>Logbook ditolak mentor</b>
-              </div>
+        {/* Approval Status */}
+        <div className="mt-3">
+          <ApprovalBadge />
+        </div>
+
+        {/* Body Content */}
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+          {/* Status Kehadiran */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <FiUserCheck className="text-slate-500" />
+              <label className="font-semibold text-slate-700">
+                Status Kehadiran
+              </label>
+            </div>
+            {readonly ? (
+              <StatusBadge status={status} />
             ) : (
-              <div className="rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-900/30 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">
-                ⏳ <b>Menunggu pemeriksaan mentor</b>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {[
+                  { value: "hadir", label: "Hadir", icon: <FiUserCheck /> },
+                  {
+                    value: "tidak_hadir_keterangan",
+                    label: "Tidak Hadir (Keterangan)",
+                    icon: <FiUserX />,
+                  },
+                  {
+                    value: "tidak_hadir_tanpa_keterangan",
+                    label: "Tidak Hadir (Tanpa Keterangan)",
+                    icon: <FiUserX />,
+                  },
+                ].map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => setStatus(option.value as Status)}
+                    className={`
+                      flex items-center gap-3 p-4 rounded-xl border transition-all
+                      ${
+                        status === option.value
+                          ? "border-indigo-500 bg-indigo-50 text-indigo-700"
+                          : "border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-600"
+                      }
+                    `}
+                  >
+                    <div
+                      className={`p-2 rounded-lg ${status === option.value ? "bg-indigo-100" : "bg-slate-100"}`}
+                    >
+                      {option.icon}
+                    </div>
+                    <span className="font-medium">{option.label}</span>
+                  </button>
+                ))}
               </div>
             )}
           </div>
-        )}
 
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto px-5 sm:px-6 py-6 space-y-6">
-          {/* Status Field */}
-          <Field label="Status Kehadiran">
-            {readonly ? (
-              <span
-                className={`
-                    inline-flex items-center px-4 py-2 rounded-full
-                    text-sm font-semibold
-                    ${
-                      status === "hadir" &&
-                      "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200"
-                    }
-                    ${
-                      status === "tidak_hadir_keterangan" &&
-                      "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-200"
-                    }
-                    ${
-                      status === "tidak_hadir_tanpa_keterangan" &&
-                      "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-200"
-                    }
-                  `}
-              >
-                {status === "hadir" && "✔ Hadir"}
-                {status === "tidak_hadir_keterangan" &&
-                  "ℹ Tidak Hadir (Keterangan)"}
-                {status === "tidak_hadir_tanpa_keterangan" &&
-                  "✖ Tidak Hadir (Tanpa Keterangan)"}
-              </span>
-            ) : (
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value as Status)}
-                className="w-full appearance-none rounded-xl border px-4 py-2.5 text-sm bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 bg-[url('data:image/svg+xml;base64,PHN2ZyB...')] bg-no-repeat bg-[length:14px] bg-[right_1rem_center]"
-              >
-                <option value="hadir">Hadir</option>
-                <option value="tidak_hadir_keterangan">
-                  Tidak Hadir (Keterangan)
-                </option>
-                <option value="tidak_hadir_tanpa_keterangan">
-                  Tidak Hadir (Tanpa Keterangan)
-                </option>
-              </select>
-            )}
-          </Field>
-
-          {/* Hadir Fields */}
-          {status === "hadir" && (
+          {/* Conditional Fields Based on Status */}
+          {status === "hadir" ? (
             <>
-              <Field label="Uraian Aktivitas">
-                {readonly ? (
-                  <TextBlock value={judul} />
-                ) : (
-                  <Textarea
-                    value={judul}
-                    onChange={setJudul}
-                    disabled={readonly}
-                  />
-                )}
-              </Field>
+              {/* Uraian Aktivitas */}
+              <FieldSection
+                icon={<FiFileText />}
+                label="Uraian Aktivitas"
+                value={judul}
+                onChange={setJudul}
+                readonly={readonly}
+                minLength={MIN_TEXT_LENGTH}
+                placeholder="Jelaskan aktivitas yang dilakukan hari ini..."
+              />
 
-              <Field label="Pembelajaran">
-                {readonly ? (
-                  <TextBlock value={pengalaman} />
-                ) : (
-                  <Textarea
-                    value={pengalaman}
-                    onChange={setPengalaman}
-                    disabled={readonly}
-                  />
-                )}
-              </Field>
+              {/* Pembelajaran */}
+              <FieldSection
+                icon={<FiFileText />}
+                label="Pembelajaran"
+                value={pengalaman}
+                onChange={setPengalaman}
+                readonly={readonly}
+                minLength={MIN_TEXT_LENGTH}
+                placeholder="Apa yang Anda pelajari hari ini?"
+              />
 
-              <Field label="Kendala">
-                {readonly ? (
-                  <TextBlock value={kendala} />
-                ) : (
-                  <Textarea
-                    value={kendala}
-                    onChange={setKendala}
-                    disabled={readonly}
-                  />
-                )}
-              </Field>
+              {/* Kendala */}
+              <FieldSection
+                icon={<FiFileText />}
+                label="Kendala"
+                value={kendala}
+                onChange={setKendala}
+                readonly={readonly}
+                minLength={MIN_TEXT_LENGTH}
+                placeholder="Apakah ada kendala yang dihadapi?"
+              />
 
-              {/* File Upload (Create Mode) */}
-              {!readonly && (
-                <Field label="Dokumentasi (max 3 foto)">
-                  {files.length === 0 ? (
-                    <label className="flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-indigo-300 dark:border-indigo-600 bg-indigo-50/60 dark:bg-indigo-900/20 px-4 py-8 cursor-pointer hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition text-center">
-                      <span className="text-3xl">📸</span>
-                      <span className="text-sm font-semibold text-indigo-700 dark:text-indigo-300">
-                        Klik untuk upload foto
-                      </span>
-                      <span className="text-xs text-slate-500 dark:text-slate-400">
-                        Maksimal 3 foto • Ukuran ≤ 2MB / foto
-                      </span>
-                      <input
-                        type="file"
-                        multiple
-                        accept="image/*"
-                        onChange={handleFileChange}
-                        className="hidden"
-                      />
-                    </label>
-                  ) : (
-                    <div className="space-y-3">
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                        {files.map((file, i) => (
-                          <div
-                            key={i}
-                            className="relative group rounded-xl overflow-hidden border dark:border-slate-700"
-                          >
-                            <img
-                              src={URL.createObjectURL(file)}
-                              className="h-32 w-full object-cover"
-                              alt={`Upload ${i + 1}`}
-                            />
-                            <button
-                              type="button"
-                              onClick={() => removeFile(i)}
-                              className="absolute top-2 right-2 bg-black/60 text-white text-xs rounded-full px-2 py-1 opacity-0 group-hover:opacity-100 transition"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                      <label className="inline-flex items-center gap-2 cursor-pointer text-sm text-indigo-600 dark:text-indigo-400 hover:underline">
-                        ➕ Tambah / ganti foto
+              {/* File Upload/Display */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <FiImage className="text-slate-500" />
+                  <label className="font-semibold text-slate-700">
+                    Dokumentasi{" "}
+                    {!readonly && `(Max ${MAX_FILES} foto, 2MB/foto)`}
+                  </label>
+                </div>
+
+                {!readonly ? (
+                  <>
+                    {files.length === 0 ? (
+                      <label className="block">
+                        <div className="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center cursor-pointer hover:border-indigo-400 hover:bg-indigo-50 transition">
+                          <FiUpload className="text-3xl text-slate-400 mx-auto mb-3" />
+                          <p className="font-medium text-slate-700">
+                            Klik untuk upload foto
+                          </p>
+                          <p className="text-sm text-slate-500 mt-1">
+                            Drag & drop atau klik untuk memilih file
+                          </p>
+                        </div>
                         <input
                           type="file"
                           multiple
@@ -403,249 +555,329 @@ export default function LogbookModal({
                           className="hidden"
                         />
                       </label>
-                    </div>
-                  )}
-                  {errorFile && (
-                    <p className="text-xs text-red-600 mt-1">{errorFile}</p>
-                  )}
-                </Field>
-              )}
-
-              {/* File Display (View Mode) */}
-              {readonly && fileUrls.length > 0 && (
-                <Field label="Dokumentasi">
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    {fileUrls.map((url, i) => (
-                      <img
-                        src={getImageUrl(url)}
-                        onClick={() => setPreviewImage(getImageUrl(url))}
-                        className="h-28 w-full rounded-xl object-cover cursor-pointer hover:scale-105 transition"
-                        alt={`Dokumentasi ${i + 1}`}
-                      />
-                    ))}
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                          {files.map((file, i) => (
+                            <div key={i} className="relative group">
+                              <img
+                                src={URL.createObjectURL(file)}
+                                className="w-full h-40 object-cover rounded-lg"
+                                alt={`Upload ${i + 1}`}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => removeFile(i)}
+                                className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition"
+                              >
+                                <FiX className="text-sm" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                        <label className="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg cursor-pointer transition">
+                          <FiUpload />
+                          <span className="font-medium">
+                            Tambah Foto Lainnya
+                          </span>
+                          <input
+                            type="file"
+                            multiple
+                            accept="image/*"
+                            onChange={handleFileChange}
+                            className="hidden"
+                          />
+                        </label>
+                      </div>
+                    )}
+                    {errorFile && (
+                      <p className="text-sm text-red-600">{errorFile}</p>
+                    )}
+                  </>
+                ) : fileUrls.length > 0 ? (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {fileUrls.map((url, i) => {
+                      const imageUrl = getImageUrl(url);
+                      console.log(`Image URL ${i}:`, imageUrl); // Debug log
+                      return (
+                        <div
+                          key={i}
+                          className="relative group cursor-pointer"
+                          onClick={() => setPreviewImage(imageUrl)}
+                        >
+                          <img
+                            src={imageUrl}
+                            className="w-full h-40 object-cover rounded-lg"
+                            alt={`Dokumentasi ${i + 1}`}
+                            onError={(e) => {
+                              console.error(`Gagal memuat gambar ${i}:`, url);
+                              e.currentTarget.src = `https://via.placeholder.com/300x200?text=Gambar+Tidak+Tersedia`;
+                            }}
+                          />
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition rounded-lg" />
+                        </div>
+                      );
+                    })}
                   </div>
-                </Field>
-              )}
+                ) : (
+                  <div className="text-center py-8 text-slate-400">
+                    <FiImage className="text-3xl mx-auto mb-2" />
+                    <p>Tidak ada dokumentasi</p>
+                  </div>
+                )}
+              </div>
             </>
+          ) : (
+            /* Alasan Tidak Hadir */
+            <FieldSection
+              icon={<FiFileText />}
+              label="Alasan Tidak Hadir"
+              value={keterangan}
+              onChange={setKeterangan}
+              readonly={readonly}
+              minLength={MIN_TEXT_LENGTH}
+              placeholder="Jelaskan alasan ketidakhadiran Anda..."
+            />
           )}
 
-          {/* Tidak Hadir dengan Keterangan */}
-          {status === "tidak_hadir_keterangan" && (
-            <Field label="Alasan Tidak Hadir">
-              {readonly ? (
-                <TextBlock value={keterangan} />
-              ) : (
-                <Textarea
-                  value={keterangan}
-                  onChange={setKeterangan}
-                  disabled={readonly}
-                />
+          {/* 🔥 PERBAIKAN: Approval Status Dipindahkan ke sini (setelah gambar) */}
+          {mode === "view" && (
+            <div className="space-y-4">
+              {/* Catatan Mentor (Tampilkan jika ada catatan) */}
+              {mentorNote && approvalStatus !== "menunggu" && (
+                <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <FiEdit className="text-slate-500" />
+                    <span className="font-semibold text-slate-700">
+                      Catatan Mentor:
+                    </span>
+                  </div>
+                  <p className="text-slate-600 whitespace-pre-line">
+                    {mentorNote}
+                  </p>
+                </div>
               )}
-            </Field>
+            </div>
           )}
 
           {/* Agreement Checkbox (Create Mode) */}
           {mode === "create" && (
-            <button
-              type="button"
-              onClick={() => setAgree(!agree)}
-              className={`
-                  w-full flex items-start gap-3 rounded-2xl border px-4 py-4 text-sm transition
+            <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+              <button
+                type="button"
+                onClick={() => setAgree(!agree)}
+                className="flex items-start gap-3 w-full text-left"
+              >
+                <div
+                  className={`
+                  w-6 h-6 flex items-center justify-center rounded border-2 mt-0.5 flex-shrink-0
                   ${
                     agree
-                      ? "border-emerald-400 bg-emerald-50 dark:bg-emerald-900/20"
-                      : "border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800"
+                      ? "bg-indigo-600 border-indigo-600 text-white"
+                      : "border-slate-300"
                   }
                 `}
-            >
-              <span
-                className={`
-                    mt-0.5 h-5 w-5 rounded-full border-2 flex items-center justify-center
-                    ${agree ? "border-emerald-500 bg-emerald-500 text-white" : "border-slate-400"}
-                  `}
-              >
-                {agree && "✓"}
-              </span>
-              <span className="text-left text-slate-700 dark:text-slate-200">
-                Saya telah memastikan bahwa seluruh data yang diisi sudah benar
-              </span>
-            </button>
-          )}
-
-          {/* Mentor Approval Status */}
-          {mode === "view" && approvedByMentor && (
-            <div className="bg-emerald-50 border border-emerald-300 rounded-xl p-3 text-sm text-emerald-700">
-              ✅ Disetujui Mentor
+                >
+                  {agree && <FiCheck className="text-sm" />}
+                </div>
+                <div>
+                  <p className="font-medium text-slate-700">
+                    Konfirmasi Keabsahan Data
+                  </p>
+                  <p className="text-sm text-slate-500 mt-1">
+                    Saya menyatakan bahwa semua data yang diisi adalah benar dan
+                    dapat dipertanggungjawabkan
+                  </p>
+                </div>
+              </button>
             </div>
           )}
 
-          {/* Mentor Note */}
-          {mode === "view" && mentorNote && (
-            <Field label="Catatan Mentor">
-              <textarea
-                value={mentorNote}
-                readOnly
-                rows={4}
-                className="
-        w-full rounded-xl border
-        bg-slate-100 dark:bg-slate-800
-        px-3 py-2 text-sm
-        resize-none
-      "
-              />
-            </Field>
-          )}
+          {/* 🔥 PERBAIKAN: Catatan Mentor Input untuk Mentor (hanya jika status menunggu) */}
+          {role === "mentor" &&
+            mode === "view" &&
+            approvalStatus === "menunggu" && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <FiEdit className="text-slate-500" />
+                  <label className="font-semibold text-slate-700">
+                    Catatan Mentor <span className="text-red-500">*</span>
+                  </label>
+                </div>
+                <textarea
+                  value={mentorNote}
+                  onChange={(e) => setMentorNote(e.target.value)}
+                  rows={4}
+                  className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition resize-none"
+                  placeholder="Berikan catatan atau komentar untuk peserta..."
+                />
+                <p className="text-sm text-slate-500">
+                  *Catatan wajib diisi sebelum menyetujui atau menolak logbook
+                </p>
+              </div>
+            )}
         </div>
 
-        {/* Footer */}
-        <div className="px-5 sm:px-6 py-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex justify-end gap-3">
-          <button
-            onClick={onClose}
-            className="px-5 py-2.5 rounded-full text-sm font-semibold text-red-600 dark:text-red-400 border border-red-400 dark:border-red-500 bg-transparent hover:bg-red-50 dark:hover:bg-red-900/30 shadow-sm hover:shadow-md transition focus:outline-none focus:ring-2 focus:ring-red-400"
-          >
-            Tutup
-          </button>
-
-          {mode === "create" && (
+        {/* Footer Actions */}
+        <div className="px-6 py-5 border-t border-slate-200 bg-slate-50">
+          <div className="flex flex-col sm:flex-row gap-3 justify-between items-center">
             <button
-              disabled={submitDisabled}
-              onClick={handleSubmit}
-              title={
-                submitDisabled
-                  ? "Lengkapi semua isian minimal 50 karakter dan upload foto valid"
-                  : "Simpan logbook"
-              }
-              className={`
-                  rounded-full px-6 py-2.5 text-sm font-semibold text-white transition-all
-                  ${
-                    submitDisabled
-                      ? "bg-slate-400 cursor-not-allowed"
-                      : "bg-emerald-600 hover:bg-emerald-700 shadow-md hover:shadow-lg"
-                  }
-                `}
+              onClick={onClose}
+              className="px-6 py-3 font-medium text-slate-600 hover:text-slate-800 transition"
             >
-              💾 Simpan
+              {mode === "view" ? "Tutup" : "Batalkan"}
             </button>
-          )}
 
-          {/* Mentor Approval Buttons */}
-          {role === "mentor" && mode === "view" && (
             <div className="flex gap-3">
-              <button
-                onClick={() => handleApprove(true)}
-                className="px-4 py-2 rounded-lg bg-emerald-600 text-white"
-              >
-                ✅ Laporan Diterima
-              </button>
-              <button
-                onClick={() => handleApprove(false)}
-                className="px-4 py-2 rounded-lg bg-red-600 text-white"
-              >
-                ❌ Laporan Ditolak
-              </button>
+              {/* Create Mode: Save Button */}
+              {mode === "create" && (
+                <button
+                  disabled={submitDisabled}
+                  onClick={handleSubmit}
+                  className={`
+                    px-6 py-3 rounded-xl font-medium transition-all flex items-center gap-2
+                    ${
+                      submitDisabled
+                        ? "bg-slate-300 text-slate-500 cursor-not-allowed"
+                        : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg hover:shadow-xl"
+                    }
+                  `}
+                >
+                  <FiCheck />
+                  Simpan Logbook
+                </button>
+              )}
+
+              {/* Mentor Mode: Approve/Reject Buttons */}
+              {role === "mentor" &&
+                mode === "view" &&
+                approvalStatus === "menunggu" && (
+                  <>
+                    <button
+                      onClick={() => handleApprove(false)}
+                      disabled={!mentorNote.trim()}
+                      className={`
+                      px-6 py-3 rounded-xl font-medium transition-all flex items-center gap-2
+                      ${
+                        !mentorNote.trim()
+                          ? "bg-slate-300 text-slate-500 cursor-not-allowed"
+                          : "bg-red-600 hover:bg-red-700 text-white shadow-lg hover:shadow-xl"
+                      }
+                    `}
+                    >
+                      <FiX />
+                      Tolak
+                    </button>
+                    <button
+                      onClick={() => handleApprove(true)}
+                      disabled={!mentorNote.trim()}
+                      className={`
+                      px-6 py-3 rounded-xl font-medium transition-all flex items-center gap-2
+                      ${
+                        !mentorNote.trim()
+                          ? "bg-slate-300 text-slate-500 cursor-not-allowed"
+                          : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg hover:shadow-xl"
+                      }
+                    `}
+                    >
+                      <FiCheck />
+                      Setujui
+                    </button>
+                  </>
+                )}
             </div>
-          )}
-        </div>
-
-        {/* Image Preview Modal */}
-        {previewImage && (
-          <div
-            className="fixed inset-0 z-[999] bg-black/80 flex items-center justify-center p-4"
-            onClick={() => setPreviewImage(null)}
-          >
-            <img
-              src={previewImage}
-              className="max-h-[90vh] max-w-full rounded-2xl"
-              alt="Preview"
-            />
           </div>
-        )}
+        </div>
       </div>
+
+      {/* Image Preview Modal */}
+      {previewImage && (
+        <div
+          className="fixed inset-0 z-[999] bg-black/90 flex items-center justify-center p-4"
+          onClick={() => setPreviewImage(null)}
+        >
+          <button
+            onClick={() => setPreviewImage(null)}
+            className="absolute top-4 right-4 p-2 bg-white/20 hover:bg-white/30 rounded-full transition"
+          >
+            <FiX className="text-white text-xl" />
+          </button>
+          <img
+            src={previewImage}
+            className="max-h-[90vh] max-w-full rounded-lg object-contain"
+            alt="Preview"
+            onError={(e) => {
+              console.error("Gagal memuat gambar preview:", previewImage);
+              e.currentTarget.src = `https://via.placeholder.com/800x600?text=Gambar+Tidak+Dapat+Dimuat`;
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 }
 
-// Reusable Components
-function Field({
+// Field Section Component
+function FieldSection({
+  icon,
   label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <label className="text-[15px] sm:text-base font-extrabold text-slate-800 dark:text-slate-100 mb-2 block">
-        {label}
-      </label>
-      {children}
-    </div>
-  );
-}
-
-function Textarea({
   value,
   onChange,
-  disabled,
-  min = MIN_TEXT_LENGTH,
+  readonly,
+  minLength = MIN_TEXT_LENGTH,
+  placeholder = "",
 }: {
+  icon: React.ReactNode;
+  label: string;
   value: string;
-  onChange: (v: string) => void;
-  disabled?: boolean;
-  min?: number;
+  onChange: (value: string) => void;
+  readonly: boolean;
+  minLength?: number;
+  placeholder?: string;
 }) {
   const length = value.trim().length;
-  const isError = length > 0 && length < min;
-  const isValid = length >= min;
-
-  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    onChange(e.target.value);
-    // Auto-grow
-    e.target.style.height = "auto";
-    e.target.style.height = e.target.scrollHeight + "px";
-  };
+  const isValid = length >= minLength;
+  const isError = length > 0 && length < minLength;
 
   return (
-    <div className="space-y-1">
-      <textarea
-        value={value}
-        disabled={disabled}
-        rows={4}
-        onChange={handleChange}
-        className={`
-            w-full resize-y overflow-auto max-h-[40vh] rounded-xl px-3 py-2
-            text-sm sm:text-base bg-white dark:bg-slate-800 border transition
-            focus:outline-none focus:ring-2
-            ${
-              isError
-                ? "border-red-400 focus:ring-red-400"
-                : isValid
-                  ? "border-emerald-400 focus:ring-emerald-400"
-                  : "border-slate-300 dark:border-slate-700 focus:ring-indigo-500"
-            }
-          `}
-      />
-      <div className="flex justify-between text-xs">
-        {isError && (
-          <span className="text-red-500">Minimal {min} karakter</span>
-        )}
-        {isValid && (
-          <span className="text-emerald-600 dark:text-emerald-400">
-            ✓ Sudah memenuhi
-          </span>
-        )}
-        <span className="text-slate-400">
-          {length}/{min}
-        </span>
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        {icon}
+        <label className="font-semibold text-slate-700">{label}</label>
       </div>
-    </div>
-  );
-}
 
-function TextBlock({ value }: { value: string }) {
-  return (
-    <div className="text-sm sm:text-base text-slate-800 dark:text-slate-200 leading-relaxed whitespace-pre-line text-justify">
-      {value || "-"}
+      {readonly ? (
+        <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 min-h-[100px] whitespace-pre-line">
+          {value || <span className="text-slate-400">-</span>}
+        </div>
+      ) : (
+        <>
+          <textarea
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            rows={4}
+            className="w-full px-4 py-3 border rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition resize-none"
+            placeholder={placeholder}
+          />
+          <div className="flex justify-between items-center text-sm">
+            <div className="flex items-center gap-2">
+              {isError && (
+                <span className="text-red-600">
+                  Minimal {minLength} karakter
+                </span>
+              )}
+              {isValid && (
+                <span className="text-emerald-600 flex items-center gap-1">
+                  <FiCheck /> Memenuhi syarat
+                </span>
+              )}
+            </div>
+            <span className={`${isError ? "text-red-600" : "text-slate-500"}`}>
+              {length}/{minLength}
+            </span>
+          </div>
+        </>
+      )}
     </div>
   );
 }

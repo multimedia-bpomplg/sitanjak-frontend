@@ -5,32 +5,50 @@ import { useState, useEffect } from "react";
 import {
   ChevronsLeft,
   ChevronsRight,
-  Bell,
   Sun,
   Moon,
   LogOut,
+  X,
 } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { ConfirmProvider, useConfirm } from "@/components/ui/ConfirmProvider";
+import SuperadminGuard from "@/components/guards/AdminSuperadminGuard";
 
-export default function AdminLayout({
+export default function SuperadminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   const [collapsed, setCollapsed] = useState(false);
-  const [dark, setDark] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [dashboardOpen, setDashboardOpen] = useState(true);
   const [userOpen, setUserOpen] = useState(false);
   const [layoutOpen, setLayoutOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const router = useRouter();
   const pathname = usePathname();
+  const confirm = useConfirm();
+
+  type LoggedUser = {
+    name: string;
+    email: string;
+    roles: string[];
+  };
+
+  const [user, setUser] = useState<LoggedUser | null>(null);
+
+  const toggleTheme = () => {
+    document.documentElement.classList.toggle("dark");
+  };
 
   /* ===================== DARK MODE ===================== */
   useEffect(() => {
-    document.documentElement.classList.toggle("dark", dark);
-  }, [dark]);
+    setMounted(true);
+  }, []);
 
   /* ===================== AUTO OPEN DASHBOARD ===================== */
   useEffect(() => {
@@ -45,224 +63,520 @@ export default function AdminLayout({
     router.replace("/auth/login");
   };
 
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      handleSignOut();
+      return;
+    }
+
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+
+      setUser({
+        name: payload.name,
+        email: payload.email,
+        roles: payload.roles || [],
+      });
+    } catch (error) {
+      console.error("Token tidak valid");
+      handleSignOut();
+    }
+  }, []);
+
+  if (!mounted) {
+    return null; // ⛔ cegah render sebelum client siap
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
-      {/* ===================== SIDEBAR ===================== */}
-      <aside
-        className={`fixed top-0 left-0 z-30 h-full bg-white dark:bg-gray-800
-        border-r border-black/10 transition-all duration-300
-        ${collapsed ? "w-20" : "w-64"}`}
+    <ConfirmProvider>
+      <div
+        className="
+        min-h-screen
+        flex
+        bg-gradient-to-br
+        from-emerald-50 via-white to-cyan-50
+
+        dark:from-[#020617]
+        dark:via-[#020617]
+        dark:to-[#0F172A]
+
+        text-gray-800 dark:text-gray-100
+        transition-colors duration-300
+      "
       >
-        {/* LOGO */}
-        <div className="flex items-center gap-3 p-5">
-          <img
-            src="/images/logo/logo-icon.svg"
-            className={`${collapsed ? "w-8 h-8" : "w-12 h-12"}`}
-          />
-          {!collapsed && <h1 className="text-lg font-semibold">Admin</h1>}
-        </div>
+        {/* ===================== SIDEBAR ===================== */}
+        <aside
+          className={`
+            z-30
+            h-screen
+            bg-gradient-to-b
+            from-white via-emerald-50 to-emerald-100
+            dark:from-[#020617]
+            dark:via-[#1E1B4B]
+            dark:to-[#3B0764]
+            border-r border-emerald-200 dark:border-indigo-900/40
+            shadow-[4px_0_20px_-5px_rgba(0,0,0,0.15)]
+            transition-all duration-300
 
-        {/* MENU */}
-        <nav className="flex flex-col mt-6 space-y-1 font-medium">
-          {/* ===== DASHBOARD ===== */}
-          <button
-            onClick={() => setDashboardOpen(!dashboardOpen)}
-            className={`flex items-center gap-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700
-              transition w-full
-              ${
-                collapsed ? "justify-center px-3" : "pl-5 pr-3 justify-between"
-              }`}
-          >
-            <div className="flex items-center gap-3">
-              📊 {!collapsed && <span>Dashboard</span>}
-            </div>
-            {!collapsed && (
-              <span
-                className={`transition-transform ${
-                  dashboardOpen ? "rotate-90" : ""
-                }`}
-              >
-                ▶
-              </span>
-            )}
-          </button>
+            w-72
+            ${collapsed ? "lg:w-20" : "lg:w-72"}
 
-          <div
-            className={`overflow-hidden transition-all duration-300 ${
-              dashboardOpen ? "max-h-60" : "max-h-0"
-            }`}
-          >
-            <Link
-              href="/dashboard/admin"
-              className={`flex py-2 text-sm rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700
-                ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
-                ${
-                  pathname === "/dashboard/admin"
-                    ? "bg-blue-100 dark:bg-blue-900/30"
-                    : ""
-                }`}
-            >
-              📈 {!collapsed && "Overview Sistem"}
-            </Link>
+            fixed lg:sticky
+            top-0 left-0
 
-            <Link
-              href="/dashboard/admin/pendaftaran"
-              className={`flex py-2 text-sm rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700
-                ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
-                ${
-                  pathname.includes("/pendaftaran")
-                    ? "bg-blue-100 dark:bg-blue-900/30"
-                    : ""
-                }`}
-            >
-              📝 {!collapsed && "View Pendaftaran"}
-            </Link>
-
-            <Link
-              href="/dashboard/admin/logbook"
-              className={`flex py-2 text-sm rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700
-                ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
-                ${
-                  pathname.includes("/logbook")
-                    ? "bg-blue-100 dark:bg-blue-900/30"
-                    : ""
-                }`}
-            >
-              📘 {!collapsed && "View Logbook"}
-            </Link>
-
-            <Link
-              href="/dashboard/admin/peserta"
-              className={`flex py-2 text-sm rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700
-                ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
-                ${
-                  pathname.includes("/peserta")
-                    ? "bg-blue-100 dark:bg-blue-900/30"
-                    : ""
-                }`}
-            >
-              👥 {!collapsed && "View Peserta"}
-            </Link>
-          </div>
-
-          {/* ===== MANAJEMEN AKUN & PENDAFTARAN ===== */}
-          <button
-            onClick={() => setUserOpen(!userOpen)}
-            className={`flex items-center gap-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700
-    transition w-full
-    ${collapsed ? "justify-center px-3" : "pl-5 pr-3 justify-between"}`}
-          >
-            <div className="flex items-center gap-3">
-              🗂️ {!collapsed && <span>Manajemen Sistem</span>}
-            </div>
-            {!collapsed && (
-              <span
-                className={`transition-transform ${
-                  userOpen ? "rotate-90" : ""
-                }`}
-              >
-                ▶
-              </span>
-            )}
-          </button>
-
-          <div
-            className={`overflow-hidden transition-all duration-300 ${
-              userOpen ? "max-h-96" : "max-h-0"
-            }`}
-          >
-            <Link
-              href="/dashboard/admin/pendaftaran"
-              className="flex py-2 text-sm rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 pl-12"
-            >
-              📝 {!collapsed && "Kelola Pendaftaran"}
-            </Link>
-
-            <Link
-              href="/dashboard/admin/pengajuan-akun"
-              className="flex py-2 text-sm rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 pl-12"
-            >
-              📥 {!collapsed && "Pengajuan Akun"}
-            </Link>
-
-            <Link
-              href="/dashboard/admin/mentor"
-              className="flex py-2 text-sm rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 pl-12"
-            >
-              🧑‍🏫 {!collapsed && "Data Mentor"}
-            </Link>
-
-            <Link
-              href="/dashboard/admin/penugasan-mentor"
-              className="flex py-2 text-sm rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 pl-12"
-            >
-              🔗 {!collapsed && "Penugasan Mentor"}
-            </Link>
-
-            <Link
-              href="/dashboard/admin/users/peserta/create"
-              className="flex py-2 text-sm rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 pl-12"
-            >
-              ➕ {!collapsed && "Buat Akun Peserta"}
-            </Link>
-          </div>
-        </nav>
-      </aside>
-
-      {/* ===================== TOPBAR ===================== */}
-      <header
-        className={`fixed top-0 right-0 z-20 h-16 bg-white dark:bg-gray-800 shadow
-        flex items-center px-6 transition-all duration-300
-        ${collapsed ? "left-20" : "left-64"}`}
-      >
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className="mr-4 p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 border"
+            transform
+            ${mobileOpen ? "translate-x-0" : "-translate-x-full"}
+            lg:translate-x-0
+          `}
         >
-          {collapsed ? <ChevronsRight /> : <ChevronsLeft />}
-        </button>
+          {/* LOGO + CLOSE BUTTON */}
+          <div className="flex items-center justify-between p-5">
+            <div className="flex items-center gap-3">
+              <img
+                src="/images/icons/Logo-Simaggo.png"
+                className={`
+                  object-contain
+                  ${collapsed ? "w-9 h-9" : "w-14 h-14"}
+                `}
+                alt="SIMAGGO Logo"
+              />
+              {!collapsed && (
+                <h1 className="text-lg font-semibold tracking-wide">
+                  Superadmin
+                </h1>
+              )}
+            </div>
 
-        <div className="ml-auto flex items-center gap-5">
-          <Bell />
+            {/* CLOSE BUTTON (MOBILE ONLY) */}
+            <button
+              onClick={() => setMobileOpen(false)}
+              aria-label="Close sidebar"
+              className="
+                lg:hidden
+                flex items-center justify-center
+                w-9 h-9
+                rounded-full
+                border
 
-          <button onClick={() => setDark(!dark)}>
-            {dark ? <Sun /> : <Moon />}
-          </button>
+                bg-white/80
+                border-emerald-200
+                text-emerald-700
 
-          <div className="relative">
-            <img
-              src="https://ui-avatars.com/api/?name=Admin"
-              className="w-12 h-12 rounded-full cursor-pointer border"
-              onClick={() => setProfileOpen(!profileOpen)}
-            />
+                hover:bg-emerald-100
+                hover:border-emerald-300
 
-            {profileOpen && (
-              <div className="absolute right-0 mt-3 w-60 bg-white dark:bg-gray-800 shadow-xl rounded-xl p-4">
-                <div className="text-center mb-3">
-                  <p className="font-semibold">Admin</p>
-                  <p className="text-sm text-gray-500">admin@example.com</p>
-                </div>
+                dark:bg-slate-800/80
+                dark:border-slate-600
+                dark:text-slate-200
+                dark:hover:bg-slate-700
+                dark:hover:border-slate-500
 
-                <button
-                  onClick={handleSignOut}
-                  className="flex items-center gap-2 w-full px-3 py-2 text-red-600 hover:bg-red-100 rounded-lg"
-                >
-                  <LogOut size={18} /> Sign Out
-                </button>
-              </div>
-            )}
+                transition-all duration-200
+              "
+            >
+              <X size={18} />
+            </button>
           </div>
-        </div>
-      </header>
 
-      {/* ===================== CONTENT ===================== */}
-      <main
-        className={`pt-20 p-6 transition-all duration-300 ${
-          collapsed ? "ml-20" : "ml-64"
-        }`}
-      >
-        {children}
-      </main>
-    </div>
+          {/* MENU */}
+          <nav className="flex flex-col mt-6 space-y-1 font-medium">
+            {/* ===== DASHBOARD DROPDOWN ===== */}
+            <button
+              onClick={() => setDashboardOpen(!dashboardOpen)}
+              className={`flex items-center gap-3 py-2 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-900/30
+                transition w-full
+                ${
+                  collapsed
+                    ? "justify-center px-3"
+                    : "pl-5 pr-3 justify-between"
+                }`}
+            >
+              <div className="flex items-center gap-3">
+                📊 {!collapsed && <span>Dashboard</span>}
+              </div>
+              {!collapsed && (
+                <span
+                  className={`transition-transform ${
+                    dashboardOpen ? "rotate-90" : ""
+                  }`}
+                >
+                  ▶
+                </span>
+              )}
+            </button>
+
+            <div
+              className={`overflow-hidden transition-all duration-300 ${
+                dashboardOpen ? "max-h-60" : "max-h-0"
+              }`}
+            >
+              <Link
+                href="/dashboard/admin"
+                className={`
+                  flex items-center gap-3
+                  py-2.5 rounded-xl
+                  text-sm
+                  text-gray-700 dark:text-gray-300
+                  hover:bg-emerald-100/70
+                  dark:hover:bg-slate-800
+                  transition
+                  ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
+                  ${
+                    pathname === "/dashboard/admin"
+                      ? `
+                          bg-gradient-to-r
+                          from-emerald-500/20 to-cyan-500/20
+                          text-emerald-700
+                          dark:from-indigo-500/30
+                          dark:via-purple-500/25
+                          dark:to-fuchsia-500/30
+                          dark:text-indigo-200
+                          shadow-inner
+                        `
+                      : ""
+                  }`}
+              >
+                👋 {!collapsed && "Selamat Datang"}
+              </Link>
+
+              <Link
+                href="/dashboard/admin/ViewPendaftaran"
+                className={`
+                  flex items-center gap-3
+                  py-2.5 rounded-xl
+                  text-sm
+                  text-gray-700 dark:text-gray-300
+                  hover:bg-emerald-100/70
+                  dark:hover:bg-slate-800
+                  transition
+                  ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
+                  ${
+                    pathname.includes("/ViewPendaftaran")
+                      ? `
+                          bg-gradient-to-r
+                          from-emerald-500/20 to-cyan-500/20
+                          text-emerald-700
+                          dark:from-indigo-500/30
+                          dark:via-purple-500/25
+                          dark:to-fuchsia-500/30
+                          dark:text-indigo-200
+                          shadow-inner
+                        `
+                      : ""
+                  }`}
+              >
+                📝 {!collapsed && "View Pendaftaran"}
+              </Link>
+
+              <Link
+                href="/dashboard/admin/ViewLogbook"
+                className={`flex items-center gap-3
+                  py-2.5 rounded-xl
+                  text-sm
+                  text-gray-700 dark:text-gray-300
+                  hover:bg-emerald-100/70
+                  dark:hover:bg-slate-800
+                  transition
+                  ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
+                  ${
+                    pathname.includes("/ViewLogbook")
+                      ? `
+                          bg-gradient-to-r
+                          from-emerald-500/20 to-cyan-500/20
+                          text-emerald-700
+                          dark:from-indigo-500/30
+                          dark:via-purple-500/25
+                          dark:to-fuchsia-500/30
+                          dark:text-indigo-200
+                          shadow-inner
+                        `
+                      : ""
+                  }`}
+              >
+                📘 {!collapsed && "View Logbook"}
+              </Link>
+
+              <Link
+                href="/dashboard/admin/ViewPeserta"
+                className={`
+                  flex items-center gap-3
+                  py-2.5 rounded-xl
+                  text-sm
+                  text-gray-700 dark:text-gray-300
+                  hover:bg-emerald-100/70
+                  dark:hover:bg-slate-800
+                  transition
+                  ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
+                  ${
+                    pathname.includes("/ViewPeserta")
+                      ? `
+                          bg-gradient-to-r
+                          from-emerald-500/20 to-cyan-500/20
+                          text-emerald-700
+                          dark:from-indigo-500/30
+                          dark:via-purple-500/25
+                          dark:to-fuchsia-500/30
+                          dark:text-indigo-200
+                          shadow-inner
+                        `
+                      : ""
+                  }`}
+              >
+                👥 {!collapsed && "View Peserta"}
+              </Link>
+
+              <Link
+                href="/dashboard/admin/ViewLaporanAkhir"
+                className={`
+                  flex items-center gap-3
+                  py-2.5 rounded-xl
+                  text-sm
+                  text-gray-700 dark:text-gray-300
+                  hover:bg-emerald-100/70
+                  dark:hover:bg-slate-800
+                  transition
+                  ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
+                  ${
+                    pathname.includes("/ViewLaporanAkhir")
+                      ? `
+                          bg-gradient-to-r
+                          from-emerald-500/20 to-cyan-500/20
+                          text-emerald-700
+                          dark:from-indigo-500/30
+                          dark:via-purple-500/25
+                          dark:to-fuchsia-500/30
+                          dark:text-indigo-200
+                          shadow-inner
+                        `
+                      : ""
+                  }
+                `}
+              >
+                📑 {!collapsed && "View Laporan Akhir"}
+              </Link>
+            </div>
+
+            {/* ===== MANAJEMEN AKUN DROPDOWN ===== */}
+            <button
+              onClick={() => setUserOpen(!userOpen)}
+              className={`flex items-center gap-3 py-2 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-900/30
+                transition w-full
+                ${
+                  collapsed
+                    ? "justify-center px-3"
+                    : "pl-5 pr-3 justify-between"
+                }`}
+            >
+              <div className="flex items-center gap-3">
+                👤 {!collapsed && <span>Manajemen Akun</span>}
+              </div>
+              {!collapsed && (
+                <span
+                  className={`transition-transform ${
+                    userOpen ? "rotate-90" : ""
+                  }`}
+                >
+                  ▶
+                </span>
+              )}
+            </button>
+
+            <div
+              className={`overflow-hidden transition-all duration-300 ${
+                userOpen ? "max-h-40" : "max-h-0"
+              }`}
+            >
+              <Link
+                href="/dashboard/admin/ManajemenAkun/buatadmin"
+                className={`
+                  flex items-center gap-3
+                  py-2.5 rounded-xl
+                  text-sm
+                  text-gray-700 dark:text-gray-300
+                  hover:bg-emerald-100/70
+                  dark:hover:bg-slate-800
+                  transition
+                  ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
+                  ${
+                    pathname.includes("/ManajemenAkun/buatadmin")
+                      ? `
+                          bg-gradient-to-r
+                          from-emerald-500/20 to-cyan-500/20
+                          text-emerald-700
+                          dark:from-indigo-500/30
+                          dark:via-purple-500/25
+                          dark:to-fuchsia-500/30
+                          dark:text-indigo-200
+                          shadow-inner
+                        `
+                      : ""
+                  }`}
+              >
+                🛠 {!collapsed && "Buat Akun Admin"}
+              </Link>
+
+              <Link
+                href="/dashboard/admin/ManajemenAkun/buatpeserta"
+                className={`
+                  flex items-center gap-3
+                  py-2.5 rounded-xl
+                  text-sm
+                  text-gray-700 dark:text-gray-300
+                  hover:bg-emerald-100/70
+                  dark:hover:bg-slate-800
+                  transition
+                  ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
+                  ${
+                    pathname.includes("/ManajemenAkun/buatpeserta")
+                      ? `
+                          bg-gradient-to-r
+                          from-emerald-500/20 to-cyan-500/20
+                          text-emerald-700
+                          dark:from-indigo-500/30
+                          dark:via-purple-500/25
+                          dark:to-fuchsia-500/30
+                          dark:text-indigo-200
+                          shadow-inner
+                        `
+                      : ""
+                  }`}
+              >
+                📋 {!collapsed && "Buat Akun Peserta"}
+              </Link>
+            </div>
+          </nav>
+        </aside>
+
+        {mobileOpen && (
+          <div
+            onClick={() => setMobileOpen(false)}
+            className="fixed inset-0 bg-black/40 z-20 lg:hidden"
+          />
+        )}
+
+        {/* RIGHT AREA */}
+        <div
+          className={`
+            flex flex-col min-w-0 flex-1
+            transition-all duration-300
+          `}
+        >
+          {/* ===================== TOPBAR ===================== */}
+          <header
+            className={`
+              sticky top-0 z-20 h-16
+              bg-white/70 dark:bg-[#020617]/70
+              backdrop-blur-xl
+              border-b border-emerald-200 dark:border-slate-800
+              shadow-sm
+              flex items-center px-4 lg:px-6
+            `}
+          >
+            <button
+              onClick={() => {
+                if (window.innerWidth < 1024) {
+                  setMobileOpen(true);
+                } else {
+                  setCollapsed(!collapsed);
+                }
+              }}
+              className="mr-4 p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 border"
+            >
+              <ChevronsRight className="lg:hidden" />
+              <span className="hidden lg:block">
+                {collapsed ? <ChevronsRight /> : <ChevronsLeft />}
+              </span>
+            </button>
+
+            <div className="ml-auto flex items-center gap-5">
+              <button
+                onClick={toggleTheme}
+                className="p-2 rounded-full hover:bg-emerald-100 dark:hover:bg-emerald-900/40"
+              >
+                <Sun className="hidden dark:block text-yellow-400" />
+                <Moon className="block dark:hidden text-emerald-600" />
+              </button>
+
+              <div className="relative">
+                {/* Foto profil lingkaran */}
+                <img
+                  src={`https://ui-avatars.com/api/?name=${encodeURIComponent(
+                    user?.name || "User",
+                  )}`}
+                  // ganti dengan foto sebenarnya jika ada
+                  className="w-12 h-12 rounded-full cursor-pointer border-2 border-gray-300 dark:border-gray-600"
+                  onClick={() => setProfileOpen(!profileOpen)}
+                />
+
+                {profileOpen && (
+                  <div className="absolute right-0 mt-3 w-64 bg-white/90 dark:bg-slate-800/90 backdrop-blur-xl shadow-2xl rounded-2xl p-4 border border-emerald-100 dark:border-slate-700 z-50">
+                    {/* Foto profil besar */}
+                    <div className="flex flex-col items-center gap-2 mb-3">
+                      <img
+                        src="https://ui-avatars.com/api/?name=Admin"
+                        className="w-16 h-16 rounded-full border-2 border-gray-300 dark:border-gray-600"
+                      />
+                      <span className="font-semibold text-gray-800 dark:text-gray-100">
+                        {user?.name || "-"}
+                      </span>
+
+                      <span className="text-sm text-gray-500 dark:text-gray-300">
+                        {user?.roles?.[0] || "-"}
+                      </span>
+
+                      <span className="text-sm text-gray-500 dark:text-gray-300">
+                        {user?.email || "-"}
+                      </span>
+                    </div>
+
+                    {/* Tombol */}
+                    <div className="flex flex-col gap-2">
+                      <button
+                        onClick={() =>
+                          confirm({
+                            title: "Keluar dari akun?",
+                            message:
+                              "Anda akan keluar dari sistem dan perlu login kembali.",
+                            onConfirm: handleSignOut,
+                          })
+                        }
+                        className="
+                          flex items-center gap-2 px-3 py-2
+                          text-rose-600 dark:text-rose-400
+                          hover:bg-rose-100 dark:hover:bg-rose-900/40
+                          rounded-lg transition
+                        "
+                      >
+                        <LogOut size={18} /> Sign Out
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </header>
+
+          {/* ===================== CONTENT ===================== */}
+          <main className="flex-1 p-4 lg:p-6">
+            <SuperadminGuard role={user?.roles?.[0]}>
+              <div className="rounded-2xl bg-white/80 dark:bg-slate-900/80 p-6">
+                {children}
+              </div>
+            </SuperadminGuard>
+          </main>
+        </div>
+
+        <ToastContainer
+          position="bottom-right"
+          autoClose={3000}
+          hideProgressBar={false}
+          newestOnTop
+          closeOnClick
+          pauseOnHover
+          draggable
+        />
+      </div>
+    </ConfirmProvider>
   );
 }

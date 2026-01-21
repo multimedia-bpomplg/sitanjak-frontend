@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 
 import { useEffect, useState } from "react";
 import {
@@ -200,9 +201,12 @@ export default function MentorDashboard() {
                       Baru
                     </span>
 
-                    <button className="text-sm font-medium text-indigo-600 hover:underline">
+                    <Link
+                      href={`/dashboard/mentor/peserta?email=${encodeURIComponent(p.email)}`}
+                      className="text-sm font-medium text-indigo-600 hover:underline"
+                    >
                       Lihat Detail →
-                    </button>
+                    </Link>
                   </div>
                 </div>
               ))}

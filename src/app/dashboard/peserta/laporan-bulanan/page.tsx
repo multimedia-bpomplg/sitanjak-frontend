@@ -19,7 +19,7 @@ export default function LaporanBulananPage() {
         `${process.env.NEXT_PUBLIC_API_URL}/laporan-bulanan/riwayat`,
         {
           headers: { Authorization: `Bearer ${token}` },
-        }
+        },
       );
       const data = await res.json();
       setRiwayat(data);
@@ -37,7 +37,7 @@ export default function LaporanBulananPage() {
     try {
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/laporan-bulanan/${month}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
 
       setModalMode(res.ok ? "view" : "create");
@@ -57,7 +57,8 @@ export default function LaporanBulananPage() {
           Laporan Bulanan
         </h1>
         <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 max-w-2xl">
-          Kelola dan pantau laporan bulanan kegiatan magang Anda secara terstruktur.
+          Kelola dan pantau laporan bulanan kegiatan magang Anda secara
+          terstruktur.
         </p>
       </div>
 
@@ -185,26 +186,30 @@ export default function LaporanBulananPage() {
                 setShowModal(true);
               }}
               className="
-                relative w-full
-                rounded-xl
-                bg-white dark:bg-slate-900
-                border border-slate-200 dark:border-slate-800
-                p-4
-                text-left
-                hover:shadow-md
-                transition
-              "
+      relative w-full
+      rounded-xl
+      bg-white dark:bg-slate-900
+      border border-slate-200 dark:border-slate-800
+      p-4
+      text-left
+      hover:shadow-md
+      transition
+    "
             >
               {/* accent */}
               <div
                 className={`
-                  absolute left-4 right-4 top-0 h-0.5 rounded-full
-                  ${
-                    item.approvedByMentor
-                      ? "bg-emerald-500"
-                      : "bg-amber-400"
-                  }
-                `}
+        absolute left-4 right-4 top-0 h-0.5 rounded-full
+        ${
+          item.status === "Disetujui"
+            ? "bg-emerald-500"
+            : item.status === "Ditolak"
+              ? "bg-red-500"
+              : item.status === "Perbaiki"
+                ? "bg-amber-400"
+                : "bg-slate-300"
+        }
+      `}
               />
 
               <div className="flex items-center justify-between">
@@ -213,21 +218,38 @@ export default function LaporanBulananPage() {
                     {item.month}
                   </p>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Dibuat {new Date(item.createdAt).toLocaleDateString("id-ID")}
+                    Dibuat{" "}
+                    {new Date(item.createdAt).toLocaleDateString("id-ID")}
+                    {item.mentor && ` • Mentor: ${item.mentor.name}`}
                   </p>
+                  {item.mentorNote && (
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                      📝 {item.mentorNote}
+                    </p>
+                  )}
                 </div>
 
                 <span
                   className={`
-                    text-xs font-semibold px-3 py-1 rounded-full
-                    ${
-                      item.approvedByMentor
-                        ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
-                        : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
-                    }
-                  `}
+          text-xs font-semibold px-3 py-1 rounded-full
+          ${
+            item.status === "Disetujui"
+              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
+              : item.status === "Ditolak"
+                ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
+                : item.status === "Perbaiki"
+                  ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
+                  : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+          }
+        `}
                 >
-                  {item.approvedByMentor ? "✔ Disetujui" : "⏳ Menunggu"}
+                  {item.status === "Disetujui"
+                    ? "✅ Disetujui"
+                    : item.status === "Ditolak"
+                      ? "❌ Ditolak"
+                      : item.status === "Perbaiki"
+                        ? "📝 Perbaiki"
+                        : "⏳ Menunggu"}
                 </span>
               </div>
             </button>
