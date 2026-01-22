@@ -24,9 +24,11 @@ export default function SuperadminLayout({
   const [collapsed, setCollapsed] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+
   const [dashboardOpen, setDashboardOpen] = useState(true);
   const [userOpen, setUserOpen] = useState(false);
   const [layoutOpen, setLayoutOpen] = useState(false);
+  
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const router = useRouter();
@@ -37,6 +39,8 @@ export default function SuperadminLayout({
     name: string;
     email: string;
     roles: string[];
+
+    avatar?: string;
   };
 
   const [user, setUser] = useState<LoggedUser | null>(null);
@@ -77,12 +81,24 @@ export default function SuperadminLayout({
         name: payload.name,
         email: payload.email,
         roles: payload.roles || [],
+
+        avatar: payload.avatar,
       });
     } catch (error) {
       console.error("Token tidak valid");
       handleSignOut();
     }
   }, []);
+
+  const getInitials = (name?: string) => {
+    if (!name) return "?";
+    return name
+      .split(" ")
+      .filter(Boolean)
+      .map((word) => word[0].toUpperCase())
+      .join("")
+      .slice(0, 3);
+  };
 
   if (!mounted) {
     return null; // ⛔ cegah render sebelum client siap
@@ -92,18 +108,20 @@ export default function SuperadminLayout({
     <ConfirmProvider>
       <div
         className="
-        min-h-screen
-        flex
-        bg-gradient-to-br
-        from-emerald-50 via-white to-cyan-50
+          min-h-screen
+          flex
+          bg-gradient-to-br
+          from-[#FBF7F2]   
+          via-[#F9FAFB]    
+          to-[#F3F4F6]     
 
-        dark:from-[#020617]
-        dark:via-[#020617]
-        dark:to-[#0F172A]
+          dark:from-[#020617]
+          dark:via-[#020617]
+          dark:to-[#0F172A]
 
-        text-gray-800 dark:text-gray-100
-        transition-colors duration-300
-      "
+          text-gray-800 dark:text-gray-100
+          transition-colors duration-300
+        "
       >
         {/* ===================== SIDEBAR ===================== */}
         <aside
@@ -111,11 +129,13 @@ export default function SuperadminLayout({
             z-30
             h-screen
             bg-gradient-to-b
-            from-white via-emerald-50 to-emerald-100
+            from-[#FFF7ED]   
+            via-[#FEF3C7]   
+            to-[#FDE68A]
             dark:from-[#020617]
             dark:via-[#1E1B4B]
             dark:to-[#3B0764]
-            border-r border-emerald-200 dark:border-indigo-900/40
+            border-r border-[#F1C40F]/40 dark:border-indigo-900/40
             shadow-[4px_0_20px_-5px_rgba(0,0,0,0.15)]
             transition-all duration-300
 
@@ -134,16 +154,16 @@ export default function SuperadminLayout({
           <div className="flex items-center justify-between p-5">
             <div className="flex items-center gap-3">
               <img
-                src="/images/icons/Logo-Simaggo.png"
+                src="/images/icons/sitanjak.png"
                 className={`
                   object-contain
                   ${collapsed ? "w-9 h-9" : "w-14 h-14"}
                 `}
-                alt="SIMAGGO Logo"
+                alt="SiTanjak Logo"
               />
               {!collapsed && (
                 <h1 className="text-lg font-semibold tracking-wide">
-                  Superadmin
+                  Admin
                 </h1>
               )}
             </div>
@@ -160,11 +180,11 @@ export default function SuperadminLayout({
                 border
 
                 bg-white/80
-                border-emerald-200
-                text-emerald-700
+                border-[#FDE68A]
+                text-[#7F1D1D]
 
-                hover:bg-emerald-100
-                hover:border-emerald-300
+                hover:bg-[#FEF3C7]
+                hover:border-[#FACC15]
 
                 dark:bg-slate-800/80
                 dark:border-slate-600
@@ -184,7 +204,7 @@ export default function SuperadminLayout({
             {/* ===== DASHBOARD DROPDOWN ===== */}
             <button
               onClick={() => setDashboardOpen(!dashboardOpen)}
-              className={`flex items-center gap-3 py-2 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-900/30
+              className={`flex items-center gap-3 py-2 rounded-xl hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm dark:hover:bg-[#312E81]/40 dark:hover:text-white
                 transition w-full
                 ${
                   collapsed
@@ -218,7 +238,7 @@ export default function SuperadminLayout({
                   py-2.5 rounded-xl
                   text-sm
                   text-gray-700 dark:text-gray-300
-                  hover:bg-emerald-100/70
+                  hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm
                   dark:hover:bg-slate-800
                   transition
                   ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
@@ -226,8 +246,9 @@ export default function SuperadminLayout({
                     pathname === "/dashboard/admin"
                       ? `
                           bg-gradient-to-r
-                          from-emerald-500/20 to-cyan-500/20
-                          text-emerald-700
+                          from-[#FDE68A]/60
+                          to-[#FACC15]/40
+                          text-[#7F1D1D]
                           dark:from-indigo-500/30
                           dark:via-purple-500/25
                           dark:to-fuchsia-500/30
@@ -247,16 +268,18 @@ export default function SuperadminLayout({
                   py-2.5 rounded-xl
                   text-sm
                   text-gray-700 dark:text-gray-300
-                  hover:bg-emerald-100/70
+                  hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm
                   dark:hover:bg-slate-800
                   transition
                   ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
+
                   ${
                     pathname.includes("/ViewPendaftaran")
                       ? `
                           bg-gradient-to-r
-                          from-emerald-500/20 to-cyan-500/20
-                          text-emerald-700
+                          from-[#FDE68A]/60
+                          to-[#FACC15]/40
+                          text-[#7F1D1D]
                           dark:from-indigo-500/30
                           dark:via-purple-500/25
                           dark:to-fuchsia-500/30
@@ -271,20 +294,23 @@ export default function SuperadminLayout({
 
               <Link
                 href="/dashboard/admin/ViewLogbook"
-                className={`flex items-center gap-3
+                className={`
+                  flex items-center gap-3
                   py-2.5 rounded-xl
                   text-sm
                   text-gray-700 dark:text-gray-300
-                  hover:bg-emerald-100/70
+                  hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm
                   dark:hover:bg-slate-800
                   transition
                   ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
+
                   ${
                     pathname.includes("/ViewLogbook")
                       ? `
                           bg-gradient-to-r
-                          from-emerald-500/20 to-cyan-500/20
-                          text-emerald-700
+                          from-[#FDE68A]/60
+                          to-[#FACC15]/40
+                          text-[#7F1D1D]
                           dark:from-indigo-500/30
                           dark:via-purple-500/25
                           dark:to-fuchsia-500/30
@@ -304,16 +330,18 @@ export default function SuperadminLayout({
                   py-2.5 rounded-xl
                   text-sm
                   text-gray-700 dark:text-gray-300
-                  hover:bg-emerald-100/70
+                  hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm
                   dark:hover:bg-slate-800
                   transition
                   ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
+
                   ${
                     pathname.includes("/ViewPeserta")
                       ? `
                           bg-gradient-to-r
-                          from-emerald-500/20 to-cyan-500/20
-                          text-emerald-700
+                          from-[#FDE68A]/60
+                          to-[#FACC15]/40
+                          text-[#7F1D1D]
                           dark:from-indigo-500/30
                           dark:via-purple-500/25
                           dark:to-fuchsia-500/30
@@ -333,16 +361,18 @@ export default function SuperadminLayout({
                   py-2.5 rounded-xl
                   text-sm
                   text-gray-700 dark:text-gray-300
-                  hover:bg-emerald-100/70
+                  hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm
                   dark:hover:bg-slate-800
                   transition
                   ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
+
                   ${
                     pathname.includes("/ViewLaporanAkhir")
                       ? `
                           bg-gradient-to-r
-                          from-emerald-500/20 to-cyan-500/20
-                          text-emerald-700
+                          from-[#FDE68A]/60
+                          to-[#FACC15]/40
+                          text-[#7F1D1D]
                           dark:from-indigo-500/30
                           dark:via-purple-500/25
                           dark:to-fuchsia-500/30
@@ -360,7 +390,7 @@ export default function SuperadminLayout({
             {/* ===== MANAJEMEN AKUN DROPDOWN ===== */}
             <button
               onClick={() => setUserOpen(!userOpen)}
-              className={`flex items-center gap-3 py-2 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-900/30
+              className={`flex items-center gap-3 py-2 rounded-xl hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm dark:hover:bg-[#312E81]/40 dark:hover:text-white
                 transition w-full
                 ${
                   collapsed
@@ -394,16 +424,18 @@ export default function SuperadminLayout({
                   py-2.5 rounded-xl
                   text-sm
                   text-gray-700 dark:text-gray-300
-                  hover:bg-emerald-100/70
+                  hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm
                   dark:hover:bg-slate-800
                   transition
                   ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
+
                   ${
                     pathname.includes("/ManajemenAkun/buatadmin")
                       ? `
                           bg-gradient-to-r
-                          from-emerald-500/20 to-cyan-500/20
-                          text-emerald-700
+                          from-[#FDE68A]/60
+                          to-[#FACC15]/40
+                          text-[#7F1D1D]
                           dark:from-indigo-500/30
                           dark:via-purple-500/25
                           dark:to-fuchsia-500/30
@@ -423,16 +455,18 @@ export default function SuperadminLayout({
                   py-2.5 rounded-xl
                   text-sm
                   text-gray-700 dark:text-gray-300
-                  hover:bg-emerald-100/70
+                  hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm
                   dark:hover:bg-slate-800
                   transition
                   ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
+
                   ${
                     pathname.includes("/ManajemenAkun/buatpeserta")
                       ? `
                           bg-gradient-to-r
-                          from-emerald-500/20 to-cyan-500/20
-                          text-emerald-700
+                          from-[#FDE68A]/60
+                          to-[#FACC15]/40
+                          text-[#7F1D1D]
                           dark:from-indigo-500/30
                           dark:via-purple-500/25
                           dark:to-fuchsia-500/30
@@ -466,9 +500,9 @@ export default function SuperadminLayout({
           <header
             className={`
               sticky top-0 z-20 h-16
-              bg-white/70 dark:bg-[#020617]/70
+              dark:bg-[#020617]/70
               backdrop-blur-xl
-              border-b border-emerald-200 dark:border-slate-800
+              border-b border-[#FDE68A]/60 bg-white/80 dark:border-slate-800
               shadow-sm
               flex items-center px-4 lg:px-6
             `}
@@ -492,65 +526,136 @@ export default function SuperadminLayout({
             <div className="ml-auto flex items-center gap-5">
               <button
                 onClick={toggleTheme}
-                className="p-2 rounded-full hover:bg-emerald-100 dark:hover:bg-emerald-900/40"
+                className="p-2 rounded-full hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm dark:hover:bg-[#312E81]/40"
               >
                 <Sun className="hidden dark:block text-yellow-400" />
-                <Moon className="block dark:hidden text-emerald-600" />
+                <Moon className="block dark:hidden text-[#7F1D1D]" />
               </button>
 
               <div className="relative">
-                {/* Foto profil lingkaran */}
-                <img
-                  src={`https://ui-avatars.com/api/?name=${encodeURIComponent(
-                    user?.name || "User",
-                  )}`}
-                  // ganti dengan foto sebenarnya jika ada
-                  className="w-12 h-12 rounded-full cursor-pointer border-2 border-gray-300 dark:border-gray-600"
+                <div
                   onClick={() => setProfileOpen(!profileOpen)}
-                />
+                  className="
+                    w-12 h-12
+                    rounded-full
+                    cursor-pointer
+                    flex items-center justify-center
+                    font-bold
+
+                    bg-gradient-to-br from-[#B91C1C] to-[#7F1D1D]
+                    text-white
+                    ring-2 ring-[#FDE68A]
+                    shadow-md
+
+                    dark:bg-gradient-to-br dark:from-indigo-500 dark:via-purple-500 dark:to-fuchsia-500
+                    dark:text-white
+                    dark:ring-2 dark:ring-indigo-900/60
+                    dark:shadow-lg
+
+                    hover:scale-105
+                    active:scale-95
+                    transition-all duration-300
+                  "
+                >
+                  {getInitials(user?.name)}
+                </div>
 
                 {profileOpen && (
-                  <div className="absolute right-0 mt-3 w-64 bg-white/90 dark:bg-slate-800/90 backdrop-blur-xl shadow-2xl rounded-2xl p-4 border border-emerald-100 dark:border-slate-700 z-50">
+                  <div
+                    className="
+                      absolute right-0 mt-4 w-72
+                      rounded-3xl
+                      bg-white/90 dark:bg-slate-900/90
+                      backdrop-blur-xl
+                      border border-[#FDE68A]/60 dark:border-slate-700
+                      shadow-[0_20px_60px_-15px_rgba(0,0,0,0.4)]
+                      p-6
+                      z-50
+                      animate-scaleIn
+                    "
+                  >
                     {/* Foto profil besar */}
-                    <div className="flex flex-col items-center gap-2 mb-3">
-                      <img
-                        src="https://ui-avatars.com/api/?name=Admin"
-                        className="w-16 h-16 rounded-full border-2 border-gray-300 dark:border-gray-600"
-                      />
-                      <span className="font-semibold text-gray-800 dark:text-gray-100">
-                        {user?.name || "-"}
-                      </span>
-
-                      <span className="text-sm text-gray-500 dark:text-gray-300">
-                        {user?.roles?.[0] || "-"}
-                      </span>
-
-                      <span className="text-sm text-gray-500 dark:text-gray-300">
-                        {user?.email || "-"}
-                      </span>
-                    </div>
-
-                    {/* Tombol */}
-                    <div className="flex flex-col gap-2">
-                      <button
-                        onClick={() =>
-                          confirm({
-                            title: "Keluar dari akun?",
-                            message:
-                              "Anda akan keluar dari sistem dan perlu login kembali.",
-                            onConfirm: handleSignOut,
-                          })
-                        }
+                    <div className="flex flex-col items-center text-center gap-2 mb-6">
+                      {/* AVATAR */}
+                      <div
                         className="
-                          flex items-center gap-2 px-3 py-2
-                          text-rose-600 dark:text-rose-400
-                          hover:bg-rose-100 dark:hover:bg-rose-900/40
-                          rounded-lg transition
+                          w-20 h-20
+                          rounded-full
+                          flex items-center justify-center
+                          
+                          bg-gradient-to-br from-[#B91C1C] to-[#7F1D1D]
+                          text-white
+                          ring-4 ring-[#FDE68A]
+
+                          dark:bg-gradient-to-br dark:from-indigo-500 dark:via-purple-500 dark:to-fuchsia-500
+                          dark:text-white
+                          dark:ring-4 dark:ring-indigo-900/60
+
+                          text-2xl font-bold
+                          shadow-lg
+                          transition-colors duration-300
                         "
                       >
-                        <LogOut size={18} /> Sign Out
-                      </button>
+                        {getInitials(user?.name)}
+                      </div>
+
+                      {/* NAMA */}
+                      <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100">
+                        {user?.name || "-"}
+                      </h3>
+
+                      {/* EMAIL */}
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        {user?.email || "-"}
+                      </p>
+
+                      {/* POSISI */}
+                      <span
+                        className="
+                          mt-1
+                          inline-flex items-center
+                          px-3 py-1
+                          rounded-full
+                          text-xs font-semibold
+
+                          bg-[#FDE68A] text-[#7F1D1D]
+
+                          dark:bg-purple-900/40
+                          dark:text-purple-300
+                          dark:ring-1 dark:ring-purple-800/60
+                        "
+                      >
+                        Admin
+                      </span>
                     </div>
+
+                    {/* ===== SIGN OUT BUTTON ===== */}
+                    <button
+                      onClick={() =>
+                        confirm({
+                          title: "Keluar dari akun?",
+                          message:
+                            "Anda akan keluar dari sistem dan perlu login kembali untuk mengakses dashboard.",
+                          onConfirm: handleSignOut,
+                        })
+                      }
+                      className="
+                        w-full
+                        flex items-center justify-center gap-2
+                        py-3
+                        rounded-xl
+                        bg-gradient-to-r from-rose-600 to-pink-600
+                        text-white font-semibold
+                        shadow-lg
+                        hover:shadow-xl
+                        hover:scale-[1.03]
+                        active:scale-95
+                        transition
+                      "
+                    >
+                      <LogOut size={18} />
+                      Sign Out
+                    </button>
                   </div>
                 )}
               </div>

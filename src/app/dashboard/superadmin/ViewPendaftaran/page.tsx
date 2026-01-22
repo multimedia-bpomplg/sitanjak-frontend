@@ -533,7 +533,7 @@ export default function ViewPendaftaranPage() {
                     text-slate-700 dark:text-slate-100
                     placeholder:text-slate-400
                     focus:outline-none
-                    focus:ring-2 focus:ring-emerald-500/70 dark:focus:ring-indigo-500/70
+                    focus:ring-2 focus:ring-[#B91C1C]/70 dark:focus:ring-indigo-500/70
                     transition
                   "
           />
@@ -651,8 +651,8 @@ export default function ViewPendaftaranPage() {
                         border
                         border-slate-300 dark:border-slate-600
                         bg-white dark:bg-slate-900
-                        text-emerald-700 dark:text-indigo-200
-                        hover:bg-emerald-50 dark:hover:bg-indigo-900/30
+                        text-[#7F1D1D]  dark:text-indigo-200
+                        hover:bg-[#FFF1F2] dark:hover:bg-indigo-900/30
                         disabled:opacity-40 disabled:cursor-not-allowed
                         transition
                       "
@@ -675,12 +675,12 @@ export default function ViewPendaftaranPage() {
                             transition
                             ${
                               active
-                                ? "bg-emerald-600 text-white shadow dark:bg-indigo-600"
+                                ? "bg-[#B91C1C] text-white shadow dark:bg-indigo-600"
                                 : `
                                   bg-white dark:bg-slate-900
-                                  text-emerald-700 dark:text-indigo-200
+                                  text-[#7F1D1D] dark:text-indigo-200
                                   border border-slate-300 dark:border-slate-600
-                                  hover:bg-emerald-50 dark:hover:bg-indigo-900/30
+                                  hover:bg-[#FFF1F2] dark:hover:bg-indigo-900/30
                                 `
                             }
                           `}
@@ -701,8 +701,8 @@ export default function ViewPendaftaranPage() {
                         border
                         border-slate-300 dark:border-slate-600
                         bg-white dark:bg-slate-900
-                        text-emerald-700 dark:text-indigo-200
-                        hover:bg-emerald-50 dark:hover:bg-indigo-900/30
+                        text-[#7F1D1D]  dark:text-indigo-200
+                        hover:bg-[#FFF1F2] dark:hover:bg-indigo-900/30
                         disabled:opacity-40 disabled:cursor-not-allowed
                         transition
                       "
@@ -729,7 +729,7 @@ export default function ViewPendaftaranPage() {
                     relative
                     w-full h-full
                     bg-gradient-to-br
-                    from-white via-blue-20 to-blue-50
+                    from-white via-[#FFF5F5] to-[#FDECEC]
                     dark:from-[#0B0614] dark:via-[#120A24] dark:to-[#1E0F3D]
                     flex flex-col
                   "
@@ -744,7 +744,7 @@ export default function ViewPendaftaranPage() {
 
                       /* ===== BACKGROUND ===== */
                       bg-gradient-to-r
-                      from-blue-200 via-sky-100 to-white/70
+                      from-[#FCA5A5] via-[#FDE8E8] to-white
                       dark:from-indigo-900 dark:via-violet-800 dark:to-purple-800
 
                       /* ===== BORDER & SHADOW ===== */
@@ -766,7 +766,7 @@ export default function ViewPendaftaranPage() {
                           shadow
                         "
                 >
-                  <HiDocumentText className="text-2xl text-blue-600 dark:text-indigo-300" />
+                  <HiDocumentText className="text-2xl text-[#B91C1C] dark:text-indigo-300" />
                 </div>
 
                 <div className="leading-tight">
@@ -803,15 +803,15 @@ export default function ViewPendaftaranPage() {
                         rounded-2xl
                         p-5
                         bg-gradient-to-br
-                        from-blue-50 to-sky-50
+                        from-[#FFF1F2] to-[#FFE4E6]
                         dark:from-indigo-500/10 dark:to-violet-500/10
-                        border-blue-200 dark:border-indigo-700/40
+                        border-[#FCA5A5] dark:border-indigo-700/40
                         flex flex-col sm:flex-row sm:items-center sm:justify-between
                         gap-4
                       "
               >
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-blue-600 dark:bg-indigo-700 text-white flex items-center justify-center">
+                  <div className="w-12 h-12 rounded-xl bg-[#B91C1C] dark:bg-indigo-700 text-white flex items-center justify-center">
                     <HiDocumentText className="text-xl" />
                   </div>
                   <div>
@@ -834,7 +834,7 @@ export default function ViewPendaftaranPage() {
                           text-sm font-semibold
                           text-white
                           transition
-                          bg-blue-600 hover:bg-blue-700
+                          bg-[#B91C1C] hover:bg-[#991B1B]
                           dark:bg-indigo-600 dark:hover:bg-indigo-700
                         "
                 >
@@ -852,17 +852,24 @@ export default function ViewPendaftaranPage() {
                             rounded-2xl
                             bg-white/90
                             dark:bg-[#140B2D]/80
-                            border-blue-200
+                            border-[#FCA5A5]
                             dark:border-indigo-700/40
                             p-6
                             shadow-sm
                           "
                   >
                     {/* HEADER PESERTA */}
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-2">
-                        <HiUser className="text-blue-500 dark:text-indigo-400" />
-                        <h3 className="text-lg font-semibold text-blue-600 dark:text-indigo-400">
+                    <div className="
+                      mb-4
+                      flex flex-col gap-3
+                      sm:flex-row sm:items-center sm:justify-between
+                    ">
+                      <div className="
+                        flex flex-col gap-2 w-full
+                        sm:flex-row sm:w-auto sm:items-center
+                      ">
+                        <HiUser className="text-[#B91C1C] dark:text-indigo-400" />
+                        <h3 className="text-lg font-semibold text-[#B91C1C] dark:text-indigo-400">
                           Peserta {i + 1}
                         </h3>
                       </div>
@@ -874,13 +881,14 @@ export default function ViewPendaftaranPage() {
                               value={posisiBaru}
                               onChange={(e) => setPosisiBaru(e.target.value)}
                               className="
-                text-xs
-                px-2 py-1
-                rounded-lg
-                border
-                border-slate-300 dark:border-slate-600
-                bg-white dark:bg-slate-800
-              "
+                                w-full sm:w-auto
+                                text-xs
+                                px-3 py-2
+                                rounded-lg
+                                border
+                                border-slate-300 dark:border-slate-600
+                                bg-white dark:bg-slate-800
+                              "
                             >
                               <option value="">Pilih Posisi</option>
                               {POSISI_MAGANG.map((pos) => (
@@ -893,12 +901,14 @@ export default function ViewPendaftaranPage() {
                             <button
                               onClick={() => simpanPosisi(i)}
                               className="
-                text-xs
-                px-2 py-1
-                rounded-lg
-                bg-emerald-600 hover:bg-emerald-700
-                text-white
-              "
+                                w-full sm:w-auto
+                                text-xs
+                                px-3 py-2
+                                rounded-lg
+                                bg-emerald-600 hover:bg-emerald-700
+                                text-white
+                                transition
+                              "
                             >
                               Simpan
                             </button>
@@ -906,11 +916,14 @@ export default function ViewPendaftaranPage() {
                             <button
                               onClick={() => setEditPosisiIndex(null)}
                               className="
-                text-xs
-                px-2 py-1
-                rounded-lg
-                bg-slate-300 dark:bg-slate-600
-              "
+                                w-full sm:w-auto
+                                text-xs
+                                px-3 py-2
+                                rounded-lg
+                                bg-slate-300 hover:bg-slate-400
+                                dark:bg-slate-600
+                                transition
+                              "
                             >
                               Batal
                             </button>
@@ -919,12 +932,12 @@ export default function ViewPendaftaranPage() {
                           <>
                             <span
                               className="
-                text-xs font-semibold
-                px-3 py-1 rounded-full
-                bg-blue-100 text-blue-700
-                dark:bg-indigo-500/20 dark:text-indigo-300
-                flex items-center gap-1
-              "
+                                text-xs font-semibold
+                                px-3 py-1 rounded-full
+                                bg-[#FEE2E2] text-[#7F1D1D]
+                                dark:bg-indigo-500/20 dark:text-indigo-300
+                                flex items-center gap-1
+                              "
                             >
                               <HiBriefcase />
                               {p.posisi}
@@ -935,13 +948,18 @@ export default function ViewPendaftaranPage() {
                                 setEditPosisiIndex(i);
                                 setPosisiBaru(p.posisi);
                               }}
-                              className="
-                text-xs
-                px-2 py-1
-                rounded-lg
-                bg-blue-600 hover:bg-blue-700
-                text-white
-              "
+                              className={`
+                                w-full sm:w-auto
+                                text-xs px-3 py-2
+                                rounded-lg
+                                text-white
+                                transition
+                                bg-[#B91C1C] hover:bg-[#991B1B]
+                                ${p.mentor
+                                  ? "bg-amber-600 hover:bg-amber-700"
+                                  : "bg-[#B91C1C] hover:bg-[#991B1B]"}
+                                w-full sm:w-auto
+                              `}
                             >
                               Ubah
                             </button>
@@ -1026,31 +1044,31 @@ export default function ViewPendaftaranPage() {
                         return (
                           <div
                             className="
-          flex items-center gap-2
-          px-3 py-1.5
-          rounded-xl
-          bg-blue-50 dark:bg-indigo-500/10
-          border border-blue-200 dark:border-indigo-500/30
-        "
+                              flex items-center gap-2
+                              px-3 py-1.5
+                              rounded-xl
+                              bg-[#FFF1F2] dark:bg-indigo-500/10
+                              border border-[#FCA5A5] dark:border-indigo-500/30
+                            "
                           >
                             {/* LINGKARAN BIRU */}
                             <div
                               className="
-            w-8 h-8
-            rounded-full
-            bg-blue-600
-            text-white
-            flex items-center justify-center
-            text-xs font-bold
-            shadow
-          "
+                                w-8 h-8
+                                rounded-full
+                                bg-[#B91C1C]
+                                text-white
+                                flex items-center justify-center
+                                text-xs font-bold
+                                shadow
+                              "
                             >
                               {durasi.bulan}
                             </div>
 
                             {/* TEXT */}
                             <div className="leading-tight">
-                              <p className="text-[11px] font-semibold text-blue-800 dark:text-indigo-300">
+                              <p className="text-[11px] font-semibold text-[#7F1D1D] dark:text-indigo-300">
                                 Durasi Magang
                               </p>
                               <p className="text-[10px] text-blue-600 dark:text-indigo-300">
@@ -1211,7 +1229,7 @@ export default function ViewPendaftaranPage() {
                                     );
                                   }
                                 }}
-                                className="bg-blue-600 text-white px-4 py-2 rounded-lg"
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg"
                               >
                                 Simpan
                               </button>
@@ -1350,21 +1368,21 @@ export default function ViewPendaftaranPage() {
                   <>
                     <label
                       className="
-                flex flex-col items-center justify-center
-                w-full
-                min-h-[140px]
-                rounded-2xl
-                border-2 border-dashed
-                border-blue-400
-                dark:border-indigo-500/50
-                bg-blue-50/50
-                dark:bg-indigo-500/10
-                cursor-pointer
-                transition
-                hover:bg-indigo-100/60 dark:hover:bg-indigo-500/10
-              "
+                        flex flex-col items-center justify-center
+                        w-full
+                        min-h-[140px]
+                        rounded-2xl
+                        border-2 border-dashed
+                        border-[#FCA5A5]
+                        dark:border-indigo-500/50
+                        bg-[#FFF1F2]
+                        dark:bg-indigo-500/10
+                        cursor-pointer
+                        transition
+                        hover:bg-indigo-100/60 dark:hover:bg-indigo-500/10
+                      "
                     >
-                      <HiDocumentText className="text-4xl text-blue-600 dark:text-indigo-400 mb-2" />
+                      <HiDocumentText className="text-4xl text-[#B91C1C] dark:text-indigo-400 mb-2" />
 
                       <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
                         Klik untuk upload surat balasan
@@ -1563,7 +1581,7 @@ function DetailItem({
 }) {
   return (
     <div className="flex items-start gap-2">
-      <div className="mt-0.5 text-blue-600 dark:text-indigo-400">{icon}</div>
+      <div className="mt-0.5 text-[#B91C1C] dark:text-indigo-400">{icon}</div>
       <div>
         <p className="text-xs text-slate-500 dark:text-slate-400">{label}</p>
         <p className="font-medium text-slate-800 dark:text-white">
