@@ -90,7 +90,7 @@ export default function MentorLogbookModal({
       );
 
       if (res.status === 404) {
-        showToast.error("Logbook tidak ditemukan");
+        showToast.error("Logbook ini belum dibuat oleh peserta");
         onClose();
         return;
       }

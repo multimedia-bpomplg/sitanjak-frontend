@@ -11,8 +11,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "BPOM Dashboard",
-  description: "Admin Dashboard BPOM",
+  title: "SITANJAK",
+  description: "Magang BPOM",
 };
 
 export default function RootLayout({
