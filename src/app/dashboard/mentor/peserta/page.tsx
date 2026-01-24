@@ -84,94 +84,138 @@ export default function ViewPendaftaranUI() {
   const connectedToMentor = data.filter((p) => p.mentor).length;
   const noMentor = data.length - connectedToMentor;
 
+  const statCards = [
+    {
+      title: "Jumlah Peserta",
+      value: data.length,
+      desc: "Total peserta yang terdaftar",
+      icon: <HiUsers />,
+    },
+    {
+      title: "Terkoneksi Mentor",
+      value: connectedToMentor,
+      desc: "Peserta sudah mendapatkan mentor",
+      icon: <HiCheckCircle />,
+    },
+    {
+      title: "Belum Mentor",
+      value: noMentor,
+      desc: "Menunggu penugasan mentor",
+      icon: <HiXCircle />,
+    },
+  ];
+
   return (
-    <div className="min-h-screen p-6 bg-gradient-to-br from-slate-50 via-white to-indigo-50">
+    <div
+      className="
+        min-h-screen p-4 sm:p-6 lg:p-10
+        bg-gradient-to-br
+        from-slate-50 via-white to-indigo-100
+        dark:from-[#0B0614] dark:via-[#120A24] dark:to-[#1E0F3D]
+        text-slate-800 dark:text-slate-100
+        transition-colors
+      "
+    >
       {/* ================= HEADER ================= */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-800">Data Pendaftaran</h1>
-        <p className="text-slate-600 mt-2">
+      <div className="mb-10">
+        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight">Data Pendaftaran</h1>
+        <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400">
           Kelola data peserta yang terdaftar dalam program magang
         </p>
       </div>
 
       {/* ================= STATISTICS CARDS ================= */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white rounded-2xl border p-6 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-slate-500">
-                Jumlah Peserta
-              </p>
-              <p className="text-3xl font-bold text-slate-800 mt-2">
-                {data.length}
-              </p>
-            </div>
-            <div className="p-3 bg-indigo-100 rounded-xl">
-              <HiUsers className="w-8 h-8 text-indigo-600" />
-            </div>
-          </div>
-          <div className="mt-4 pt-4 border-t">
-            <p className="text-xs text-slate-500">
-              Total peserta yang terdaftar
-            </p>
-          </div>
-        </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        {statCards.map((card, i) => (
+          <div
+            key={i}
+            className="
+              group relative overflow-hidden
+              rounded-3xl
+              bg-white/80 dark:bg-white/5
+              backdrop-blur
+              border border-[#F59E0B]/30 dark:border-indigo-500/30
+              shadow-md hover:shadow-xl
+              transition-all
+            "
+          >
+            {/* glow */}
+            <div
+              className="
+                absolute inset-0 rounded-3xl
+                bg-gradient-to-br from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
+                dark:from-indigo-600 dark:to-violet-500
+                opacity-0 group-hover:opacity-20 blur-xl
+                transition
+              "
+            />
 
-        <div className="bg-white rounded-2xl border p-6 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-slate-500">
-                Terkoneksi Mentor
-              </p>
-              <p className="text-3xl font-bold text-emerald-600 mt-2">
-                {connectedToMentor}
-              </p>
-            </div>
-            <div className="p-3 bg-emerald-100 rounded-xl">
-              <HiCheckCircle className="w-8 h-8 text-emerald-600" />
-            </div>
-          </div>
-          <div className="mt-4 pt-4 border-t">
-            <p className="text-xs text-slate-500">
-              Peserta sudah mendapatkan mentor
-            </p>
-          </div>
-        </div>
+            <div className="relative p-5 sm:p-6 flex items-center justify-between">
+              {/* TEXT */}
+              <div>
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+                  {card.title}
+                </p>
+                <p className="text-3xl sm:text-4xl font-extrabold mt-1 text-slate-900 dark:text-white">
+                  {card.value}
+                </p>
+                <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                  {card.desc}
+                </p>
+              </div>
 
-        <div className="bg-white rounded-2xl border p-6 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-slate-500">Belum Mentor</p>
-              <p className="text-3xl font-bold text-rose-600 mt-2">
-                {noMentor}
-              </p>
-            </div>
-            <div className="p-3 bg-rose-100 rounded-xl">
-              <HiXCircle className="w-8 h-8 text-rose-600" />
+              {/* ICON */}
+              <div
+                className="
+                  shrink-0
+                  w-12 h-12 sm:w-14 sm:h-14
+                  rounded-2xl
+                  bg-gradient-to-br from-[#7F1D1D] to-[#F59E0B]
+                  dark:from-indigo-600 dark:to-violet-500
+                  flex items-center justify-center
+                  text-white text-xl sm:text-2xl
+                  shadow-lg
+                "
+              >
+                {card.icon}
+              </div>
             </div>
           </div>
-          <div className="mt-4 pt-4 border-t">
-            <p className="text-xs text-slate-500">Menunggu penugasan mentor</p>
-          </div>
-        </div>
+        ))}
       </div>
 
       {/* ================= SEARCH AND ACTION BAR ================= */}
       <div className="mb-8">
         <div className="flex flex-col md:flex-row gap-4">
           <div className="relative flex-1">
-            <HiSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
+            <HiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-[#7F1D1D] dark:text-indigo-400 w-5 h-5 z-10" />
             <input
               type="text"
               placeholder="Cari peserta berdasarkan nama, email, atau posisi..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-slate-700 placeholder-slate-400"
+              className="
+                w-full pl-11 sm:pl-12 pr-10 py-3
+                rounded-2xl
+                bg-white/90 dark:bg-white/5
+                backdrop-blur
+                border border-[#F59E0B]/40 dark:border-indigo-500/40
+                text-slate-700 dark:text-slate-100
+                placeholder:text-slate-400
+                focus:outline-none focus:ring-2
+                focus:ring-[#B91C1C]/60 dark:focus:ring-indigo-500/60
+                transition
+              "
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery("")}
-                className="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                className="
+                  absolute right-4 top-1/2 -translate-y-1/2
+                  text-slate-400
+                  hover:text-rose-600
+                  transition
+                "
               >
                 ✕
               </button>
@@ -179,16 +223,36 @@ export default function ViewPendaftaranUI() {
           </div>
         </div>
 
-        <div className="mt-2 flex justify-between text-sm text-slate-500">
-          <p>
+        <div className="mt-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:justify-between text-sm">
+          <span
+            className="
+              inline-flex items-center gap-1
+              px-3 py-1 rounded-full
+              bg-[#FEF3C7] text-[#7F1D1D]
+              dark:bg-indigo-500/20 dark:text-indigo-300
+              font-semibold
+            "
+          >
             Menampilkan {filteredData.length} dari {data.length} peserta
-          </p>
+          </span>
+
           {searchQuery && (
             <button
               onClick={() => setSearchQuery("")}
-              className="text-indigo-600 hover:text-indigo-800 font-medium"
+              className="
+                w-fit
+                inline-flex items-center gap-1
+                px-3 py-1 rounded-full
+                text-xs sm:text-sm
+                bg-gradient-to-r from-[#7F1D1D] to-[#F59E0B]
+                dark:from-indigo-600 dark:to-violet-500
+                text-white font-bold
+                shadow hover:shadow-lg
+                transition
+              "
             >
               Reset pencarian
+              <span className="group-hover:translate-x-1 transition">↺</span>
             </button>
           )}
         </div>
@@ -196,113 +260,140 @@ export default function ViewPendaftaranUI() {
 
       {/* ================= TABLE ================= */}
       {loading ? (
-        <div className="bg-white rounded-2xl border p-12 text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-indigo-600 mx-auto"></div>
-          <p className="mt-6 text-lg text-slate-600 font-medium">
+        <div
+          className="
+            rounded-3xl
+            bg-white/80 dark:bg-white/5
+            backdrop-blur
+            border border-[#F59E0B]/30 dark:border-indigo-500/30
+            shadow-xl
+            p-12 text-center
+          "
+        >
+          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-indigo-600 mx-auto" />
+          <p className="mt-6 text-lg text-slate-600 dark:text-slate-300 font-medium">
             Memuat data peserta...
           </p>
-          <p className="mt-2 text-sm text-slate-500">Harap tunggu sebentar</p>
         </div>
       ) : filteredData.length === 0 ? (
-        <div className="bg-white rounded-2xl border p-12 text-center">
-          <div className="w-20 h-20 mx-auto mb-6 bg-slate-100 rounded-full flex items-center justify-center">
-            <HiUsers className="w-10 h-10 text-slate-400" />
-          </div>
-          <h3 className="text-xl font-semibold text-slate-700 mb-2">
-            {searchQuery
-              ? "Peserta tidak ditemukan"
-              : "Belum ada peserta terdaftar"}
-          </h3>
-          <p className="text-slate-500 mb-6 max-w-md mx-auto">
-            {searchQuery
-              ? `Tidak ada peserta yang sesuai dengan pencarian "${searchQuery}". Coba dengan kata kunci lain.`
-              : "Belum ada peserta yang mendaftar dalam program magang."}
-          </p>
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery("")}
-              className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-medium"
-            >
-              Tampilkan Semua Peserta
-            </button>
-          )}
+        <div className="bg-white dark:bg-white/5 rounded-2xl border p-12 text-center">
+          <h3 className="text-xl font-semibold">Peserta tidak ditemukan</h3>
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
+        <div
+          className="
+            rounded-2xl
+            bg-white/90 dark:bg-white/5
+            backdrop-blur
+            border border-slate-200 dark:border-indigo-500/30
+            shadow-lg
+            overflow-hidden
+          "
+        >
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="min-w-[900px] w-full text-sm sm:text-base">
+              {/* ================= HEAD ================= */}
               <thead>
-                <tr className="bg-slate-50 border-b">
-                  <th className="py-4 px-6 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                <tr className="bg-slate-50 dark:bg-indigo-500/10 border-b border-slate-200 dark:border-indigo-500/30">
+                  <th className="w-[8%] py-4 px-6 text-center text-xs font-semibold text-slate-600 dark:text-indigo-200 uppercase">
                     No
                   </th>
-                  <th className="py-4 px-6 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                  <th className="w-[22%] py-4 px-6 text-center text-xs font-semibold text-slate-600 dark:text-indigo-200 uppercase">
                     Peserta
                   </th>
-                  <th className="py-4 px-6 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                  <th className="w-[22%] py-4 px-6 text-center text-xs font-semibold text-slate-600 dark:text-indigo-200 uppercase">
                     Kontak
                   </th>
-                  <th className="py-4 px-6 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                  <th className="w-[16%] py-4 px-6 text-center text-xs font-semibold text-slate-600 dark:text-indigo-200 uppercase">
                     Posisi
                   </th>
-                  <th className="py-4 px-6 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                  <th className="w-[14%] py-4 px-6 text-center text-xs font-semibold text-slate-600 dark:text-indigo-200 uppercase">
                     Kategori
                   </th>
-                  <th className="py-4 px-6 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                  <th className="w-[18%] py-4 px-6 text-center text-xs font-semibold text-slate-600 dark:text-indigo-200 uppercase">
                     Status
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+
+              {/* ================= BODY ================= */}
+              <tbody className="divide-y divide-slate-100 dark:divide-indigo-500/20">
                 {filteredData.map((p, i) => (
                   <tr
                     key={`${p.email}-${i}`}
-                    className="hover:bg-slate-50/50 transition-colors"
+                    className="hover:bg-[#FEF3C7]/40 dark:hover:bg-indigo-500/10 transition"
                   >
-                    <td className="py-4 px-6 text-center text-slate-500 font-medium">
+                    {/* NO */}
+                    <td className="py-4 px-6 text-center font-medium text-slate-500 dark:text-slate-300">
                       {i + 1}
                     </td>
-                    <td className="py-4 px-6">
-                      <div
-                        className="flex items-center gap-3 cursor-pointer group"
-                        onClick={() => {
-                          setSelectedPeserta(p);
-                          setOpenModal(true);
-                        }}
-                      >
-                        <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center group-hover:bg-indigo-200 transition-colors">
-                          <HiUser className="w-5 h-5 text-indigo-600" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-slate-800 group-hover:text-indigo-700 transition-colors">
-                            {p.nama}
-                          </p>
-                          <p className="text-xs text-slate-500">
-                            Klik untuk detail
-                          </p>
+
+                    {/* PESERTA */}
+                    <td className="py-4 px-6 text-center">
+                      <div className="flex justify-center">
+                        <div
+                          onClick={() => {
+                            setSelectedPeserta(p);
+                            setOpenModal(true);
+                          }}
+                          className="flex items-center gap-3 cursor-pointer group"
+                        >
+                          <div
+                            className="
+                              shrink-0 w-10 h-10 min-w-[2.5rem] min-h-[2.5rem]
+                              rounded-full
+                              bg-gradient-to-br from-[#7F1D1D] to-[#F59E0B]
+                              dark:from-indigo-600 dark:to-violet-500
+                              flex items-center justify-center
+                              text-white shadow
+                              group-hover:scale-110 transition
+                            "
+                          >
+                            <HiUser className="w-5 h-5" />
+                          </div>
+                          <div className="text-left">
+                            <p className="font-medium text-slate-800 dark:text-slate-100">
+                              {p.nama}
+                            </p>
+                            <p className="text-xs text-slate-500">
+                              Klik untuk detail
+                            </p>
+                          </div>
                         </div>
                       </div>
                     </td>
-                    <td className="py-4 px-6">
-                      <div className="flex items-center gap-2 text-slate-600">
+
+                    {/* KONTAK */}
+                    <td className="py-4 px-6 text-center">
+                      <div className="flex justify-center items-center gap-2 text-slate-600 dark:text-slate-300">
                         <MdEmail className="w-4 h-4" />
-                        <span className="text-sm truncate max-w-[200px]">
+                        <span className="truncate max-w-[200px]">
                           {p.email}
                         </span>
                       </div>
                     </td>
-                    <td className="py-4 px-6">
-                      <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100">
-                        <HiBriefcase className="w-3 h-3" />
-                        {p.posisi}
-                      </span>
+
+                    {/* POSISI */}
+                    <td className="py-4 px-6 text-center">
+                      <div className="flex justify-center">
+                        <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 dark:bg-indigo-500/20 dark:text-indigo-200">
+                          <HiBriefcase className="w-3 h-3" />
+                          {p.posisi}
+                        </span>
+                      </div>
                     </td>
-                    <td className="py-4 px-6">
-                      <span className="px-3 py-1.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200">
-                        {p.kategori || "Bersama"}
-                      </span>
+
+                    {/* KATEGORI */}
+                    <td className="py-4 px-6 text-center">
+                      <div className="flex justify-center">
+                        <span className="px-3 py-1.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-200">
+                          {p.kategori || "Bersama"}
+                        </span>
+                      </div>
                     </td>
-                    <td className="py-4 px-6">
+
+                    {/* STATUS */}
+                    <td className="py-4 px-6 text-center">
                       <div className="flex flex-col items-center gap-1">
                         <StatusBadge />
                         {p.mentor ? (
@@ -341,7 +432,7 @@ export default function ViewPendaftaranUI() {
 
 function StatusBadge() {
   return (
-    <span className="px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 border border-emerald-200">
+    <span className="px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">
       Disetujui
     </span>
   );
