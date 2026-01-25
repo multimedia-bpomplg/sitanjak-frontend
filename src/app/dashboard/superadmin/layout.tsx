@@ -13,7 +13,7 @@ import {
 
 import { useRouter, usePathname } from "next/navigation";
 import { ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+// import "react-toastify/dist/ReactToastify.css";
 import { ConfirmProvider, useConfirm } from "@/components/ui/ConfirmProvider";
 
 export default function SuperadminLayout({
@@ -106,47 +106,47 @@ export default function SuperadminLayout({
     <ConfirmProvider>
       <div
         className="
-          min-h-screen
-          flex
-          bg-gradient-to-br
-          from-[#FBF7F2]   
-          via-[#F9FAFB]    
-          to-[#F3F4F6]     
+            min-h-screen
+            flex
+            bg-gradient-to-br
+            from-[#FBF7F2]   
+            via-[#F9FAFB]    
+            to-[#F3F4F6]     
 
-          dark:from-[#020617]
-          dark:via-[#020617]
-          dark:to-[#0F172A]
+            dark:from-[#020617]
+            dark:via-[#020617]
+            dark:to-[#0F172A]
 
-          text-gray-800 dark:text-gray-100
-          transition-colors duration-300
-        "
+            text-gray-800 dark:text-gray-100
+            transition-colors duration-300
+          "
       >
         {/* ===================== SIDEBAR ===================== */}
         <aside
           className={`
-            z-30
-            h-screen
-            bg-gradient-to-b
-            from-[#FFF7ED]   
-            via-[#FEF3C7]   
-            to-[#FDE68A]
-            dark:from-[#020617]
-            dark:via-[#1E1B4B]
-            dark:to-[#3B0764]
-            border-r border-[#F1C40F]/40 dark:border-indigo-900/40
-            shadow-[4px_0_20px_-5px_rgba(0,0,0,0.15)]
-            transition-all duration-300
+              z-30
+              h-screen
+              bg-gradient-to-b
+              from-[#FFF7ED]   
+              via-[#FEF3C7]   
+              to-[#FDE68A]
+              dark:from-[#020617]
+              dark:via-[#1E1B4B]
+              dark:to-[#3B0764]
+              border-r border-[#F1C40F]/40 dark:border-indigo-900/40
+              shadow-[4px_0_20px_-5px_rgba(0,0,0,0.15)]
+              transition-all duration-300
 
-            w-72
-            ${collapsed ? "lg:w-20" : "lg:w-72"}
+              w-72
+              ${collapsed ? "lg:w-20" : "lg:w-72"}
 
-            fixed lg:sticky
-            top-0 left-0
+              fixed lg:sticky
+              top-0 left-0
 
-            transform
-            ${mobileOpen ? "translate-x-0" : "-translate-x-full"}
-            lg:translate-x-0
-          `}
+              transform
+              ${mobileOpen ? "translate-x-0" : "-translate-x-full"}
+              lg:translate-x-0
+            `}
         >
           {/* LOGO + CLOSE BUTTON */}
           <div className="flex items-center justify-between p-5">
@@ -154,9 +154,9 @@ export default function SuperadminLayout({
               <img
                 src="/images/icons/sitanjak.png"
                 className={`
-                  object-contain
-                  ${collapsed ? "w-9 h-9" : "w-14 h-14"}
-                `}
+                    object-contain
+                    ${collapsed ? "w-9 h-9" : "w-14 h-14"}
+                  `}
                 alt="SiTanjak Logo"
               />
               {!collapsed && (
@@ -171,27 +171,27 @@ export default function SuperadminLayout({
               onClick={() => setMobileOpen(false)}
               aria-label="Close sidebar"
               className="
-                lg:hidden
-                flex items-center justify-center
-                w-9 h-9
-                rounded-full
-                border
+                  lg:hidden
+                  flex items-center justify-center
+                  w-9 h-9
+                  rounded-full
+                  border
 
-                bg-white/80
-                border-[#FDE68A]
-                text-[#7F1D1D]
+                  bg-white/80
+                  border-[#FDE68A]
+                  text-[#7F1D1D]
 
-                hover:bg-[#FEF3C7]
-                hover:border-[#FACC15]
+                  hover:bg-[#FEF3C7]
+                  hover:border-[#FACC15]
 
-                dark:bg-slate-800/80
-                dark:border-slate-600
-                dark:text-slate-200
-                dark:hover:bg-slate-700
-                dark:hover:border-slate-500
+                  dark:bg-slate-800/80
+                  dark:border-slate-600
+                  dark:text-slate-200
+                  dark:hover:bg-slate-700
+                  dark:hover:border-slate-500
 
-                transition-all duration-200
-              "
+                  transition-all duration-200
+                "
             >
               <X size={18} />
             </button>
@@ -203,12 +203,12 @@ export default function SuperadminLayout({
             <button
               onClick={() => setDashboardOpen(!dashboardOpen)}
               className={`flex items-center gap-3 py-2 rounded-xl hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm dark:hover:bg-[#312E81]/40 dark:hover:text-white
-                transition w-full
-                ${
-                  collapsed
-                    ? "justify-center px-3"
-                    : "pl-5 pr-3 justify-between"
-                }`}
+                  transition w-full
+                  ${
+                    collapsed
+                      ? "justify-center px-3"
+                      : "pl-5 pr-3 justify-between"
+                  }`}
             >
               <div className="flex items-center gap-3">
                 📊 {!collapsed && <span>Dashboard</span>}
@@ -232,30 +232,30 @@ export default function SuperadminLayout({
               <Link
                 href="/dashboard/superadmin"
                 className={`
-                  flex items-center gap-3
-                  py-2.5 rounded-xl
-                  text-sm
-                  text-gray-700 dark:text-gray-300
-                  hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm
-                  dark:hover:bg-slate-800
-                  transition
-                  ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
+                    flex items-center gap-3
+                    py-2.5 rounded-xl
+                    text-sm
+                    text-gray-700 dark:text-gray-300
+                    hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm
+                    dark:hover:bg-slate-800
+                    transition
+                    ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
 
-                  ${
-                    pathname === "/dashboard/superadmin"
-                      ? `
-                          bg-gradient-to-r
-                          from-[#FDE68A]/60
-                          to-[#FACC15]/40
-                          text-[#7F1D1D]
-                          dark:from-indigo-500/30
-                          dark:via-purple-500/25
-                          dark:to-fuchsia-500/30
-                          dark:text-indigo-200
-                          shadow-inner
-                        `
-                      : ""
-                  }`}
+                    ${
+                      pathname === "/dashboard/superadmin"
+                        ? `
+                            bg-gradient-to-r
+                            from-[#FDE68A]/60
+                            to-[#FACC15]/40
+                            text-[#7F1D1D]
+                            dark:from-indigo-500/30
+                            dark:via-purple-500/25
+                            dark:to-fuchsia-500/30
+                            dark:text-indigo-200
+                            shadow-inner
+                          `
+                        : ""
+                    }`}
               >
                 📈 {!collapsed && "Overview Sistem"}
               </Link>
@@ -263,124 +263,156 @@ export default function SuperadminLayout({
               <Link
                 href="/dashboard/superadmin/ViewPendaftaran"
                 className={`
-                  flex items-center gap-3
-                  py-2.5 rounded-xl
-                  text-sm
-                  text-gray-700 dark:text-gray-300
-                  hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm
-                  dark:hover:bg-slate-800
-                  transition
-                  ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
+                    flex items-center gap-3
+                    py-2.5 rounded-xl
+                    text-sm
+                    text-gray-700 dark:text-gray-300
+                    hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm
+                    dark:hover:bg-slate-800
+                    transition
+                    ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
 
-                  ${
-                    pathname.includes("/ViewPendaftaran")
-                      ? `
-                          bg-gradient-to-r
-                          from-[#FDE68A]/60
-                          to-[#FACC15]/40
-                          text-[#7F1D1D]
-                          dark:from-indigo-500/30
-                          dark:via-purple-500/25
-                          dark:to-fuchsia-500/30
-                          dark:text-indigo-200
-                          shadow-inner
-                        `
-                      : ""
-                  }`}
+                    ${
+                      pathname.includes("/ViewPendaftaran")
+                        ? `
+                            bg-gradient-to-r
+                            from-[#FDE68A]/60
+                            to-[#FACC15]/40
+                            text-[#7F1D1D]
+                            dark:from-indigo-500/30
+                            dark:via-purple-500/25
+                            dark:to-fuchsia-500/30
+                            dark:text-indigo-200
+                            shadow-inner
+                          `
+                        : ""
+                    }`}
               >
                 📝 {!collapsed && "View Pendaftaran"}
               </Link>
 
               <Link
-                href="/dashboard/superadmin/ViewLogbook"
-                className={`
-                  flex items-center gap-3
-                  py-2.5 rounded-xl
-                  text-sm
-                  text-gray-700 dark:text-gray-300
-                  hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm
-                  dark:hover:bg-slate-800
-                  transition
-                  ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
-
-                  ${
-                    pathname.includes("/ViewLogbook")
-                      ? `
-                          bg-gradient-to-r
-                          from-[#FDE68A]/60
-                          to-[#FACC15]/40
-                          text-[#7F1D1D]
-                          dark:from-indigo-500/30
-                          dark:via-purple-500/25
-                          dark:to-fuchsia-500/30
-                          dark:text-indigo-200
-                          shadow-inner
-                        `
-                      : ""
-                  }`}
-              >
-                📘 {!collapsed && "View Logbook"}
-              </Link>
-
-              <Link
                 href="/dashboard/superadmin/ViewPeserta"
                 className={`
-                  flex items-center gap-3
-                  py-2.5 rounded-xl
-                  text-sm
-                  text-gray-700 dark:text-gray-300
-                  hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm
-                  dark:hover:bg-slate-800
-                  transition
-                  ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
+                    flex items-center gap-3
+                    py-2.5 rounded-xl
+                    text-sm
+                    text-gray-700 dark:text-gray-300
+                    hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm
+                    dark:hover:bg-slate-800
+                    transition
+                    ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
 
-                  ${
-                    pathname.includes("/ViewPeserta")
-                      ? `
-                          bg-gradient-to-r
-                          from-[#FDE68A]/60
-                          to-[#FACC15]/40
-                          text-[#7F1D1D]
-                          dark:from-indigo-500/30
-                          dark:via-purple-500/25
-                          dark:to-fuchsia-500/30
-                          dark:text-indigo-200
-                          shadow-inner
-                        `
-                      : ""
-                  }`}
+                    ${
+                      pathname.includes("/ViewPeserta")
+                        ? `
+                            bg-gradient-to-r
+                            from-[#FDE68A]/60
+                            to-[#FACC15]/40
+                            text-[#7F1D1D]
+                            dark:from-indigo-500/30
+                            dark:via-purple-500/25
+                            dark:to-fuchsia-500/30
+                            dark:text-indigo-200
+                            shadow-inner
+                          `
+                        : ""
+                    }`}
               >
                 👥 {!collapsed && "View Peserta"}
               </Link>
 
               <Link
+                href="/dashboard/superadmin/ViewLogbook"
+                className={`
+                    flex items-center gap-3
+                    py-2.5 rounded-xl
+                    text-sm
+                    text-gray-700 dark:text-gray-300
+                    hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm
+                    dark:hover:bg-slate-800
+                    transition
+                    ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
+
+                    ${
+                      pathname.includes("/ViewLogbook")
+                        ? `
+                            bg-gradient-to-r
+                            from-[#FDE68A]/60
+                            to-[#FACC15]/40
+                            text-[#7F1D1D]
+                            dark:from-indigo-500/30
+                            dark:via-purple-500/25
+                            dark:to-fuchsia-500/30
+                            dark:text-indigo-200
+                            shadow-inner
+                          `
+                        : ""
+                    }`}
+              >
+                📘 {!collapsed && "View Logbook"}
+              </Link>
+
+              <Link
+                href="/dashboard/superadmin/ViewLaporanBulanan"
+                className={`
+                    flex items-center gap-3
+                    py-2.5 rounded-xl
+                    text-sm
+                    text-gray-700 dark:text-gray-300
+                    hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm
+                    dark:hover:bg-slate-800
+                    transition
+                    ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
+
+                    ${
+                      pathname.includes("/ViewLaporanBulanan")
+                        ? `
+                            bg-gradient-to-r
+                            from-[#FDE68A]/60
+                            to-[#FACC15]/40
+                            text-[#7F1D1D]
+                            dark:from-indigo-500/30
+                            dark:via-purple-500/25
+                            dark:to-fuchsia-500/30
+                            dark:text-indigo-200
+                            shadow-inner
+                          `
+                        : ""
+                    }
+                  `}
+              >
+                📑 {!collapsed && "View Laporan Bulanan"}
+              </Link>
+
+              <Link
                 href="/dashboard/superadmin/ViewLaporanAkhir"
                 className={`
-                  flex items-center gap-3
-                  py-2.5 rounded-xl
-                  text-sm
-                  text-gray-700 dark:text-gray-300
-                  hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm
-                  dark:hover:bg-slate-800
-                  transition
-                  ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
+                    flex items-center gap-3
+                    py-2.5 rounded-xl
+                    text-sm
+                    text-gray-700 dark:text-gray-300
+                    hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm
+                    dark:hover:bg-slate-800
+                    transition
+                    ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
 
-                  ${
-                    pathname.includes("/ViewLaporanAkhir")
-                      ? `
-                          bg-gradient-to-r
-                          from-[#FDE68A]/60
-                          to-[#FACC15]/40
-                          text-[#7F1D1D]
-                          dark:from-indigo-500/30
-                          dark:via-purple-500/25
-                          dark:to-fuchsia-500/30
-                          dark:text-indigo-200
-                          shadow-inner
-                        `
-                      : ""
-                  }
-                `}
+                    ${
+                      pathname.includes("/ViewLaporanAkhir")
+                        ? `
+                            bg-gradient-to-r
+                            from-[#FDE68A]/60
+                            to-[#FACC15]/40
+                            text-[#7F1D1D]
+                            dark:from-indigo-500/30
+                            dark:via-purple-500/25
+                            dark:to-fuchsia-500/30
+                            dark:text-indigo-200
+                            shadow-inner
+                          `
+                        : ""
+                    }
+                  `}
               >
                 📑 {!collapsed && "View Laporan Akhir"}
               </Link>
@@ -390,12 +422,12 @@ export default function SuperadminLayout({
             <button
               onClick={() => setUserOpen(!userOpen)}
               className={`flex items-center gap-3 py-2 rounded-xl hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm dark:hover:bg-[#312E81]/40 dark:hover:text-white
-                transition w-full
-                ${
-                  collapsed
-                    ? "justify-center px-3"
-                    : "pl-5 pr-3 justify-between"
-                }`}
+                  transition w-full
+                  ${
+                    collapsed
+                      ? "justify-center px-3"
+                      : "pl-5 pr-3 justify-between"
+                  }`}
             >
               <div className="flex items-center gap-3">
                 👤 {!collapsed && <span>Manajemen Akun</span>}
@@ -419,30 +451,30 @@ export default function SuperadminLayout({
               <Link
                 href="/dashboard/superadmin/ManajemenAkun/buatadmin"
                 className={`
-                  flex items-center gap-3
-                  py-2.5 rounded-xl
-                  text-sm
-                  text-gray-700 dark:text-gray-300
-                  hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm
-                  dark:hover:bg-slate-800
-                  transition
-                  ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
+                    flex items-center gap-3
+                    py-2.5 rounded-xl
+                    text-sm
+                    text-gray-700 dark:text-gray-300
+                    hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm
+                    dark:hover:bg-slate-800
+                    transition
+                    ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
 
-                  ${
-                    pathname.includes("/ManajemenAkun/buatadmin")
-                      ? `
-                          bg-gradient-to-r
-                          from-[#FDE68A]/60
-                          to-[#FACC15]/40
-                          text-[#7F1D1D]
-                          dark:from-indigo-500/30
-                          dark:via-purple-500/25
-                          dark:to-fuchsia-500/30
-                          dark:text-indigo-200
-                          shadow-inner
-                        `
-                      : ""
-                  }`}
+                    ${
+                      pathname.includes("/ManajemenAkun/buatadmin")
+                        ? `
+                            bg-gradient-to-r
+                            from-[#FDE68A]/60
+                            to-[#FACC15]/40
+                            text-[#7F1D1D]
+                            dark:from-indigo-500/30
+                            dark:via-purple-500/25
+                            dark:to-fuchsia-500/30
+                            dark:text-indigo-200
+                            shadow-inner
+                          `
+                        : ""
+                    }`}
               >
                 🛠 {!collapsed && "Buat Akun Admin"}
               </Link>
@@ -450,30 +482,30 @@ export default function SuperadminLayout({
               <Link
                 href="/dashboard/superadmin/ManajemenAkun/buatmentor"
                 className={`
-                  flex items-center gap-3
-                  py-2.5 rounded-xl
-                  text-sm
-                  text-gray-700 dark:text-gray-300
-                  hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm
-                  dark:hover:bg-slate-800
-                  transition
-                  ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
+                    flex items-center gap-3
+                    py-2.5 rounded-xl
+                    text-sm
+                    text-gray-700 dark:text-gray-300
+                    hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm
+                    dark:hover:bg-slate-800
+                    transition
+                    ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
 
-                  ${
-                    pathname.includes("/ManajemenAkun/buatmentor")
-                      ? `
-                          bg-gradient-to-r
-                          from-[#FDE68A]/60
-                          to-[#FACC15]/40
-                          text-[#7F1D1D]
-                          dark:from-indigo-500/30
-                          dark:via-purple-500/25
-                          dark:to-fuchsia-500/30
-                          dark:text-indigo-200
-                          shadow-inner
-                        `
-                      : ""
-                  }`}
+                    ${
+                      pathname.includes("/ManajemenAkun/buatmentor")
+                        ? `
+                            bg-gradient-to-r
+                            from-[#FDE68A]/60
+                            to-[#FACC15]/40
+                            text-[#7F1D1D]
+                            dark:from-indigo-500/30
+                            dark:via-purple-500/25
+                            dark:to-fuchsia-500/30
+                            dark:text-indigo-200
+                            shadow-inner
+                          `
+                        : ""
+                    }`}
               >
                 🧑‍🏫 {!collapsed && "Buat Akun Mentor"}
               </Link>
@@ -481,30 +513,30 @@ export default function SuperadminLayout({
               <Link
                 href="/dashboard/superadmin/ManajemenAkun/buatpeserta"
                 className={`
-                  flex items-center gap-3
-                  py-2.5 rounded-xl
-                  text-sm
-                  text-gray-700 dark:text-gray-300
-                  hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm
-                  dark:hover:bg-slate-800
-                  transition
-                  ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
+                    flex items-center gap-3
+                    py-2.5 rounded-xl
+                    text-sm
+                    text-gray-700 dark:text-gray-300
+                    hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm
+                    dark:hover:bg-slate-800
+                    transition
+                    ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
 
-                  ${
-                    pathname.includes("/ManajemenAkun/buatpeserta")
-                      ? `
-                          bg-gradient-to-r
-                          from-[#FDE68A]/60
-                          to-[#FACC15]/40
-                          text-[#7F1D1D]
-                          dark:from-indigo-500/30
-                          dark:via-purple-500/25
-                          dark:to-fuchsia-500/30
-                          dark:text-indigo-200
-                          shadow-inner
-                        `
-                      : ""
-                  }`}
+                    ${
+                      pathname.includes("/ManajemenAkun/buatpeserta")
+                        ? `
+                            bg-gradient-to-r
+                            from-[#FDE68A]/60
+                            to-[#FACC15]/40
+                            text-[#7F1D1D]
+                            dark:from-indigo-500/30
+                            dark:via-purple-500/25
+                            dark:to-fuchsia-500/30
+                            dark:text-indigo-200
+                            shadow-inner
+                          `
+                        : ""
+                    }`}
               >
                 📋 {!collapsed && "Buat Akun Peserta"}
               </Link>
@@ -514,12 +546,12 @@ export default function SuperadminLayout({
             <button
               onClick={() => setLayoutOpen(!layoutOpen)}
               className={`flex items-center gap-3 py-2 rounded-xl hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm dark:hover:bg-[#312E81]/40 dark:hover:text-white
-                transition w-full
-                ${
-                  collapsed
-                    ? "justify-center px-3"
-                    : "pl-5 pr-3 justify-between"
-                }`}
+                  transition w-full
+                  ${
+                    collapsed
+                      ? "justify-center px-3"
+                      : "pl-5 pr-3 justify-between"
+                  }`}
             >
               <div className="flex items-center gap-3">
                 🧱 {!collapsed && <span>Manajemen Tampilan</span>}
@@ -543,30 +575,30 @@ export default function SuperadminLayout({
               <Link
                 href="/dashboard/superadmin/layout/utama"
                 className={`
-                  flex items-center gap-3
-                  py-2.5 rounded-xl
-                  text-sm
-                  text-gray-700 dark:text-gray-300
-                  hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm
-                  dark:hover:bg-slate-800
-                  transition
-                  ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
+                    flex items-center gap-3
+                    py-2.5 rounded-xl
+                    text-sm
+                    text-gray-700 dark:text-gray-300
+                    hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm
+                    dark:hover:bg-slate-800
+                    transition
+                    ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
 
-                  ${
-                    pathname.includes("/layout/utama")
-                      ? `
-                          bg-gradient-to-r
-                          from-[#FDE68A]/60
-                          to-[#FACC15]/40
-                          text-[#7F1D1D]
-                          dark:from-indigo-500/30
-                          dark:via-purple-500/25
-                          dark:to-fuchsia-500/30
-                          dark:text-indigo-200
-                          shadow-inner
-                        `
-                      : ""
-                  }`}
+                    ${
+                      pathname.includes("/layout/utama")
+                        ? `
+                            bg-gradient-to-r
+                            from-[#FDE68A]/60
+                            to-[#FACC15]/40
+                            text-[#7F1D1D]
+                            dark:from-indigo-500/30
+                            dark:via-purple-500/25
+                            dark:to-fuchsia-500/30
+                            dark:text-indigo-200
+                            shadow-inner
+                          `
+                        : ""
+                    }`}
               >
                 🏠 {!collapsed && "Layout Halaman Utama"}
               </Link>
@@ -574,30 +606,30 @@ export default function SuperadminLayout({
               <Link
                 href="/dashboard/superadmin/layout/konten"
                 className={`
-                  flex items-center gap-3
-                  py-2.5 rounded-xl
-                  text-sm
-                  text-gray-700 dark:text-gray-300
-                  hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm
-                  dark:hover:bg-slate-800
-                  transition
-                  ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
+                    flex items-center gap-3
+                    py-2.5 rounded-xl
+                    text-sm
+                    text-gray-700 dark:text-gray-300
+                    hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm
+                    dark:hover:bg-slate-800
+                    transition
+                    ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
 
-                  ${
-                    pathname.includes("/layout/konten")
-                      ? `
-                          bg-gradient-to-r
-                          from-[#FDE68A]/60
-                          to-[#FACC15]/40
-                          text-[#7F1D1D]
-                          dark:from-indigo-500/30
-                          dark:via-purple-500/25
-                          dark:to-fuchsia-500/30
-                          dark:text-indigo-200
-                          shadow-inner
-                        `
-                      : ""
-                  }`}
+                    ${
+                      pathname.includes("/layout/konten")
+                        ? `
+                            bg-gradient-to-r
+                            from-[#FDE68A]/60
+                            to-[#FACC15]/40
+                            text-[#7F1D1D]
+                            dark:from-indigo-500/30
+                            dark:via-purple-500/25
+                            dark:to-fuchsia-500/30
+                            dark:text-indigo-200
+                            shadow-inner
+                          `
+                        : ""
+                    }`}
               >
                 📰 {!collapsed && "Konten Informasi"}
               </Link>
@@ -605,30 +637,30 @@ export default function SuperadminLayout({
               <Link
                 href="/dashboard/superadmin/layout/banner"
                 className={`
-                  flex items-center gap-3
-                  py-2.5 rounded-xl
-                  text-sm
-                  text-gray-700 dark:text-gray-300
-                  hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm
-                  dark:hover:bg-slate-800
-                  transition
-                  ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
+                    flex items-center gap-3
+                    py-2.5 rounded-xl
+                    text-sm
+                    text-gray-700 dark:text-gray-300
+                    hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm
+                    dark:hover:bg-slate-800
+                    transition
+                    ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
 
-                  ${
-                    pathname.includes("/layout/banner")
-                      ? `
-                          bg-gradient-to-r
-                          from-[#FDE68A]/60
-                          to-[#FACC15]/40
-                          text-[#7F1D1D]
-                          dark:from-indigo-500/30
-                          dark:via-purple-500/25
-                          dark:to-fuchsia-500/30
-                          dark:text-indigo-200
-                          shadow-inner
-                        `
-                      : ""
-                  }`}
+                    ${
+                      pathname.includes("/layout/banner")
+                        ? `
+                            bg-gradient-to-r
+                            from-[#FDE68A]/60
+                            to-[#FACC15]/40
+                            text-[#7F1D1D]
+                            dark:from-indigo-500/30
+                            dark:via-purple-500/25
+                            dark:to-fuchsia-500/30
+                            dark:text-indigo-200
+                            shadow-inner
+                          `
+                        : ""
+                    }`}
               >
                 📢 {!collapsed && "Banner & Pengumuman"}
               </Link>
@@ -646,20 +678,20 @@ export default function SuperadminLayout({
         {/* RIGHT AREA */}
         <div
           className={`
-            flex flex-col min-w-0 flex-1
-            transition-all duration-300
-          `}
+              flex flex-col min-w-0 flex-1
+              transition-all duration-300
+            `}
         >
           {/* ===================== TOPBAR ===================== */}
           <header
             className={`
-              sticky top-0 z-20 h-16
-              dark:bg-[#020617]/70
-              backdrop-blur-xl
-              border-b border-[#FDE68A]/60 bg-white/80 dark:border-slate-800
-              shadow-sm
-              flex items-center px-4 lg:px-6
-            `}
+                sticky top-0 z-20 h-16
+                dark:bg-[#020617]/70
+                backdrop-blur-xl
+                border-b border-[#FDE68A]/60 bg-white/80 dark:border-slate-800
+                shadow-sm
+                flex items-center px-4 lg:px-6
+              `}
           >
             <button
               onClick={() => {
@@ -690,26 +722,26 @@ export default function SuperadminLayout({
                 <div
                   onClick={() => setProfileOpen(!profileOpen)}
                   className="
-                    w-12 h-12
-                    rounded-full
-                    cursor-pointer
-                    flex items-center justify-center
-                    font-bold
+                      w-12 h-12
+                      rounded-full
+                      cursor-pointer
+                      flex items-center justify-center
+                      font-bold
 
-                    bg-gradient-to-br from-[#B91C1C] to-[#7F1D1D]
-                    text-white
-                    ring-2 ring-[#FDE68A]
-                    shadow-md
+                      bg-gradient-to-br from-[#B91C1C] to-[#7F1D1D]
+                      text-white
+                      ring-2 ring-[#FDE68A]
+                      shadow-md
 
-                    dark:bg-gradient-to-br dark:from-indigo-500 dark:via-purple-500 dark:to-fuchsia-500
-                    dark:text-white
-                    dark:ring-2 dark:ring-indigo-900/60
-                    dark:shadow-lg
+                      dark:bg-gradient-to-br dark:from-indigo-500 dark:via-purple-500 dark:to-fuchsia-500
+                      dark:text-white
+                      dark:ring-2 dark:ring-indigo-900/60
+                      dark:shadow-lg
 
-                    hover:scale-105
-                    active:scale-95
-                    transition-all duration-300
-                  "
+                      hover:scale-105
+                      active:scale-95
+                      transition-all duration-300
+                    "
                 >
                   {getInitials(user?.name)}
                 </div>
@@ -717,38 +749,38 @@ export default function SuperadminLayout({
                 {profileOpen && (
                   <div
                     className="
-                      absolute right-0 mt-4 w-72
-                      rounded-3xl
-                      bg-white/90 dark:bg-slate-900/90
-                      backdrop-blur-xl
-                      border border-[#FDE68A]/60 dark:border-slate-700
-                      shadow-[0_20px_60px_-15px_rgba(0,0,0,0.4)]
-                      p-6
-                      z-50
-                      animate-scaleIn
-                    "
+                        absolute right-0 mt-4 w-72
+                        rounded-3xl
+                        bg-white/90 dark:bg-slate-900/90
+                        backdrop-blur-xl
+                        border border-[#FDE68A]/60 dark:border-slate-700
+                        shadow-[0_20px_60px_-15px_rgba(0,0,0,0.4)]
+                        p-6
+                        z-50
+                        animate-scaleIn
+                      "
                   >
                     {/* ===== PROFILE INFO ===== */}
                     <div className="flex flex-col items-center text-center gap-2 mb-6">
                       {/* AVATAR */}
                       <div
                         className="
-                          w-20 h-20
-                          rounded-full
-                          flex items-center justify-center
-                          
-                          bg-gradient-to-br from-[#B91C1C] to-[#7F1D1D]
-                          text-white
-                          ring-4 ring-[#FDE68A]
+                            w-20 h-20
+                            rounded-full
+                            flex items-center justify-center
+                            
+                            bg-gradient-to-br from-[#B91C1C] to-[#7F1D1D]
+                            text-white
+                            ring-4 ring-[#FDE68A]
 
-                          dark:bg-gradient-to-br dark:from-indigo-500 dark:via-purple-500 dark:to-fuchsia-500
-                          dark:text-white
-                          dark:ring-4 dark:ring-indigo-900/60
+                            dark:bg-gradient-to-br dark:from-indigo-500 dark:via-purple-500 dark:to-fuchsia-500
+                            dark:text-white
+                            dark:ring-4 dark:ring-indigo-900/60
 
-                          text-2xl font-bold
-                          shadow-lg
-                          transition-colors duration-300
-                        "
+                            text-2xl font-bold
+                            shadow-lg
+                            transition-colors duration-300
+                          "
                       >
                         {getInitials(user?.name)}
                       </div>
@@ -766,18 +798,18 @@ export default function SuperadminLayout({
                       {/* POSISI MAGANG */}
                       <span
                         className="
-                          mt-1
-                          inline-flex items-center
-                          px-3 py-1
-                          rounded-full
-                          text-xs font-semibold
+                            mt-1
+                            inline-flex items-center
+                            px-3 py-1
+                            rounded-full
+                            text-xs font-semibold
 
-                          bg-[#FDE68A] text-[#7F1D1D]
+                            bg-[#FDE68A] text-[#7F1D1D]
 
-                          dark:bg-purple-900/40
-                          dark:text-purple-300
-                          dark:ring-1 dark:ring-purple-800/60
-                        "
+                            dark:bg-purple-900/40
+                            dark:text-purple-300
+                            dark:ring-1 dark:ring-purple-800/60
+                          "
                       >
                         Superadmin
                       </span>
@@ -794,18 +826,18 @@ export default function SuperadminLayout({
                         })
                       }
                       className="
-                        w-full
-                        flex items-center justify-center gap-2
-                        py-3
-                        rounded-xl
-                        bg-gradient-to-r from-rose-600 to-pink-600
-                        text-white font-semibold
-                        shadow-lg
-                        hover:shadow-xl
-                        hover:scale-[1.03]
-                        active:scale-95
-                        transition
-                      "
+                          w-full
+                          flex items-center justify-center gap-2
+                          py-3
+                          rounded-xl
+                          bg-gradient-to-r from-rose-600 to-pink-600
+                          text-white font-semibold
+                          shadow-lg
+                          hover:shadow-xl
+                          hover:scale-[1.03]
+                          active:scale-95
+                          transition
+                        "
                     >
                       <LogOut size={18} />
                       Sign Out
@@ -820,10 +852,10 @@ export default function SuperadminLayout({
           <main className="flex-1 p-4 lg:p-6">
             <div
               className="
-              rounded-2xl
-              bg-white/80 dark:bg-slate-900/80
-              p-6
-            "
+                rounded-2xl
+                bg-white/80 dark:bg-slate-900/80
+                p-6
+              "
             >
               {children}
             </div>

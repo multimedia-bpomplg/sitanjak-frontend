@@ -411,7 +411,7 @@ export default function LogbookModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-3 sm:p-6">
-      <div 
+      <div
         className="
           w-full max-w-3xl
           rounded-3xl
@@ -423,7 +423,7 @@ export default function LogbookModal({
         "
       >
         {/* Header */}
-        <div 
+        <div
           className="
             px-5 sm:px-6 py-4
             border-b border-slate-200 dark:border-slate-800
@@ -513,8 +513,8 @@ export default function LogbookModal({
                             ? option.value === "hadir"
                               ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
                               : option.value === "tidak_hadir_keterangan"
-                              ? "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
-                              : "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300"
+                                ? "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
+                                : "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300"
                             : "bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-300"
                         }
                       `}
@@ -578,7 +578,8 @@ export default function LogbookModal({
                   <>
                     {files.length === 0 ? (
                       <label className="block">
-                        <div className="
+                        <div
+                          className="
                           border-2 border-dashed 
                           border-amber-300 bg-amber-50/60
                           rounded-xl p-8 text-center cursor-pointer 
@@ -586,7 +587,8 @@ export default function LogbookModal({
                           hover:bg-amber-100
                           dark:bg-indigo-900/30
                           dark:border-indigo-700 
-                          transition">
+                          transition"
+                        >
                           <FiUpload className="text-3xl text-slate-400 mx-auto mb-3" />
                           <p className="font-medium text-slate-700">
                             Klik untuk upload foto
@@ -757,8 +759,8 @@ export default function LogbookModal({
                       ${agree ? "text-emerald-600 dark:text-emerald-400" : "text-slate-500 dark:text-slate-400"}
                     `}
                   >
-                    Saya menyatakan bahwa semua data yang diisi adalah benar dan dapat
-                    dipertanggungjawabkan
+                    Saya menyatakan bahwa semua data yang diisi adalah benar dan
+                    dapat dipertanggungjawabkan
                   </p>
                 </div>
               </button>
@@ -946,7 +948,9 @@ function FieldSection({
     <div className="space-y-3">
       <div className="flex items-center gap-2">
         {icon}
-        <label className="font-semibold text-slate-700 dark:text-white">{label}</label>
+        <label className="font-semibold text-slate-700 dark:text-white">
+          {label}
+        </label>
       </div>
 
       {readonly ? (
@@ -986,17 +990,15 @@ function FieldSection({
                 isError
                   ? "border-red-500 focus:ring-red-300 bg-white dark:bg-slate-800"
                   : isValid
-                  ? "border-emerald-500 focus:ring-emerald-300 bg-white dark:bg-slate-800"
-                  : "border-slate-300 bg-white dark:bg-slate-800 focus:ring-slate-400"
+                    ? "border-emerald-500 focus:ring-emerald-300 bg-white dark:bg-slate-800"
+                    : "border-slate-300 bg-white dark:bg-slate-800 focus:ring-slate-400"
               }
             `}
             placeholder={placeholder}
           />
           <div className="flex justify-between items-center text-sm mt-1">
             {isError && (
-              <span className="text-red-600">
-                Minimal {minLength} karakter
-              </span>
+              <span className="text-red-600">Minimal {minLength} karakter</span>
             )}
             {isValid && (
               <span className="text-emerald-600 flex items-center gap-1">

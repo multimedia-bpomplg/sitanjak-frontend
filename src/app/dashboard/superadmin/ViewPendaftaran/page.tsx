@@ -136,7 +136,7 @@ export default function ViewPendaftaranPage() {
   const showAlert = (
     type: "success" | "error" | "warning" | "info",
     message: string,
-    title?: string
+    title?: string,
   ) => {
     setAlertType(type);
     setAlertTitle(title);
@@ -178,7 +178,7 @@ export default function ViewPendaftaranPage() {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
-        }
+        },
       );
 
       const result = await res.json();
@@ -213,7 +213,7 @@ export default function ViewPendaftaranPage() {
       showAlert(
         "warning",
         "Silakan isi alasan sebelum melanjutkan proses.",
-        "Alasan Wajib Diisi"
+        "Alasan Wajib Diisi",
       );
       return;
     }
@@ -223,7 +223,7 @@ export default function ViewPendaftaranPage() {
       showAlert(
         "warning",
         "Surat balasan wajib diunggah sebelum pendaftaran disetujui.",
-        "Dokumen Belum Lengkap"
+        "Dokumen Belum Lengkap",
       );
       return;
     }
@@ -242,7 +242,7 @@ export default function ViewPendaftaranPage() {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
           body: formData,
-        }
+        },
       );
 
       const result = await res.json();
@@ -254,7 +254,7 @@ export default function ViewPendaftaranPage() {
       showAlert(
         "success",
         "Status pendaftaran dan surat balasan berhasil diproses.",
-        "Berhasil"
+        "Berhasil",
       );
 
       // 🔥 PENTING: reload data DULU
@@ -285,7 +285,7 @@ export default function ViewPendaftaranPage() {
     if (!email) return false;
 
     return akunPeserta.some(
-      (akun) => akun.email.toLowerCase() === email.toLowerCase()
+      (akun) => akun.email.toLowerCase() === email.toLowerCase(),
     );
   };
 
@@ -298,7 +298,7 @@ export default function ViewPendaftaranPage() {
 
   /* ===================== FILTER DATA (SEARCH NAMA) ===================== */
   const filteredData = data.filter((item) =>
-    item.peserta?.[0]?.nama?.toLowerCase().includes(search.toLowerCase())
+    item.peserta?.[0]?.nama?.toLowerCase().includes(search.toLowerCase()),
   );
 
   /* ===================== PAGINATED DATA ===================== */
@@ -312,7 +312,7 @@ export default function ViewPendaftaranPage() {
       showAlert(
         "error",
         "Tidak ada data pendaftaran yang dapat diunduh.",
-        "Data Kosong"
+        "Data Kosong",
       );
       return;
     }
@@ -337,7 +337,7 @@ export default function ViewPendaftaranPage() {
         Kelurahan: p.kelurahan,
         "Alamat Lengkap": p.alamatLengkap,
         "Tanggal Daftar": new Date(pendaftaran.createdAt).toLocaleDateString(),
-      }))
+      })),
     );
 
     // Buat worksheet
@@ -424,7 +424,7 @@ export default function ViewPendaftaranPage() {
             indexPeserta: index,
             posisi: posisiBaru,
           }),
-        }
+        },
       );
 
       const result = await res.json();
@@ -437,7 +437,7 @@ export default function ViewPendaftaranPage() {
       const updated: Pendaftaran = {
         ...selected,
         peserta: selected.peserta.map((p, i) =>
-          i === index ? { ...p, posisi: posisiBaru } : p
+          i === index ? { ...p, posisi: posisiBaru } : p,
         ),
       };
 
@@ -458,7 +458,7 @@ export default function ViewPendaftaranPage() {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
-        }
+        },
       );
 
       const result = await res.json();
@@ -859,15 +859,19 @@ export default function ViewPendaftaranPage() {
                           "
                   >
                     {/* HEADER PESERTA */}
-                    <div className="
+                    <div
+                      className="
                       mb-4
                       flex flex-col gap-3
                       sm:flex-row sm:items-center sm:justify-between
-                    ">
-                      <div className="
+                    "
+                    >
+                      <div
+                        className="
                         flex flex-col gap-2 w-full
                         sm:flex-row sm:w-auto sm:items-center
-                      ">
+                      "
+                      >
                         <HiUser className="text-[#B91C1C] dark:text-indigo-400" />
                         <h3 className="text-lg font-semibold text-[#B91C1C] dark:text-indigo-400">
                           Peserta {i + 1}
@@ -955,9 +959,11 @@ export default function ViewPendaftaranPage() {
                                 text-white
                                 transition
                                 bg-[#B91C1C] hover:bg-[#991B1B]
-                                ${p.mentor
-                                  ? "bg-amber-600 hover:bg-amber-700"
-                                  : "bg-[#B91C1C] hover:bg-[#991B1B]"}
+                                ${
+                                  p.mentor
+                                    ? "bg-amber-600 hover:bg-amber-700"
+                                    : "bg-[#B91C1C] hover:bg-[#991B1B]"
+                                }
                                 w-full sm:w-auto
                               `}
                             >
@@ -1036,7 +1042,7 @@ export default function ViewPendaftaranPage() {
                       {(() => {
                         const durasi = hitungDurasiMagang(
                           p.tanggalMulaiMagang,
-                          p.tanggalSelesaiMagang
+                          p.tanggalSelesaiMagang,
                         );
 
                         if (!durasi) return null;
@@ -1179,7 +1185,7 @@ export default function ViewPendaftaranPage() {
                                   ) {
                                     showAlert(
                                       "warning",
-                                      "Data mentor atau peserta belum lengkap"
+                                      "Data mentor atau peserta belum lengkap",
                                     );
                                     return;
                                   }
@@ -1192,14 +1198,14 @@ export default function ViewPendaftaranPage() {
                                         headers: {
                                           "Content-Type": "application/json",
                                           Authorization: `Bearer ${localStorage.getItem(
-                                            "token"
+                                            "token",
                                           )}`,
                                         },
                                         body: JSON.stringify({
                                           email: selectedPesertaEmail, // ✅ KUNCI UTAMA
                                           mentorId: selectedMentor,
                                         }),
-                                      }
+                                      },
                                     );
 
                                     const result = await res.json();
@@ -1207,7 +1213,7 @@ export default function ViewPendaftaranPage() {
                                     if (!res.ok) {
                                       throw new Error(
                                         result.message ||
-                                          "Gagal menyimpan mentor"
+                                          "Gagal menyimpan mentor",
                                       );
                                     }
 
@@ -1220,12 +1226,12 @@ export default function ViewPendaftaranPage() {
 
                                     showAlert(
                                       "success",
-                                      "Mentor peserta berhasil disimpan"
+                                      "Mentor peserta berhasil disimpan",
                                     );
                                   } catch (err: any) {
                                     showAlert(
                                       "error",
-                                      err.message || "Terjadi kesalahan"
+                                      err.message || "Terjadi kesalahan",
                                     );
                                   }
                                 }}
@@ -1560,8 +1566,8 @@ function StatusBadge({ status }: { status: string }) {
                 status === "Disetujui"
                   ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300"
                   : status === "Ditolak"
-                  ? "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300"
-                  : "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-300"
+                    ? "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300"
+                    : "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-300"
               }
             `}
     >
