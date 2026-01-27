@@ -124,7 +124,7 @@ export default function MentorDashboard() {
     <div
       className="
         min-h-screen p-4 sm:p-6 lg:p-10
-        bg-gradient-to-br
+        bg-linear-to-br
         from-slate-50 via-white to-indigo-100
         dark:from-[#0B0614] dark:via-[#120A24] dark:to-[#1E0F3D]
         text-slate-800 dark:text-slate-100
@@ -160,7 +160,7 @@ export default function MentorDashboard() {
             <div
               className={`
                 pointer-events-none absolute inset-0 rounded-3xl
-                bg-gradient-to-br ${s.color}
+                bg-linear-to-br ${s.color}
                 opacity-0 group-hover:opacity-30 blur-xl
                 transition
               `}
@@ -172,7 +172,7 @@ export default function MentorDashboard() {
                 className="
                   w-14 h-14 sm:w-16 sm:h-16   
                   rounded-2xl
-                  bg-gradient-to-br from-[#7F1D1D] to-[#F59E0B]
+                  bg-linear-to-br from-[#7F1D1D] to-[#F59E0B]
                   dark:from-indigo-600 dark:to-violet-500
                   text-white
                   flex items-center justify-center
@@ -234,7 +234,7 @@ export default function MentorDashboard() {
                     shrink-0
                     w-10 h-10
                     rounded-xl
-                    bg-gradient-to-br from-[#7F1D1D] to-[#F59E0B]
+                    bg-linear-to-br from-[#7F1D1D] to-[#F59E0B]
                     dark:from-indigo-600 dark:to-violet-500
                     text-white
                     flex items-center justify-center
@@ -317,7 +317,7 @@ export default function MentorDashboard() {
                       inline-flex items-center justify-center gap-1
                       px-4 py-2 rounded-xl
                       text-xs sm:text-sm font-bold text-white
-                      bg-gradient-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
+                      bg-linear-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
                       dark:from-indigo-600 dark:to-violet-500
                       shadow-md hover:shadow-xl
                       hover:-translate-y-0.5

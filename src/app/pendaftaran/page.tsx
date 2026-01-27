@@ -460,7 +460,7 @@ export default function PendaftaranPage() {
   const smkList = ["SMK Negeri 1", "SMK Negeri 2", "SMK Negeri 3"];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#FFF7ED] via-[#FEF3C7] to-[#FFFFFF] py-16 px-4">
+    <div className="min-h-screen bg-linear-to-br from-[#FFF7ED] via-[#FEF3C7] to-[#FFFFFF] py-16 px-4">
       <div className="max-w-6xl mx-auto">
         {/* BACK TO HOME BUTTON */}
         <div className="mb-8">
@@ -533,7 +533,7 @@ export default function PendaftaranPage() {
               href="/pendaftaran/riwayat"
               className="inline-flex items-center gap-2 px-5 py-2.5
                           rounded-xl text-sm font-semibold
-                          bg-gradient-to-r from-[#7F1D1D] to-[#B91C1C] text-white
+                          bg-linear-to-r from-[#7F1D1D] to-[#B91C1C] text-white
                           hover:brightness-110 transition"
             >
               <HiClipboardList className="text-lg" />
@@ -1309,7 +1309,7 @@ export default function PendaftaranPage() {
             type="submit"
             disabled={loading}
             className="w-full py-4 rounded-xl text-white font-semibold text-lg
-                bg-gradient-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
+                bg-linear-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
                 hover:scale-[1.02] transition disabled:opacity-60"
           >
             {loading ? "Mengirim..." : "Kirim Pendaftaran"}
@@ -1353,7 +1353,7 @@ export default function PendaftaranPage() {
                 </button>
                 <button
                   onClick={submitConfirmed}
-                  className="px-5 py-2 rounded-lg bg-gradient-to-r from-[#7F1D1D] to-[#B91C1C] text-white font-semibold hover:opacity-90"
+                  className="px-5 py-2 rounded-lg bg-linear-to-r from-[#7F1D1D] to-[#B91C1C] text-white font-semibold hover:opacity-90"
                 >
                   Ya, Kirim
                 </button>
@@ -1376,7 +1376,7 @@ export default function PendaftaranPage() {
               {/* ICON */}
               <div
                 className="mx-auto mb-4 w-20 h-20 rounded-full
-                              bg-gradient-to-br from-[#F59E0B] to-[#FACC15]
+                              bg-linear-to-br from-[#F59E0B] to-[#FACC15]
                               flex items-center justify-center shadow-lg"
               >
                 <svg
@@ -1412,7 +1412,7 @@ export default function PendaftaranPage() {
                   onClick={() => setShowSuccess(false)}
                   className="
                     w-full py-3 rounded-xl
-                    bg-gradient-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
+                    bg-linear-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
                     text-white font-semibold
                     hover:scale-[1.02] transition
                   "

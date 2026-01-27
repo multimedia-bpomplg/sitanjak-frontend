@@ -45,10 +45,15 @@ export default function PesertaDetailModal({
   if (!open || !peserta) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex">
+    <div className="fixed inset-0 z-40 flex pointer-events-none">
       {/* overlay */}
       <div
-        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+        className="
+          absolute inset-y-0 right-0
+          left-0 lg:left-72
+          bg-black/40 backdrop-blur-sm
+          pointer-events-auto
+        "
         onClick={onClose}
       />
 
@@ -56,22 +61,61 @@ export default function PesertaDetailModal({
       <div
         className="
           relative ml-auto
-          w-full max-w-2xl h-full
-          bg-white dark:bg-[#0B0614]
-          overflow-y-auto
+          w-full
+          lg:w-[calc(100%-18rem)]
+          max-w-none
+          h-full
+          bg-linear-to-br
+          from-[#FFF7ED] via-[#FFE4E6] to-[#FEF3C7]
+          dark:from-[#0B0614] dark:via-[#120A24] dark:to-[#1E0F3D]
+          shadow-2xl
+          flex flex-col
+          animate-[slideIn_.3s_ease-out]
+          pointer-events-auto
         "
         onClick={(e) => e.stopPropagation()}
       >
-        {/* header */}
-        <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 border-b bg-white dark:bg-[#0B0614]">
-          <h2 className="text-lg font-bold">Detail Peserta</h2>
-          <button onClick={onClose}>
-            <HiX className="text-xl" />
+        {/* HEADER */}
+        <div
+          className="
+            sticky top-0 z-20
+            flex items-center justify-between
+            px-6 py-4
+
+            bg-linear-to-r
+            from-[#7F1D1D] via-[#B91C1C] to-white
+            dark:from-indigo-900 dark:via-violet-800 dark:to-purple-800
+
+            border-b border-[#F59E0B]/40 dark:border-indigo-500/40
+            shadow-lg
+
+            text-white
+          "
+        >
+          <div>
+            <h2 className="text-lg font-bold">Detail Peserta</h2>
+            <p className="text-xs text-white/80">
+              Informasi lengkap peserta magang
+            </p>
+          </div>
+
+          <button
+            onClick={onClose}
+            className="
+              w-9 h-9 rounded-full
+              flex items-center justify-center
+              bg-white text-[#7F1D1D]
+              hover:bg-rose-100
+              dark:bg-white/10 dark:text-indigo-200
+              transition
+            "
+          >
+            <HiX className="text-lg" />
           </button>
         </div>
 
         {/* content */}
-        <div className="p-6 space-y-6 text-sm">
+        <div className="p-5 sm:p-8 space-y-10 text-sm overflow-y-auto">
           <Section title="👤 Data Diri">
             <Item label="Nama" value={peserta.nama} icon={<HiUser />} />
             <Item label="Email" value={peserta.email} icon={<HiMail />} />
@@ -119,7 +163,7 @@ export default function PesertaDetailModal({
                 />
               </>
             ) : (
-              <p className="text-slate-400">Belum ada mentor</p>
+              <p className="text-slate-400 text-sm">Belum ada mentor</p>
             )}
           </Section>
         </div>
@@ -132,19 +176,40 @@ export default function PesertaDetailModal({
 
 function Section({ title, children }: any) {
   return (
-    <div className="space-y-3">
-      <h3 className="font-semibold">{title}</h3>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">{children}</div>
+    <div className="space-y-4">
+      <h3 className="font-semibold text-[#7F1D1D] dark:text-indigo-300">
+        {title}
+      </h3>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {children}
+      </div>
     </div>
   );
 }
 
 function Item({ label, value, icon }: any) {
   return (
-    <div className="rounded-xl bg-slate-50 dark:bg-slate-800 p-3">
-      <p className="text-xs text-slate-500">{label}</p>
-      <p className="font-medium flex items-center gap-1">
-        {icon}
+    <div
+      className="
+        group
+        rounded-2xl
+        bg-white/90 dark:bg-white/5
+        backdrop-blur
+        border border-[#F59E0B]/30 dark:border-indigo-500/30
+        p-4
+        hover:shadow-lg hover:-translate-y-1
+        transition
+      "
+    >
+      <p className="text-[11px] uppercase tracking-wide text-slate-500">
+        {label}
+      </p>
+      <p className="mt-1 font-semibold flex items-center gap-2">
+        {icon && (
+          <span className="text-[#B91C1C] dark:text-indigo-400 text-base">
+            {icon}
+          </span>
+        )}
         {value || "-"}
       </p>
     </div>

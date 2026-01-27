@@ -484,7 +484,7 @@ export default function ViewPendaftaranPage() {
     <div
       className="
             min-h-screen p-4 sm:p-6
-            bg-gradient-to-br
+            bg-linear-to-br
             from-slate-50 via-white to-indigo-50
             dark:from-[#020617] dark:via-[#020617] dark:to-[#1E1B4B]
             text-slate-800 dark:text-slate-100
@@ -548,7 +548,7 @@ export default function ViewPendaftaranPage() {
                   rounded-xl
                   text-sm font-semibold
                   text-white
-                  bg-gradient-to-r from-emerald-500 to-green-600
+                  bg-linear-to-r from-emerald-500 to-green-600
                   hover:opacity-90
                   shadow-md hover:shadow-lg
                   transition
@@ -571,7 +571,7 @@ export default function ViewPendaftaranPage() {
             "
       >
         <div className="overflow-x-auto">
-          <table className="min-w-[720px] w-full text-sm">
+          <table className="min-w-180 w-full text-sm">
             <thead
               className="
                     bg-slate-100 dark:bg-slate-800
@@ -669,7 +669,7 @@ export default function ViewPendaftaranPage() {
                     key={i}
                     onClick={() => setPage(i + 1)}
                     className={`
-                            min-w-[38px] h-[38px]
+                            min-w-9.5 h-9.5
                             rounded-lg
                             text-sm font-semibold
                             transition
@@ -728,7 +728,7 @@ export default function ViewPendaftaranPage() {
             className="
                     relative
                     w-full h-full
-                    bg-gradient-to-br
+                    bg-linear-to-br
                     from-white via-[#FFF5F5] to-[#FDECEC]
                     dark:from-[#0B0614] dark:via-[#120A24] dark:to-[#1E0F3D]
                     flex flex-col
@@ -743,7 +743,7 @@ export default function ViewPendaftaranPage() {
                       px-6 py-4
 
                       /* ===== BACKGROUND ===== */
-                      bg-gradient-to-r
+                      bg-linear-to-r
                       from-[#FCA5A5] via-[#FDE8E8] to-white
                       dark:from-indigo-900 dark:via-violet-800 dark:to-purple-800
 
@@ -802,7 +802,7 @@ export default function ViewPendaftaranPage() {
                 className="
                         rounded-2xl
                         p-5
-                        bg-gradient-to-br
+                        bg-linear-to-br
                         from-[#FFF1F2] to-[#FFE4E6]
                         dark:from-indigo-500/10 dark:to-violet-500/10
                         border-[#FCA5A5] dark:border-indigo-700/40
@@ -1376,7 +1376,7 @@ export default function ViewPendaftaranPage() {
                       className="
                         flex flex-col items-center justify-center
                         w-full
-                        min-h-[140px]
+                        min-h-35
                         rounded-2xl
                         border-2 border-dashed
                         border-[#FCA5A5]
@@ -1482,7 +1482,7 @@ export default function ViewPendaftaranPage() {
                   className="
               inline-flex items-center justify-center gap-2
               px-5 py-2.5 rounded-xl
-              bg-gradient-to-r from-rose-500 to-red-600
+              bg-linear-to-r from-rose-500 to-red-600
               text-white font-semibold
               hover:opacity-90
             "
@@ -1496,7 +1496,7 @@ export default function ViewPendaftaranPage() {
                   className="
               inline-flex items-center justify-center gap-2
               px-5 py-2.5 rounded-xl
-              bg-gradient-to-r from-emerald-500 to-green-600
+              bg-linear-to-r from-emerald-500 to-green-600
               text-white font-semibold
               hover:opacity-90
             "

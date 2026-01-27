@@ -50,7 +50,7 @@ export default function Navbar() {
     <header
       className={`
         fixed left-0 right-0 top-0
-        z-[100]
+        z-100
         flex justify-center
         transition-transform duration-500 ease-in-out
         ${hide ? "-translate-y-[140%]" : "translate-y-4"}
@@ -60,7 +60,7 @@ export default function Navbar() {
         className="
           max-w-6xl w-full
           mx-4
-          bg-gradient-to-r from-[#D4AF37] via-[#B91C1C] to-[#7F1D1D]
+          bg-linear-to-r from-[#D4AF37] via-[#B91C1C] to-[#7F1D1D]
           backdrop-blur-xl
           rounded-full shadow-xl
           px-6 py-3
@@ -88,7 +88,7 @@ export default function Navbar() {
             <button
               key={item.id}
               onClick={() => scrollToSection(item.id)}
-              className="hover:text-[#FFE08A] hover:-translate-y-[1px] hover:scale-105 transition"
+              className="hover:text-[#FFE08A] hover:-translate-y-px hover:scale-105 transition"
             >
               {item.label}
             </button>
@@ -122,7 +122,7 @@ export default function Navbar() {
 
       {/* MOBILE MENU */}
       {open && (
-        <div className="absolute top-[90px] w-[90%] bg-gradient-to-r from-[#D4AF37] via-[#B91C1C] to-[#7F1D1D] rounded-2xl p-6 text-white shadow-xl">
+        <div className="absolute top-22.5 w-[90%] bg-linear-to-r from-[#D4AF37] via-[#B91C1C] to-[#7F1D1D] rounded-2xl p-6 text-white shadow-xl">
           <ul className="flex flex-col space-y-4 font-semibold">
             {[
               { label: "Home", id: "home" },

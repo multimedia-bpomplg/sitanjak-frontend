@@ -122,7 +122,7 @@ export default function Manfaat() {
                 className={`
                   w-14 h-14 flex items-center justify-center
                   rounded-2xl mb-4
-                  bg-gradient-to-r ${item.color}
+                  bg-linear-to-r ${item.color}
                   text-white shadow-lg
                 `}
               >

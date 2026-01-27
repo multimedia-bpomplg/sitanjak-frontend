@@ -86,7 +86,7 @@ export default function ProfilPage() {
 
                   {/* UNDERLINE */}
                   {activeTab === tab.key && (
-                    <span className="absolute left-0 -bottom-[1px] w-full h-[2px] bg-[#7F1D1D] rounded-full" />
+                    <span className="absolute left-0 -bottom-px w-full h-0.5 bg-[#7F1D1D] rounded-full" />
                   )}
                 </button>
               ))}

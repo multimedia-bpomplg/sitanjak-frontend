@@ -71,7 +71,7 @@ export default function HeroSection() {
               inline-flex items-center justify-center
               px-8 py-3 rounded-xl
               font-semibold text-lg
-              bg-gradient-to-r from-[#FACC15] via-[#F59E0B] to-[#EA580C]
+              bg-linear-to-r from-[#FACC15] via-[#F59E0B] to-[#EA580C]
               text-white
               hover:scale-105 hover:shadow-lg transition
             "

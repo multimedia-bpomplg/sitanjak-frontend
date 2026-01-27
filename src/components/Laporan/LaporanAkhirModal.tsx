@@ -184,7 +184,7 @@ export default function LaporanAkhirModal({ mode, onClose }: Props) {
           className="
             px-5 sm:px-6 py-4
             border-b border-slate-200 dark:border-slate-800
-            bg-gradient-to-r
+            bg-linear-to-r
             from-[#FCA5A5] via-[#FDE68A] to-[#FFF7ED]
             dark:from-indigo-800 dark:via-indigo-700 dark:to-indigo-900
             text-slate-900 dark:text-white
@@ -412,7 +412,7 @@ export default function LaporanAkhirModal({ mode, onClose }: Props) {
 
       {/* KONFIRMASI */}
       {showConfirm && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
           <div
             className="
               w-full max-w-md
@@ -428,7 +428,7 @@ export default function LaporanAkhirModal({ mode, onClose }: Props) {
             <div
               className="
                 px-6 py-5
-                bg-gradient-to-r from-indigo-50 to-blue-50
+                bg-linear-to-r from-indigo-50 to-blue-50
                 dark:from-slate-800 dark:to-slate-900
                 border-b border-slate-200 dark:border-slate-800
                 flex items-center gap-3

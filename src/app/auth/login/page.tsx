@@ -211,7 +211,7 @@ export default function LoginPage() {
                 className="
                 absolute inset-6
                 rounded-full
-                bg-gradient-to-br from-[#FEF3C7] to-[#FFF7ED]
+                bg-linear-to-br from-[#FEF3C7] to-[#FFF7ED]
                 shadow
                 flex items-center justify-center
                 text-2xl
@@ -228,7 +228,7 @@ export default function LoginPage() {
                 mx-auto mb-6
                 w-20 h-20
                 rounded-full
-                bg-gradient-to-br from-[#B91C1C] to-[#7F1D1D]
+                bg-linear-to-br from-[#B91C1C] to-[#7F1D1D]
                 text-white
                 flex items-center justify-center
                 text-3xl
@@ -254,7 +254,7 @@ export default function LoginPage() {
               className="
                 mt-6 w-full py-3 rounded-xl
                 font-semibold text-white
-                bg-gradient-to-r from-gray-800 to-gray-900
+                bg-linear-to-r from-gray-800 to-gray-900
                 hover:scale-[1.02] transition
               "
             >
@@ -343,7 +343,7 @@ export default function LoginPage() {
               className="
               absolute inset-4
               rounded-full
-              bg-gradient-to-br from-green-500 to-emerald-500
+              bg-linear-to-br from-green-500 to-emerald-500
               text-white
               flex items-center justify-center
               text-4xl
@@ -369,7 +369,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex flex-col lg:grid lg:grid-cols-2">
       {/* IMAGE ATAS */}
-      <div className="lg:hidden w-full relative aspect-[16/9] bg-gradient-to-br from-[#FFFBF5] via-[#FFF7ED] to-[#FEF3C7]">
+      <div className="lg:hidden w-full relative aspect-video bg-linear-to-br from-[#FFFBF5] via-[#FFF7ED] to-[#FEF3C7]">
         <Image
           src="/images/logins/icon login.png"
           alt="Login Background"
@@ -380,7 +380,7 @@ export default function LoginPage() {
       </div>
 
       {/* FORM */}
-      <div className="relative flex items-center justify-center bg-gradient-to-br from-[#FFFBF5] via-[#FFF7ED] to-[#FFFFFF] px-6 pt-24 pb-12">
+      <div className="relative flex items-center justify-center bg-linear-to-br from-[#FFFBF5] via-[#FFF7ED] to-[#FFFFFF] px-6 pt-24 pb-12">
         {/* BUTTON KEMBALI */}
         <Link
           href="/"
@@ -522,7 +522,7 @@ export default function LoginPage() {
                 w-full flex items-center justify-center gap-2
                 py-3 rounded-xl
                 font-semibold text-white
-                bg-gradient-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
+                bg-linear-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
                 hover:brightness-110
                 transition
                 disabled:opacity-60
@@ -553,7 +553,7 @@ export default function LoginPage() {
       <div
         className="
         hidden lg:block relative w-full min-h-screen 
-        bg-gradient-to-br from-[#FFFBF5] via-[#FFF7ED] to-[#FEF3C7]
+        bg-linear-to-br from-[#FFFBF5] via-[#FFF7ED] to-[#FEF3C7]
       "
       >
         <Image
@@ -563,7 +563,7 @@ export default function LoginPage() {
           className="object-contain"
           priority
         />
-        <div className="absolute inset-0 bg-gradient-to-tr from-[#7F1D1D]/10 via-transparent to-[#FACC15]/15" />
+        <div className="absolute inset-0 bg-linear-to-tr from-[#7F1D1D]/10 via-transparent to-[#FACC15]/15" />
       </div>
 
       {toast.show && (

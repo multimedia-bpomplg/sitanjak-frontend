@@ -109,7 +109,7 @@ export default function ViewPendaftaranUI() {
     <div
       className="
         min-h-screen p-4 sm:p-6 lg:p-10
-        bg-gradient-to-br
+        bg-linear-to-br
         from-slate-50 via-white to-indigo-100
         dark:from-[#0B0614] dark:via-[#120A24] dark:to-[#1E0F3D]
         text-slate-800 dark:text-slate-100
@@ -143,7 +143,7 @@ export default function ViewPendaftaranUI() {
             <div
               className="
                 absolute inset-0 rounded-3xl
-                bg-gradient-to-br from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
+                bg-linear-to-br from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
                 dark:from-indigo-600 dark:to-violet-500
                 opacity-0 group-hover:opacity-20 blur-xl
                 transition
@@ -170,7 +170,7 @@ export default function ViewPendaftaranUI() {
                   shrink-0
                   w-12 h-12 sm:w-14 sm:h-14
                   rounded-2xl
-                  bg-gradient-to-br from-[#7F1D1D] to-[#F59E0B]
+                  bg-linear-to-br from-[#7F1D1D] to-[#F59E0B]
                   dark:from-indigo-600 dark:to-violet-500
                   flex items-center justify-center
                   text-white text-xl sm:text-2xl
@@ -244,7 +244,7 @@ export default function ViewPendaftaranUI() {
                 inline-flex items-center gap-1
                 px-3 py-1 rounded-full
                 text-xs sm:text-sm
-                bg-gradient-to-r from-[#7F1D1D] to-[#F59E0B]
+                bg-linear-to-r from-[#7F1D1D] to-[#F59E0B]
                 dark:from-indigo-600 dark:to-violet-500
                 text-white font-bold
                 shadow hover:shadow-lg
@@ -291,7 +291,7 @@ export default function ViewPendaftaranUI() {
           "
         >
           <div className="overflow-x-auto">
-            <table className="min-w-[900px] w-full text-sm sm:text-base">
+            <table className="min-w-225 w-full text-sm sm:text-base">
               {/* ================= HEAD ================= */}
               <thead>
                 <tr className="bg-slate-50 dark:bg-indigo-500/10 border-b border-slate-200 dark:border-indigo-500/30">
@@ -302,7 +302,7 @@ export default function ViewPendaftaranUI() {
                     Peserta
                   </th>
                   <th className="w-[22%] py-4 px-6 text-center text-xs font-semibold text-slate-600 dark:text-indigo-200 uppercase">
-                    Kontak
+                    Email
                   </th>
                   <th className="w-[16%] py-4 px-6 text-center text-xs font-semibold text-slate-600 dark:text-indigo-200 uppercase">
                     Posisi
@@ -340,9 +340,9 @@ export default function ViewPendaftaranUI() {
                         >
                           <div
                             className="
-                              shrink-0 w-10 h-10 min-w-[2.5rem] min-h-[2.5rem]
+                              shrink-0 w-10 h-10 min-w-10 min-h-10
                               rounded-full
-                              bg-gradient-to-br from-[#7F1D1D] to-[#F59E0B]
+                              bg-linear-to-br from-[#7F1D1D] to-[#F59E0B]
                               dark:from-indigo-600 dark:to-violet-500
                               flex items-center justify-center
                               text-white shadow
@@ -367,7 +367,7 @@ export default function ViewPendaftaranUI() {
                     <td className="py-4 px-6 text-center">
                       <div className="flex justify-center items-center gap-2 text-slate-600 dark:text-slate-300">
                         <MdEmail className="w-4 h-4" />
-                        <span className="truncate max-w-[200px]">
+                        <span className="truncate max-w-50">
                           {p.email}
                         </span>
                       </div>

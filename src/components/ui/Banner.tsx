@@ -94,7 +94,7 @@ export default function PopupPromo({
           <div
             className="
               absolute inset-0
-              bg-gradient-to-t
+              bg-linear-to-t
               from-black/25 via-black/10 to-transparent
             "
           />
@@ -106,7 +106,7 @@ export default function PopupPromo({
               px-4 py-1.5
               rounded-full
               text-xs font-bold
-              bg-gradient-to-r from-[#FACC15] to-[#F59E0B]
+              bg-linear-to-r from-[#FACC15] to-[#F59E0B]
               text-[#7F1D1D]
               shadow-lg
             "
@@ -133,7 +133,7 @@ export default function PopupPromo({
               py-3 rounded-xl
               font-bold text-sm
               text-white
-              bg-gradient-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
+              bg-linear-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
               hover:shadow-xl
               hover:-translate-y-0.5
               transition-all

@@ -132,7 +132,7 @@ export default function Formasi() {
                 className="
                   mt-6 inline-flex items-center justify-center w-full
                   py-2.5 rounded-xl font-semibold text-[#7F1D1D]
-                  bg-gradient-to-r from-[#FACC15] to-[#EAB308]
+                  bg-linear-to-r from-[#FACC15] to-[#EAB308]
                   hover:opacity-90 transition
                 "
               >

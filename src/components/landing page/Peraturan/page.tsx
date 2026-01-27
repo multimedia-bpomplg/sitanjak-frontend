@@ -67,7 +67,7 @@ export default function Peraturan() {
         {/* TIMELINE */}
         <div className="relative">
           {/* LINE */}
-          <div className="absolute left-6 top-0 bottom-0 w-[2px] bg-gradient-to-b from-[#FACC15] via-[#B91C1C] to-[#7F1D1D] hidden sm:block" />
+          <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-linear-to-b from-[#FACC15] via-[#B91C1C] to-[#7F1D1D] hidden sm:block" />
 
           <div className="space-y-10">
             {peraturanList.map((item, index) => (
@@ -84,7 +84,7 @@ export default function Peraturan() {
                     -translate-y-1/2
                     w-12 h-12
                     rounded-xl
-                    bg-gradient-to-r ${item.color}
+                    bg-linear-to-r ${item.color}
                     text-white
                     flex items-center justify-center
                     shadow-lg

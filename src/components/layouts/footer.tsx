@@ -13,7 +13,7 @@ export default function Footer() {
       <div
         className="
           max-w-6xl w-full
-          bg-gradient-to-r from-[#D4AF37] via-[#B91C1C] to-[#7F1D1D]
+          bg-linear-to-r from-[#D4AF37] via-[#B91C1C] to-[#7F1D1D]
           text-white
           rounded-3xl shadow-xl
           px-10 py-10

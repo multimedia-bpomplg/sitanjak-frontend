@@ -190,7 +190,7 @@ export default function LupaPasswordPage() {
                 mx-auto mb-4
                 w-16 h-16
                 rounded-2xl
-                bg-gradient-to-br from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
+                bg-linear-to-br from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
                 text-white
                 flex items-center justify-center
                 shadow-lg
@@ -240,7 +240,7 @@ export default function LupaPasswordPage() {
                 disabled={loading}
                 className="
                   w-full py-3 rounded-xl
-                  bg-gradient-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
+                  bg-linear-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
                   text-white font-semibold
                   hover:opacity-90
                   disabled:opacity-60
@@ -291,7 +291,7 @@ export default function LupaPasswordPage() {
                 disabled={loading}
                 className="
                   w-full py-3 rounded-xl
-                  bg-gradient-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
+                  bg-linear-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
                   text-white font-semibold
                   hover:opacity-90
                   disabled:opacity-60
@@ -348,7 +348,7 @@ export default function LupaPasswordPage() {
                 disabled={loading}
                 className="
                   w-full py-3 rounded-xl
-                  bg-gradient-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
+                  bg-linear-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
                   text-white font-semibold
                   hover:opacity-90
                   disabled:opacity-60
@@ -367,7 +367,7 @@ export default function LupaPasswordPage() {
                 mx-auto mb-4
                 w-20 h-20
                 rounded-full
-                bg-gradient-to-br from-[#F59E0B] to-[#FACC15]
+                bg-linear-to-br from-[#F59E0B] to-[#FACC15]
                 text-white text-4xl
                 flex items-center justify-center
                 shadow-lg
@@ -386,7 +386,7 @@ export default function LupaPasswordPage() {
                     w-full
                     py-3.5
                     rounded-xl
-                    bg-gradient-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
+                    bg-linear-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
                     text-white
                     font-semibold
                     shadow-md
@@ -408,7 +408,7 @@ export default function LupaPasswordPage() {
         className="
           hidden lg:flex
           items-center justify-center
-          bg-gradient-to-br from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
+          bg-linear-to-br from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
           px-12
         "
       >

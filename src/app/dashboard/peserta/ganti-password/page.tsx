@@ -117,7 +117,7 @@ export default function GantiPasswordPage() {
         <div
           className="
             px-6 py-6
-            bg-gradient-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
+            bg-linear-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
             dark:from-indigo-600 dark:to-violet-600
             text-white
           "
@@ -263,7 +263,7 @@ export default function GantiPasswordPage() {
               flex items-center justify-center gap-2
               py-3 rounded-full
               font-semibold text-white
-              bg-gradient-to-r from-emerald-600 to-teal-600
+              bg-linear-to-r from-emerald-600 to-teal-600
               hover:from-emerald-700 hover:to-teal-700
               shadow-md hover:shadow-lg
               transition

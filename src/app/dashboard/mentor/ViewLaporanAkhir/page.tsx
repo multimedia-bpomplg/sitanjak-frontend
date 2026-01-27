@@ -1,4 +1,3 @@
-// dashboard/mentor/ViewLaporanAkhir/Page.tsx
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
@@ -224,21 +223,32 @@ export default function ViewLaporanAkhirMentor() {
   };
 
   return (
-    <div className="min-h-screen p-6 bg-gradient-to-br from-slate-50 via-white to-indigo-50">
+    <div
+      className="
+        min-h-screen p-4 sm:p-6 lg:p-10
+        bg-linear-to-br
+        from-slate-50 via-white to-indigo-100
+        dark:from-[#0B0614] dark:via-[#120A24] dark:to-[#1E0F3D]
+        text-slate-800 dark:text-slate-100
+        transition-colors
+      "
+    >
       {/* HEADER */}
-      <h1 className="text-3xl font-bold mb-2 text-slate-800">
-        Laporan Akhir Peserta
-      </h1>
-      <p className="text-slate-600 mb-8">
-        Kelola dan tinjau laporan akhir peserta magang
-      </p>
+      <div className="mb-10">
+        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight">
+          Laporan Akhir Peserta
+        </h1>
+        <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400">
+          Kelola dan tinjau laporan akhir peserta magang
+        </p>
+      </div>
 
       {/* STATISTIC CARDS */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-10">
         <StatCard
           title="Total Peserta"
           value={stats.totalPeserta}
-          icon={<HiUsers />}
+          icon={<HiUsers className="w-5 h-5" />}
           note="Jumlah peserta bimbingan"
           color="indigo"
         />
@@ -246,7 +256,7 @@ export default function ViewLaporanAkhirMentor() {
         <StatCard
           title="Total Laporan"
           value={stats.totalLaporan}
-          icon={<HiDocumentReport />}
+          icon={<HiDocumentReport className="w-5 h-5" />}
           note={`${stats.persentaseSelesai}% peserta sudah mengisi`}
           color="purple"
         />
@@ -254,7 +264,7 @@ export default function ViewLaporanAkhirMentor() {
         <StatCard
           title="Disetujui"
           value={stats.disetujui}
-          icon={<HiCheckCircle />}
+          icon={<HiCheckCircle className="w-5 h-5" />}
           note="Laporan yang sudah disetujui"
           color="emerald"
         />
@@ -262,7 +272,7 @@ export default function ViewLaporanAkhirMentor() {
         <StatCard
           title="Perlu Review"
           value={stats.menunggu + stats.revisi}
-          icon={<HiClock />}
+          icon={<HiClock className="w-5 h-5" />}
           note={`${stats.menunggu} menunggu, ${stats.revisi} revisi`}
           color="amber"
         />
@@ -270,7 +280,7 @@ export default function ViewLaporanAkhirMentor() {
         <StatCard
           title="Ditolak"
           value={stats.ditolak}
-          icon={<HiXCircle />}
+          icon={<HiXCircle className="w-5 h-5" />}
           note="Laporan yang ditolak"
           color="red"
         />
@@ -279,34 +289,38 @@ export default function ViewLaporanAkhirMentor() {
       {/* SEARCH BAR */}
       <div className="mb-8">
         <div className="relative">
-          <HiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+          <HiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-[#7F1D1D] dark:text-indigo-400 w-5 h-5 z-10" />
           <input
             type="text"
             placeholder="Cari peserta berdasarkan nama, email, atau posisi..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 bg-white border border-slate-300 rounded-xl
-              focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
-              text-slate-700 placeholder-slate-400"
+            className="
+              w-full pl-11 pr-10 py-3
+              rounded-2xl
+              bg-white/90 dark:bg-white/5
+              backdrop-blur
+              border border-[#F59E0B]/40 dark:border-indigo-500/40
+              text-slate-700 dark:text-slate-100
+              placeholder:text-slate-400
+              focus:outline-none focus:ring-2
+              focus:ring-[#B91C1C]/60 dark:focus:ring-indigo-500/60
+              transition
+            "
           />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery("")}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-            >
-              ✕
-            </button>
-          )}
         </div>
-
-        <div className="mt-2 flex justify-between text-sm text-slate-500">
+        <div className="mt-2 flex flex-wrap justify-between text-sm text-slate-500">
           <p>
             Menampilkan {filteredPeserta.length} dari {peserta.length} peserta
           </p>
           {searchQuery && (
             <button
               onClick={() => setSearchQuery("")}
-              className="text-indigo-600 hover:text-indigo-800 font-medium"
+              className="
+                text-[#7F1D1D] dark:text-indigo-300
+                hover:underline
+                font-semibold
+              "
             >
               Reset pencarian
             </button>
@@ -315,121 +329,177 @@ export default function ViewLaporanAkhirMentor() {
       </div>
 
       {/* TABLE */}
-      <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
-        {loading ? (
-          <div className="py-10 text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
-            <p className="mt-2 text-slate-500">Memuat data...</p>
-          </div>
-        ) : (
-          <table className="w-full">
-            <thead>
-              <tr className="bg-slate-50 border-b">
-                <Th>No</Th>
-                <Th>Peserta</Th>
-                <Th>Email</Th>
-                <Th>Posisi</Th>
-                <Th>Status Laporan Akhir</Th>
-                <Th>Aksi</Th>
-              </tr>
-            </thead>
+      <div
+        className="
+          rounded-2xl
+          bg-white/90 dark:bg-white/5
+          backdrop-blur
+          border border-slate-200 dark:border-indigo-500/30
+          shadow-lg
+          overflow-hidden
+        "
+      >
+        <div className="overflow-x-auto">
+          {loading ? (
+            <div className="py-10 text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
+              <p className="mt-2 text-slate-500">Memuat data...</p>
+            </div>
+          ) : (
+            <table className="w-full">
+              <thead>
+                <tr className="bg-slate-50 dark:bg-indigo-500/10 border-b border-slate-200 dark:border-indigo-500/30">
+                  <Th className="w-[6%]">No</Th>
+                  <Th className="w-[22%]">Peserta</Th>
+                  <Th className="w-[22%]">Email</Th>
+                  <Th className="w-[14%]">Posisi</Th>
+                  <Th className="w-[16%]">Status Laporan Akhir</Th>
+                  <Th className="w-[20%]">Aksi</Th>
+                </tr>
+              </thead>
 
-            <tbody className="divide-y divide-slate-100">
-              {filteredPeserta.map((p, i) => {
-                const summary = pesertaSummary.find(
-                  (s) =>
-                    s.peserta.email.toLowerCase() === p.email.toLowerCase(),
-                );
-                const laporan = summary?.laporan;
+              <tbody className="divide-y divide-slate-100 dark:divide-indigo-500/20">
+                {filteredPeserta.map((p, i) => {
+                  const summary = pesertaSummary.find(
+                    (s) =>
+                      s.peserta.email.toLowerCase() === p.email.toLowerCase(),
+                  );
+                  const laporan = summary?.laporan;
 
-                return (
-                  <tr
-                    key={p.id}
-                    className="hover:bg-slate-50/50 transition-colors"
-                  >
-                    <td className="py-4 px-6 text-center text-slate-500 font-medium">
-                      {i + 1}
-                    </td>
+                  return (
+                    <tr
+                      key={p.id}
+                      className="hover:bg-[#FEF3C7]/40 dark:hover:bg-indigo-500/10 transition"
+                    >
+                      <td className="py-4 px-6 text-center font-medium text-slate-500 dark:text-slate-300">
+                        {i + 1}
+                      </td>
 
-                    <td className="py-4 px-6">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
-                          <HiUser className="w-5 h-5 text-indigo-600" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-slate-800">{p.nama}</p>
-                          <p className="text-xs text-slate-500">
-                            Peserta Magang
-                          </p>
-                        </div>
-                      </div>
-                    </td>
-
-                    <td className="py-4 px-6">
-                      <div className="flex items-center gap-2 text-slate-600">
-                        <MdEmail className="w-4 h-4" />
-                        <span className="text-sm">{p.email}</span>
-                      </div>
-                    </td>
-
-                    <td className="py-4 px-6">
-                      <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100">
-                        <HiBriefcase className="w-3 h-3" />
-                        {p.posisi}
-                      </span>
-                    </td>
-
-                    <td className="py-4 px-6">
-                      {laporan ? (
-                        <div className="space-y-2">
+                      <td className="py-4 px-6">
+                        <div className="flex justify-center items-center gap-3">
                           <div
-                            className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border ${getStatusColor(laporan.status)}`}
+                            className="
+                              shrink-0 w-10 h-10
+                              rounded-full
+                              bg-linear-to-br from-[#7F1D1D] to-[#F59E0B]
+                              dark:from-indigo-600 dark:to-violet-500
+                              flex items-center justify-center
+                              text-white shadow
+                              group-hover:scale-110 transition
+                            "
                           >
-                            {getStatusIcon(laporan.status)}
-                            <span className="font-semibold">
-                              {laporan.status}
-                            </span>
+                            <HiUser className="w-5 h-5" />
                           </div>
-                          <div className="text-xs text-slate-500">
-                            {laporan.judul?.substring(0, 60)}...
-                            {laporan.approvedAt && (
-                              <div className="mt-1">
-                                Direview:{" "}
-                                {new Date(
-                                  laporan.approvedAt,
-                                ).toLocaleDateString("id-ID")}
-                              </div>
-                            )}
+                          <div>
+                            <p className="font-medium text-slate-800 dark:text-slate-100">{p.nama}</p>
+                            <p className="text-xs text-slate-500">
+                              Peserta Magang
+                            </p>
                           </div>
                         </div>
-                      ) : (
-                        <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-slate-100 text-slate-500 border border-slate-200">
-                          <HiDocumentReport className="w-4 h-4" />
-                          Belum ada laporan
-                        </span>
-                      )}
-                    </td>
+                      </td>
 
-                    <td className="py-4 px-6">
-                      <button
-                        onClick={() => setSelectedPeserta(p)}
-                        disabled={!laporan}
-                        className={`px-5 py-2 rounded-lg text-sm font-medium shadow-sm hover:shadow-md transition-all flex items-center gap-2 ${
-                          !laporan
-                            ? "bg-slate-200 text-slate-500 cursor-not-allowed"
-                            : "bg-gradient-to-r from-indigo-600 to-indigo-700 text-white hover:from-indigo-700 hover:to-indigo-800"
-                        }`}
-                      >
-                        <HiDocumentReport className="w-4 h-4" />
-                        {laporan ? "Lihat Laporan" : "Tidak Ada"}
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
+                      <td className="py-4 px-6 text-center align-middle">
+                        <div className="flex justify-center items-center gap-2 text-slate-600 dark:text-slate-300">
+                          <MdEmail className="w-4 h-4" />
+                          <span className="text-sm">{p.email}</span>
+                        </div>
+                      </td>
+
+                      <td className="py-4 px-6 text-center align-middle">
+                        <span className="
+                          inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium
+                          bg-blue-50 text-blue-700
+                          dark:bg-indigo-500/20 dark:text-indigo-200
+                        ">
+                          <HiBriefcase className="w-3 h-3" />
+                          {p.posisi}
+                        </span>
+                      </td>
+
+                      <td className="py-4 px-6 text-center align-middle">
+                        {laporan ? (
+                          <div className="space-y-2">
+                            <div
+                              className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border ${getStatusColor(laporan.status)}`}
+                            >
+                              {getStatusIcon(laporan.status)}
+                              <span className="font-semibold">
+                                {laporan.status}
+                              </span>
+                            </div>
+                            <div className="text-xs text-slate-500">
+                              {laporan.judul?.substring(0, 60)}...
+                              {laporan.approvedAt && (
+                                <div className="mt-1">
+                                  Direview:{" "}
+                                  {new Date(
+                                    laporan.approvedAt,
+                                  ).toLocaleDateString("id-ID")}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-slate-100 text-slate-500 border border-slate-200">
+                            <HiDocumentReport className="w-4 h-4" />
+                            Belum ada laporan
+                          </span>
+                        )}
+                      </td>
+
+                      <td className="py-4 px-6 text-center align-middle">
+                        <button
+                          onClick={() => setSelectedPeserta(p)}
+                          disabled={!laporan}
+                          className={`
+                            group
+                            inline-flex items-center justify-center gap-2
+                            px-4 sm:px-5 py-2 sm:py-2.5
+                            rounded-xl
+                            text-xs sm:text-sm font-semibold
+                            transition-all duration-300
+
+                            ${
+                              !laporan
+                                ? "bg-slate-200 text-slate-500 cursor-not-allowed dark:bg-slate-700 dark:text-slate-400"
+                                : `
+                                  text-white
+                                  bg-linear-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
+                                  hover:from-[#991B1B] hover:via-[#DC2626] hover:to-[#FBBF24]
+
+                                  dark:from-indigo-600 dark:to-violet-500
+                                  dark:hover:from-indigo-500 dark:hover:to-violet-400
+
+                                  shadow-md hover:shadow-xl
+                                  hover:-translate-y-0.5
+                                `
+                            }
+                          `}
+                        >
+                          <HiDocumentReport
+                            className={`
+                              w-4 h-4 transition
+                              ${!laporan ? "" : "group-hover:scale-110"}
+                            `}
+                          />
+                          {laporan ? (
+                            <>
+                              <span className="hidden sm:inline">Lihat Laporan</span>
+                              <span className="sm:hidden">Laporan</span>
+                            </>
+                          ) : (
+                            <span>Tidak Ada</span>
+                          )}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
       </div>
 
       {/* MODAL */}
@@ -445,9 +515,17 @@ export default function ViewLaporanAkhirMentor() {
 }
 
 /* ================= REUSABLE COMPONENTS ================= */
-function Th({ children }: { children: React.ReactNode }) {
+function Th({ children, className = "" }: any) {
   return (
-    <th className="py-4 px-6 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+    <th
+      className={`
+        py-4 px-6 text-center
+        text-xs font-semibold uppercase
+        text-slate-600 dark:text-indigo-200
+        tracking-wider
+        ${className}
+      `}
+    >
       {children}
     </th>
   );
@@ -466,26 +544,64 @@ function StatCard({
   note: string;
   color: "indigo" | "emerald" | "amber" | "slate" | "purple" | "red";
 }) {
-  const colorMap: any = {
-    indigo: "bg-indigo-100 text-indigo-600",
-    emerald: "bg-emerald-100 text-emerald-600",
-    amber: "bg-amber-100 text-amber-600",
-    slate: "bg-slate-100 text-slate-600",
-    purple: "bg-purple-100 text-purple-600",
-    red: "bg-red-100 text-red-600",
+  const iconColorMap: Record<string, string> = {
+    indigo: "bg-indigo-500 dark:bg-indigo-600",
+    emerald: "bg-emerald-500 dark:bg-emerald-600",
+    amber: "bg-amber-500 dark:bg-violet-500",
+    slate: "bg-slate-500 dark:bg-indigo-700",
+    purple: "bg-purple-500 dark:bg-purple-600",
+    red: "bg-red-500 dark:bg-red-600",
+  };
+
+  const textColorMap: Record<string, string> = {
+    indigo: "text-indigo-700 dark:text-white",
+    emerald: "text-emerald-700 dark:text-white",
+    amber: "text-amber-700 dark:text-white",
+    slate: "text-slate-700 dark:text-white",
+    purple: "text-purple-700 dark:text-white",
+    red: "text-red-700 dark:text-white",
   };
 
   return (
-    <div className="bg-white rounded-2xl border p-6 shadow-sm hover:shadow-md transition-shadow">
+    <div
+      className="
+        group relative
+        rounded-2xl
+        border border-[#FCA5A5]/40 dark:border-indigo-500/30
+        bg-linear-to-br
+        from-[#FFFDF8] via-[#FFF4EC] to-white
+        dark:from-indigo-950 dark:via-indigo-900 dark:to-indigo-800
+        p-6
+        shadow-sm hover:shadow-xl
+        transition
+      "
+    >
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm font-medium text-slate-500">{title}</p>
-          <p className="text-3xl font-bold text-slate-800 mt-2">{value}</p>
+          <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-indigo-300">
+            {title}
+          </p>
+          <p className={`text-4xl font-extrabold mt-1 ${textColorMap[color]}`}>
+            {value}
+          </p>
         </div>
-        <div className={`p-3 rounded-xl ${colorMap[color]}`}>{icon}</div>
+
+        <div
+          className={`
+            w-14 h-14 rounded-2xl
+            text-white
+            flex items-center justify-center
+            shadow
+            group-hover:scale-110 transition
+            ${iconColorMap[color]}
+          `}
+        >
+          {icon}
+        </div>
       </div>
-      <div className="mt-4 pt-4 border-t">
-        <p className="text-xs text-slate-500">{note}</p>
+
+      <div className="mt-4 pt-4 border-t border-slate-200 dark:border-indigo-500/30">
+        <p className="text-xs text-slate-600 dark:text-slate-300">{note}</p>
       </div>
     </div>
   );

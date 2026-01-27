@@ -88,7 +88,7 @@ export default function IsiLogbookPage() {
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-3 text-[11px] sm:text-xs items-center gap-4 text-xs font-medium">
+          <div className="flex flex-wrap gap-3 text-[11px] sm:text-xs items-center text-xs font-medium">
             {/* Sudah diisi */}
             <div className="flex items-center gap-2">
               <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 dark:bg-emerald-400" />

@@ -110,7 +110,7 @@ export default function PesertaLayout({
         className="
           min-h-screen
           flex
-          bg-gradient-to-br
+          bg-linear-to-br
           from-[#FBF7F2]   
           via-[#F9FAFB]    
           to-[#F3F4F6]     
@@ -128,7 +128,7 @@ export default function PesertaLayout({
           className={`
             z-30
             h-screen
-            bg-gradient-to-b
+            bg-linear-to-b
             from-[#FFF7ED]   
             via-[#FEF3C7]   
             to-[#FDE68A]
@@ -246,7 +246,7 @@ export default function PesertaLayout({
                   ${
                     pathname === "/dashboard/peserta"
                       ? `
-                          bg-gradient-to-r
+                          bg-linear-to-r
                           from-[#FDE68A]/60
                           to-[#FACC15]/40
                           text-[#7F1D1D]
@@ -308,7 +308,7 @@ export default function PesertaLayout({
                   ${
                     pathname.startsWith("/dashboard/peserta/isi-logbook")
                       ? `
-                          bg-gradient-to-r
+                          bg-linear-to-r
                           from-[#FDE68A]/60
                           to-[#FACC15]/40
                           text-[#7F1D1D]
@@ -339,7 +339,7 @@ export default function PesertaLayout({
                   ${
                     pathname.startsWith("/dashboard/peserta/laporan-bulanan")
                       ? `
-                          bg-gradient-to-r
+                          bg-linear-to-r
                           from-[#FDE68A]/60
                           to-[#FACC15]/40
                           text-[#7F1D1D]
@@ -370,7 +370,7 @@ export default function PesertaLayout({
                   ${
                     pathname.startsWith("/dashboard/peserta/laporan-akhir")
                       ? `
-                          bg-gradient-to-r
+                          bg-linear-to-r
                           from-[#FDE68A]/60
                           to-[#FACC15]/40
                           text-[#7F1D1D]
@@ -429,7 +429,7 @@ export default function PesertaLayout({
                   ${
                     pathname === "/dashboard/peserta/ganti-password"
                       ? `
-                          bg-gradient-to-r
+                          bg-linear-to-r
                           from-[#FDE68A]/60
                           to-[#FACC15]/40
                           text-[#7F1D1D]
@@ -509,12 +509,12 @@ export default function PesertaLayout({
                     flex items-center justify-center
                     font-bold
 
-                    bg-gradient-to-br from-[#B91C1C] to-[#7F1D1D]
+                    bg-linear-to-br from-[#B91C1C] to-[#7F1D1D]
                     text-white
                     ring-2 ring-[#FDE68A]
                     shadow-md
 
-                    dark:bg-gradient-to-br dark:from-indigo-500 dark:via-purple-500 dark:to-fuchsia-500
+                    dark:bg-linear-to-br dark:from-indigo-500 dark:via-purple-500 dark:to-fuchsia-500
                     dark:text-white
                     dark:ring-2 dark:ring-indigo-900/60
                     dark:shadow-lg
@@ -550,11 +550,11 @@ export default function PesertaLayout({
                           rounded-full
                           flex items-center justify-center
                           
-                          bg-gradient-to-br from-[#B91C1C] to-[#7F1D1D]
+                          bg-linear-to-br from-[#B91C1C] to-[#7F1D1D]
                           text-white
                           ring-4 ring-[#FDE68A]
 
-                          dark:bg-gradient-to-br dark:from-indigo-500 dark:via-purple-500 dark:to-fuchsia-500
+                          dark:bg-linear-to-br dark:from-indigo-500 dark:via-purple-500 dark:to-fuchsia-500
                           dark:text-white
                           dark:ring-4 dark:ring-indigo-900/60
 
@@ -611,7 +611,7 @@ export default function PesertaLayout({
                         flex items-center justify-center gap-2
                         py-3
                         rounded-xl
-                        bg-gradient-to-r from-rose-600 to-pink-600
+                        bg-linear-to-r from-rose-600 to-pink-600
                         text-white font-semibold
                         shadow-lg
                         hover:shadow-xl

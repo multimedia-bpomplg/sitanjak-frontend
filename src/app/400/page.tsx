@@ -5,9 +5,9 @@ import { AlertTriangle } from "lucide-react";
 
 export default function Page400() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-yellow-50 to-orange-100 dark:from-[#020617] dark:to-[#0F172A] px-4">
+    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-yellow-50 to-orange-100 dark:from-[#020617] dark:to-[#0F172A] px-4">
       <div className="max-w-md w-full bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-3xl shadow-xl p-8 text-center border">
-        <div className="mx-auto mb-6 w-20 h-20 flex items-center justify-center rounded-full bg-gradient-to-br from-yellow-500 to-orange-500 text-white">
+        <div className="mx-auto mb-6 w-20 h-20 flex items-center justify-center rounded-full bg-linear-to-br from-yellow-500 to-orange-500 text-white">
           <AlertTriangle size={36} />
         </div>
 

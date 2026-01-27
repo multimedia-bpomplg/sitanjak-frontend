@@ -427,7 +427,7 @@ export default function LogbookModal({
           className="
             px-5 sm:px-6 py-4
             border-b border-slate-200 dark:border-slate-800
-            bg-gradient-to-r
+            bg-linear-to-r
             from-[#FCA5A5] via-[#FDE68A] to-[#FFF7ED]
             dark:from-indigo-800 dark:via-indigo-700 dark:to-indigo-900
             text-slate-900 dark:text-white
@@ -697,8 +697,8 @@ export default function LogbookModal({
               {mentorNote && approvalStatus !== "menunggu" && (
                 <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 dark:bg-indigo-900/30 dark:border-indigo-700">
                   <div className="flex items-center gap-2 mb-2">
-                    <FiEdit className="text-slate-500" />
-                    <span className="font-semibold text-slate-700">
+                    <FiEdit className="flex items-center gap-2" />
+                    <span className="font-semibold text-slate-700 dark:text-white">
                       Catatan Mentor:
                     </span>
                   </div>
@@ -731,7 +731,7 @@ export default function LogbookModal({
                 <div
                   className={`
                     w-6 h-6 rounded border-2
-                    flex items-center justify-center flex-shrink-0 mt-0.5
+                    flex items-center justify-center shrink-0 mt-0.5
                     transition
                     ${
                       agree
@@ -773,8 +773,8 @@ export default function LogbookModal({
             approvalStatus === "menunggu" && (
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
-                  <FiEdit className="text-slate-500" />
-                  <label className="font-semibold text-slate-700">
+                  <FiEdit className="flex items-center gap-2" />
+                  <label className="font-semibold text-slate-700 dark:text-white">
                     Catatan Mentor <span className="text-red-500">*</span>
                   </label>
                 </div>
@@ -898,7 +898,7 @@ export default function LogbookModal({
       {/* Image Preview Modal */}
       {previewImage && (
         <div
-          className="fixed inset-0 z-[999] bg-black/90 flex items-center justify-center p-4"
+          className="fixed inset-0 z-999 bg-black/90 flex items-center justify-center p-4"
           onClick={() => setPreviewImage(null)}
         >
           <button
@@ -956,7 +956,7 @@ function FieldSection({
       {readonly ? (
         <div
           className="
-            p-4 rounded-xl border min-h-[100px] whitespace-pre-line
+            p-4 rounded-xl border min-h-25 whitespace-pre-line
             bg-white text-slate-800
             dark:bg-slate-800 dark:text-slate-200
             border-slate-200 dark:border-slate-700

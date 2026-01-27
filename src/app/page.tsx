@@ -26,7 +26,7 @@ export default function HomePage() {
       <div
         className="
           min-h-screen
-          bg-gradient-to-br 
+          bg-linear-to-br 
           from-[#FFF7E6] 
           via-[#F3FDFB] 
           to-[#FFFFFF]

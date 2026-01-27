@@ -197,10 +197,61 @@ export default function MentorLogbookModal({
 
   if (isLoading) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-        <div className="bg-white rounded-2xl p-8 shadow-2xl">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-          <p className="mt-4 text-center text-slate-600">Memuat logbook...</p>
+      <div
+        className="
+          fixed inset-0 z-50
+          flex items-center justify-center
+          bg-black/40 dark:bg-black/70
+          backdrop-blur-sm
+        "
+      >
+        <div
+          className="
+            relative
+            w-64
+            rounded-3xl
+            p-8
+            text-center
+            shadow-2xl
+
+            /* Light */
+            bg-linear-to-br from-[#FFFDF8] via-[#FFF1E8] to-[#FEF3C7]
+            border border-[#FCA5A5]/40
+
+            /* Dark */
+            dark:bg-linear-to-br dark:from-indigo-950 dark:via-indigo-900 dark:to-indigo-800
+            dark:border-indigo-500/30
+          "
+        >
+          {/* glow */}
+          <div
+            className="
+              pointer-events-none absolute inset-0 rounded-3xl
+              bg-linear-to-br from-[#F59E0B] to-[#7F1D1D]
+              dark:from-indigo-600 dark:to-violet-500
+              opacity-20 blur-xl
+            "
+          />
+
+          {/* spinner */}
+          <div className="relative">
+            <div
+              className="
+                animate-spin
+                mx-auto
+                h-14 w-14
+                rounded-full
+                border-4 border-transparent
+                border-t-[#7F1D1D] border-r-[#F59E0B]
+                dark:border-t-indigo-400 dark:border-r-violet-400
+              "
+            />
+          </div>
+
+          {/* text */}
+          <p className="relative mt-5 text-sm font-semibold text-[#7F1D1D] dark:text-indigo-300">
+            Memuat logbook...
+          </p>
         </div>
       </div>
     );
@@ -235,25 +286,45 @@ export default function MentorLogbookModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="w-full max-w-4xl bg-white rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-3 sm:p-6">
+      <div
+        className="
+          w-full max-w-3xl
+          rounded-3xl
+          bg-white dark:bg-slate-900
+          shadow-2xl
+          flex flex-col
+          max-h-[90vh]
+          overflow-hidden
+        "
+      >
         {/* HEADER */}
-        <div className="px-6 py-5 bg-gradient-to-r from-indigo-500 to-purple-600 text-white">
+        <div
+          className="
+            px-5 sm:px-6 py-4
+            border-b border-slate-200 dark:border-slate-800
+            bg-linear-to-r
+            from-[#FCA5A5] via-[#FDE68A] to-[#FFF7ED]
+            dark:from-indigo-800 dark:via-indigo-700 dark:to-indigo-900
+            text-slate-900 dark:text-white
+            shadow-lg
+          "
+        >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-white/20 rounded-lg">
                 <FiCalendar className="text-xl" />
               </div>
               <div>
-                <h2 className="text-xl font-bold">Logbook Peserta</h2>
-                <p className="text-sm opacity-90">
+                <h2 className="text-lg sm:text-xl font-bold leading-tight">Logbook Peserta</h2>
+                <p className="text-xs sm:text-sm opacity-90">
                   {pesertaNama} • {formatSimpleDate(date)}
                 </p>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-white/20 rounded-lg transition"
+              className="p-2 text-red-600 hover:bg-red-100 dark:text-red-400 dark:hover:bg-red-900/30 rounded-lg transition"
             >
               <FiX className="text-xl" />
             </button>
@@ -304,12 +375,18 @@ export default function MentorLogbookModal({
 
           {/* 🔥 ALERT JIKA SUDAH FINAL */}
           {isFinalized && (
-            <div className="rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm">
+            <div
+              className="
+                rounded-xl border px-4 py-3 text-sm
+                bg-slate-50 text-slate-700 border-slate-300
+                dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700
+              "
+            >
               <div className="flex items-center gap-2">
                 <span className="text-lg">🔒</span>
                 <div>
                   <p className="font-semibold">Logbook sudah diproses</p>
-                  <p className="text-slate-600">
+                  <p className="text-slate-600 dark:text-slate-300">
                     Status sudah final dan tidak dapat diubah kembali
                   </p>
                 </div>
@@ -321,26 +398,40 @@ export default function MentorLogbookModal({
           <div className="space-y-6">
             {/* Status Kehadiran */}
             <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <FiUserCheck className="text-slate-500" />
-                <label className="font-semibold text-slate-700">
+            <div className="flex items-center gap-2">
+                <FiUserCheck className="text-slate-500 dark:text-white" />
+                <label className="font-semibold text-slate-700 dark:text-white">
                   Status Kehadiran
                 </label>
               </div>
-              <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border bg-slate-50">
+              <div
+                className={`
+                  inline-flex items-center gap-2
+                  px-4 py-2.5 rounded-xl border
+                  text-sm font-semibold
+                  transition
+
+                  ${
+                    status === "hadir"
+                      ? "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-300 dark:border-emerald-700/40"
+                      : status === "tidak_hadir_keterangan"
+                      ? "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700/40"
+                      : "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/40 dark:text-red-300 dark:border-red-700/40"
+                  }
+                `}
+              >
+                {status === "hadir" ? (
+                  <FiUserCheck className="w-4 h-4" />
+                ) : (
+                  <FiUserX className="w-4 h-4" />
+                )}
+
                 <span>
-                  {status === "hadir" ? (
-                    <FiUserCheck className="text-emerald-600" />
-                  ) : (
-                    <FiUserX className="text-red-600" />
-                  )}
-                </span>
-                <span className="font-semibold">
                   {status === "hadir"
-                    ? "✅ Hadir"
+                    ? "Hadir"
                     : status === "tidak_hadir_keterangan"
-                      ? "ℹ Tidak Hadir (Dengan Keterangan)"
-                      : "❌ Tidak Hadir (Tanpa Keterangan)"}
+                    ? "Tidak Hadir (Dengan Keterangan)"
+                    : "Tidak Hadir (Tanpa Keterangan)"}
                 </span>
               </div>
             </div>
@@ -372,8 +463,8 @@ export default function MentorLogbookModal({
                 {files.length > 0 && (
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
-                      <FiImage className="text-slate-500" />
-                      <label className="font-semibold text-slate-700">
+                      <FiImage className="flex items-center gap-2" />
+                      <label className="font-semibold text-slate-700 dark:text-white">
                         Dokumentasi
                       </label>
                     </div>
@@ -418,11 +509,17 @@ export default function MentorLogbookModal({
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
                       <FiImage className="text-slate-500" />
-                      <label className="font-semibold text-slate-700">
+                      <label className="font-semibold text-slate-700 dark:text-white">
                         Dokumentasi
                       </label>
                     </div>
-                    <div className="text-center py-8 text-slate-400 border-2 border-dashed border-slate-300 rounded-xl">
+                    <div
+                      className="
+                        text-center py-8 rounded-xl border-2 border-dashed
+                        text-slate-400 border-slate-300
+                        dark:text-slate-300 dark:border-slate-700
+                      "
+                    >
                       <FiImage className="text-3xl mx-auto mb-2" />
                       <p>Tidak ada dokumentasi</p>
                     </div>
@@ -446,13 +543,20 @@ export default function MentorLogbookModal({
             {isFinalized && mentorNote && (
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
-                  <FiEdit className="text-slate-500" />
-                  <label className="font-semibold text-slate-700">
+                  <FiEdit className="flex items-center gap-2" />
+                  <label className="font-semibold text-slate-700 dark:text-white">
                     Catatan Mentor
                   </label>
                 </div>
-                <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
-                  <p className="text-slate-700 whitespace-pre-line">
+                <div
+                  className="
+                    p-4 rounded-xl border
+                    bg-slate-50 text-slate-700
+                    dark:bg-slate-800 dark:text-slate-200
+                    border-slate-200 dark:border-slate-700
+                  "
+                >
+                  <p className="whitespace-pre-line">
                     {mentorNote}
                   </p>
                 </div>
@@ -463,8 +567,8 @@ export default function MentorLogbookModal({
             {!isFinalized && (
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
-                  <FiEdit className="text-slate-500" />
-                  <label className="font-semibold text-slate-700">
+                  <FiEdit className="flex items-center gap-2" />
+                  <label className="font-semibold text-slate-700 dark:text-white">
                     Catatan Mentor <span className="text-red-500">*</span>
                   </label>
                 </div>
@@ -472,8 +576,20 @@ export default function MentorLogbookModal({
                   value={mentorNote}
                   onChange={(e) => setMentorNote(e.target.value)}
                   rows={4}
-                  className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition resize-none"
                   placeholder="Berikan catatan atau komentar untuk peserta..."
+                  className="
+                    w-full px-4 py-3 rounded-xl resize-none outline-none transition
+
+                    bg-white text-slate-800
+                    dark:bg-slate-900 dark:text-slate-100
+
+                    border border-amber-400
+                    dark:border-indigo-500
+
+                    /* focus ring */
+                    focus:border-amber-500 focus:ring-2 focus:ring-amber-200
+                    dark:focus:border-indigo-400 dark:focus:ring-indigo-400/30
+                  "
                 />
                 <p className="text-sm text-slate-500">
                   *Catatan wajib diisi sebelum menyetujui atau menolak logbook
@@ -484,35 +600,64 @@ export default function MentorLogbookModal({
         </div>
 
         {/* FOOTER */}
-        <div className="px-6 py-5 border-t border-slate-200 bg-slate-50">
-          <div className="flex flex-col sm:flex-row gap-3 justify-between items-center">
+        <div
+          className="
+            sticky bottom-0 z-20
+            px-5 sm:px-6 py-4
+            bg-white/80 dark:bg-slate-900/80
+            backdrop-blur
+            border-t border-amber-200/60 dark:border-indigo-700/40
+          "
+        >
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-between items-stretch sm:items-center">
+            {/* LEFT */}
             <button
               onClick={onClose}
-              className="px-6 py-3 font-medium text-slate-600 hover:text-slate-800 transition"
+              className="
+                w-full sm:w-auto
+                inline-flex items-center justify-center
+                gap-2
+                px-5 py-2.5
+                rounded-xl
+                border
+                border-slate-300 dark:border-slate-700
+                bg-white dark:bg-slate-800
+                text-slate-600 dark:text-slate-300
+                hover:bg-slate-100 dark:hover:bg-slate-700
+                transition
+              "
             >
               Tutup
             </button>
 
             {/* 🔥 TOMBOL ACTION - HANYA TAMPIL JIKA BELUM FINAL */}
             {!isFinalized && (
-              <div className="flex gap-3">
+              <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                {/* TOLAK */}
                 <button
                   onClick={() => handleApprove(false)}
                   disabled={isSubmitting || !mentorNote.trim()}
                   className={`
-                    px-6 py-3 rounded-xl font-medium transition-all flex items-center gap-2
+                    w-full sm:w-auto
+                    inline-flex items-center justify-center gap-2
+                    px-5 py-2.5 rounded-xl font-semibold
+                    transition-all
                     ${
                       isSubmitting || !mentorNote.trim()
-                        ? "bg-slate-300 text-slate-500 cursor-not-allowed"
-                        : "bg-red-600 hover:bg-red-700 text-white shadow-lg hover:shadow-xl"
+                        ? "bg-slate-200 dark:bg-slate-700 text-slate-400 cursor-not-allowed"
+                        : `
+                          bg-linear-to-r from-rose-500 to-red-600
+                          hover:from-rose-600 hover:to-red-700
+                          text-white shadow-md hover:shadow-xl
+                        `
                     }
                   `}
                 >
                   {isSubmitting ? (
-                    <div className="flex items-center gap-2">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
                       <span>Memproses...</span>
-                    </div>
+                    </>
                   ) : (
                     <>
                       <FiX />
@@ -521,23 +666,31 @@ export default function MentorLogbookModal({
                   )}
                 </button>
 
+                {/* SETUJUI */}
                 <button
                   onClick={() => handleApprove(true)}
                   disabled={isSubmitting || !mentorNote.trim()}
                   className={`
-                    px-6 py-3 rounded-xl font-medium transition-all flex items-center gap-2
+                    w-full sm:w-auto
+                    inline-flex items-center justify-center gap-2
+                    px-5 py-2.5 rounded-xl font-semibold
+                    transition-all
                     ${
                       isSubmitting || !mentorNote.trim()
-                        ? "bg-slate-300 text-slate-500 cursor-not-allowed"
-                        : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg hover:shadow-xl"
+                        ? "bg-slate-200 dark:bg-slate-700 text-slate-400 cursor-not-allowed"
+                        : `
+                          bg-linear-to-r from-emerald-500 to-green-600
+                          hover:from-emerald-600 hover:to-green-700
+                          text-white shadow-md hover:shadow-xl
+                        `
                     }
                   `}
                 >
                   {isSubmitting ? (
-                    <div className="flex items-center gap-2">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
                       <span>Memproses...</span>
-                    </div>
+                    </>
                   ) : (
                     <>
                       <FiCheck />
@@ -554,7 +707,7 @@ export default function MentorLogbookModal({
       {/* 🔥 PERBAIKAN: IMAGE PREVIEW MODAL */}
       {previewImage && (
         <div
-          className="fixed inset-0 z-[999] bg-black/90 flex items-center justify-center p-4"
+          className="fixed inset-0 z-999 bg-black/90 flex items-center justify-center p-4"
           onClick={() => setPreviewImage(null)}
         >
           <button
@@ -594,9 +747,26 @@ function FieldSection({
     <div className="space-y-3">
       <div className="flex items-center gap-2">
         {icon}
-        <label className="font-semibold text-slate-700">{label}</label>
+        <label className="font-semibold text-slate-700 dark:text-white">{label}</label>
       </div>
-      <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 min-h-[100px] whitespace-pre-line">
+
+      <div
+        className="
+          w-full
+          px-4 py-3
+          rounded-2xl
+          min-h-25
+          whitespace-pre-line
+          text-sm sm:text-base
+          leading-relaxed sm:leading-loose
+
+          bg-white text-slate-800
+          dark:bg-slate-800 dark:text-slate-200
+
+          border border-slate-300 dark:border-slate-700
+          shadow-sm
+        "
+      >
         {value || <span className="text-slate-400">-</span>}
       </div>
     </div>

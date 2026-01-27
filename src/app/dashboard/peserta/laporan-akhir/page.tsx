@@ -79,8 +79,8 @@ export default function LaporanAkhirPage() {
             {/* Accent */}
             <div
               className="
-                absolute top-0 left-0 right-0 h-[3px]
-                bg-gradient-to-r
+                absolute top-0 left-0 right-0 h-0.75
+                bg-linear-to-r
                 from-emerald-400 via-teal-400 to-cyan-400
                 dark:from-indigo-500 dark:via-violet-500 dark:to-fuchsia-500
               "
@@ -126,7 +126,7 @@ export default function LaporanAkhirPage() {
                   text-emerald-700 dark:text-indigo-300
                   border border-emerald-300 dark:border-indigo-500
                   bg-white dark:bg-slate-900
-                  hover:bg-gradient-to-r
+                  hover:bg-linear-to-r
                   hover:from-emerald-500 hover:to-teal-500
                   dark:hover:from-indigo-500 dark:hover:to-violet-600
                   hover:text-white
@@ -146,7 +146,7 @@ export default function LaporanAkhirPage() {
                   rounded-full
                   text-sm font-semibold
                   text-white
-                  bg-gradient-to-r from-emerald-500 to-teal-600
+                  bg-linear-to-r from-emerald-500 to-teal-600
                   hover:from-emerald-600 hover:to-teal-700
                   shadow-md hover:shadow-xl
                   transition-all
@@ -227,7 +227,7 @@ export default function LaporanAkhirPage() {
                 hover:-translate-y-0.5
 
                 /* LIGHT MODE */
-                bg-gradient-to-r
+                bg-linear-to-r
                 from-[#7F1D1D]
                 via-[#B91C1C]
                 to-[#D97706]
@@ -237,7 +237,7 @@ export default function LaporanAkhirPage() {
                 hover:to-[#F59E0B]
 
                 /* DARK MODE */
-                dark:bg-gradient-to-r dark:from-indigo-500 dark:to-violet-600
+                dark:bg-linear-to-r dark:from-indigo-500 dark:to-violet-600
                 dark:hover:from-indigo-600 dark:hover:to-violet-700
               "
             >

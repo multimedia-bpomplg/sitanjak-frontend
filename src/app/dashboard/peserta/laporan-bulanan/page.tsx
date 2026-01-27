@@ -146,7 +146,7 @@ export default function LaporanBulananPage() {
                 !selectedMonth
                   ? "bg-slate-400 cursor-not-allowed"
                   : `
-                      bg-gradient-to-r
+                      bg-linear-to-r
                       from-[#7F1D1D]
                       via-[#B91C1C]
                       to-[#F59E0B]

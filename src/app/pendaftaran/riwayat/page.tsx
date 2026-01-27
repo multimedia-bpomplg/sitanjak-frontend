@@ -167,7 +167,7 @@ export default function RiwayatPendaftaran() {
             className={`
               absolute -top-8 left-1/2 -translate-x-1/2
               w-16 h-16 rounded-full
-              bg-gradient-to-br ${c.bg}
+              bg-linear-to-br ${c.bg}
               flex items-center justify-center
               text-white text-3xl font-bold
               ring-4 ${c.ring}
@@ -191,7 +191,7 @@ export default function RiwayatPendaftaran() {
               className="
                 mt-6 w-full py-3 rounded-xl
                 font-semibold text-white
-                bg-gradient-to-r from-gray-800 to-gray-900
+                bg-linear-to-r from-gray-800 to-gray-900
                 hover:scale-[1.02] transition
               "
             >
@@ -211,7 +211,7 @@ export default function RiwayatPendaftaran() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#FFF7ED] via-[#FEF3C7] to-[#FFFFFF] py-16 px-4">
+    <div className="min-h-screen bg-linear-to-br from-[#FFF7ED] via-[#FEF3C7] to-[#FFFFFF] py-16 px-4">
       {/* BUTTON KEMBALI */}
       <div className="mb-10 max-w-4xl mx-auto">
         <Link
@@ -283,7 +283,7 @@ export default function RiwayatPendaftaran() {
               className="
                 flex items-center justify-center gap-2
                 px-6 py-3 rounded-xl
-                bg-gradient-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
+                bg-linear-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
                 text-white font-semibold
                 hover:brightness-110
                 transition
@@ -385,7 +385,7 @@ export default function RiwayatPendaftaran() {
                     className="
                       relative
                       rounded-3xl p-6
-                      bg-gradient-to-br from-gray-50 via-white to-gray-100
+                      bg-linear-to-br from-gray-50 via-white to-gray-100
                       border border-gray-200
                       shadow-sm hover:shadow-lg
                       transition-all duration-300
@@ -408,7 +408,7 @@ export default function RiwayatPendaftaran() {
                       <div
                         className="
                           w-12 h-12 rounded-full
-                          bg-gradient-to-br from-[#7F1D1D] to-[#B91C1C]
+                          bg-linear-to-br from-[#7F1D1D] to-[#B91C1C]
                           text-white font-bold text-lg
                           flex items-center justify-center
                           shadow

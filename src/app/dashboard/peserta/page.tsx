@@ -183,10 +183,9 @@ export default function PesertaDashboard() {
         className="
             relative overflow-hidden
             rounded-[2.25rem]
-            bg-gradient-to-r
+            bg-linear-to-r
             from-[#7F1D1D]
             via-[#991B1B]
-            via-[#B91C1C]
             to-[#D97706]
             dark:from-indigo-600 dark:via-purple-600 dark:to-fuchsia-600
             px-10 py-12
@@ -196,7 +195,7 @@ export default function PesertaDashboard() {
       >
         {/* decorative glow */}
         <div className="absolute -top-24 -right-24 w-96 h-96 bg-white/20 rounded-full blur-3xl" />
-        <div className="absolute -bottom-32 -left-24 w-[28rem] h-[28rem] bg-black/10 rounded-full blur-3xl" />
+        <div className="absolute -bottom-32 -left-24 w-md h-112 bg-black/10 rounded-full blur-3xl" />
 
         <div className="relative flex flex-col sm:flex-row items-center gap-8">
           {/* Avatar */}
@@ -269,10 +268,9 @@ export default function PesertaDashboard() {
               <div
                 className="
                     h-full
-                    bg-gradient-to-r
+                    bg-linear-to-r
                     from-[#FEF3C7]
                     via-[#FACC15]
-                    via-[#F59E0B]
                     to-[#B45309]
                     dark:from-indigo-500 dark:via-purple-500 dark:to-fuchsia-500
                     transition-all duration-500
@@ -494,7 +492,7 @@ function Section({ title, children }: any) {
             flex items-center gap-3
             px-5 py-3
             rounded-2xl
-            bg-gradient-to-r from-[#FFF7ED] to-[#FDE68A]
+            bg-linear-to-r from-[#FFF7ED] to-[#FDE68A]
             text-[#7F1D1D]
             dark:from-indigo-900/40 dark:to-purple-900/30
             dark:text-indigo-200
@@ -594,7 +592,7 @@ function FileItem({
     <div className="flex items-center justify-between rounded-xl bg-slate-50 p-4 dark:bg-slate-800">
       <div>
         <p className="text-xs text-slate-500">{label}</p>
-        <p className="max-w-[180px] truncate text-sm font-medium">
+        <p className="max-w-45 truncate text-sm font-medium">
           {file || "Tidak tersedia"}
         </p>
       </div>
