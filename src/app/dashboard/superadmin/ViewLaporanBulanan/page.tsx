@@ -97,6 +97,11 @@ export default function ViewLaporanBulananSuperadmin() {
       const pesertaLaporanMap = new Map<string, LaporanBulanan[]>();
 
       data.forEach((laporan: LaporanBulanan) => {
+        if (!laporan.user || !laporan.user._id) {
+          console.warn("Laporan tanpa user:", laporan);
+          return; // ⛔ skip data rusak
+        }
+
         const userId = laporan.user._id;
 
         // Map untuk detail laporan
@@ -177,7 +182,9 @@ export default function ViewLaporanBulananSuperadmin() {
   };
 
   const getLaporanByPeserta = (pesertaId: string) => {
-    return laporanList.filter((laporan) => laporan.user._id === pesertaId);
+    return laporanList.filter(
+      (laporan) => laporan.user && laporan.user._id === pesertaId
+    );
   };
 
   const handleViewLaporan = async (peserta: PesertaLaporan) => {
@@ -288,7 +295,7 @@ export default function ViewLaporanBulananSuperadmin() {
       <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
         <div className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
           {/* HEADER */}
-          <div className="px-6 py-5 bg-gradient-to-r from-indigo-500 to-purple-600 text-white flex justify-between items-center">
+          <div className="px-6 py-5 bg-linear-to-r from-indigo-500 to-purple-600 text-white flex justify-between items-center">
             <div className="flex items-center gap-3">
               <HiCalendar className="text-xl" />
               <div>
@@ -429,7 +436,7 @@ export default function ViewLaporanBulananSuperadmin() {
   };
 
   return (
-    <div className="min-h-screen p-6 bg-gradient-to-br from-slate-50 via-white to-indigo-50">
+    <div className="min-h-screen p-6 bg-linear-to-br from-slate-50 via-white to-indigo-50">
       <h1 className="text-3xl font-bold mb-2 text-slate-800">
         Laporan Bulanan Peserta
       </h1>
@@ -648,7 +655,7 @@ export default function ViewLaporanBulananSuperadmin() {
                 key={i}
                 onClick={() => setPage(i + 1)}
                 className={`
-                  min-w-[38px] h-[38px]
+                  min-w-9.5 h-9.5
                   rounded-lg
                   text-sm font-semibold
                   transition

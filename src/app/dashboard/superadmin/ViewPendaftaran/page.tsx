@@ -5,6 +5,7 @@ import {
   HiX,
   HiDocumentText,
   HiUser,
+  HiUsers,
   HiMail,
   HiPhone,
   HiIdentification,
@@ -496,10 +497,24 @@ export default function ViewPendaftaranPage() {
       </h1>
 
       {/* ===================== SUMMARY CARD ===================== */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-        <SummaryCard title="Jumlah Pendaftar" value={totalPendaftar} />
-        <SummaryCard title="Disetujui" value={disetujui} color="green" />
-        <SummaryCard title="Ditolak" value={ditolak} color="red" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+        <SummaryCard
+          title="Jumlah Pendaftar"
+          value={totalPendaftar}
+          icon={<HiUsers className="w-7 h-7" />}
+        />
+        <SummaryCard
+          title="Disetujui"
+          value={disetujui}
+          color="green"
+          icon={<HiCheckCircle className="w-7 h-7" />}
+        />
+        <SummaryCard
+          title="Ditolak"
+          value={ditolak}
+          color="red"
+          icon={<HiXCircle className="w-7 h-7" />}
+        />
       </div>
 
       {/* ===================== SEARCH & EXPORT ===================== */}
@@ -561,158 +576,198 @@ export default function ViewPendaftaranPage() {
       </div>
 
       {/* ===================== TABLE ===================== */}
-      <div
-        className="
-              rounded-2xl
-              bg-white/80 dark:bg-slate-900/80
-              backdrop-blur
-              shadow-xl
-              border border-slate-200 dark:border-slate-800
+      {!loading && paginatedData.length === 0 ? (
+        <div
+          className="
+            rounded-3xl
+            bg-white/80 dark:bg-white/5
+            backdrop-blur
+            border border-[#F59E0B]/30 dark:border-indigo-500/30
+            shadow-xl
+            p-12 text-center
+          "
+        >
+          <div
+            className="
+              w-16 h-16 sm:w-20 sm:h-20
+              mx-auto mb-5
+              rounded-full
+              bg-linear-to-br
+              from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
+              dark:from-indigo-600 dark:to-violet-500
+              flex items-center justify-center
+              shadow-lg
+              animate-pulse
             "
-      >
-        <div className="overflow-x-auto">
-          <table className="min-w-180 w-full text-sm">
-            <thead
-              className="
-                    bg-slate-100 dark:bg-slate-800
-                    text-slate-600 dark:text-slate-300
-                    text-xs uppercase tracking-wider
+          >
+            <HiUser className="w-7 h-7 sm:w-10 sm:h-10 text-white" />
+          </div>
+
+          <h3 className="text-lg sm:text-xl font-bold text-[#7F1D1D] dark:text-indigo-300 mb-2">
+            Data tidak ditemukan
+          </h3>
+
+          <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 max-w-md mx-auto">
+            Tidak ada data yang dapat ditampilkan saat ini.
+          </p>
+        </div>
+      ) : (
+        <div
+          className="
+            rounded-2xl
+            bg-white/90 dark:bg-white/5
+            backdrop-blur
+            border border-slate-200 dark:border-indigo-500/30
+            shadow-lg
+            overflow-hidden
+          "
+        >
+          <div className="overflow-x-auto">
+            <table className="min-w-180 w-full text-sm sm:text-base">
+              {/* ================= HEAD ================= */}
+              <thead>
+                <tr
+                  className="
+                    bg-slate-50 dark:bg-indigo-500/10
+                    border-b border-slate-200 dark:border-indigo-500/30
                   "
-            >
-              <tr>
-                <th className="px-6 py-4 text-center">No</th>
-                <th className="px-6 py-4 text-left">Nama Perwakilan</th>
-                <th className="px-6 py-4 text-left">Email</th>
-                <th className="px-6 py-4 text-center">Posisi</th>
-                <th className="px-6 py-4 text-center">Kategori</th>
-                <th className="px-6 py-4 text-center">Status</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {loading && (
-                <tr>
-                  <td colSpan={7} className="py-8 text-center">
-                    Memuat data...
-                  </td>
+                >
+                  <th className="w-[6%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
+                    No
+                  </th>
+                  <th className="w-[24%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
+                    Peserta
+                  </th>
+                  <th className="w-[24%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
+                    Email
+                  </th>
+                  <th className="w-[16%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
+                    Posisi
+                  </th>
+                  <th className="w-[14%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
+                    Kategori
+                  </th>
+                  <th className="w-[16%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
+                    Status
+                  </th>
                 </tr>
-              )}
+              </thead>
 
-              {!loading &&
-                paginatedData.map((item, i) => (
+              {/* ================= BODY ================= */}
+              <tbody className="divide-y divide-slate-100 dark:divide-indigo-500/20">
+                {paginatedData.map((item, i) => (
                   <tr
                     key={item._id}
-                    className="
-                            border-t border-slate-200 dark:border-slate-800
-                          hover:bg-indigo-50/50 dark:hover:bg-indigo-500/10
-                            transition
-                          "
+                    className="hover:bg-[#FEF3C7]/40 dark:hover:bg-indigo-500/10 transition"
                   >
-                    <td className="px-6 py-4 text-center">{i + 1}</td>
-                    <td
-                      className="
-                              px-6 py-4 font-medium
-                              text-indigo-600 dark:text-indigo-400
-                              hover:underline cursor-pointer
-                            "
-                      onClick={() => setSelected(item)}
-                    >
-                      {item.peserta[0]?.nama}
+                    {/* NO */}
+                    <td className="py-4 px-6 text-center font-medium text-slate-500">
+                      {i + 1}
                     </td>
 
-                    <td className="px-6 py-4 text-slate-600 dark:text-slate-300">
-                      {showValue(item.peserta[0]?.email)}
+                    {/* PESERTA */}
+                    <td className=" 
+                      px-6 py-4 font-medium text-center
+                      text-indigo-600 dark:text-indigo-400 
+                      hover:underline cursor-pointer 
+                      " 
+                      onClick={() => setSelected(item)} 
+                    > 
+                      {item.peserta[0]?.nama} 
                     </td>
 
-                    <td className="px-6 py-4 text-center">
-                      {item.peserta[0]?.posisi}
+                    {/* EMAIL */}
+                    <td className="py-4 px-6 text-center">
+                      <div className="flex justify-center items-center gap-2 text-slate-600 dark:text-slate-300">
+                        <HiMail className="w-4 h-4" />
+                        <span className="truncate max-w-52">
+                          {item.peserta[0]?.email}
+                        </span>
+                      </div>
                     </td>
-                    <td className="px-6 py-4 text-center">
-                      {item.kategori === "bersama" ? "Bersama" : "Sendiri"}
+
+                    {/* POSISI */}
+                    <td className="py-4 px-6 text-center">
+                      <span
+                        className="
+                          inline-flex items-center gap-2
+                          px-3 py-1.5 rounded-full
+                          text-xs font-medium
+                          bg-blue-50 text-blue-700
+                          dark:bg-indigo-500/20 dark:text-indigo-200
+                        "
+                      >
+                        <HiBriefcase className="w-3 h-3" />
+                        {item.peserta[0]?.posisi}
+                      </span>
                     </td>
-                    <td className="px-6 py-4 text-center">
+
+                    {/* KATEGORI */}
+                    <td className="py-4 px-6 text-center">
+                      <span
+                        className="
+                          px-3 py-1.5 rounded-full
+                          text-xs font-medium
+                          bg-emerald-50 text-emerald-700
+                          border border-emerald-100
+                        "
+                      >
+                        {item.kategori === "bersama" ? "Bersama" : "Sendiri"}
+                      </span>
+                    </td>
+
+                    {/* STATUS */}
+                    <td className="py-4 px-6 text-center">
                       <StatusBadge status={item.status} />
                     </td>
                   </tr>
                 ))}
-            </tbody>
-          </table>
-          {/* ===================== PAGINATION BUTTON ===================== */}
+              </tbody>
+            </table>
+          </div>
+
+          {/* ================= PAGINATION ================= */}
           {totalPage > 1 && (
             <div className="flex flex-wrap items-center justify-center gap-2 py-5">
-              {/* PREV */}
               <button
                 disabled={page === 1}
                 onClick={() => setPage((p) => p - 1)}
-                className="
-                        px-4 py-2
-                        rounded-lg
-                        text-sm font-medium
-                        border
-                        border-slate-300 dark:border-slate-600
-                        bg-white dark:bg-slate-900
-                        text-[#7F1D1D]  dark:text-indigo-200
-                        hover:bg-[#FFF1F2] dark:hover:bg-indigo-900/30
-                        disabled:opacity-40 disabled:cursor-not-allowed
-                        transition
-                      "
+                className="px-4 py-2 rounded-lg text-sm font-medium border border-slate-300 bg-white hover:bg-[#FFF1F2] disabled:opacity-40"
               >
                 Prev
               </button>
 
-              {/* PAGE NUMBER */}
               {Array.from({ length: totalPage }).map((_, i) => {
                 const active = page === i + 1;
-
                 return (
                   <button
                     key={i}
                     onClick={() => setPage(i + 1)}
                     className={`
-                            min-w-9.5 h-9.5
-                            rounded-lg
-                            text-sm font-semibold
-                            transition
-                            ${
-                              active
-                                ? "bg-[#B91C1C] text-white shadow dark:bg-indigo-600"
-                                : `
-                                  bg-white dark:bg-slate-900
-                                  text-[#7F1D1D] dark:text-indigo-200
-                                  border border-slate-300 dark:border-slate-600
-                                  hover:bg-[#FFF1F2] dark:hover:bg-indigo-900/30
-                                `
-                            }
-                          `}
+                      min-w-9.5 h-9.5 rounded-lg text-sm font-semibold transition
+                      ${
+                        active
+                          ? "bg-[#B91C1C] text-white shadow"
+                          : "bg-white border border-slate-300 hover:bg-[#FFF1F2]"
+                      }
+                    `}
                   >
                     {i + 1}
                   </button>
                 );
               })}
 
-              {/* NEXT */}
               <button
                 disabled={page === totalPage}
                 onClick={() => setPage((p) => p + 1)}
-                className="
-                        px-4 py-2
-                        rounded-lg
-                        text-sm font-medium
-                        border
-                        border-slate-300 dark:border-slate-600
-                        bg-white dark:bg-slate-900
-                        text-[#7F1D1D]  dark:text-indigo-200
-                        hover:bg-[#FFF1F2] dark:hover:bg-indigo-900/30
-                        disabled:opacity-40 disabled:cursor-not-allowed
-                        transition
-                      "
+                className="px-4 py-2 rounded-lg text-sm font-medium border border-slate-300 bg-white hover:bg-[#FFF1F2] disabled:opacity-40"
               >
                 Next
               </button>
             </div>
           )}
         </div>
-      </div>
+      )}
 
       {/* ===================== MODAL DETAIL ===================== */}
       {selected && (
@@ -1520,29 +1575,94 @@ export default function ViewPendaftaranPage() {
   );
 }
 
+// ================= TYPES =================
+type SummaryColor = "default" | "green" | "red";
+
+type SummaryCardProps = {
+  title: string;
+  value: number | string;
+  color?: SummaryColor;
+  icon?: React.ReactNode;
+};
+
 /* ===================== COMPONENT ===================== */
 
-function SummaryCard({ title, value, color }: any) {
-  const colorMap = {
-    green: "text-emerald-500",
-    red: "text-rose-500",
-    default: "text-blue-400",
+function SummaryCard({ 
+  title, 
+  value, 
+  color = "default", 
+  icon,
+}: SummaryCardProps) {
+  const colorMap: Record<SummaryColor, {
+    text: string;
+    badge: string;
+    border: string;
+  }> = {
+    default: {
+      text: "text-[#7F1D1D] dark:text-white",
+      badge: "bg-[#B91C1C]/90 dark:bg-indigo-600",
+      border: "border-[#FCA5A5]/40 dark:border-indigo-500/30",
+    },
+    green: {
+      text: "text-emerald-600 dark:text-emerald-400",
+      badge: "bg-emerald-500",
+      border: "border-emerald-200 dark:border-emerald-500/30",
+    },
+    red: {
+      text: "text-rose-600 dark:text-rose-400",
+      badge: "bg-rose-500",
+      border: "border-rose-200 dark:border-rose-500/30",
+    },
   };
+
+  const c = colorMap[color];
 
   return (
     <div
-      className="
-            rounded-2xl p-5
-            bg-white/80 dark:bg-slate-900/80
-            backdrop-blur
-            shadow-lg
-            border border-slate-200 dark:border-slate-800
-          "
+      className={`
+        group
+        relative
+        rounded-2xl
+        ${c.border}
+        bg-linear-to-br
+        from-[#FFFDF8] via-[#FFF4EC] to-white
+        dark:from-indigo-950 dark:via-indigo-900 dark:to-indigo-800
+        p-6
+        shadow-sm
+        hover:shadow-xl
+        transition
+      `}
     >
-      <p className="text-sm text-slate-500 dark:text-slate-400">{title}</p>
-      <h2 className={`text-3xl font-bold mt-1 ${colorMap[color || "default"]}`}>
-        {value}
-      </h2>
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-wide text-slate-600 dark:text-slate-300">
+            {title}
+          </p>
+          <p className={`text-4xl font-extrabold mt-1 ${c.text}`}>
+            {value}
+          </p>
+        </div>
+
+        <div
+          className={`
+            w-14 h-14
+            rounded-2xl
+            ${c.badge}
+            text-white
+            flex items-center justify-center
+            shadow
+            group-hover:scale-110 transition
+          `}
+        >
+          {icon}
+        </div>
+      </div>
+
+      <div className={`mt-4 pt-4 border-t ${c.border}`}>
+        <p className="text-xs text-slate-600 dark:text-slate-300">
+          Ringkasan data {title.toLowerCase()}
+        </p>
+      </div>
     </div>
   );
 }
