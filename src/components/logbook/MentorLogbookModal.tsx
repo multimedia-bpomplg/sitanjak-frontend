@@ -316,7 +316,9 @@ export default function MentorLogbookModal({
                 <FiCalendar className="text-xl" />
               </div>
               <div>
-                <h2 className="text-lg sm:text-xl font-bold leading-tight">Logbook Peserta</h2>
+                <h2 className="text-lg sm:text-xl font-bold leading-tight">
+                  Logbook Peserta
+                </h2>
                 <p className="text-xs sm:text-sm opacity-90">
                   {pesertaNama} • {formatSimpleDate(date)}
                 </p>
@@ -398,7 +400,7 @@ export default function MentorLogbookModal({
           <div className="space-y-6">
             {/* Status Kehadiran */}
             <div className="space-y-3">
-            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2">
                 <FiUserCheck className="text-slate-500 dark:text-white" />
                 <label className="font-semibold text-slate-700 dark:text-white">
                   Status Kehadiran
@@ -415,8 +417,8 @@ export default function MentorLogbookModal({
                     status === "hadir"
                       ? "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-300 dark:border-emerald-700/40"
                       : status === "tidak_hadir_keterangan"
-                      ? "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700/40"
-                      : "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/40 dark:text-red-300 dark:border-red-700/40"
+                        ? "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700/40"
+                        : "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/40 dark:text-red-300 dark:border-red-700/40"
                   }
                 `}
               >
@@ -430,8 +432,8 @@ export default function MentorLogbookModal({
                   {status === "hadir"
                     ? "Hadir"
                     : status === "tidak_hadir_keterangan"
-                    ? "Tidak Hadir (Dengan Keterangan)"
-                    : "Tidak Hadir (Tanpa Keterangan)"}
+                      ? "Tidak Hadir (Dengan Keterangan)"
+                      : "Tidak Hadir (Tanpa Keterangan)"}
                 </span>
               </div>
             </div>
@@ -556,9 +558,7 @@ export default function MentorLogbookModal({
                     border-slate-200 dark:border-slate-700
                   "
                 >
-                  <p className="whitespace-pre-line">
-                    {mentorNote}
-                  </p>
+                  <p className="whitespace-pre-line">{mentorNote}</p>
                 </div>
               </div>
             )}
@@ -747,7 +747,9 @@ function FieldSection({
     <div className="space-y-3">
       <div className="flex items-center gap-2">
         {icon}
-        <label className="font-semibold text-slate-700 dark:text-white">{label}</label>
+        <label className="font-semibold text-slate-700 dark:text-white">
+          {label}
+        </label>
       </div>
 
       <div

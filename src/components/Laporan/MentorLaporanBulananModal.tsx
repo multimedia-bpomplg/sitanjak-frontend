@@ -1,7 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { FiX, FiFileText, FiCalendar, FiUser, FiMail, FiEdit, } from "react-icons/fi";
+import {
+  FiX,
+  FiFileText,
+  FiCalendar,
+  FiUser,
+  FiMail,
+  FiEdit,
+} from "react-icons/fi";
 import { showToast } from "@/components/ui/toastDashboard";
 
 type Props = {
@@ -155,13 +162,16 @@ export default function MentorLaporanBulananModal({
   };
 
   return (
-    <div className="
+    <div
+      className="
       fixed inset-0 z-50
       bg-black/40 dark:bg-black/70
       backdrop-blur-md
       flex items-center justify-center p-3 sm:p-6
-    ">
-      <div className="
+    "
+    >
+      <div
+        className="
         w-full max-w-5xl
         bg-white/90 dark:bg-white/5
         backdrop-blur
@@ -171,7 +181,8 @@ export default function MentorLaporanBulananModal({
         overflow-hidden
         max-h-[92vh]
         flex flex-col
-      ">
+      "
+      >
         {/* HEADER */}
         <div
           className="
@@ -301,15 +312,14 @@ export default function MentorLaporanBulananModal({
                     laporan.status === "Disetujui"
                       ? "border-emerald-400/40"
                       : laporan.status === "Ditolak"
-                      ? "border-red-400/40"
-                      : laporan.status === "Perbaiki"
-                      ? "border-amber-400/40"
-                      : "border-indigo-400/40"
+                        ? "border-red-400/40"
+                        : laporan.status === "Perbaiki"
+                          ? "border-amber-400/40"
+                          : "border-indigo-400/40"
                   }
                 `}
               >
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-
                   {/* LEFT */}
                   <div className="flex items-center gap-3">
                     <div
@@ -320,20 +330,20 @@ export default function MentorLaporanBulananModal({
                           laporan.status === "Disetujui"
                             ? "bg-emerald-500/20 text-emerald-500"
                             : laporan.status === "Ditolak"
-                            ? "bg-red-500/20 text-red-500"
-                            : laporan.status === "Perbaiki"
-                            ? "bg-amber-500/20 text-amber-500"
-                            : "bg-indigo-500/20 text-indigo-400"
+                              ? "bg-red-500/20 text-red-500"
+                              : laporan.status === "Perbaiki"
+                                ? "bg-amber-500/20 text-amber-500"
+                                : "bg-indigo-500/20 text-indigo-400"
                         }
                       `}
                     >
                       {laporan.status === "Disetujui"
                         ? "✅"
                         : laporan.status === "Ditolak"
-                        ? "❌"
-                        : laporan.status === "Perbaiki"
-                        ? "📝"
-                        : "⏳"}
+                          ? "❌"
+                          : laporan.status === "Perbaiki"
+                            ? "📝"
+                            : "⏳"}
                     </div>
 
                     <div>
@@ -347,20 +357,20 @@ export default function MentorLaporanBulananModal({
                             laporan.status === "Disetujui"
                               ? "text-emerald-700 dark:text-emerald-300"
                               : laporan.status === "Ditolak"
-                              ? "text-red-700 dark:text-red-300"
-                              : laporan.status === "Perbaiki"
-                              ? "text-amber-700 dark:text-amber-300"
-                              : "text-indigo-700 dark:text-indigo-300"
+                                ? "text-red-700 dark:text-red-300"
+                                : laporan.status === "Perbaiki"
+                                  ? "text-amber-700 dark:text-amber-300"
+                                  : "text-indigo-700 dark:text-indigo-300"
                           }
                         `}
                       >
                         {laporan.status === "Disetujui"
                           ? "Disetujui"
                           : laporan.status === "Ditolak"
-                          ? "Ditolak"
-                          : laporan.status === "Perbaiki"
-                          ? "Perlu Perbaikan"
-                          : "Menunggu Review"}
+                            ? "Ditolak"
+                            : laporan.status === "Perbaiki"
+                              ? "Perlu Perbaikan"
+                              : "Menunggu Review"}
                       </p>
                     </div>
                   </div>
@@ -370,7 +380,9 @@ export default function MentorLaporanBulananModal({
                     <div className="text-xs sm:text-sm text-slate-500 dark:text-slate-300">
                       Direview:
                       <span className="ml-1 font-semibold">
-                        {new Date(laporan.approvedAt).toLocaleDateString("id-ID")}
+                        {new Date(laporan.approvedAt).toLocaleDateString(
+                          "id-ID",
+                        )}
                       </span>
                     </div>
                   )}
@@ -430,7 +442,7 @@ export default function MentorLaporanBulananModal({
                   </div>
                   <div>
                     <h3 className="font-bold text-slate-800 dark:text-indigo-200">
-                        Review Mentor
+                      Review Mentor
                     </h3>
                     <p className="text-xs text-slate-500 dark:text-slate-400">
                       Tentukan status dan beri catatan untuk peserta
@@ -453,12 +465,13 @@ export default function MentorLaporanBulananModal({
                         p-2
                       "
                     >
-                      {["Disetujui", "Ditolak", "Perbaiki", "Menunggu"].map((s) => (
-                        <button
-                          key={s}
-                          type="button"
-                          onClick={() => setStatus(s)}
-                          className={`
+                      {["Disetujui", "Ditolak", "Perbaiki", "Menunggu"].map(
+                        (s) => (
+                          <button
+                            key={s}
+                            type="button"
+                            onClick={() => setStatus(s)}
+                            className={`
                             px-4 py-2
                             rounded-lg
                             text-xs sm:text-sm
@@ -477,10 +490,11 @@ export default function MentorLaporanBulananModal({
                                 : "text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/10"
                             }
                           `}
-                        >
-                          {s}
-                        </button>
-                      ))}
+                          >
+                            {s}
+                          </button>
+                        ),
+                      )}
                     </div>
                   </div>
 
@@ -589,12 +603,8 @@ function FieldViewCard({
     <div className="space-y-3">
       {/* HEADER */}
       <div className="flex items-center gap-2 text-slate-700 dark:text-white">
-        <span className="text-[#B91C1C] dark:text-indigo-400">
-          {icon}
-        </span>
-        <label className="font-semibold tracking-wide">
-          {label}
-        </label>
+        <span className="text-[#B91C1C] dark:text-indigo-400">{icon}</span>
+        <label className="font-semibold tracking-wide">{label}</label>
       </div>
 
       {/* BODY */}

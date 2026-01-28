@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { showToast  } from "@/components/ui/toastDashboard";
+import { showToast } from "@/components/ui/toastDashboard";
 
 type Props = {
   month: string;
@@ -35,7 +35,7 @@ export default function LaporanBulananModal({ month, mode, onClose }: Props) {
             headers: {
               Authorization: `Bearer ${localStorage.getItem("token")}`,
             },
-          }
+          },
         );
 
         if (!res.ok) return;
@@ -54,22 +54,18 @@ export default function LaporanBulananModal({ month, mode, onClose }: Props) {
     fetchDetail();
   }, [mode, month]);
 
-
   const MIN_TEXT = 50;
 
-  const isTextValid = (text: string) =>
-    text.trim().length >= MIN_TEXT;
+  const isTextValid = (text: string) => text.trim().length >= MIN_TEXT;
 
   /* ================= VALIDASI ================= */
   const submitDisabled =
     readonly ||
     !agree ||
-    (
-      !isTextValid(ringkasan) ||
-      !isTextValid(pencapaian) ||
-      !isTextValid(kendala) ||
-      !isTextValid(rencana)
-    );
+    !isTextValid(ringkasan) ||
+    !isTextValid(pencapaian) ||
+    !isTextValid(kendala) ||
+    !isTextValid(rencana);
 
   /* ================= SUBMIT ================= */
   const handleSubmit = async () => {
@@ -93,22 +89,17 @@ export default function LaporanBulananModal({ month, mode, onClose }: Props) {
             kendala,
             rencana,
           }),
-        }
+        },
       );
 
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(
-          data?.message || "Gagal menyimpan laporan bulanan"
-        );
+        throw new Error(data?.message || "Gagal menyimpan laporan bulanan");
       }
 
       // ✅ SUCCESS TOAST
-      showToast.updateSuccess(
-        toastId,
-        "🎉Laporan bulanan berhasil dikirim!"
-     );
+      showToast.updateSuccess(toastId, "🎉Laporan bulanan berhasil dikirim!");
 
       setShowConfirm(false);
 
@@ -119,11 +110,10 @@ export default function LaporanBulananModal({ month, mode, onClose }: Props) {
       // ❌ ERROR TOAST
       showToast.updateError(
         toastId,
-        err.message || "Terjadi kesalahan saat menyimpan laporan"
+        err.message || "Terjadi kesalahan saat menyimpan laporan",
       );
     }
   };
-      
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-3 sm:p-6">
@@ -279,7 +269,7 @@ export default function LaporanBulananModal({ month, mode, onClose }: Props) {
         )}
 
         {/* FOOTER */}
-        <div 
+        <div
           className="
             px-5 sm:px-6 py-4
             border-t border-slate-200 dark:border-slate-800
@@ -505,8 +495,8 @@ function Textarea({
             isError
               ? "border-red-400 focus:ring-red-400"
               : isValid
-              ? "border-emerald-400 focus:ring-emerald-400"
-              : "border-slate-300 dark:border-slate-700 focus:ring-indigo-500"
+                ? "border-emerald-400 focus:ring-emerald-400"
+                : "border-slate-300 dark:border-slate-700 focus:ring-indigo-500"
           }
         `}
       />
@@ -514,9 +504,7 @@ function Textarea({
       {/* INFO BAWAH */}
       <div className="flex justify-between text-xs">
         {isError && (
-          <span className="text-red-500">
-            Minimal {min} karakter
-          </span>
+          <span className="text-red-500">Minimal {min} karakter</span>
         )}
         {isValid && (
           <span className="text-emerald-600 dark:text-emerald-400">

@@ -18,31 +18,137 @@ import {
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const waRegex = /^08[0-9]{8,11}$/;
 
+// ==================== POSISI MAGANG YANG BARU ====================
 const POSISI_MAGANG = [
-  "IT / Programmer",
-  "Desain Grafis",
-  "Administrasi",
-  "Humas",
-  "Analis Data",
+  "Fungsi Penindakan",
+  "Fungsi Pengujian",
+  "Fungsi Pemeriksaan (Inspeksi dan sertifikasi)",
+  "Fungsi Informasi dan Komunikasi",
+  "Bagian Tata Usaha",
 ];
 
-const JURUSAN_UNIVERSITAS = [
-  "Teknik Informatika (TI)",
-  "Sistem Informasi (SI)",
-  "Teknik Elektro (TE)",
-  "Teknik Komputer",
-  "Manajemen Informatika",
-  "Desain Komunikasi Visual (DKV)",
+// ==================== ASAL INSTANSI UNIVERSITAS ====================
+const UNIVERSITAS_LIST = [
+  "UIN Raden Fatah Palembang",
+  "Universitas Bina Darma",
+  "MDP/Universitas Multi Data Palembang",
+  "UIGM/Universitas Indo Global Mandiri",
+  "Polsri/Politeknik Negeri Sriwijaya",
+  "ITERA/INSTITUT TEKNOLOGI SUMATERA",
+  "LAINNYA",
 ];
 
-const JURUSAN_SMK = [
-  "Rekayasa Perangkat Lunak (RPL)",
-  "Teknik Komputer dan Jaringan (TKJ)",
-  "Multimedia",
-  "Teknik Elektronika",
-  "Teknik Listrik",
-  "Bisnis Daring dan Pemasaran",
+// ==================== ASAL INSTANSI SMK ====================
+const SMK_LIST = [
+  "SMK 1 Pemulutan",
+  "SMK 1 Palembang",
+  "SMK 8 Kota Palembang",
+  "LAINNYA",
 ];
+
+// ==================== JURUSAN UNTUK SETIAP UNIVERSITAS ====================
+const JURUSAN_BY_UNIVERSITAS: Record<string, string[]> = {
+  "UIN Raden Fatah Palembang": [
+    "Kimia (S.Si.)",
+    "Biologi (S.Si.)",
+    "Pendidikan Kimia (S.Pd.)",
+    "Pendidikan Biologi (S.Pd.)",
+    "Sistem Informasi (S.Kom.)",
+    "Psikologi Islam (S.Psi.)",
+    "Ilmu Komunikasi (S.I.Kom.)",
+    "Jurnalistik (S.Sos.)",
+    "LAINNYA",
+  ],
+  "Universitas Bina Darma": [
+    "Sistem Informasi (S1)",
+    "Teknik Informatika (S1)",
+    "Teknik Elektro (S1)",
+    "Teknik Industri (S1)",
+    "Manajemen (S1)",
+    "Akuntansi (S1)",
+    "Ilmu Komunikasi (S1)",
+    "Psikologi (S1)",
+    "Manajemen Informatika (D3)",
+    "Teknik Komputer (D3)",
+    "Administrasi Bisnis (D3)",
+    "LAINNYA",
+  ],
+  "MDP/Universitas Multi Data Palembang": [
+    "Sistem Informasi (S1)",
+    "Informatika (S1)",
+    "Manajemen Informatika (D3)",
+    "Teknik Elektro (S1)",
+    "Desain Komunikasi Visual (S1)",
+    "Manajemen (S1)",
+    "Akuntansi (S1)",
+    "LAINNYA",
+  ],
+  "UIGM/Universitas Indo Global Mandiri": [
+    "Kimia (S1)",
+    "Biologi (S1)",
+    "Kedokteran (S1)",
+    "Keselamatan dan Kesehatan Kerja / K3 (D4)",
+    "Teknik Informatika (S1)",
+    "Sistem Informasi (S1)",
+    "Sistem Komputer (S1)",
+    "Manajemen (S1)",
+    "Akuntansi (S1)",
+    "Manajemen Bisnis (S1)",
+    "Hukum Bisnis (S1)",
+    "Ekonomi Bisnis (S1)",
+    "LAINNYA",
+  ],
+  "Polsri/Politeknik Negeri Sriwijaya": [
+    "Teknik Kimia (D3)",
+    "Teknologi Kimia Industri (D4 / Sarjana Terapan)",
+    "Teknologi Pangan (D3)",
+    "Teknologi Rekayasa Pangan (D4 / Sarjana Terapan)",
+    "Teknologi Akuakultur (D4 / Sarjana Terapan)",
+    "Teknik Komputer (D3)",
+    "Manajemen Informatika (D3)",
+    "Manajemen Informatika (D4 / Sarjana Terapan)",
+    "Teknologi Informatika Multimedia Digital (D4 / Sarjana Terapan)",
+    "Akuntansi (D3)",
+    "Akuntansi Sektor Publik (D4 / Sarjana Terapan)",
+    "Administrasi Bisnis (D3)",
+    "Manajemen Bisnis (D4 / Sarjana Terapan)",
+    "Bisnis Digital (D4 / Sarjana Terapan)",
+    "LAINNYA",
+  ],
+  "ITERA/INSTITUT TEKNOLOGI SUMATERA": [
+    "Kimia (S1)",
+    "Biologi (S1)",
+    "Farmasi (S1)",
+    "Teknologi Pangan (S1)",
+    "Teknologi Industri Pertanian (S1)",
+    "Teknik Kimia (S1)",
+    "Rekayasa Kosmetik (S1)",
+    "Teknik Biomedik (S1)",
+    "Teknik Informatika (S1)",
+    "Sains Data (S1)",
+    "Teknik Lingkungan (S1)",
+    "Teknik Biosistem (S1)",
+    "Sains Lingkungan Kelautan (S1)",
+    "Teknik Fisika (S1)",
+    "Teknik Material (S1)",
+    "Rekayasa Instrumentasi dan Automasi (S1)",
+    "LAINNYA",
+  ],
+  LAINNYA: ["LAINNYA"],
+};
+
+// ==================== JURUSAN UNTUK SMK ====================
+const JURUSAN_SMK: Record<string, string[]> = {
+  "SMK 1 Pemulutan": ["Administrasi", "Perkantoran", "Akuntansi", "LAINNYA"],
+  "SMK 1 Palembang": ["Administrasi", "Perkantoran", "Akuntansi", "LAINNYA"],
+  "SMK 8 Kota Palembang": [
+    "Administrasi",
+    "Perkantoran",
+    "Akuntansi",
+    "LAINNYA",
+  ],
+  LAINNYA: ["LAINNYA"],
+};
 
 type Wilayah = {
   id: string;
@@ -88,7 +194,7 @@ const buatPesertaKosong = (): Peserta => ({
   asalNama: "",
   asalNamaLainnya: "",
   jurusan: "",
-  jurusanLainnya: "", // ⬅️
+  jurusanLainnya: "",
 
   tanggalMulaiMagang: "",
   tanggalSelesaiMagang: "",
@@ -143,7 +249,7 @@ export default function PendaftaranPage() {
     i: number,
     key: keyof Peserta,
     value: string,
-    id?: string
+    id?: string,
   ) => {
     setPeserta((prev) => {
       const data = [...prev];
@@ -172,7 +278,7 @@ export default function PendaftaranPage() {
 
     if (key === "provinsi" && id) {
       const res = await fetch(
-        `https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${id}.json`
+        `https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${id}.json`,
       );
       const kotaData = await res.json();
 
@@ -185,7 +291,7 @@ export default function PendaftaranPage() {
 
     if (key === "kota" && id) {
       const res = await fetch(
-        `https://www.emsifa.com/api-wilayah-indonesia/api/districts/${id}.json`
+        `https://www.emsifa.com/api-wilayah-indonesia/api/districts/${id}.json`,
       );
       const kecamatanData = await res.json();
 
@@ -198,7 +304,7 @@ export default function PendaftaranPage() {
 
     if (key === "kecamatan" && id) {
       const res = await fetch(
-        `https://www.emsifa.com/api-wilayah-indonesia/api/villages/${id}.json`
+        `https://www.emsifa.com/api-wilayah-indonesia/api/villages/${id}.json`,
       );
       const kelurahanData = await res.json();
 
@@ -214,13 +320,13 @@ export default function PendaftaranPage() {
     setJumlah(n);
 
     setPeserta((prev) =>
-      Array.from({ length: n }).map((_, i) => prev[i] ?? buatPesertaKosong())
+      Array.from({ length: n }).map((_, i) => prev[i] ?? buatPesertaKosong()),
     );
 
     setWilayah((prev) =>
       Array.from({ length: n }).map(
-        (_, i) => prev[i] ?? { kota: [], kecamatan: [], kelurahan: [] }
-      )
+        (_, i) => prev[i] ?? { kota: [], kecamatan: [], kelurahan: [] },
+      ),
     );
   };
 
@@ -232,7 +338,7 @@ export default function PendaftaranPage() {
         (word) =>
           word.length > 0 &&
           word[0] === word[0].toUpperCase() &&
-          word.slice(1) === word.slice(1).toLowerCase()
+          word.slice(1) === word.slice(1).toLowerCase(),
       );
   };
 
@@ -240,39 +346,34 @@ export default function PendaftaranPage() {
     const trimmed = text.trim();
 
     if (jenis === "Universitas") {
-      // Universitas → Capitalize Each Word
       return trimmed
         .split(" ")
         .every(
           (word) =>
             word[0] === word[0]?.toUpperCase() &&
-            word.slice(1) === word.slice(1)?.toLowerCase()
+            word.slice(1) === word.slice(1)?.toLowerCase(),
         );
     }
 
     if (jenis === "SMK") {
       const parts = trimmed.split(" ");
 
-      // Minimal: SMK + 1 kata
       if (parts.length < 2) return false;
-
-      // Kata pertama HARUS "SMK"
       if (parts[0] !== "SMK") return false;
 
-      // Kata setelah SMK → Capitalize Each Word
       return parts
         .slice(1)
         .every(
           (word) =>
             word[0] === word[0]?.toUpperCase() &&
-            word.slice(1) === word.slice(1)?.toLowerCase()
+            word.slice(1) === word.slice(1)?.toLowerCase(),
         );
     }
 
     return false;
   };
 
-  /* ================== VALIDASI (TAMBAHAN) ================== */
+  /* ================== VALIDASI ================== */
   const validateForm = () => {
     const newErrors: Record<string, boolean> = {};
 
@@ -281,11 +382,9 @@ export default function PendaftaranPage() {
       if (!p.posisi) newErrors[`posisi-${i}`] = true;
 
       if (!p.tanggalMulaiMagang) newErrors[`tanggalMulaiMagang-${i}`] = true;
-
       if (!p.tanggalSelesaiMagang)
         newErrors[`tanggalSelesaiMagang-${i}`] = true;
 
-      // 🔥 VALIDASI TANGGAL (SPAM TOAST DIIZINKAN)
       if (
         p.tanggalMulaiMagang &&
         p.tanggalSelesaiMagang &&
@@ -293,7 +392,7 @@ export default function PendaftaranPage() {
       ) {
         newErrors[`tanggalSelesaiMagang-${i}`] = true;
         toast.error(
-          `❌ Tanggal selesai harus setelah tanggal mulai (Peserta ${i + 1})`
+          `❌ Tanggal selesai harus setelah tanggal mulai (Peserta ${i + 1})`,
         );
       }
 
@@ -301,7 +400,6 @@ export default function PendaftaranPage() {
       if (!p.tanggalLahir) newErrors[`tanggalLahir-${i}`] = true;
       if (!p.jenisKelamin) newErrors[`jenisKelamin-${i}`] = true;
 
-      // ASAL INSTANSI
       if (!p.asalJenis) newErrors[`asalJenis-${i}`] = true;
       if (!p.asalNama) newErrors[`asalNama-${i}`] = true;
       if (p.asalNama === "LAINNYA") {
@@ -317,12 +415,11 @@ export default function PendaftaranPage() {
             p.asalJenis === "Universitas"
               ? "❌ Nama Universitas harus ditulis dengan huruf kapital di awal setiap kata.\n\nContoh: Universitas Indonesia"
               : "❌ Penulisan SMK harus diawali dengan 'SMK' (huruf besar), dan kata setelahnya menggunakan huruf kapital.\n\nContoh: SMK Negeri 1",
-            { autoClose: 4500 }
+            { autoClose: 4500 },
           );
         }
       }
 
-      // ================= JURUSAN =================
       if (!p.jurusan) {
         newErrors[`jurusan-${i}`] = true;
       }
@@ -335,7 +432,7 @@ export default function PendaftaranPage() {
 
           toast.error(
             `❌ Nama jurusan harus ditulis dengan huruf kapital di awal setiap kata.\n\nContoh: Teknik Informatika`,
-            { autoClose: 4000 }
+            { autoClose: 4000 },
           );
         }
       }
@@ -347,7 +444,6 @@ export default function PendaftaranPage() {
 
       if (!p.alamatLengkap) newErrors[`alamat-${i}`] = true;
 
-      // 🔥 EMAIL (SPAM TOAST)
       if (!p.email) {
         newErrors[`email-${i}`] = true;
       } else if (!emailRegex.test(p.email)) {
@@ -355,13 +451,12 @@ export default function PendaftaranPage() {
         toast.error(`❌ Email Peserta ${i + 1} tidak valid`);
       }
 
-      // 🔥 WHATSAPP (SPAM TOAST)
       if (!p.wa) {
         newErrors[`wa-${i}`] = true;
       } else if (!waRegex.test(p.wa)) {
         newErrors[`wa-${i}`] = true;
         toast.error(
-          `❌ Nomor WhatsApp Peserta ${i + 1} harus diawali 08 & valid`
+          `❌ Nomor WhatsApp Peserta ${i + 1} harus diawali 08 & valid`,
         );
       }
     });
@@ -388,12 +483,8 @@ export default function PendaftaranPage() {
   const normalizePeserta = (data: Peserta[]): Peserta[] => {
     return data.map((p) => ({
       ...p,
-
-      // ✅ TIMPA asalNama (INI YANG DIBACA BACKEND)
       asalNama:
         p.asalNama === "LAINNYA" ? p.asalNamaLainnya.trim() : p.asalNama,
-
-      // ✅ TIMPA jurusan (INI JUGA DIBACA BACKEND)
       jurusan: p.jurusan === "LAINNYA" ? p.jurusanLainnya.trim() : p.jurusan,
     }));
   };
@@ -450,14 +541,6 @@ export default function PendaftaranPage() {
     setLoading(false);
     setPendingSubmit(false);
   };
-
-  const universitasList = [
-    "UIN Raden Fatah Palembang",
-    "Universitas Sriwijaya",
-    "Universitas Bina Darma",
-  ];
-
-  const smkList = ["SMK Negeri 1", "SMK Negeri 2", "SMK Negeri 3"];
 
   return (
     <div className="min-h-screen bg-linear-to-br from-[#FFF7ED] via-[#FEF3C7] to-[#FFFFFF] py-16 px-4">
@@ -664,7 +747,9 @@ export default function PendaftaranPage() {
                   >
                     <option value="">Pilih Posisi Magang</option>
                     {POSISI_MAGANG.map((p) => (
-                      <option key={p}>{p}</option>
+                      <option key={p} value={p}>
+                        {p}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -908,15 +993,13 @@ export default function PendaftaranPage() {
                         <option value="">Pilih {peserta[i].asalJenis}</option>
 
                         {(peserta[i].asalJenis === "Universitas"
-                          ? universitasList
-                          : smkList
+                          ? UNIVERSITAS_LIST
+                          : SMK_LIST
                         ).map((item) => (
                           <option key={item} value={item}>
                             {item}
                           </option>
                         ))}
-
-                        <option value="LAINNYA">Lainnya</option>
                       </select>
                     </div>
 
@@ -949,7 +1032,6 @@ export default function PendaftaranPage() {
 
                         update(i, "asalNamaLainnya", val);
 
-                        // reset error saat valid
                         if (isCapitalizeEachWord(val)) {
                           setErrors((p) => ({
                             ...p,
@@ -997,15 +1079,15 @@ export default function PendaftaranPage() {
                         <option value="">Pilih Jurusan</option>
 
                         {(peserta[i].asalJenis === "Universitas"
-                          ? JURUSAN_UNIVERSITAS
-                          : JURUSAN_SMK
+                          ? JURUSAN_BY_UNIVERSITAS[peserta[i].asalNama] || [
+                              "LAINNYA",
+                            ]
+                          : JURUSAN_SMK[peserta[i].asalNama] || ["LAINNYA"]
                         ).map((j) => (
                           <option key={j} value={j}>
                             {j}
                           </option>
                         ))}
-
-                        <option value="LAINNYA">Lainnya</option>
                       </select>
                     </div>
 
@@ -1105,7 +1187,7 @@ export default function PendaftaranPage() {
                       value={peserta[i].kotaId}
                       onChange={(e) => {
                         const o = wilayah[i]?.kota.find(
-                          (x) => x.id === e.target.value
+                          (x) => x.id === e.target.value,
                         );
                         if (o) update(i, "kota", o.name, o.id);
                         setErrors((p) => ({ ...p, [`kota-${i}`]: false }));
@@ -1138,7 +1220,7 @@ export default function PendaftaranPage() {
                       value={peserta[i].kecamatanId}
                       onChange={(e) => {
                         const o = wilayah[i]?.kecamatan.find(
-                          (x) => x.id === e.target.value
+                          (x) => x.id === e.target.value,
                         );
                         if (o) update(i, "kecamatan", o.name, o.id);
                         setErrors((p) => ({ ...p, [`kecamatan-${i}`]: false }));

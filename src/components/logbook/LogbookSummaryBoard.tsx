@@ -151,7 +151,9 @@ function SummaryCard({
             <span className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white">
               {value}
             </span>
-            <span className={`text-xs sm:text-sm font-medium ${styles[variant].text}`}>
+            <span
+              className={`text-xs sm:text-sm font-medium ${styles[variant].text}`}
+            >
               data
             </span>
           </div>

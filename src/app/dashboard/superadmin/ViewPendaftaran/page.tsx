@@ -83,11 +83,11 @@ type Mentor = {
 };
 
 const POSISI_MAGANG = [
-  "IT / Programmer",
-  "Administrasi",
-  "Desain Grafis",
-  "Humas",
-  "Analis Data",
+  "Fungsi Penindakan",
+  "Fungsi Pengujian",
+  "Fungsi Pemeriksaan (Inspeksi dan sertifikasi)",
+  "Fungsi Informasi dan Komunikasi",
+  "Bagian Tata Usaha",
 ];
 
 /* ================== HITUNG DURASI MAGANG ================== */
@@ -666,14 +666,15 @@ export default function ViewPendaftaranPage() {
                     </td>
 
                     {/* PESERTA */}
-                    <td className=" 
+                    <td
+                      className=" 
                       px-6 py-4 font-medium text-center
                       text-indigo-600 dark:text-indigo-400 
                       hover:underline cursor-pointer 
-                      " 
-                      onClick={() => setSelected(item)} 
-                    > 
-                      {item.peserta[0]?.nama} 
+                      "
+                      onClick={() => setSelected(item)}
+                    >
+                      {item.peserta[0]?.nama}
                     </td>
 
                     {/* EMAIL */}
@@ -1587,17 +1588,20 @@ type SummaryCardProps = {
 
 /* ===================== COMPONENT ===================== */
 
-function SummaryCard({ 
-  title, 
-  value, 
-  color = "default", 
+function SummaryCard({
+  title,
+  value,
+  color = "default",
   icon,
 }: SummaryCardProps) {
-  const colorMap: Record<SummaryColor, {
-    text: string;
-    badge: string;
-    border: string;
-  }> = {
+  const colorMap: Record<
+    SummaryColor,
+    {
+      text: string;
+      badge: string;
+      border: string;
+    }
+  > = {
     default: {
       text: "text-[#7F1D1D] dark:text-white",
       badge: "bg-[#B91C1C]/90 dark:bg-indigo-600",
@@ -1638,9 +1642,7 @@ function SummaryCard({
           <p className="text-xs uppercase tracking-wide text-slate-600 dark:text-slate-300">
             {title}
           </p>
-          <p className={`text-4xl font-extrabold mt-1 ${c.text}`}>
-            {value}
-          </p>
+          <p className={`text-4xl font-extrabold mt-1 ${c.text}`}>{value}</p>
         </div>
 
         <div

@@ -152,7 +152,7 @@ export default function SuperadminLaporanBulananModal({
             </div>
           )}
 
-          {/* Superadmin Actions */}
+          {/* Superadmin Actions
           <div className="p-4 bg-slate-50 rounded-xl">
             <h3 className="font-semibold text-slate-700 mb-3">
               Aksi Superadmin
@@ -171,7 +171,7 @@ export default function SuperadminLaporanBulananModal({
                 Tolak
               </button>
             </div>
-          </div>
+          </div> */}
         </div>
       </div>
     </div>

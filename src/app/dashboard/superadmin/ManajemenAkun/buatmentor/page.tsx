@@ -43,7 +43,7 @@ export default function BuatAkunMentorPage() {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
-        }
+        },
       );
 
       const result = await res.json();
@@ -108,7 +108,7 @@ export default function BuatAkunMentorPage() {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
           body: JSON.stringify(form),
-        }
+        },
       );
 
       const result = await res.json();
@@ -158,7 +158,7 @@ export default function BuatAkunMentorPage() {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
-        }
+        },
       );
 
       const result = await res.json();
@@ -168,21 +168,21 @@ export default function BuatAkunMentorPage() {
       }
 
       setData((prev) =>
-        prev.map((m) => (m._id === id ? { ...m, status: "Nonaktif" } : m))
+        prev.map((m) => (m._id === id ? { ...m, status: "Nonaktif" } : m)),
       );
 
       setSelected((prev) => (prev ? { ...prev, status: "Nonaktif" } : prev));
 
       showToast.updateSuccess(
         loadingToast,
-        "Akun mentor berhasil dinonaktifkan"
+        "Akun mentor berhasil dinonaktifkan",
       );
 
       setOpenAksi(false);
     } catch (error: any) {
       showToast.updateError(
         loadingToast,
-        error.message || "Terjadi kesalahan server"
+        error.message || "Terjadi kesalahan server",
       );
     }
   };
@@ -207,7 +207,7 @@ export default function BuatAkunMentorPage() {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
-        }
+        },
       );
 
       const result = await res.json();
@@ -217,7 +217,7 @@ export default function BuatAkunMentorPage() {
       }
 
       setData((prev) =>
-        prev.map((m) => (m._id === id ? { ...m, status: "Aktif" } : m))
+        prev.map((m) => (m._id === id ? { ...m, status: "Aktif" } : m)),
       );
 
       setSelected((prev) => (prev ? { ...prev, status: "Aktif" } : prev));
@@ -228,7 +228,7 @@ export default function BuatAkunMentorPage() {
     } catch (error: any) {
       showToast.updateError(
         loadingToast,
-        error.message || "Terjadi kesalahan server"
+        error.message || "Terjadi kesalahan server",
       );
     }
   };
@@ -429,11 +429,15 @@ export default function BuatAkunMentorPage() {
     "
             >
               <option value="">-- Pilih Posisi Mentor --</option>
-              <option value="IT / Programmer">IT / Programmer</option>
-              <option value="Desain Grafis">Desain Grafis</option>
-              <option value="Administrasi">Administrasi</option>
-              <option value="Humas">Humas</option>
-              <option value="Analis Data">Analis Data</option>
+              <option value="Fungsi Penindakan">Fungsi Penindakan</option>
+              <option value="Fungsi Pengujian">Fungsi Pengujian</option>
+              <option value="Fungsi Pemeriksaan (Inspeksi dan sertifikasi)">
+                Fungsi Pemeriksaan (Inspeksi dan sertifikasi)
+              </option>
+              <option value="Fungsi Informasi dan Komunikasi">
+                Fungsi Informasi dan Komunikasi
+              </option>
+              <option value="Bagian Tata Usaha">Bagian Tata Usaha</option>
             </select>
           </div>
 
