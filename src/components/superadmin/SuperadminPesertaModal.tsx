@@ -9,6 +9,8 @@ import {
   FiBriefcase,
   FiBook,
   FiCalendar,
+  FiBookOpen,
+  FiFileText,
 } from "react-icons/fi";
 
 type Props = {
@@ -26,104 +28,119 @@ export default function SuperadminPesertaModal({
   onViewLaporanBulanan,
   onViewLaporanAkhir,
 }: Props) {
-  const [activeTab, setActiveTab] = useState<"info" | "logbook" | "laporan">(
-    "info",
-  );
+  const [activeTab, setActiveTab] = useState<
+    "info" | "logbook" | "laporan"
+  >("info");
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="w-full max-w-4xl bg-white rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
-        {/* Header */}
-        <div className="px-6 py-5 bg-gradient-to-r from-blue-600 to-cyan-600 text-white">
+      <div
+        className="
+          w-full max-w-5xl
+          bg-white/90 dark:bg-white/5
+          backdrop-blur
+          rounded-3xl
+          shadow-2xl
+          overflow-hidden
+          flex flex-col
+          max-h-[92vh]
+        "
+      >
+        {/* ================= HEADER ================= */}
+        <div
+          className="
+            px-6 py-5
+            bg-linear-to-r
+            from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
+            dark:from-indigo-600 dark:to-violet-600
+            text-white
+          "
+        >
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-white/20 rounded-lg">
-                <FiUser className="text-xl" />
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center">
+                <FiUser className="text-2xl" />
               </div>
               <div>
-                <h2 className="text-xl font-bold">Detail Peserta</h2>
-                <p className="text-sm opacity-90">{peserta?.nama}</p>
+                <h2 className="text-xl font-extrabold">
+                  Detail Peserta
+                </h2>
+                <p className="text-sm opacity-90">
+                  {peserta?.nama}
+                </p>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-white/20 rounded-lg transition"
+              className="p-2 text-red-600 hover:bg-red-100 dark:text-red-400 dark:hover:bg-red-900/30 rounded-lg transition"
             >
-              <FiX className="text-xl" />
+              <FiX className="text-2xl" />
             </button>
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="border-b border-slate-200">
-          <div className="flex px-6">
-            <button
+        {/* ================= TABS ================= */}
+        <div className="px-6 pt-4">
+          <div className="flex gap-2 bg-slate-100 dark:bg-indigo-950 p-1.5 rounded-2xl w-fit">
+            <TabButton
+              active={activeTab === "info"}
               onClick={() => setActiveTab("info")}
-              className={`px-4 py-3 font-medium border-b-2 transition ${activeTab === "info" ? "border-blue-600 text-blue-600" : "border-transparent text-slate-500"}`}
             >
               Informasi
-            </button>
-            <button
+            </TabButton>
+            <TabButton
+              active={activeTab === "logbook"}
               onClick={() => setActiveTab("logbook")}
-              className={`px-4 py-3 font-medium border-b-2 transition ${activeTab === "logbook" ? "border-blue-600 text-blue-600" : "border-transparent text-slate-500"}`}
             >
               Logbook
-            </button>
-            <button
+            </TabButton>
+            <TabButton
+              active={activeTab === "laporan"}
               onClick={() => setActiveTab("laporan")}
-              className={`px-4 py-3 font-medium border-b-2 transition ${activeTab === "laporan" ? "border-blue-600 text-blue-600" : "border-transparent text-slate-500"}`}
             >
               Laporan
-            </button>
+            </TabButton>
           </div>
         </div>
 
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto px-6 py-5">
+        {/* ================= BODY ================= */}
+        <div className="flex-1 overflow-y-auto p-6">
+          {/* ---------- INFO ---------- */}
           {activeTab === "info" && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <InfoField
-                icon={<FiUser />}
-                label="Nama Lengkap"
-                value={peserta?.nama}
-              />
-              <InfoField
-                icon={<FiMail />}
-                label="Email"
-                value={peserta?.email}
-              />
-              <InfoField
-                icon={<FiPhone />}
-                label="No WhatsApp"
-                value={peserta?.wa}
-              />
-              <InfoField
-                icon={<FiBriefcase />}
-                label="Posisi Magang"
-                value={peserta?.posisi}
-              />
-              <InfoField
-                icon={<FiBook />}
-                label="Jurusan"
-                value={peserta?.jurusan}
-              />
-              <InfoField
-                icon={<FiCalendar />}
-                label="Kategori"
-                value={peserta?.kategori}
-              />
-              <div className="col-span-2">
-                <InfoField
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <InfoCard icon={<FiUser />} label="Nama" value={peserta?.nama} />
+              <InfoCard icon={<FiMail />} label="Email" value={peserta?.email} />
+              <InfoCard icon={<FiPhone />} label="WhatsApp" value={peserta?.wa} />
+              <InfoCard icon={<FiBriefcase />} label="Posisi" value={peserta?.posisi} />
+              <InfoCard icon={<FiBook />} label="Jurusan" value={peserta?.jurusan} />
+              <InfoCard icon={<FiCalendar />} label="Kategori" value={peserta?.kategori} />
+
+              <div className="md:col-span-2">
+                <InfoCard
                   icon={<FiCalendar />}
                   label="Periode Magang"
-                  value={`${peserta?.tanggalMulaiMagang} s/d ${peserta?.tanggalSelesaiMagang}`}
+                  value={`${peserta?.tanggalMulaiMagang} – ${peserta?.tanggalSelesaiMagang}`}
                 />
               </div>
+
               {peserta?.mentor && (
-                <div className="col-span-2 p-4 bg-blue-50 rounded-xl">
-                  <h3 className="font-semibold text-blue-700 mb-2">Mentor</h3>
-                  <p className="font-medium">{peserta.mentor.name}</p>
-                  <p className="text-sm text-blue-600">
+                <div
+                  className="
+                    md:col-span-2
+                    p-5 rounded-2xl
+                    bg-linear-to-r
+                    from-[#FFF1F2] to-[#FEF3C7]
+                    dark:from-indigo-900/40 dark:to-violet-900/40
+                    border border-[#FCA5A5]/40 dark:border-indigo-500/30
+                  "
+                >
+                  <p className="text-sm font-semibold text-[#7F1D1D] dark:text-indigo-300 mb-1">
+                    Mentor
+                  </p>
+                  <p className="font-bold text-slate-800 dark:text-white">
+                    {peserta.mentor.name}
+                  </p>
+                  <p className="text-sm text-slate-600 dark:text-slate-300">
                     {peserta.mentor.email}
                   </p>
                 </div>
@@ -131,51 +148,63 @@ export default function SuperadminPesertaModal({
             </div>
           )}
 
+          {/* ---------- LOGBOOK ---------- */}
           {activeTab === "logbook" && (
-            <div className="text-center py-8">
-              <p className="text-slate-600 mb-4">
-                Lihat dan kelola logbook peserta
+            <div className="flex flex-col items-center justify-center text-center py-12">
+              <div
+                className="
+                  w-16 h-16 rounded-full
+                  bg-linear-to-br from-[#7F1D1D] to-[#F59E0B]
+                  dark:from-indigo-600 dark:to-violet-500
+                  flex items-center justify-center
+                  text-white mb-4
+                  shadow-lg
+                "
+              >
+                <FiBookOpen className="text-2xl" />
+              </div>
+              <h3 className="text-lg font-bold mb-2">
+                Logbook Peserta
+              </h3>
+              <p className="text-slate-600 dark:text-slate-400 mb-6 max-w-md">
+                Lihat seluruh aktivitas harian peserta selama magang.
               </p>
               <button
                 onClick={() => onViewLogbook(peserta?.email)}
-                className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition"
+                className="
+                  px-6 py-3 rounded-xl
+                  bg-linear-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
+                  dark:from-indigo-600 dark:to-violet-500
+                  text-white font-semibold
+                  shadow hover:shadow-xl
+                  transition hover:-translate-y-0.5
+                "
               >
-                Buka Logbook Peserta
+                Buka Logbook
               </button>
             </div>
           )}
 
+          {/* ---------- LAPORAN ---------- */}
           {activeTab === "laporan" && (
-            <div className="space-y-4">
-              <div className="p-4 bg-slate-50 rounded-xl">
-                <h3 className="font-semibold text-slate-700 mb-3">
-                  Laporan Bulanan
-                </h3>
-                <p className="text-slate-600 mb-3">
-                  Kelola laporan bulanan peserta
-                </p>
-                <button
-                  onClick={() => onViewLaporanBulanan(peserta?.email)}
-                  className="px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-medium transition"
-                >
-                  Lihat Laporan Bulanan
-                </button>
-              </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <ActionCard
+                title="Laporan Bulanan"
+                desc="Monitoring perkembangan bulanan peserta."
+                icon={<FiFileText />}
+                color="amber"
+                onClick={() => onViewLaporanBulanan(peserta?.email)}
+                label="Lihat Laporan Bulanan"
+              />
 
-              <div className="p-4 bg-slate-50 rounded-xl">
-                <h3 className="font-semibold text-slate-700 mb-3">
-                  Laporan Akhir
-                </h3>
-                <p className="text-slate-600 mb-3">
-                  Kelola laporan akhir peserta
-                </p>
-                <button
-                  onClick={() => onViewLaporanAkhir(peserta?.email)}
-                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium transition"
-                >
-                  Lihat Laporan Akhir
-                </button>
-              </div>
+              <ActionCard
+                title="Laporan Akhir"
+                desc="Ringkasan akhir hasil magang peserta."
+                icon={<FiBookOpen />}
+                color="emerald"
+                onClick={() => onViewLaporanAkhir(peserta?.email)}
+                label="Lihat Laporan Akhir"
+              />
             </div>
           )}
         </div>
@@ -184,7 +213,42 @@ export default function SuperadminPesertaModal({
   );
 }
 
-function InfoField({
+/* ================= SMALL COMPONENTS ================= */
+
+function TabButton({
+  children,
+  active,
+  onClick,
+}: {
+  children: React.ReactNode;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`
+        px-4 py-2 rounded-xl text-sm font-semibold transition
+        ${
+          active
+            ? `
+              bg-white dark:bg-indigo-600
+              text-[#7F1D1D] dark:text-white
+              shadow
+            `
+            : `
+              text-slate-500 dark:text-slate-300
+              hover:bg-white/60 dark:hover:bg-indigo-900/40
+            `
+        }
+      `}
+    >
+      {children}
+    </button>
+  );
+}
+
+function InfoCard({
   icon,
   label,
   value,
@@ -194,12 +258,80 @@ function InfoField({
   value: string;
 }) {
   return (
-    <div className="space-y-2">
-      <div className="flex items-center gap-2 text-slate-500">
+    <div
+      className="
+        p-4 rounded-2xl
+        border border-[#FCA5A5]/40 dark:border-indigo-500/30
+        bg-white/80 dark:bg-indigo-950
+        backdrop-blur
+        hover:shadow-md transition
+      "
+    >
+      <div className="flex items-center gap-2 text-slate-500 dark:text-slate-300 text-sm mb-1">
         {icon}
-        <span className="text-sm">{label}</span>
+        {label}
       </div>
-      <p className="font-semibold">{value || "-"}</p>
+      <p className="font-semibold text-slate-800 dark:text-white">
+        {value || "-"}
+      </p>
+    </div>
+  );
+}
+
+function ActionCard({
+  title,
+  desc,
+  icon,
+  onClick,
+  label,
+}: {
+  title: string;
+  desc: string;
+  icon: React.ReactNode;
+  color: "amber" | "emerald";
+  onClick: () => void;
+  label: string;
+}) {
+  return (
+    <div
+      className="
+        p-6 rounded-2xl
+        bg-white/80 dark:bg-indigo-950
+        border border-slate-200 dark:border-indigo-500/30
+        shadow hover:shadow-xl
+        transition flex flex-col
+      "
+    >
+      <div className="flex items-center gap-3 mb-3">
+        <div
+          className="
+            w-10 h-10 rounded-xl
+            bg-linear-to-br from-[#7F1D1D] to-[#F59E0B]
+            dark:from-indigo-600 dark:to-violet-500
+            flex items-center justify-center
+            text-white
+          "
+        >
+          {icon}
+        </div>
+        <h3 className="font-bold text-lg">{title}</h3>
+      </div>
+      <p className="text-sm text-slate-600 dark:text-slate-400 mb-5">
+        {desc}
+      </p>
+      <button
+        onClick={onClick}
+        className="
+          mt-auto
+          px-5 py-2.5 rounded-xl
+          bg-linear-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
+          dark:from-indigo-600 dark:to-violet-500
+          text-white font-semibold
+          hover:shadow-xl transition
+        "
+      >
+        {label}
+      </button>
     </div>
   );
 }

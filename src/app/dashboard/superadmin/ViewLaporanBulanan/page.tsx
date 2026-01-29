@@ -170,7 +170,12 @@ export default function ViewLaporanBulananSuperadmin() {
       });
 
       // Convert map to array
-      const pesertaArray = Array.from(pesertaMap.values());
+      const pesertaArray = Array.from(pesertaMap.values()).sort(
+        (a, b) =>
+          new Date(b.laporanTerakhir || 0).getTime() -
+          new Date(a.laporanTerakhir || 0).getTime()
+      );
+
       setPesertaLaporan(pesertaArray);
       setFilteredPeserta(pesertaArray);
       setPage(1); // Reset ke halaman pertama saat data baru dimuat
@@ -292,15 +297,42 @@ export default function ViewLaporanBulananSuperadmin() {
     if (!selectedPeserta) return null;
 
     return (
-      <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-        <div className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
-          {/* HEADER */}
-          <div className="px-6 py-5 bg-linear-to-r from-indigo-500 to-purple-600 text-white flex justify-between items-center">
+      <div className="
+        fixed inset-0 z-50
+        flex items-center justify-center
+        bg-black/40 dark:bg-black/70
+        backdrop-blur-md
+        p-3 sm:p-6
+      ">
+        <div className="
+          w-full max-w-3xl
+          bg-white/90 dark:bg-indigo-950/40
+          backdrop-blur
+          rounded-3xl
+          border border-[#F59E0B]/40
+          dark:border-indigo-500/30
+          shadow-2xl
+          overflow-hidden
+          flex flex-col
+          max-h-[92vh]
+        ">
+          {/* ================= HEADER ================= */}
+          <div className="
+            px-5 sm:px-6 py-4 sm:py-5
+            bg-linear-to-r
+            from-[#F59E0B] via-[#B91C1C] to-[#7F1D1D]
+            dark:from-indigo-600 dark:to-violet-500
+            text-white
+            flex items-center justify-between
+          ">
+            {/* LEFT */}
             <div className="flex items-center gap-3">
               <HiCalendar className="text-xl" />
               <div>
-                <h2 className="text-xl font-bold">Pilih Laporan Bulanan</h2>
-                <div className="flex items-center gap-4 text-sm opacity-90">
+                <h2 className="text-lg sm:text-xl font-bold">
+                  Pilih Laporan Bulanan
+                </h2>
+                <div className="flex flex-wrap gap-x-4 text-xs sm:text-sm opacity-90">
                   <div className="flex items-center gap-1">
                     <HiUser />
                     <span>{selectedPeserta.name}</span>
@@ -312,84 +344,129 @@ export default function ViewLaporanBulananSuperadmin() {
                 </div>
               </div>
             </div>
+
+            {/* RIGHT */}
             <button
               onClick={() => {
                 setShowMonthModal(false);
                 setSelectedPeserta(null);
               }}
-              className="p-2 hover:bg-white/20 rounded-full transition"
+              className="
+                p-2 rounded-full
+                hover:bg-white/20
+                transition
+              "
             >
               <HiXCircle className="text-xl" />
             </button>
           </div>
 
-          {/* BODY */}
-          <div className="flex-1 overflow-y-auto p-6">
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold text-slate-800 mb-2">
-                Total Laporan: {selectedPeserta.totalLaporan}
+          {/* ================= BODY ================= */}
+          <div className="flex-1 overflow-y-auto px-5 sm:px-6 py-5 space-y-6 modal-scroll">
+
+            {/* SUMMARY */}
+            <div>
+              <h3 className="
+                text-sm sm:text-base font-bold
+                text-[#7F1D1D]
+                dark:text-indigo-300
+                mb-2
+              ">
+                Ringkasan Laporan
               </h3>
-              <div className="flex flex-wrap gap-2 mb-4">
-                {selectedPeserta.disetujui > 0 && (
-                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold bg-emerald-100 text-emerald-700">
-                    <HiCheckCircle className="w-4 h-4" />{" "}
-                    {selectedPeserta.disetujui} Disetujui
-                  </span>
-                )}
-                {selectedPeserta.perbaiki > 0 && (
-                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold bg-amber-100 text-amber-700">
-                    <HiExclamationCircle className="w-4 h-4" />{" "}
-                    {selectedPeserta.perbaiki} Perbaiki
-                  </span>
-                )}
-                {selectedPeserta.ditolak > 0 && (
-                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold bg-red-100 text-red-700">
-                    <HiXCircle className="w-4 h-4" /> {selectedPeserta.ditolak}{" "}
-                    Ditolak
-                  </span>
-                )}
-                {selectedPeserta.menunggu > 0 && (
-                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold bg-blue-100 text-blue-700">
-                    <HiDocumentText className="w-4 h-4" />{" "}
-                    {selectedPeserta.menunggu} Menunggu
-                  </span>
-                )}
+
+              <div className="flex flex-wrap gap-2">
+                <span className="
+                  inline-flex items-center gap-1
+                  px-3 py-1.5
+                  rounded-full text-xs font-semibold
+                  bg-emerald-100 text-emerald-700
+                  dark:bg-emerald-500/20 dark:text-emerald-200
+                ">
+                  <HiCheckCircle /> {selectedPeserta.disetujui} Disetujui
+                </span>
+
+                <span className="
+                  inline-flex items-center gap-1
+                  px-3 py-1.5
+                  rounded-full text-xs font-semibold
+                  bg-amber-100 text-amber-700
+                  dark:bg-amber-500/20 dark:text-amber-200
+                ">
+                  <HiExclamationCircle /> {selectedPeserta.perbaiki} Perbaiki
+                </span>
+
+                <span className="
+                  inline-flex items-center gap-1
+                  px-3 py-1.5
+                  rounded-full text-xs font-semibold
+                  bg-red-100 text-red-700
+                  dark:bg-red-500/20 dark:text-red-200
+                ">
+                  <HiXCircle /> {selectedPeserta.ditolak} Ditolak
+                </span>
+
+                <span className="
+                  inline-flex items-center gap-1
+                  px-3 py-1.5
+                  rounded-full text-xs font-semibold
+                  bg-blue-100 text-blue-700
+                  dark:bg-indigo-500/20 dark:text-indigo-200
+                ">
+                  <HiDocumentText /> {selectedPeserta.menunggu} Menunggu
+                </span>
               </div>
             </div>
 
-            {/* LIST LAPORAN */}
+            {/* LIST */}
             <div className="space-y-3">
-              <h4 className="font-medium text-slate-700">
-                Pilih Bulan Laporan:
+              <h4 className="
+                text-sm font-bold
+                text-[#7F1D1D]
+                dark:text-indigo-300
+              ">
+                Pilih Bulan Laporan
               </h4>
 
               {selectedPeserta.laporanDetails.length === 0 ? (
-                <div className="text-center py-8 bg-slate-50 rounded-xl border border-slate-200">
+                <div className="
+                  text-center py-10
+                  rounded-2xl
+                  bg-white/80 dark:bg-indigo-950/40
+                  border border-slate-200 dark:border-indigo-500/30
+                ">
                   <HiDocumentText className="text-4xl text-slate-300 mx-auto mb-3" />
-                  <p className="text-slate-600">Belum ada laporan bulanan</p>
+                  <p className="text-slate-600 dark:text-slate-300">
+                    Belum ada laporan bulanan
+                  </p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {selectedPeserta.laporanDetails.map((laporan) => (
                     <button
                       key={laporan._id}
                       onClick={() => handleSelectLaporan(laporan)}
                       className="
-                        p-4 rounded-xl border border-slate-200 
-                        hover:border-indigo-300 hover:bg-indigo-50/30
-                        transition-all duration-200 hover:shadow-md
+                        group
+                        p-4
+                        rounded-2xl
                         text-left
+                        bg-white/80 dark:bg-indigo-950/40
+                        border border-slate-200 dark:border-indigo-500/30
+                        hover:border-[#F59E0B] dark:hover:border-indigo-400
+                        hover:shadow-lg
+                        transition-all
                       "
                     >
                       <div className="flex items-start justify-between mb-2">
                         <div>
                           <div className="flex items-center gap-2 mb-1">
-                            <HiCalendar className="w-4 h-4 text-slate-500" />
-                            <span className="font-semibold text-slate-800">
+                            <HiCalendar className="w-4 h-4 text-slate-500 dark:text-indigo-300" />
+                            <span className="font-semibold">
                               {formatMonth(laporan.month)}
                             </span>
                           </div>
-                          <p className="text-xs text-slate-500">
+                          <p className="text-xs text-slate-500 dark:text-slate-400">
                             Submit: {formatDate(laporan.createdAt)}
                           </p>
                         </div>
@@ -397,18 +474,20 @@ export default function ViewLaporanBulananSuperadmin() {
                       </div>
 
                       {laporan.mentorNote && (
-                        <div className="mt-2">
-                          <p className="text-xs font-medium text-slate-600 mb-1">
-                            Catatan Mentor:
-                          </p>
-                          <p className="text-xs text-slate-500 line-clamp-2">
-                            {laporan.mentorNote}
-                          </p>
-                        </div>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
+                          <span className="font-semibold">Catatan:</span>{" "}
+                          {laporan.mentorNote}
+                        </p>
                       )}
 
-                      <div className="mt-3 flex items-center gap-2 text-xs text-slate-400">
-                        <span>Klik untuk melihat detail</span>
+                      <div className="
+                        mt-3 flex items-center gap-2
+                        text-xs text-slate-400
+                        group-hover:text-[#7F1D1D]
+                        dark:group-hover:text-indigo-300
+                        transition
+                      ">
+                        <span>Klik untuk detail</span>
                         <HiChevronDown className="w-3 h-3" />
                       </div>
                     </button>
@@ -416,19 +495,37 @@ export default function ViewLaporanBulananSuperadmin() {
                 </div>
               )}
             </div>
+          </div>
 
-            {/* FOOTER */}
-            <div className="mt-8 pt-6 border-t border-slate-200">
-              <button
-                onClick={() => {
-                  setShowMonthModal(false);
-                  setSelectedPeserta(null);
-                }}
-                className="w-full px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium transition"
-              >
-                Kembali
-              </button>
-            </div>
+          {/* ================= FOOTER ================= */}
+          <div className="
+            px-5 sm:px-6 py-4
+            border-t border-[#F59E0B]/30
+            dark:border-indigo-500/30
+            bg-white/60 dark:bg-indigo-950/30
+            backdrop-blur
+          ">
+            <button
+              onClick={() => {
+                setShowMonthModal(false);
+                setSelectedPeserta(null);
+              }}
+              className="
+                w-full
+                px-6 py-2.5
+                rounded-xl
+                bg-linear-to-r
+                from-[#F59E0B] via-[#B91C1C] to-[#7F1D1D]
+                hover:from-amber-400 hover:via-[#DC2626] hover:to-[#991B1B]
+                dark:from-indigo-600 dark:to-violet-500
+                dark:hover:from-indigo-500 dark:hover:to-violet-400
+                text-white font-semibold
+                shadow-md hover:shadow-xl
+                transition-all
+              "
+            >
+              Kembali
+            </button>
           </div>
         </div>
       </div>
@@ -436,38 +533,57 @@ export default function ViewLaporanBulananSuperadmin() {
   };
 
   return (
-    <div className="min-h-screen p-6 bg-linear-to-br from-slate-50 via-white to-indigo-50">
-      <h1 className="text-3xl font-bold mb-2 text-slate-800">
-        Laporan Bulanan Peserta
-      </h1>
-      <p className="text-slate-600 mb-8">
-        Kelola dan review laporan bulanan semua peserta
-      </p>
+    <div
+      className="
+        min-h-screen p-4 sm:p-6 lg:p-10
+        bg-linear-to-br
+        from-slate-50 via-white to-indigo-100
+        dark:from-[#0B0614] dark:via-[#120A24] dark:to-[#1E0F3D]
+        text-slate-800 dark:text-slate-100
+        transition-colors
+      "
+    >
+      {/* HEADER */}
+      <div className="mb-10">
+        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight mb-3">
+          Laporan Bulanan Peserta
+        </h1>
+        <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400">
+          Kelola dan review laporan bulanan semua peserta
+        </p>
+      </div>
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <StatCard
           title="Total Peserta"
           value={pesertaLaporan.length}
-          icon={<HiUser />}
-          color="blue"
+          icon={<HiUser className="w-7 h-7" />}
+          note="Jumlah seluruh peserta"
+          color="indigo"
         />
+
         <StatCard
           title="Total Laporan"
           value={laporanList.length}
-          icon={<HiDocumentText />}
-          color="indigo"
+          icon={<HiDocumentText className="w-7 h-7" />}
+          note="Jumlah laporan bulanan"
+          color="slate"
         />
+
         <StatCard
           title="Disetujui"
           value={laporanList.filter((l) => l.status === "Disetujui").length}
-          icon={<HiCheckCircle />}
+          icon={<HiCheckCircle className="w-7 h-7" />}
+          note="Laporan telah disetujui"
           color="emerald"
         />
+
         <StatCard
           title="Perlu Perbaikan"
           value={laporanList.filter((l) => l.status === "Perbaiki").length}
-          icon={<HiExclamationCircle />}
+          icon={<HiExclamationCircle className="w-7 h-7" />}
+          note="Laporan perlu revisi"
           color="amber"
         />
       </div>
@@ -475,226 +591,297 @@ export default function ViewLaporanBulananSuperadmin() {
       {/* Search Bar */}
       <div className="mb-8">
         <div className="relative">
-          <HiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+          <HiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-[#7F1D1D] dark:text-indigo-400 w-5 h-5 z-10" />
           <input
             type="text"
             placeholder="Cari peserta berdasarkan nama atau email..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-slate-700 placeholder-slate-400"
+            className="
+              w-full pl-11 pr-10 py-3
+              rounded-2xl
+              bg-white/90 dark:bg-white/5
+              backdrop-blur
+              border border-[#F59E0B]/40 dark:border-indigo-500/40
+              text-slate-700 dark:text-slate-100
+              placeholder:text-slate-400
+              focus:outline-none focus:ring-2
+              focus:ring-[#B91C1C]/60 dark:focus:ring-indigo-500/60
+              transition
+            "
           />
         </div>
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
-        <table className="w-full">
-          <thead>
-            <tr className="bg-slate-50 border-b">
-              <th className="py-4 px-6 text-left text-xs font-semibold text-slate-600 uppercase">
-                No
-              </th>
-              <th className="py-4 px-6 text-left text-xs font-semibold text-slate-600 uppercase">
-                Peserta
-              </th>
-              <th className="py-4 px-6 text-left text-xs font-semibold text-slate-600 uppercase">
-                Statistik Laporan
-              </th>
-              <th className="py-4 px-6 text-left text-xs font-semibold text-slate-600 uppercase">
-                Laporan Terakhir
-              </th>
-              <th className="py-4 px-6 text-left text-xs font-semibold text-slate-600 uppercase">
-                Aksi
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {loading ? (
-              <tr>
-                <td colSpan={5} className="py-10 text-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
-                </td>
-              </tr>
-            ) : currentItems.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="py-10 text-center text-slate-500">
-                  {search
-                    ? "Peserta tidak ditemukan"
-                    : "Tidak ada data peserta"}
-                </td>
-              </tr>
-            ) : (
-              currentItems.map((peserta, index) => (
+      {/* ===================== TABLE ===================== */}
+      {!loading && currentItems.length === 0 ? (
+        /* ================= EMPTY STATE ================= */
+        <div
+          className="
+            rounded-3xl
+            bg-white/80 dark:bg-white/5
+            backdrop-blur
+            border border-[#F59E0B]/30 dark:border-indigo-500/30
+            shadow-xl
+            p-12 text-center
+          "
+        >
+          <div
+            className="
+              w-16 h-16 sm:w-20 sm:h-20
+              mx-auto mb-5
+              rounded-full
+              bg-linear-to-br
+              from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
+              dark:from-indigo-600 dark:to-violet-500
+              flex items-center justify-center
+              shadow-lg
+              animate-pulse
+            "
+          >
+            <HiUser className="w-7 h-7 sm:w-10 sm:h-10 text-white" />
+          </div>
+
+          <h3 className="text-lg sm:text-xl font-bold text-[#7F1D1D] dark:text-indigo-300 mb-2">
+            {search ? "Peserta tidak ditemukan" : "Belum ada data peserta"}
+          </h3>
+
+          <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 max-w-md mx-auto">
+            {search
+              ? `Tidak ada peserta yang sesuai dengan pencarian "${search}".`
+              : "Saat ini belum ada data peserta."}
+          </p>
+        </div>
+      ) : (
+        /* ================= TABLE WRAPPER ================= */
+        <div
+          className="
+            rounded-2xl
+            bg-white/90 dark:bg-white/5
+            backdrop-blur
+            border border-slate-200 dark:border-indigo-500/30
+            shadow-lg
+            overflow-hidden
+          "
+        >
+          <div className="overflow-x-auto">
+            <table className="min-w-200 w-full text-sm sm:text-base">
+              {/* ================= HEAD ================= */}
+              <thead>
                 <tr
-                  key={peserta._id}
-                  className="hover:bg-slate-50/50 transition-colors"
+                  className="
+                    bg-slate-50 dark:bg-indigo-500/10
+                    border-b border-slate-200 dark:border-indigo-500/30
+                  "
                 >
-                  <td className="py-4 px-6">{indexOfFirstItem + index + 1}</td>
-                  <td className="py-4 px-6">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
-                        <HiUser className="w-5 h-5 text-indigo-600" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-slate-800">
-                          {peserta.name}
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          {peserta.email}
-                        </p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="py-4 px-6">
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <HiDocumentText className="w-4 h-4 text-slate-400" />
-                        <span className="text-sm font-medium">
-                          Total:{" "}
-                          <span className="text-indigo-600">
-                            {peserta.totalLaporan}
-                          </span>
-                        </span>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {peserta.disetujui > 0 && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-700">
-                            <HiCheckCircle className="w-3 h-3" />{" "}
-                            {peserta.disetujui}
-                          </span>
-                        )}
-                        {peserta.perbaiki > 0 && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-700">
-                            <HiExclamationCircle className="w-3 h-3" />{" "}
-                            {peserta.perbaiki}
-                          </span>
-                        )}
-                        {peserta.ditolak > 0 && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-100 text-red-700">
-                            <HiXCircle className="w-3 h-3" /> {peserta.ditolak}
-                          </span>
-                        )}
-                        {peserta.menunggu > 0 && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-100 text-blue-700">
-                            <HiDocumentText className="w-3 h-3" />{" "}
-                            {peserta.menunggu}
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-xs text-slate-500">
-                        {peserta.laporanMonths.length > 0 && (
-                          <span>
-                            {peserta.laporanMonths.length} bulan laporan
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="py-4 px-6">
-                    {peserta.laporanTerakhir ? (
-                      <div className="flex items-center gap-2">
-                        <HiCalendar className="w-4 h-4 text-slate-400" />
-                        <span className="text-sm">
-                          {formatDate(peserta.laporanTerakhir)}
-                        </span>
-                      </div>
-                    ) : (
-                      <span className="text-sm text-slate-400">
-                        Belum ada laporan
-                      </span>
-                    )}
-                  </td>
-                  <td className="py-4 px-6">
-                    <button
-                      onClick={() => handleViewLaporan(peserta)}
-                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition text-sm font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                      disabled={peserta.totalLaporan === 0}
-                    >
-                      <HiBookOpen className="w-4 h-4" />
-                      {peserta.totalLaporan === 0
-                        ? "Belum Ada"
-                        : "Lihat Laporan"}
-                    </button>
-                  </td>
+                  <th className="w-[6%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
+                    No
+                  </th>
+                  <th className="w-[24%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
+                    Peserta
+                  </th>
+                  <th className="w-[26%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
+                    Statistik Laporan
+                  </th>
+                  <th className="w-[18%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
+                    Laporan Terakhir
+                  </th>
+                  <th className="w-[16%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
+                    Aksi
+                  </th>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+              </thead>
 
-      {/* ===================== PAGINATION BUTTON ===================== */}
-      {totalPage > 1 && (
-        <div className="flex flex-wrap items-center justify-center gap-2 py-5">
-          {/* PREV */}
-          <button
-            disabled={page === 1}
-            onClick={() => setPage((p) => p - 1)}
-            className="
-              px-4 py-2
-              rounded-lg
-              text-sm font-medium
-              border
-              border-slate-300
-              bg-white
-              text-[#7F1D1D]
-              hover:bg-[#FFF1F2]
-              disabled:opacity-40 disabled:cursor-not-allowed
-              transition
-            "
-          >
-            Prev
-          </button>
+              {/* ================= BODY ================= */}
+              <tbody className="divide-y divide-slate-100 dark:divide-indigo-500/20">
+                {currentItems.map((peserta, index) => (
+                  <tr
+                    key={peserta._id}
+                    className="hover:bg-[#FEF3C7]/40 dark:hover:bg-indigo-500/10 transition"
+                  >
+                    {/* NO */}
+                    <td className="py-4 px-6 text-center font-medium text-slate-500 dark:text-slate-300">
+                      {indexOfFirstItem + index + 1}
+                    </td>
 
-          {/* PAGE NUMBER */}
-          {Array.from({ length: totalPage }).map((_, i) => {
-            const active = page === i + 1;
+                    {/* PESERTA */}
+                    <td className="py-4 px-6">
+                      <div className="flex items-center justify-center gap-3">
+                        <div
+                          className="
+                            w-10 h-10
+                            rounded-full
+                            bg-linear-to-br from-[#7F1D1D] to-[#F59E0B]
+                            dark:from-indigo-600 dark:to-violet-500
+                            flex items-center justify-center
+                            text-white shadow
+                          "
+                        >
+                          <HiUser className="w-5 h-5" />
+                        </div>
+                        <div className="text-left leading-tight">
+                          <p className="font-medium text-slate-800 dark:text-slate-100">
+                            {peserta.name}
+                          </p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">
+                            {peserta.email}
+                          </p>
+                        </div>
+                      </div>
+                    </td>
 
-            return (
+                    {/* STATISTIK */}
+                    <td className="py-4 px-6">
+                      <div className="space-y-2 text-sm">
+                        <div className="flex items-center justify-center gap-2">
+                          <HiDocumentText className="w-4 h-4 text-slate-400" />
+                          <span>
+                            Total:{" "}
+                            <span className="font-semibold text-indigo-600 dark:text-indigo-400">
+                              {peserta.totalLaporan}
+                            </span>
+                          </span>
+                        </div>
+
+                        <div className="flex justify-center flex-wrap gap-2">
+                          {peserta.disetujui > 0 && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-700">
+                              <HiCheckCircle className="w-3 h-3" />
+                              {peserta.disetujui}
+                            </span>
+                          )}
+                          {peserta.perbaiki > 0 && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-700">
+                              <HiExclamationCircle className="w-3 h-3" />
+                              {peserta.perbaiki}
+                            </span>
+                          )}
+                          {peserta.ditolak > 0 && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-100 text-red-700">
+                              <HiXCircle className="w-3 h-3" />
+                              {peserta.ditolak}
+                            </span>
+                          )}
+                          {peserta.menunggu > 0 && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-100 text-blue-700">
+                              <HiDocumentText className="w-3 h-3" />
+                              {peserta.menunggu}
+                            </span>
+                          )}
+                        </div>
+
+                        {peserta.laporanMonths.length > 0 && (
+                          <p className="text-xs text-slate-500 dark:text-slate-400 text-center">
+                            {peserta.laporanMonths.length} bulan laporan
+                          </p>
+                        )}
+                      </div>
+                    </td>
+
+                    {/* LAPORAN TERAKHIR */}
+                    <td className="py-4 px-6 text-center">
+                      {peserta.laporanTerakhir ? (
+                        <div className="flex justify-center items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                          <HiCalendar className="w-4 h-4" />
+                          {formatDate(peserta.laporanTerakhir)}
+                        </div>
+                      ) : (
+                        <span className="text-sm text-slate-400 italic">
+                          Belum ada laporan
+                        </span>
+                      )}
+                    </td>
+
+                    {/* AKSI */}
+                    <td className="py-4 px-6 text-center">
+                      <button
+                        onClick={() => handleViewLaporan(peserta)}
+                        disabled={peserta.totalLaporan === 0}
+                        className="
+                          inline-flex items-center gap-2
+                          px-4 py-2
+                          rounded-xl
+                          text-sm font-semibold
+                          text-white
+                          bg-linear-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
+                          dark:from-indigo-600 dark:to-violet-500
+                          shadow hover:shadow-xl
+                          hover:-translate-y-0.5
+                          transition
+                          disabled:opacity-50 disabled:cursor-not-allowed
+                        "
+                      >
+                        <HiBookOpen className="w-4 h-4" />
+                        {peserta.totalLaporan === 0 ? "Belum Ada" : "Lihat Laporan"}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* ================= PAGINATION ================= */}
+          {totalPage > 1 && (
+            <div className="flex flex-wrap items-center justify-center gap-2 py-5">
               <button
-                key={i}
-                onClick={() => setPage(i + 1)}
-                className={`
-                  min-w-9.5 h-9.5
-                  rounded-lg
-                  text-sm font-semibold
+                disabled={page === 1}
+                onClick={() => setPage((p) => p - 1)}
+                className="
+                  px-4 py-2 rounded-lg text-sm font-medium
+                  border border-slate-300 dark:border-indigo-500/30
+                  bg-white dark:bg-indigo-950
+                  text-slate-700 dark:text-indigo-200
+                  hover:bg-[#FFF1F2] dark:hover:bg-indigo-900/40
+                  disabled:opacity-40 disabled:cursor-not-allowed
                   transition
-                  ${
-                    active
-                      ? "bg-[#B91C1C] text-white shadow"
-                      : `
-                        bg-white
-                        text-[#7F1D1D]
-                        border border-slate-300
-                        hover:bg-[#FFF1F2]
-                      `
-                  }
-                `}
+                "
               >
-                {i + 1}
+                Prev
               </button>
-            );
-          })}
 
-          {/* NEXT */}
-          <button
-            disabled={page === totalPage}
-            onClick={() => setPage((p) => p + 1)}
-            className="
-              px-4 py-2
-              rounded-lg
-              text-sm font-medium
-              border
-              border-slate-300
-              bg-white
-              text-[#7F1D1D]
-              hover:bg-[#FFF1F2]
-              disabled:opacity-40 disabled:cursor-not-allowed
-              transition
-            "
-          >
-            Next
-          </button>
+              {Array.from({ length: totalPage }).map((_, i) => {
+                const active = page === i + 1;
+                return (
+                  <button
+                    key={i}
+                    onClick={() => setPage(i + 1)}
+                    className={`
+                      min-w-9.5 h-9.5 rounded-lg text-sm font-semibold transition
+                      ${
+                        active
+                          ? "bg-[#B91C1C] text-white shadow dark:bg-indigo-600"
+                          : `
+                            bg-white dark:bg-indigo-950
+                            text-[#7F1D1D] dark:text-indigo-200
+                            border border-slate-300 dark:border-indigo-500/30
+                            hover:bg-[#FFF1F2] dark:hover:bg-indigo-900/40
+                          `
+                      }
+                    `}
+                  >
+                    {i + 1}
+                  </button>
+                );
+              })}
+
+              <button
+                disabled={page === totalPage}
+                onClick={() => setPage((p) => p + 1)}
+                className="
+                  px-4 py-2 rounded-lg text-sm font-medium
+                  border border-slate-300 dark:border-indigo-500/30
+                  bg-white dark:bg-indigo-950
+                  text-slate-700 dark:text-indigo-200
+                  hover:bg-[#FFF1F2] dark:hover:bg-indigo-900/40
+                  disabled:opacity-40 disabled:cursor-not-allowed
+                  transition
+                "
+              >
+                Next
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -728,23 +915,81 @@ export default function ViewLaporanBulananSuperadmin() {
   );
 }
 
-function StatCard({ title, value, icon, color }: any) {
-  const colorClasses = {
-    blue: "bg-blue-100 text-blue-600",
-    indigo: "bg-indigo-100 text-indigo-600",
-    emerald: "bg-emerald-100 text-emerald-600",
-    amber: "bg-amber-100 text-amber-600",
-    red: "bg-red-100 text-red-600",
+type StatCardColor = "indigo" | "emerald" | "amber" | "slate";
+
+type StatCardProps = {
+  title: string;
+  value: number | string;
+  icon: React.ReactNode;
+  note: string;
+  color: StatCardColor;
+};
+
+function StatCard({
+  title,
+  value,
+  icon,
+  note,
+  color,
+}: StatCardProps) {
+  const iconColorMap: Record<StatCardColor, string> = {
+    indigo: "bg-[#B91C1C]/90 dark:bg-indigo-600",
+    emerald: "bg-emerald-500 dark:bg-emerald-600",
+    amber: "bg-amber-500 dark:bg-violet-500",
+    slate: "bg-slate-500 dark:bg-indigo-700",
+  };
+
+  const textColorMap: Record<StatCardColor, string> = {
+    indigo: "text-[#7F1D1D] dark:text-white",
+    emerald: "text-[#7F1D1D] dark:text-white",
+    amber: "text-[#7F1D1D] dark:text-white",
+    slate: "text-[#7F1D1D] dark:text-white",
   };
 
   return (
-    <div className="bg-white rounded-2xl border p-6 shadow-sm hover:shadow-md transition-shadow">
+    <div
+      className="
+        group relative
+        rounded-2xl
+        border border-[#FCA5A5]/40 dark:border-indigo-500/30
+        bg-linear-to-br
+        from-[#FFFDF8] via-[#FFF4EC] to-white
+        dark:from-indigo-950 dark:via-indigo-900 dark:to-indigo-800
+        p-6
+        shadow-sm hover:shadow-xl
+        transition
+      "
+    >
+      {/* TOP */}
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm font-medium text-slate-500">{title}</p>
-          <p className="text-3xl font-bold text-slate-800 mt-2">{value}</p>
+          <p className="text-xs uppercase tracking-wide text-[#7F1D1D] dark:text-indigo-300">
+            {title}
+          </p>
+          <p className={`text-4xl font-extrabold mt-1 ${textColorMap[color]}`}>
+            {value}
+          </p>
         </div>
-        <div className={`p-3 rounded-xl ${colorClasses[color]}`}>{icon}</div>
+
+        <div
+          className={`
+            w-14 h-14 rounded-2xl
+            text-white
+            flex items-center justify-center
+            shadow
+            group-hover:scale-110 transition
+            ${iconColorMap[color]}
+          `}
+        >
+          {icon}
+        </div>
+      </div>
+
+      {/* FOOTER */}
+      <div className="mt-4 pt-4 border-t border-[#FCA5A5]/40 dark:border-indigo-500/30">
+        <p className="text-xs text-slate-600 dark:text-slate-300">
+          {note}
+        </p>
       </div>
     </div>
   );

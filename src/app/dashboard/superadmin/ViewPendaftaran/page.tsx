@@ -733,7 +733,18 @@ export default function ViewPendaftaranPage() {
               <button
                 disabled={page === 1}
                 onClick={() => setPage((p) => p - 1)}
-                className="px-4 py-2 rounded-lg text-sm font-medium border border-slate-300 bg-white hover:bg-[#FFF1F2] disabled:opacity-40"
+                className="
+                  px-4 py-2
+                  rounded-lg
+                  text-sm font-medium
+                  border
+                  border-slate-300 dark:border-indigo-500/30
+                  bg-white dark:bg-indigo-950
+                  text-slate-700 dark:text-indigo-200
+                  hover:bg-[#FFF1F2] dark:hover:bg-indigo-900/40
+                  disabled:opacity-40 disabled:cursor-not-allowed
+                  transition
+                "
               >
                 Prev
               </button>
@@ -745,11 +756,22 @@ export default function ViewPendaftaranPage() {
                     key={i}
                     onClick={() => setPage(i + 1)}
                     className={`
-                      min-w-9.5 h-9.5 rounded-lg text-sm font-semibold transition
+                      min-w-9.5 h-9.5
+                      rounded-lg
+                      text-sm font-semibold
+                      transition
                       ${
                         active
-                          ? "bg-[#B91C1C] text-white shadow"
-                          : "bg-white border border-slate-300 hover:bg-[#FFF1F2]"
+                          ? `
+                            bg-[#B91C1C] text-white shadow
+                            dark:bg-indigo-600 dark:text-white
+                          `
+                          : `
+                            bg-white dark:bg-indigo-950
+                            text-[#7F1D1D] dark:text-indigo-200
+                            border border-slate-300 dark:border-indigo-500/30
+                            hover:bg-[#FFF1F2] dark:hover:bg-indigo-900/40
+                          `
                       }
                     `}
                   >
@@ -761,7 +783,18 @@ export default function ViewPendaftaranPage() {
               <button
                 disabled={page === totalPage}
                 onClick={() => setPage((p) => p + 1)}
-                className="px-4 py-2 rounded-lg text-sm font-medium border border-slate-300 bg-white hover:bg-[#FFF1F2] disabled:opacity-40"
+                className="
+                  px-4 py-2
+                  rounded-lg
+                  text-sm font-medium
+                  border
+                  border-slate-300 dark:border-indigo-500/30
+                  bg-white dark:bg-indigo-950
+                  text-slate-700 dark:text-indigo-200
+                  hover:bg-[#FFF1F2] dark:hover:bg-indigo-900/40
+                  disabled:opacity-40 disabled:cursor-not-allowed
+                  transition
+                "
               >
                 Next
               </button>
