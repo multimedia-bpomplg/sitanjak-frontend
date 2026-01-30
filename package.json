@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "aggregate:daily": "ts-node scripts/dailyOverviewAggregation.ts"
   },
   "dependencies": {
     "@marsidev/react-turnstile": "^1.4.0",
