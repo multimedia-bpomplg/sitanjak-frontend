@@ -16,7 +16,7 @@ export default function ProcessPopup({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[999] flex items-center justify-center">
+    <div className="fixed inset-0 z-999 flex items-center justify-center">
       {/* BACKDROP */}
       <div className="absolute inset-0 bg-black/40 backdrop-blur-md" />
 
@@ -30,13 +30,11 @@ export default function ProcessPopup({
           animate-scaleIn
           transition-colors
 
-          /* LIGHT MODE */
-          bg-gradient-to-br from-white via-slate-50 to-indigo-50
+          bg-linear-to-br from-white via-slate-50 to-indigo-50
           border border-slate-200
           shadow-[0_30px_80px_-20px_rgba(0,0,0,0.35)]
 
-          /* DARK MODE */
-          dark:bg-gradient-to-br
+          dark:bg-linear-to-br
           dark:from-[#020617]
           dark:via-[#0F172A]
           dark:to-[#1E1B4B]

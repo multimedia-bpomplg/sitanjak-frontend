@@ -5,6 +5,12 @@ import { useState, useEffect } from "react";
 import { showToast } from "@/components/ui/toastDashboard";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { useSearchParams } from "next/navigation";
+import {
+  HiUsers,
+  HiCheck,
+  HiX,
+  HiSearch,
+} from "react-icons/hi";
 
 /* ================= TYPE ================= */
 type PesertaAkun = {
@@ -19,6 +25,11 @@ type PesertaAkun = {
 export default function BuatAkunPesertaPage() {
   const [data, setData] = useState<PesertaAkun[]>([]);
   const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const itemsPerPage = 10;
 
   /* ===== MODAL AKSI ===== */
   const [openAksi, setOpenAksi] = useState(false);
@@ -244,12 +255,28 @@ export default function BuatAkunPesertaPage() {
     }
   }, [searchParams]);
 
+  const filteredData = data.filter((item) => {
+    const q = search.toLowerCase();
+    return (
+      item.name.toLowerCase().includes(q) ||
+      item.email.toLowerCase().includes(q) ||
+      item.periode.toLowerCase().includes(q)
+    );
+  });
+
+  const totalPage = Math.ceil(filteredData.length / itemsPerPage);
+  const startIndex = (page - 1) * itemsPerPage;
+  const paginatedData = filteredData.slice(
+    startIndex,
+    startIndex + itemsPerPage
+  );
+
   /* ================= RENDER ================= */
   return (
     <div
       className="
       min-h-screen p-4 sm:p-6
-      bg-gradient-to-br
+      bg-linear-to-br
       from-slate-50 via-white to-indigo-50
       dark:from-[#020617] dark:via-[#020617] dark:to-[#1E1B4B]
       text-slate-800 dark:text-slate-100
@@ -272,20 +299,22 @@ export default function BuatAkunPesertaPage() {
           className="
             inline-flex items-center gap-3
             px-5 py-2.5 rounded-xl
-            bg-gradient-to-r
-            from-blue-600 via-cyan-600 to-emerald-500
-            dark:from-indigo-600 dark:via-blue-600 dark:to-sky-500
+            bg-linear-to-r
+            from-[#F59E0B] via-[#B91C1C] to-[#7F1D1D]
+            dark:from-indigo-600 dark:via-violet-600 dark:to-indigo-700
             text-white font-semibold
-            shadow-lg shadow-indigo-600/20
-            hover:opacity-90 transition
+            shadow-lg shadow-[#B91C1C]/30 dark:shadow-indigo-600/30
+            hover:opacity-90
+            hover:scale-[1.02]
+            transition
           "
         >
           <span
             className="
               w-6 h-6 flex items-center justify-center
               rounded-full
-              bg-white/90 text-blue-700
-              dark:bg-slate-900 dark:text-sky-400
+              bg-white/90 text-[#7F1D1D]
+              dark:bg-indigo-950 dark:text-indigo-300
               font-bold text-lg
             "
           >
@@ -296,69 +325,136 @@ export default function BuatAkunPesertaPage() {
       </div>
 
       {/* SUMMARY */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-        <Summary title="Jumlah Peserta" value={totalPeserta} />
-        <Summary title="Peserta Aktif" value={pesertaAktif} color="green" />
-        <Summary
+      <div className="
+        grid
+        grid-cols-1
+        sm:grid-cols-2
+        xl:grid-cols-3
+        gap-8
+        mb-8
+      ">
+        <StatCard
+          title="Total Peserta"
+          value={totalPeserta}
+          icon={<HiUsers className="w-7 h-7" />}
+          note="Jumlah seluruh peserta"
+          color="amber"
+        />
+
+        <StatCard
+          title="Peserta Aktif"
+          value={pesertaAktif}
+          icon={<HiCheck className="w-7 h-7" />}
+          note="Peserta yang masih aktif"
+          color="emerald"
+        />
+
+        <StatCard
           title="Peserta Tidak Aktif"
           value={pesertaNonaktif}
-          color="red"
+          icon={<HiX className="w-7 h-7" />}
+          note="Peserta sudah selesai"
+          color="indigo"
         />
       </div>
 
-      {/* TABLE */}
+      {/* SEARCH BAR */}
+      <div className="mb-6">
+        <div className="relative">
+          <HiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-[#7F1D1D] dark:text-indigo-400 w-5 h-5 z-10" />
+          <input
+            type="text"
+            placeholder="Cari peserta berdasarkan nama atau email..."
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1); // reset ke halaman 1 saat search
+            }}
+            className="
+              w-full pl-11 pr-10 py-3
+              rounded-2xl
+              bg-white/90 dark:bg-white/5
+              backdrop-blur
+              border border-[#F59E0B]/40 dark:border-indigo-500/40
+              text-slate-700 dark:text-slate-100
+              placeholder:text-slate-400
+              focus:outline-none focus:ring-2
+              focus:ring-[#B91C1C]/60 dark:focus:ring-indigo-500/60
+              transition
+            "
+          />
+        </div>
+      </div>
+
+      {/* ===================== TABLE ===================== */}
       <div
         className="
-        rounded-2xl
-        bg-white/80 dark:bg-slate-900/80
-        backdrop-blur
-        shadow-xl
-        border border-slate-200 dark:border-slate-800
-      "
+          rounded-2xl
+          bg-white/90 dark:bg-white/5
+          backdrop-blur
+          border border-slate-200 dark:border-indigo-500/30
+          shadow-lg
+          overflow-hidden
+        "
       >
         <div className="overflow-x-auto">
-          <table className="min-w-[720px] w-full text-sm">
-            <thead
-              className="
-              bg-slate-100 dark:bg-slate-800
-              text-slate-600 dark:text-slate-300
-              text-xs uppercase tracking-wider
-            "
-            >
-              <tr>
-                <th className="px-6 py-4 text-center">No</th>
-                <th className="px-6 py-4 text-left">Nama</th>
-                <th className="px-6 py-4 text-left">Email</th>
-                <th className="px-6 py-4 text-center">Periode</th>
-                <th className="px-6 py-4 text-center">Status</th>
+          <table className="min-w-180 w-full text-sm sm:text-base">
+            {/* ================= HEAD ================= */}
+            <thead>
+              <tr
+                className="
+                  bg-slate-50 dark:bg-indigo-500/10
+                  border-b border-slate-200 dark:border-indigo-500/30
+                "
+              >
+                <th className="w-[8%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
+                  No
+                </th>
+                <th className="w-[24%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
+                  Nama
+                </th>
+                <th className="w-[28%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
+                  Email
+                </th>
+                <th className="w-[20%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
+                  Periode
+                </th>
+                <th className="w-[20%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
+                  Status
+                </th>
               </tr>
             </thead>
 
-            <tbody>
-              {data.length === 0 ? (
+            {/* ================= BODY ================= */}
+            <tbody className="divide-y divide-slate-100 dark:divide-indigo-500/20">
+              {paginatedData.length === 0 ? (
                 <tr>
                   <td
                     colSpan={5}
-                    className="py-10 text-center text-slate-500 dark:text-slate-400"
+                    className="py-14 text-center text-slate-500 dark:text-slate-400"
                   >
-                    Belum ada akun peserta
+                    Data tidak ditemukan
                   </td>
                 </tr>
               ) : (
-                data.map((item, index) => (
+                paginatedData.map((item, index) => (
                   <tr
                     key={item._id}
                     className="
-                      border-t border-slate-200 dark:border-slate-800
-                      hover:bg-indigo-50/50 dark:hover:bg-indigo-500/10
+                      hover:bg-[#FEF3C7]/40
+                      dark:hover:bg-indigo-500/10
                       transition
                     "
                   >
-                    <td className="px-6 py-4 text-center">{index + 1}</td>
+                    {/* NO */}
+                    <td className="py-4 px-6 text-center font-medium text-slate-500">
+                      {startIndex + index + 1}
+                    </td>
 
+                    {/* NAMA */}
                     <td
                       className="
-                        px-6 py-4 font-medium
+                        px-6 py-4 font-medium text-center
                         text-indigo-600 dark:text-indigo-400
                         hover:underline cursor-pointer
                       "
@@ -370,17 +466,32 @@ export default function BuatAkunPesertaPage() {
                       {item.name}
                     </td>
 
-                    <td className="px-6 py-4 text-slate-600 dark:text-slate-300">
+                    {/* EMAIL */}
+                    <td className="py-4 px-6 text-center text-slate-600 dark:text-slate-300">
                       {item.email}
                     </td>
 
-                    <td className="px-6 py-4 text-center">{item.periode}</td>
+                    {/* PERIODE */}
+                    <td className="py-4 px-6 text-center">
+                      <span
+                        className="
+                          inline-flex items-center
+                          px-3 py-1.5 rounded-full
+                          text-xs font-medium
+                          bg-blue-50 text-blue-700
+                          dark:bg-indigo-500/20 dark:text-indigo-200
+                        "
+                      >
+                        {item.periode}
+                      </span>
+                    </td>
 
-                    <td className="px-6 py-4 text-center">
+                    {/* STATUS */}
+                    <td className="py-4 px-6 text-center">
                       <span
                         className={`
                           inline-flex items-center justify-center
-                          px-3 py-1 rounded-full
+                          px-3 py-1.5 rounded-full
                           text-xs font-semibold
                           ${
                             item.status === "Aktif"
@@ -398,6 +509,80 @@ export default function BuatAkunPesertaPage() {
             </tbody>
           </table>
         </div>
+
+        {/* ================= PAGINATION ================= */}
+        {totalPage > 1 && (
+          <div className="flex flex-wrap items-center justify-center gap-2 py-6">
+            <button
+              disabled={page === 1}
+              onClick={() => setPage((p) => p - 1)}
+              className="
+                px-4 py-2
+                rounded-lg
+                text-sm font-medium
+                border
+                border-slate-300 dark:border-indigo-500/30
+                bg-white dark:bg-indigo-950
+                text-slate-700 dark:text-indigo-200
+                hover:bg-[#FFF1F2] dark:hover:bg-indigo-900/40
+                disabled:opacity-40 disabled:cursor-not-allowed
+                transition
+              "
+            >
+              Prev
+            </button>
+
+            {Array.from({ length: totalPage }).map((_, i) => {
+              const active = page === i + 1;
+              return (
+                <button
+                  key={i}
+                  onClick={() => setPage(i + 1)}
+                  className={`
+                    min-w-9 h-9
+                    rounded-lg
+                    text-sm font-semibold
+                    transition
+                    ${
+                      active
+                        ? `
+                          bg-[#B91C1C] text-white shadow
+                          dark:bg-indigo-600 dark:text-white
+                        `
+                        : `
+                          bg-white dark:bg-indigo-950
+                          text-[#7F1D1D] dark:text-indigo-200
+                          border border-slate-300 dark:border-indigo-500/30
+                          hover:bg-[#FFF1F2] dark:hover:bg-indigo-900/40
+                        `
+                    }
+                  `}
+                >
+                  {i + 1}
+                </button>
+              );
+            })}
+
+            <button
+              disabled={page === totalPage}
+              onClick={() => setPage((p) => p + 1)}
+              className="
+                px-4 py-2
+                rounded-lg
+                text-sm font-medium
+                border
+                border-slate-300 dark:border-indigo-500/30
+                bg-white dark:bg-indigo-950
+                text-slate-700 dark:text-indigo-200
+                hover:bg-[#FFF1F2] dark:hover:bg-indigo-900/40
+                disabled:opacity-40 disabled:cursor-not-allowed
+                transition
+              "
+            >
+              Next
+            </button>
+          </div>
+        )}
       </div>
 
       {/* MODAL BUAT AKUN */}
@@ -491,30 +676,86 @@ export default function BuatAkunPesertaPage() {
   );
 }
 
-function Summary({ title, value, color }: any) {
-  const colorMap = {
-    green: "text-emerald-500",
-    red: "text-rose-500",
-    default: "text-blue-400",
+type StatCardColor = "indigo" | "emerald" | "amber" | "slate";
+
+type StatCardProps = {
+  title: string;
+  value: number | string;
+  icon: React.ReactNode;
+  note: string;
+  color: StatCardColor;
+};
+
+function StatCard({
+  title,
+  value,
+  icon,
+  note,
+  color,
+}: StatCardProps) {
+  const iconColorMap: Record<StatCardColor, string> = {
+    indigo: "bg-[#B91C1C]/90 dark:bg-indigo-600",
+    emerald: "bg-emerald-500 dark:bg-emerald-600",
+    amber: "bg-amber-500 dark:bg-violet-500",
+    slate: "bg-slate-500 dark:bg-indigo-700",
+  };
+
+  const textColorMap: Record<StatCardColor, string> = {
+    indigo: "text-[#7F1D1D] dark:text-white",
+    emerald: "text-[#7F1D1D] dark:text-white",
+    amber: "text-[#7F1D1D] dark:text-white",
+    slate: "text-[#7F1D1D] dark:text-white",
   };
 
   return (
     <div
       className="
-      rounded-2xl p-5
-      bg-white/80 dark:bg-slate-900/80
-      backdrop-blur
-      shadow-lg
-      border border-slate-200 dark:border-slate-800
-    "
+        group relative
+        rounded-2xl
+        border border-[#FCA5A5]/40 dark:border-indigo-500/30
+        bg-linear-to-br
+        from-[#FFFDF8] via-[#FFF4EC] to-white
+        dark:from-indigo-950 dark:via-indigo-900 dark:to-indigo-800
+        p-6
+        shadow-sm hover:shadow-xl
+        transition
+      "
     >
-      <p className="text-sm text-slate-500 dark:text-slate-400">{title}</p>
-      <h2 className={`text-3xl font-bold mt-1 ${colorMap[color || "default"]}`}>
-        {value}
-      </h2>
+      {/* TOP */}
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-wide text-[#7F1D1D] dark:text-indigo-300">
+            {title}
+          </p>
+          <p className={`text-4xl font-extrabold mt-1 ${textColorMap[color]}`}>
+            {value}
+          </p>
+        </div>
+
+        <div
+          className={`
+            w-14 h-14 rounded-2xl
+            text-white
+            flex items-center justify-center
+            shadow
+            group-hover:scale-110 transition
+            ${iconColorMap[color]}
+          `}
+        >
+          {icon}
+        </div>
+      </div>
+
+      {/* FOOTER */}
+      <div className="mt-4 pt-4 border-t border-[#FCA5A5]/40 dark:border-indigo-500/30">
+        <p className="text-xs text-slate-600 dark:text-slate-300">
+          {note}
+        </p>
+      </div>
     </div>
   );
 }
+
 
 function Modal({
   title,
@@ -550,7 +791,7 @@ function Modal({
           flex items-center justify-between
           px-6 py-4
           border-b border-slate-200 dark:border-slate-800
-          bg-gradient-to-r
+          bg-linear-to-r
           from-indigo-50 to-blue-50
           dark:from-indigo-500/10 dark:to-blue-500/10
         "
@@ -680,10 +921,11 @@ function ModalAction({
         className="
           px-6 py-2.5 rounded-xl
           font-semibold text-white
-          bg-gradient-to-r
-          from-blue-600 via-cyan-600 to-emerald-500
-          dark:from-indigo-600 dark:via-blue-600 dark:to-sky-500
-          shadow-lg shadow-indigo-600/25
+          bg-linear-to-r
+          from-[#F59E0B] via-[#B91C1C] to-[#7F1D1D]
+          dark:from-indigo-600 dark:via-violet-600 dark:to-indigo-800
+          shadow-lg shadow-[#B91C1C]/30
+          dark:shadow-indigo-600/30
           hover:opacity-90
           transition
         "

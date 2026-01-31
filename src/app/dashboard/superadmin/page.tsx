@@ -974,13 +974,19 @@ export default function OversistemDashboard() {
      Render - REAL TIME VERSION
      --------------------------- */
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4 md:p-6">
+    <div className="
+      min-h-screen
+      bg-linear-to-br
+      from-[#FFFDF5] via-[#FFF7ED] to-white
+      dark:from-[#020617] dark:via-[#020617] dark:to-[#1E1B4B]
+      p-4 md:p-6 xl:p-10
+    ">
       {/* Header dengan status */}
       <div className="mb-8">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+              <h1 className="text-3xl font-extrabold tracking-tight text-[#7F1D1D] dark:text-indigo-300">
                 Oversistem Dashboard
               </h1>
               <div
@@ -1032,7 +1038,19 @@ export default function OversistemDashboard() {
             <button
               onClick={refreshData}
               disabled={refreshing || loading}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2 transition-colors"
+              className="
+                inline-flex items-center gap-2
+                px-4 py-2
+                rounded-lg
+                bg-linear-to-r
+                from-[#F59E0B] to-[#B91C1C]
+                dark:from-indigo-600 dark:to-indigo-800
+                text-white font-semibold text-sm
+                shadow-md shadow-[#B91C1C]/30
+                dark:shadow-indigo-600/30
+                hover:scale-[1.03]
+                transition
+              "
             >
               <RefreshCw
                 className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`}
@@ -1043,7 +1061,7 @@ export default function OversistemDashboard() {
             <button
               onClick={exportToExcel}
               disabled={loading || dataStatus === "empty"}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 transition-colors disabled:opacity-50"
+              className="px-4 py-2 bg-linear-to-r from-[#7F1D1D] to-[#B91C1C] dark:from-indigo-700 dark:to-indigo-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 transition-colors disabled:opacity-50"
             >
               <Download className="w-4 h-4" />
               Export Excel
@@ -1055,7 +1073,7 @@ export default function OversistemDashboard() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
           {/* Peserta Aktif */}
           <div
-            className={`rounded-xl p-4 shadow hover:shadow-md transition-shadow ${
+            className={`rounded-2xl p-5 bg-white/90 dark:bg-indigo-950/40 border border-amber-200 dark:border-indigo-500/30 shadow-sm hover:shadow-xl transition ${
               stats.pesertaAktif > 0
                 ? "bg-white dark:bg-gray-800"
                 : "bg-gray-50 dark:bg-gray-800/50"
@@ -1103,7 +1121,7 @@ export default function OversistemDashboard() {
 
           {/* Mentor Aktif */}
           <div
-            className={`rounded-xl p-4 shadow hover:shadow-md transition-shadow ${
+            className={`rounded-2xl p-5 bg-white/90 dark:bg-indigo-950/40 border border-amber-200 dark:border-indigo-500/30 shadow-sm hover:shadow-xl transition ${
               stats.mentorAktif > 0
                 ? "bg-white dark:bg-gray-800"
                 : "bg-gray-50 dark:bg-gray-800/50"
@@ -1151,7 +1169,7 @@ export default function OversistemDashboard() {
 
           {/* Admin Aktif */}
           <div
-            className={`rounded-xl p-4 shadow hover:shadow-md transition-shadow ${
+            className={`rounded-2xl p-5 bg-white/90 dark:bg-indigo-950/40 border border-amber-200 dark:border-indigo-500/30 shadow-sm hover:shadow-xl transition ${
               stats.adminAktif > 0
                 ? "bg-white dark:bg-gray-800"
                 : "bg-gray-50 dark:bg-gray-800/50"
@@ -1190,7 +1208,7 @@ export default function OversistemDashboard() {
 
           {/* Pendaftaran Hari Ini */}
           <div
-            className={`rounded-xl p-4 shadow hover:shadow-md transition-shadow ${
+            className={`rounded-2xl p-5 bg-white/90 dark:bg-indigo-950/40 border border-amber-200 dark:border-indigo-500/30 shadow-sm hover:shadow-xl transition ${
               stats.pendaftaranHariIni > 0
                 ? "bg-white dark:bg-gray-800"
                 : "bg-gray-50 dark:bg-gray-800/50"
@@ -1229,7 +1247,7 @@ export default function OversistemDashboard() {
 
           {/* Logbook Hari Ini */}
           <div
-            className={`rounded-xl p-4 shadow hover:shadow-md transition-shadow ${
+            className={`rounded-2xl p-5 bg-white/90 dark:bg-indigo-950/40 border border-amber-200 dark:border-indigo-500/30 shadow-sm hover:shadow-xl transition ${
               stats.logbookHariIni > 0
                 ? "bg-white dark:bg-gray-800"
                 : "bg-gray-50 dark:bg-gray-800/50"
@@ -1277,7 +1295,7 @@ export default function OversistemDashboard() {
 
           {/* Total Pendaftar */}
           <div
-            className={`rounded-xl p-4 shadow hover:shadow-md transition-shadow ${
+            className={`rounded-2xl p-5 bg-white/90 dark:bg-indigo-950/40 border border-amber-200 dark:border-indigo-500/30 shadow-sm hover:shadow-xl transition ${
               stats.totalPendaftar > 0
                 ? "bg-white dark:bg-gray-800"
                 : "bg-gray-50 dark:bg-gray-800/50"
@@ -1317,7 +1335,13 @@ export default function OversistemDashboard() {
       </div>
 
       {/* Controls */}
-      <div className="mb-8 bg-white dark:bg-gray-800 rounded-xl p-4 shadow">
+      <div className="
+        mb-8
+        bg-white/90 dark:bg-indigo-950/40
+        rounded-2xl p-5
+        border border-amber-200 dark:border-indigo-500/30
+        shadow
+      ">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           {/* Tab Navigation */}
           <div className="flex flex-wrap gap-2">
@@ -1356,20 +1380,51 @@ export default function OversistemDashboard() {
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key as any)}
-                className={`px-4 py-2 rounded-lg flex items-center gap-2 relative ${
+                className={`
+                  px-4 py-2 rounded-xl
+                  flex items-center gap-2 relative
+                  font-medium
+                  transition-all 
+                ${
                   activeTab === tab.key
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                    ? `
+                      bg-linear-to-r
+                      from-[#F59E0B] to-[#B91C1C]
+                      dark:from-indigo-600 dark:to-indigo-800
+                      text-white
+                      shadow-lg shadow-[#B91C1C]/30
+                      dark:shadow-indigo-600/40
+                    `
+                    : `
+                      bg-amber-50
+                      text-[#7F1D1D]
+                      hover:bg-amber-100
+                      dark:bg-indigo-950/40
+                      dark:text-indigo-200
+                      dark:hover:bg-indigo-900/40
+                    `
                 }`}
               >
                 {tab.icon}
                 <span>{tab.label}</span>
                 {tab.count > 0 && (
                   <span
-                    className={`absolute -top-1 -right-1 text-xs px-1.5 py-0.5 rounded-full ${
-                      activeTab === tab.key
-                        ? "bg-blue-800 text-white"
-                        : "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300"
+                    className={`
+                      absolute -top-1 -right-1
+                      text-xs px-1.5 py-0.5 rounded-full
+                      ${
+                        activeTab === tab.key
+                        ? `
+                          bg-[#7F1D1D]
+                          text-white
+                          dark:bg-indigo-500
+                        `
+                        : `
+                          bg-amber-200
+                          text-[#7F1D1D]
+                          dark:bg-indigo-500/30
+                          dark:text-indigo-200
+                        `
                     }`}
                   >
                     {tab.count}
@@ -1389,7 +1444,7 @@ export default function OversistemDashboard() {
                   onChange={(e) =>
                     setDataMode(e.target.value as "monthly" | "daily")
                   }
-                  className="px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-gray-700 dark:text-gray-300 text-sm border border-gray-300 dark:border-gray-600"
+                  className="px-3 py-2 bg-white dark:bg-gray-700 rounded-lg text-[#7F1D1D] dark:text-gray-300 text-sm border border-amber-200 dark:border-indigo-500/40"
                 >
                   <option value="monthly">Data Bulanan</option>
                   <option value="daily">Data Harian</option>
@@ -1405,7 +1460,7 @@ export default function OversistemDashboard() {
                   <select
                     value={selectedMonth}
                     onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-                    className="px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-gray-700 dark:text-gray-300 text-sm border border-gray-300 dark:border-gray-600"
+                    className="px-3 py-2 bg-white dark:bg-gray-700 rounded-lg text-[#7F1D1D] dark:text-gray-300 text-sm border border-amber-200 dark:border-indigo-500/40"
                   >
                     {Array.from({ length: 12 }, (_, i) => i + 1).map(
                       (month) => (
@@ -1422,11 +1477,11 @@ export default function OversistemDashboard() {
 
             {/* Chart Type Selector */}
             <div className="flex items-center gap-2">
-              <BarChart3 className="w-4 h-4 text-gray-500" />
+              <BarChart3 className="w-4 h-4 text-[#7F1D1D] dark:text-indigo-200" />
               <select
                 value={chartType}
                 onChange={(e) => setChartType(e.target.value as any)}
-                className="px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-gray-700 dark:text-gray-300 text-sm border border-gray-300 dark:border-gray-600"
+                className="px-3 py-2 bg-white dark:bg-gray-700 rounded-lg text-[#7F1D1D] dark:text-gray-300 text-sm border border-amber-200 dark:border-indigo-500/40"
               >
                 <option value="bar">Bar Chart</option>
                 <option value="line">Line Chart</option>
@@ -1437,11 +1492,11 @@ export default function OversistemDashboard() {
 
             {/* Year Selector */}
             <div className="flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-gray-500" />
+              <Calendar className="w-4 h-4 text-[#7F1D1D] dark:text-indigo-200" />
               <select
                 value={selectedYear}
                 onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                className="px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-gray-700 dark:text-gray-300 text-sm border border-gray-300 dark:border-gray-600"
+                className="px-3 py-2 bg-white dark:bg-gray-700 rounded-lg text-[#7F1D1D] dark:text-gray-300 text-sm border border-amber-200 dark:border-indigo-500/40"
               >
                 {availableYears.map((year) => (
                   <option key={year} value={year}>
@@ -1455,7 +1510,7 @@ export default function OversistemDashboard() {
             <div className="relative">
               <button
                 onClick={() => setShowDatePicker(!showDatePicker)}
-                className="px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center gap-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 text-sm border border-gray-300 dark:border-gray-600"
+                className="px-4 py-2 bg-white dark:bg-gray-700 rounded-lg flex items-center gap-2 text-[#7F1D1D] dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 text-sm border border-amber-200 dark:border-indigo-500/40"
               >
                 <Filter className="w-4 h-4" />
                 <span>
@@ -1485,11 +1540,16 @@ export default function OversistemDashboard() {
 
       {/* Main Chart */}
       <div className="mb-8">
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow">
-          <div className="h-[400px]">
+        <div className="
+          bg-white/95 dark:bg-indigo-950/40
+          rounded-2xl p-6
+          border border-amber-200 dark:border-indigo-500/30
+          shadow-xl
+        ">
+          <div className="h-100">
             {loading ? (
               <div className="h-full flex flex-col items-center justify-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#B91C1C] dark:border-indigo-500 mb-4"></div>
                 <span className="text-gray-600 dark:text-gray-400">
                   Memuat data real-time...
                 </span>
@@ -1538,7 +1598,11 @@ export default function OversistemDashboard() {
       {(activeTab === "logbook" || activeTab === "pendaftaran") &&
         dataStatus !== "empty" && (
           <div className="mb-8">
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow">
+            <div className="bg-white/95 dark:bg-indigo-950/40
+              rounded-2xl p-6
+              border border-amber-200 dark:border-indigo-500/30
+              shadow-xl
+            ">
               <h3 className="text-lg font-semibold mb-4">
                 Statistik Detail{" "}
                 {activeTab === "logbook" ? "Logbook" : "Pendaftaran"}{" "}
@@ -1755,7 +1819,11 @@ export default function OversistemDashboard() {
       {/* Statistik Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
         {/* Posisi Magang */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow">
+        <div className="bg-white/95 dark:bg-indigo-950/40
+          rounded-2xl p-6
+          border border-amber-200 dark:border-indigo-500/30
+          shadow-xl
+        ">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold">Posisi Magang</h3>
             <div className="flex items-center gap-2">
@@ -1766,7 +1834,7 @@ export default function OversistemDashboard() {
               </span>
             </div>
           </div>
-          <div className="h-[300px]">
+          <div className="h-75">
             {statistikPosisi.length > 0 ? (
               <Pie data={getPosisiChartData()} options={pieChartOptions} />
             ) : (
@@ -1780,7 +1848,11 @@ export default function OversistemDashboard() {
         </div>
 
         {/* Asal Instansi */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow">
+        <div className="bg-white/95 dark:bg-indigo-950/40
+          rounded-2xl p-6
+          border border-amber-200 dark:border-indigo-500/30
+          shadow-xl
+        ">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold">Asal Instansi</h3>
             <div className="flex items-center gap-2">
@@ -1790,7 +1862,7 @@ export default function OversistemDashboard() {
               </span>
             </div>
           </div>
-          <div className="h-[300px]">
+          <div className="h-75">
             {statistikAsal.length > 0 ? (
               <Doughnut
                 data={getAsalChartData()}
@@ -1806,7 +1878,11 @@ export default function OversistemDashboard() {
         </div>
 
         {/* Jenis Kelamin */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow">
+        <div className="bg-white/95 dark:bg-indigo-950/40
+          rounded-2xl p-6
+          border border-amber-200 dark:border-indigo-500/30
+          shadow-xl
+        ">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold">Jenis Kelamin</h3>
             <div className="flex items-center gap-2">
@@ -1817,7 +1893,7 @@ export default function OversistemDashboard() {
               </span>
             </div>
           </div>
-          <div className="h-[300px]">
+          <div className="h-75">
             {statistikGender.length > 0 ? (
               <Pie data={getGenderChartData()} options={pieChartOptions} />
             ) : (
@@ -1830,7 +1906,11 @@ export default function OversistemDashboard() {
         </div>
 
         {/* Perkiraan Selesai */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow">
+        <div className="bg-white/95 dark:bg-indigo-950/40
+          rounded-2xl p-6
+          border border-amber-200 dark:border-indigo-500/30
+          shadow-xl
+        ">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold">Perkiraan Selesai</h3>
             <div className="flex items-center gap-2">
@@ -1841,7 +1921,7 @@ export default function OversistemDashboard() {
               </span>
             </div>
           </div>
-          <div className="h-[300px]">
+          <div className="h-75">
             {statistikSelesai.length > 0 ? (
               <Bar data={getSelesaiChartData()} options={barChartOptions} />
             ) : (
@@ -1855,7 +1935,11 @@ export default function OversistemDashboard() {
       </div>
 
       {/* Data Table - REAL TIME */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow overflow-hidden">
+      <div className="bg-white/95 dark:bg-indigo-950/40
+        rounded-2xl
+        border border-amber-200 dark:border-indigo-500/30
+        shadow-xl
+      ">
         <div className="px-6 py-4 border-b dark:border-gray-700 flex items-center justify-between">
           <div>
             <h3 className="text-lg font-semibold">Data Detail Time Series</h3>
@@ -1880,22 +1964,22 @@ export default function OversistemDashboard() {
             <table className="w-full">
               <thead className="bg-gray-50 dark:bg-gray-700">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Tanggal
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Pendaftaran
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Logbook
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Peserta Aktif
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Mentor Aktif
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Admin Aktif
                   </th>
                 </tr>
@@ -1904,12 +1988,12 @@ export default function OversistemDashboard() {
                 {filterDataByDateRange(rawData).map((row, index) => (
                   <tr
                     key={index}
-                    className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                    className="hover:bg-[#FEF3C7]/40 dark:hover:bg-indigo-500/10 transition-colors"
                   >
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
+                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900 dark:text-gray-300">
                       {format(parseISO(row.date), "MMM yyyy", { locale: id })}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
+                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900 dark:text-gray-300">
                       <span
                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                           row.pendaftaran > 0
@@ -1920,7 +2004,7 @@ export default function OversistemDashboard() {
                         {row.pendaftaran}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
+                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900 dark:text-gray-300">
                       <span
                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                           row.logbook > 0
@@ -1931,7 +2015,7 @@ export default function OversistemDashboard() {
                         {row.logbook}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
+                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900 dark:text-gray-300">
                       <span
                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                           row.peserta_aktif > 0
@@ -1942,7 +2026,7 @@ export default function OversistemDashboard() {
                         {row.peserta_aktif}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
+                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900 dark:text-gray-300">
                       <span
                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                           row.mentor_aktif > 0
@@ -1953,7 +2037,7 @@ export default function OversistemDashboard() {
                         {row.mentor_aktif}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
+                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900 dark:text-gray-300">
                       <span
                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                           row.admin_aktif > 0
@@ -1988,7 +2072,7 @@ export default function OversistemDashboard() {
             </div>
           ) : (
             <div className="py-12 text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#B91C1C] dark:border-indigo-500 mx-auto mb-4"></div>
               <p className="text-gray-500">Memuat data...</p>
             </div>
           )}
@@ -1996,7 +2080,7 @@ export default function OversistemDashboard() {
       </div>
 
       {/* Footer Info - REAL TIME VERSION */}
-      <div className="mt-8 p-4 bg-white dark:bg-gray-800 rounded-xl shadow">
+      <div className="mt-8 p-4 bg-white/90 dark:bg-indigo-950/40 rounded-2xl border border-amber-200 dark:border-indigo-500/30 shadow">
         <div className="text-sm text-gray-500 dark:text-gray-400 space-y-2">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
