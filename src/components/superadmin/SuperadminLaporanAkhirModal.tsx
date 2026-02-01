@@ -66,8 +66,7 @@ export default function SuperadminLaporanAkhirModal({
               <div>
                 <h2 className="text-xl font-bold">Laporan Akhir Magang</h2>
                 <p className="text-sm opacity-90">
-                  {laporan?.user?.name} •{" "}
-                  {formatDate(laporan?.createdAt)}
+                  {laporan?.user?.name} • {formatDate(laporan?.createdAt)}
                 </p>
               </div>
             </div>
@@ -151,7 +150,10 @@ export default function SuperadminLaporanAkhirModal({
               {/* Content */}
               <div className="space-y-5">
                 <Section label="Judul Laporan" value={laporan?.judul} />
-                <Section label="Ringkasan Kegiatan" value={laporan?.ringkasan} />
+                <Section
+                  label="Ringkasan Kegiatan"
+                  value={laporan?.ringkasan}
+                />
                 <Section label="Hasil & Pencapaian" value={laporan?.hasil} />
                 <Section label="Kendala" value={laporan?.kendala} />
                 <Section label="Kesimpulan" value={laporan?.kesimpulan} />
@@ -192,8 +194,7 @@ export default function SuperadminLaporanAkhirModal({
                     </p>
                     {laporan?.approvedAt && (
                       <p className="text-sm mt-1">
-                        Tanggal Approve:{" "}
-                        {formatDate(laporan.approvedAt)}
+                        Tanggal Approve: {formatDate(laporan.approvedAt)}
                       </p>
                     )}
                   </div>
@@ -213,9 +214,7 @@ export default function SuperadminLaporanAkhirModal({
                   <h3 className="font-semibold text-[#7F1D1D] dark:text-indigo-200 mb-2">
                     Disetujui oleh Mentor
                   </h3>
-                  <p className="font-medium">
-                    {laporan.approvedByMentor.name}
-                  </p>
+                  <p className="font-medium">{laporan.approvedByMentor.name}</p>
                   <p className="text-sm opacity-80">
                     {laporan.approvedByMentor.email}
                   </p>
@@ -233,7 +232,7 @@ export default function SuperadminLaporanAkhirModal({
                 </div>
               )}
 
-              {/* Review Form (LOGIC TIDAK DIUBAH) */}
+              {/* Review Form (LOGIC TIDAK DIUBAH)
               <div
                 className="
                   p-5 rounded-2xl
@@ -321,7 +320,7 @@ export default function SuperadminLaporanAkhirModal({
                     </button>
                   </div>
                 </div>
-              </div>
+              </div> */}
             </div>
           )}
         </div>

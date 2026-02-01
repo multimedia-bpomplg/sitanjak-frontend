@@ -54,7 +54,7 @@ export default function SuperadminLayout({
 
   /* ===================== AUTO OPEN DASHBOARD ===================== */
   useEffect(() => {
-    if (pathname.startsWith("/dashboard/superadmin")) {
+    if (pathname.startsWith("/dashboard/admin")) {
       setDashboardOpen(true);
     }
   }, [pathname]);
@@ -230,7 +230,7 @@ export default function SuperadminLayout({
               }`}
             >
               <Link
-                href="/dashboard/superadmin"
+                href="/dashboard/admin"
                 className={`
                     flex items-center gap-3
                     py-2.5 rounded-xl
@@ -242,7 +242,7 @@ export default function SuperadminLayout({
                     ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
 
                     ${
-                      pathname === "/dashboard/superadmin"
+                      pathname === "/dashboard/admin"
                         ? `
                             bg-linear-to-r
                             from-[#FDE68A]/60
@@ -261,7 +261,7 @@ export default function SuperadminLayout({
               </Link>
 
               <Link
-                href="/dashboard/superadmin/ViewPendaftaran"
+                href="/dashboard/admin/ViewPendaftaran"
                 className={`
                     flex items-center gap-3
                     py-2.5 rounded-xl
@@ -292,7 +292,7 @@ export default function SuperadminLayout({
               </Link>
 
               <Link
-                href="/dashboard/superadmin/ViewPeserta"
+                href="/dashboard/admin/ViewPeserta"
                 className={`
                     flex items-center gap-3
                     py-2.5 rounded-xl
@@ -323,7 +323,7 @@ export default function SuperadminLayout({
               </Link>
 
               <Link
-                href="/dashboard/superadmin/ViewLogbook"
+                href="/dashboard/admin/ViewLogbook"
                 className={`
                     flex items-center gap-3
                     py-2.5 rounded-xl
@@ -354,7 +354,7 @@ export default function SuperadminLayout({
               </Link>
 
               <Link
-                href="/dashboard/superadmin/ViewLaporanBulanan"
+                href="/dashboard/admin/ViewLaporanBulanan"
                 className={`
                     flex items-center gap-3
                     py-2.5 rounded-xl
@@ -386,7 +386,7 @@ export default function SuperadminLayout({
               </Link>
 
               <Link
-                href="/dashboard/superadmin/ViewLaporanAkhir"
+                href="/dashboard/admin/ViewLaporanAkhir"
                 className={`
                     flex items-center gap-3
                     py-2.5 rounded-xl
@@ -461,7 +461,7 @@ export default function SuperadminLayout({
                     ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
 
                     ${
-                      pathname.includes("/ManajemenAkun/buatadmin")
+                      pathname.includes("/ManajemenAkun/buatmentor")
                         ? `
                             bg-linear-to-r
                             from-[#FDE68A]/60
@@ -476,11 +476,11 @@ export default function SuperadminLayout({
                         : ""
                     }`}
               >
-                🛠 {!collapsed && "Buat Akun Admin"}
+                🛠 {!collapsed && "Buat Akun Mentor"}
               </Link>
 
               <Link
-                href="/dashboard/superadmin/ManajemenAkun/buatmentor"
+                href="/dashboard/admin/ManajemenAkun/buatmentor"
                 className={`
                     flex items-center gap-3
                     py-2.5 rounded-xl
@@ -511,7 +511,7 @@ export default function SuperadminLayout({
               </Link>
 
               <Link
-                href="/dashboard/superadmin/ManajemenAkun/buatpeserta"
+                href="/dashboard/admin/ManajemenAkun/buatpeserta"
                 className={`
                     flex items-center gap-3
                     py-2.5 rounded-xl
@@ -573,69 +573,38 @@ export default function SuperadminLayout({
               }`}
             >
               <Link
-                href="/dashboard/superadmin/layout/utama"
+                href="/dashboard/admin/manajemenTampilan/LayoutUtama"
                 className={`
-                    flex items-center gap-3
-                    py-2.5 rounded-xl
-                    text-sm
-                    text-gray-700 dark:text-gray-300
-                    hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm
-                    dark:hover:bg-slate-800
-                    transition
-                    ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
+    flex items-center gap-3
+    py-2.5 rounded-xl
+    text-sm
+    text-gray-700 dark:text-gray-300
+    hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm
+    dark:hover:bg-slate-800
+    transition
+    ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
 
-                    ${
-                      pathname.includes("/layout/utama")
-                        ? `
-                            bg-linear-to-r
-                            from-[#FDE68A]/60
-                            to-[#FACC15]/40
-                            text-[#7F1D1D]
-                            dark:from-indigo-500/30
-                            dark:via-purple-500/25
-                            dark:to-fuchsia-500/30
-                            dark:text-indigo-200
-                            shadow-inner
-                          `
-                        : ""
-                    }`}
+    ${
+      pathname.includes("/manajemenTampilan")
+        ? `
+            bg-linear-to-r
+            from-[#FDE68A]/60
+            to-[#FACC15]/40
+            text-[#7F1D1D]
+            dark:from-indigo-500/30
+            dark:via-purple-500/25
+            dark:to-fuchsia-500/30
+            dark:text-indigo-200
+            shadow-inner
+          `
+        : ""
+    }`}
               >
-                🏠 {!collapsed && "Layout Halaman Utama"}
+                🖼️ {!collapsed && "Manajemen Tampilan"}
               </Link>
 
               <Link
-                href="/dashboard/superadmin/layout/konten"
-                className={`
-                    flex items-center gap-3
-                    py-2.5 rounded-xl
-                    text-sm
-                    text-gray-700 dark:text-gray-300
-                    hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm
-                    dark:hover:bg-slate-800
-                    transition
-                    ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
-
-                    ${
-                      pathname.includes("/layout/konten")
-                        ? `
-                            bg-linear-to-r
-                            from-[#FDE68A]/60
-                            to-[#FACC15]/40
-                            text-[#7F1D1D]
-                            dark:from-indigo-500/30
-                            dark:via-purple-500/25
-                            dark:to-fuchsia-500/30
-                            dark:text-indigo-200
-                            shadow-inner
-                          `
-                        : ""
-                    }`}
-              >
-                📰 {!collapsed && "Konten Informasi"}
-              </Link>
-
-              <Link
-                href="/dashboard/superadmin/layout/banner"
+                href="/dashboard/admin/layout/banner"
                 className={`
                     flex items-center gap-3
                     py-2.5 rounded-xl

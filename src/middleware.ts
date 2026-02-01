@@ -2,39 +2,66 @@ import { NextRequest, NextResponse } from "next/server";
 
 export function middleware(req: NextRequest) {
   const token = req.cookies.get("token")?.value;
-  const roles = req.cookies.get("roles")
-    ? JSON.parse(req.cookies.get("roles")!.value)
-    : [];
-
-  const path = req.nextUrl.pathname;
 
   if (!token) {
     return NextResponse.redirect(new URL("/auth/login", req.url));
   }
 
-  if (
-    path.startsWith("/dashboard/superadmin") &&
-    !roles.includes("superadmin")
-  ) {
-    return NextResponse.redirect(new URL("/403", req.url));
-  }
+  try {
+    // ✅ DECODE TOKEN UNTUK DAPATKAN SEMUA INFORMASI
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    const roles = payload.roles || [];
+    const isSuperAccess = payload.isSuperAccess || false;
 
-  if (
-    path.startsWith("/dashboard/admin") &&
-    !roles.some((r: string) => ["admin", "superadmin"].includes(r))
-  ) {
-    return NextResponse.redirect(new URL("/403", req.url));
-  }
+    const path = req.nextUrl.pathname;
 
-  if (path.startsWith("/dashboard/mentor") && !roles.includes("mentor")) {
-    return NextResponse.redirect(new URL("/403", req.url));
-  }
+    console.log("🔍 Middleware Check:", {
+      path,
+      roles,
+      isSuperAccess,
+      userEmail: payload.email,
+    });
 
-  if (path.startsWith("/dashboard/peserta") && !roles.includes("peserta")) {
-    return NextResponse.redirect(new URL("/403", req.url));
-  }
+    // ✅ SUPERADMIN ROUTES
+    if (path.startsWith("/dashboard/superadmin")) {
+      if (!roles.includes("superadmin")) {
+        return NextResponse.redirect(new URL("/403", req.url));
+      }
+    }
 
-  return NextResponse.next();
+    // ✅ ADMIN ROUTES - PERBAIKAN DI SINI!
+    if (path.startsWith("/dashboard/admin")) {
+      // Admin biasa: boleh akses semua halaman admin
+      if (roles.includes("admin")) {
+        console.log("✅ Admin access granted");
+        return NextResponse.next();
+      }
+
+      // Superadmin juga boleh akses admin routes
+      if (roles.includes("superadmin")) {
+        console.log("✅ Superadmin access to admin routes");
+        return NextResponse.next();
+      }
+
+      // Jika bukan admin atau superadmin
+      return NextResponse.redirect(new URL("/403", req.url));
+    }
+
+    // ✅ MENTOR ROUTES
+    if (path.startsWith("/dashboard/mentor") && !roles.includes("mentor")) {
+      return NextResponse.redirect(new URL("/403", req.url));
+    }
+
+    // ✅ PESERTA ROUTES
+    if (path.startsWith("/dashboard/peserta") && !roles.includes("peserta")) {
+      return NextResponse.redirect(new URL("/403", req.url));
+    }
+
+    return NextResponse.next();
+  } catch (error) {
+    console.error("Middleware error:", error);
+    return NextResponse.redirect(new URL("/auth/login", req.url));
+  }
 }
 
 export const config = {

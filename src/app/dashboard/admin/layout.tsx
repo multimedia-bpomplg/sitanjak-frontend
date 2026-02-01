@@ -28,7 +28,7 @@ export default function SuperadminLayout({
   const [dashboardOpen, setDashboardOpen] = useState(true);
   const [userOpen, setUserOpen] = useState(false);
   const [layoutOpen, setLayoutOpen] = useState(false);
-  
+
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const router = useRouter();
@@ -162,9 +162,7 @@ export default function SuperadminLayout({
                 alt="SiTanjak Logo"
               />
               {!collapsed && (
-                <h1 className="text-lg font-semibold tracking-wide">
-                  Admin
-                </h1>
+                <h1 className="text-lg font-semibold tracking-wide">Admin</h1>
               )}
             </div>
 
@@ -355,6 +353,37 @@ export default function SuperadminLayout({
               </Link>
 
               <Link
+                href="/dashboard/admin/ViewLaporanBulanan"
+                className={`
+                  flex items-center gap-3
+                  py-2.5 rounded-xl
+                  text-sm
+                  text-gray-700 dark:text-gray-300
+                  hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm
+                  dark:hover:bg-slate-800
+                  transition
+                  ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
+
+                  ${
+                    pathname.includes("/ViewLaporanBulanan")
+                      ? `
+                          bg-linear-to-r
+                          from-[#FDE68A]/60
+                          to-[#FACC15]/40
+                          text-[#7F1D1D]
+                          dark:from-indigo-500/30
+                          dark:via-purple-500/25
+                          dark:to-fuchsia-500/30
+                          dark:text-indigo-200
+                          shadow-inner
+                        `
+                      : ""
+                  }
+                `}
+              >
+                📑 {!collapsed && "View Laporan Bulanan"}
+              </Link>
+              <Link
                 href="/dashboard/admin/ViewLaporanAkhir"
                 className={`
                   flex items-center gap-3
@@ -418,7 +447,7 @@ export default function SuperadminLayout({
               }`}
             >
               <Link
-                href="/dashboard/admin/ManajemenAkun/buatadmin"
+                href="/dashboard/admin/ManajemenAkun/buatmentor"
                 className={`
                   flex items-center gap-3
                   py-2.5 rounded-xl
@@ -430,7 +459,7 @@ export default function SuperadminLayout({
                   ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
 
                   ${
-                    pathname.includes("/ManajemenAkun/buatadmin")
+                    pathname.includes("/ManajemenAkun/buatmentor")
                       ? `
                           bg-linear-to-r
                           from-[#FDE68A]/60
@@ -445,7 +474,7 @@ export default function SuperadminLayout({
                       : ""
                   }`}
               >
-                🛠 {!collapsed && "Buat Akun Admin"}
+                🛠 {!collapsed && "Buat Akun mentor "}
               </Link>
 
               <Link
