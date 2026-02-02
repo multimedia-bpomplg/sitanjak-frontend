@@ -13,7 +13,7 @@ import { useEffect, useRef, useState } from "react";
 const manfaatList = [
   {
     title: "Pengalaman Kerja Nyata",
-    desc: "Mahasiswa memperoleh pengalaman langsung di lingkungan kerja profesional sesuai bidangnya.",
+    desc: "Siswa dan Mahasiswa memperoleh pengalaman langsung di lingkungan kerja profesional sesuai bidangnya.",
     icon: HiBriefcase,
     color: "from-[#FACC15] to-[#EAB308]",
   },

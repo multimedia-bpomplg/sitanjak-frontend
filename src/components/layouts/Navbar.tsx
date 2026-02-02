@@ -92,7 +92,7 @@ export default function Navbar() {
         className="
           max-w-6xl w-full
           mx-4
-          bg-gradient-to-r from-[#D4AF37] via-[#B91C1C] to-[#7F1D1D]
+          bg-linear-to-r from-[#D4AF37] via-[#B91C1C] to-[#7F1D1D]
           backdrop-blur-xl
           rounded-full shadow-xl
           px-6 py-3
@@ -103,14 +103,11 @@ export default function Navbar() {
         <div className="flex items-center gap-3">
           <Image
             src="/images/icons/sitanjak.png"
-            alt="SIMAGGO Logo"
+            alt="Sitanjak Logo"
             width={70}
             height={70}
             className="rounded-full"
           />
-          <span className="text-white font-bold text-lg hidden sm:block">
-            SIMAGGO
-          </span>
         </div>
 
         {/* MENU DESKTOP */}
@@ -131,16 +128,15 @@ export default function Navbar() {
             </button>
           ))}
 
-          {/* PANGGILAN PANDUAN PDF */}
-          <button
-            onClick={handleDownloadPanduan}
-            disabled={downloading}
-            className={`flex items-center gap-2 hover:text-[#FFE08A] hover:-translate-y-px hover:scale-105 transition ${
-              downloading ? "opacity-70 cursor-not-allowed" : ""
-            }`}
+          {/* PANGGILAN PANDUAN */}
+          <a
+            href="https://docs.google.com/document/d/1d43jgfTZYD1oT6ePshn8NyMfkXxPQ7aGAePx3qDJ-9I/edit?usp=sharing"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 hover:text-[#FFE08A] hover:-translate-y-px hover:scale-105 transition"
           >
-            {downloading ? "Mengunduh..." : "Panduan Pendaftaran"}
-          </button>
+            Panduan Pendaftaran
+          </a>
         </ul>
 
         {/* AUTH */}
@@ -170,7 +166,7 @@ export default function Navbar() {
 
       {/* MOBILE MENU */}
       {open && (
-        <div className="absolute top-22.5 w-[90%] bg-gradient-to-r from-[#D4AF37] via-[#B91C1C] to-[#7F1D1D] rounded-2xl p-6 text-white shadow-xl">
+        <div className="absolute top-22.5 w-[90%] bg-linear-to-r from-[#D4AF37] via-[#B91C1C] to-[#7F1D1D] rounded-2xl p-6 text-white shadow-xl">
           <ul className="flex flex-col space-y-4 font-semibold">
             {[
               { label: "Home", id: "home" },
@@ -188,17 +184,15 @@ export default function Navbar() {
               </button>
             ))}
 
-            {/* PANGGILAN PANDUAN PDF - MOBILE */}
-            <button
-              onClick={handleDownloadPanduan}
-              disabled={downloading}
-              className={`flex items-center gap-2 text-left transition hover:text-[#FFE08A] hover:pl-2 ${
-                downloading ? "opacity-70 cursor-not-allowed" : ""
-              }`}
+            {/* PANGGILAN PANDUAN - MOBILE */}
+            <a
+              href="https://docs.google.com/document/d/1d43jgfTZYD1oT6ePshn8NyMfkXxPQ7aGAePx3qDJ-9I/edit?usp=sharing"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 text-left transition hover:text-[#FFE08A] hover:pl-2"
             >
-              <HiDownload className="inline" />
-              {downloading ? "Mengunduh..." : "Panduan Pendaftaran"}
-            </button>
+              Panduan Pendaftaran
+            </a>
           </ul>
 
           <div className="flex space-x-3 mt-6">

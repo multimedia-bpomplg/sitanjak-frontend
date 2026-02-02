@@ -11,7 +11,7 @@ import {
 const peraturanList = [
   {
     title: "Persyaratan Umum",
-    desc: "Peserta merupakan mahasiswa aktif dari perguruan tinggi yang telah bekerja sama dan mendapat rekomendasi resmi dari institusi.",
+    desc: "Peserta merupakan mahasiswa atau siswa aktif dari sekolah atau perguruan tinggi yang berasal dari seluruh Indonesia.",
     icon: HiClipboardCheck,
     color: "from-[#FACC15] to-[#EAB308]", 
   },
