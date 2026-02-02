@@ -25,29 +25,22 @@ type Peserta = {
   email: string;
   wa: string;
   posisi: string;
-
-  // ✅ ASAL (TAMBAHAN)
   asal?: {
     jenis: "Universitas" | "SMK";
     nama: string;
   };
-
   mentor?: {
     _id: string;
     name: string;
     email: string;
     posisiMentor: string;
   };
-
-  jurusan?: string; // ⬅️ TAMBAHKAN
-
+  jurusan?: string;
   tanggalMulaiMagang: string;
   tanggalSelesaiMagang: string;
-
   tempatLahir: string;
   tanggalLahir: string;
   jenisKelamin: string;
-
   provinsi: string;
   kota: string;
   kecamatan: string;
@@ -61,18 +54,17 @@ type Pendaftaran = {
   kategori: "sendiri" | "bersama";
   jumlahPeserta: number;
   peserta: Peserta[];
-
   mentor?: {
     _id: string;
     name: string;
     email: string;
     posisiMentor: string;
   };
-
   suratPengantar: string;
   status: "Menunggu" | "Sedang Diproses" | "Disetujui" | "Ditolak";
   jawabanAdmin?: string;
   createdAt: string;
+  suratBalasan?: string;
 };
 
 type Mentor = {
@@ -80,6 +72,14 @@ type Mentor = {
   name: string;
   email: string;
   posisiMentor: string;
+  status: "Aktif" | "Nonaktif";
+};
+
+type AkunPeserta = {
+  _id: string;
+  name: string;
+  email: string;
+  status: string;
 };
 
 const POSISI_MAGANG = [
@@ -90,36 +90,27 @@ const POSISI_MAGANG = [
   "Bagian Tata Usaha",
 ];
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL;
+
 /* ================== HITUNG DURASI MAGANG ================== */
 const hitungDurasiMagang = (mulai: string, selesai: string) => {
   if (!mulai || !selesai) return null;
-
   const start = new Date(mulai);
   const end = new Date(selesai);
-
   if (end < start) return null;
-
   const diffTime = end.getTime() - start.getTime();
   const totalHari = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
   const bulan = Math.floor(totalHari / 30);
   const sisaHari = totalHari % 30;
-
-  return {
-    totalHari,
-    bulan,
-    sisaHari,
-  };
+  return { totalHari, bulan, sisaHari };
 };
 
 /* ===================== PAGE ===================== */
 export default function ViewPendaftaranPage() {
   const [data, setData] = useState<Pendaftaran[]>([]);
   const [loading, setLoading] = useState(true);
-
   const [selected, setSelected] = useState<Pendaftaran | null>(null);
   const [alasan, setAlasan] = useState("");
-
   const [alertOpen, setAlertOpen] = useState(false);
   const [alertTitle, setAlertTitle] = useState<string | undefined>();
   const [alertMessage, setAlertMessage] = useState("");
@@ -131,8 +122,12 @@ export default function ViewPendaftaranPage() {
   const [mentorList, setMentorList] = useState<Mentor[]>([]);
   const [mentorModal, setMentorModal] = useState(false);
   const [selectedMentor, setSelectedMentor] = useState<string>("");
-  const hasMentor = Boolean(selected?.mentor?.name && selected?.mentor?.email);
   const [selectedPesertaEmail, setSelectedPesertaEmail] = useState<string>("");
+  const [suratBalasan, setSuratBalasan] = useState<File | null>(null);
+  const [akunPeserta, setAkunPeserta] = useState<AkunPeserta[]>([]);
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const LIMIT = 10;
 
   const showAlert = (
     type: "success" | "error" | "warning" | "info",
@@ -148,6 +143,9 @@ export default function ViewPendaftaranPage() {
   const closeModal = () => {
     setSelected(null);
     setAlasan("");
+    setSuratBalasan(null);
+    setEditPosisiIndex(null);
+    setMentorModal(false);
   };
 
   const isAktif = selected?.status === "Disetujui";
@@ -156,52 +154,90 @@ export default function ViewPendaftaranPage() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/pendaftaran`);
+      const token = localStorage.getItem("token");
+      if (!token) {
+        showAlert(
+          "error",
+          "Token tidak ditemukan, silakan login ulang",
+          "Error",
+        );
+        return;
+      }
+
+      const res = await fetch(`${API_BASE}/admin/pendaftaran`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (res.status === 403) {
+        showAlert(
+          "error",
+          "Anda tidak memiliki akses ke data pendaftaran",
+          "Akses Ditolak",
+        );
+        return;
+      }
+
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+
       const json = await res.json();
       setData(json);
-    } catch {
-      showAlert("error", "Gagal memuat data", "Error");
+    } catch (error: any) {
+      showAlert("error", error.message || "Gagal memuat data", "Error");
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  /* ===================== LOAD AKUN PESERTA ===================== */
   const fetchAkunPeserta = async () => {
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/superadmin/peserta`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_BASE}/admin/peserta`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
         },
-      );
+      });
 
-      const result = await res.json();
-      setAkunPeserta(result);
+      if (res.ok) {
+        const result = await res.json();
+        setAkunPeserta(result);
+      }
     } catch (error) {
       console.error("Gagal mengambil data akun peserta");
     }
   };
 
+  const fetchMentor = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_BASE}/admin/mentor`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (res.ok) {
+        const result = await res.json();
+        setMentorList(result.filter((m: Mentor) => m.status === "Aktif"));
+      }
+    } catch (err: any) {
+      showAlert("error", err.message || "Gagal memuat mentor");
+    }
+  };
+
   useEffect(() => {
+    loadData();
     fetchAkunPeserta();
-
-    const handleFocus = () => {
-      fetchAkunPeserta();
-    };
-
-    document.addEventListener("visibilitychange", handleFocus);
-
-    return () => {
-      document.removeEventListener("visibilitychange", handleFocus);
-    };
   }, []);
+
+  useEffect(() => {
+    if (mentorModal) {
+      fetchMentor();
+    }
+  }, [mentorModal]);
 
   /* ===================== UPDATE STATUS ===================== */
   const updateStatus = async (status: "Disetujui" | "Ditolak") => {
@@ -219,7 +255,6 @@ export default function ViewPendaftaranPage() {
       return;
     }
 
-    // ❗ Wajib upload surat jika disetujui
     if (status === "Disetujui" && !suratBalasan) {
       showAlert(
         "warning",
@@ -235,16 +270,14 @@ export default function ViewPendaftaranPage() {
       formData.append("jawabanAdmin", alasan);
       if (suratBalasan) formData.append("suratBalasan", suratBalasan);
 
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/pendaftaran/${selected._id}`,
-        {
-          method: "PUT",
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-          body: formData,
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_BASE}/admin/pendaftaran/${selected._id}`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
         },
-      );
+        body: formData,
+      });
 
       const result = await res.json();
 
@@ -257,57 +290,117 @@ export default function ViewPendaftaranPage() {
         "Status pendaftaran dan surat balasan berhasil diproses.",
         "Berhasil",
       );
-
-      // 🔥 PENTING: reload data DULU
       await loadData();
-
-      // 🔥 BARU tutup modal
       closeModal();
     } catch (error: any) {
       showAlert("error", error.message || "Terjadi kesalahan", "Gagal");
     }
   };
 
-  /* ===================== SUMMARY ===================== */
-  const totalPendaftar = data.length;
-  const disetujui = data.filter((d) => d.status === "Disetujui").length;
-  const ditolak = data.filter((d) => d.status === "Ditolak").length;
+  /* ===================== SIMPAN POSISI ===================== */
+  const simpanPosisi = async (index: number) => {
+    if (!selected?._id || !posisiBaru) return;
 
-  const showValue = (value?: string) => {
-    if (!value || value.trim() === "") return "-";
-    return value;
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(
+        `${API_BASE}/admin/pendaftaran/${selected._id}/posisi`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            indexPeserta: index,
+            posisi: posisiBaru,
+          }),
+        },
+      );
+
+      const result = await res.json();
+
+      if (!res.ok) {
+        throw new Error(result.message || "Gagal memperbarui posisi");
+      }
+
+      const updated: Pendaftaran = {
+        ...selected,
+        peserta: selected.peserta.map((p, i) =>
+          i === index ? { ...p, posisi: posisiBaru } : p,
+        ),
+      };
+
+      setSelected(updated);
+      setEditPosisiIndex(null);
+      showAlert("success", "Posisi magang berhasil diperbarui");
+    } catch (err: any) {
+      showAlert("error", err.message || "Gagal mengubah posisi");
+    }
   };
 
-  const [suratBalasan, setSuratBalasan] = useState<File | null>(null);
+  /* ===================== SIMPAN MENTOR ===================== */
+  const simpanMentor = async () => {
+    if (!selected || !selectedMentor || !selectedPesertaEmail) {
+      showAlert("warning", "Data mentor atau peserta belum lengkap");
+      return;
+    }
 
-  const [akunPeserta, setAkunPeserta] = useState<AkunPeserta[]>([]);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(
+        `${API_BASE}/admin/pendaftaran/${selected._id}/mentor-peserta`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            email: selectedPesertaEmail,
+            mentorId: selectedMentor,
+          }),
+        },
+      );
 
+      const result = await res.json();
+
+      if (!res.ok) {
+        if (res.status === 403) {
+          throw new Error("Anda tidak memiliki izin untuk mengatur mentor");
+        }
+        throw new Error(result.message || "Gagal menyimpan mentor");
+      }
+
+      setSelected(result.data);
+      setMentorModal(false);
+      setSelectedMentor("");
+      setSelectedPesertaEmail("");
+      showAlert("success", "Mentor peserta berhasil disimpan");
+    } catch (err: any) {
+      showAlert("error", err.message || "Terjadi kesalahan");
+    }
+  };
+
+  /* ===================== FUNGSI LAINNYA ===================== */
   const isAkunTerdaftar = (email?: string) => {
     if (!email) return false;
-
     return akunPeserta.some(
       (akun) => akun.email.toLowerCase() === email.toLowerCase(),
     );
   };
 
-  /* ===================== SEARCH ===================== */
-  const [search, setSearch] = useState("");
-
-  /* ===================== PAGINATION ===================== */
-  const LIMIT = 10;
-  const [page, setPage] = useState(1);
-
-  /* ===================== FILTER DATA (SEARCH NAMA) ===================== */
   const filteredData = data.filter((item) =>
     item.peserta?.[0]?.nama?.toLowerCase().includes(search.toLowerCase()),
   );
 
-  /* ===================== PAGINATED DATA ===================== */
   const totalPage = Math.ceil(filteredData.length / LIMIT);
-
   const paginatedData = filteredData.slice((page - 1) * LIMIT, page * LIMIT);
 
-  /* ===================== DOWNLOAD EXCEL (RAPI) ===================== */
+  const totalPendaftar = data.length;
+  const disetujui = data.filter((d) => d.status === "Disetujui").length;
+  const ditolak = data.filter((d) => d.status === "Ditolak").length;
+
   const downloadExcel = () => {
     if (data.length === 0) {
       showAlert(
@@ -341,17 +434,13 @@ export default function ViewPendaftaranPage() {
       })),
     );
 
-    // Buat worksheet
     const worksheet = XLSX.utils.json_to_sheet(excelData);
-
-    /* ===================== STYLE HEADER ===================== */
     const headerStyle = {
       font: { bold: true },
       alignment: { horizontal: "center", vertical: "center", wrapText: true },
     };
 
     const range = XLSX.utils.decode_range(worksheet["!ref"]!);
-
     for (let C = range.s.c; C <= range.e.c; ++C) {
       const cellAddress = XLSX.utils.encode_cell({ r: 0, c: C });
       if (worksheet[cellAddress]) {
@@ -359,144 +448,47 @@ export default function ViewPendaftaranPage() {
       }
     }
 
-    /* ===================== COLUMN WIDTH (RAPI) ===================== */
     worksheet["!cols"] = [
-      { wch: 5 }, // No
-      { wch: 25 }, // Nama
-      { wch: 30 }, // Email
-      { wch: 18 }, // WA
-      { wch: 20 }, // Posisi
-      { wch: 18 }, // Kategori
-      { wch: 18 }, // Status
-      { wch: 15 }, // Mulai
-      { wch: 15 }, // Selesai
-      { wch: 20 }, // Tempat lahir
-      { wch: 15 }, // Tgl lahir
-      { wch: 15 }, // Gender
-      { wch: 18 }, // Provinsi
-      { wch: 18 }, // Kota
-      { wch: 18 }, // Kecamatan
-      { wch: 18 }, // Kelurahan
-      { wch: 40 }, // Alamat
-      { wch: 18 }, // Tgl daftar
+      { wch: 5 },
+      { wch: 25 },
+      { wch: 30 },
+      { wch: 18 },
+      { wch: 20 },
+      { wch: 18 },
+      { wch: 18 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 20 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 18 },
+      { wch: 18 },
+      { wch: 18 },
+      { wch: 18 },
+      { wch: 40 },
+      { wch: 18 },
     ];
-
-    /* ===================== WRAP TEXT UNTUK ISI ===================== */
-    for (let R = range.s.r + 1; R <= range.e.r; ++R) {
-      for (let C = range.s.c; C <= range.e.c; ++C) {
-        const addr = XLSX.utils.encode_cell({ r: R, c: C });
-        if (worksheet[addr]) {
-          worksheet[addr].s = {
-            alignment: { vertical: "top", wrapText: true },
-          };
-        }
-      }
-    }
 
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Data Pendaftaran");
-
     const excelBuffer = XLSX.write(workbook, {
       bookType: "xlsx",
       type: "array",
       cellStyles: true,
     });
-
     const file = new Blob([excelBuffer], {
       type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     });
-
     saveAs(file, `data-pendaftaran-${Date.now()}.xlsx`);
   };
 
-  const simpanPosisi = async (index: number) => {
-    if (!selected?._id || !posisiBaru) return;
-
-    try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/superadmin/pendaftaran/${selected._id}/posisi`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-          body: JSON.stringify({
-            indexPeserta: index,
-            posisi: posisiBaru,
-          }),
-        },
-      );
-
-      const result = await res.json();
-
-      if (!res.ok) {
-        throw new Error(result.message || "Gagal memperbarui posisi");
-      }
-
-      // 🔥 update local state (tanpa reload)
-      const updated: Pendaftaran = {
-        ...selected,
-        peserta: selected.peserta.map((p, i) =>
-          i === index ? { ...p, posisi: posisiBaru } : p,
-        ),
-      };
-
-      setSelected(updated);
-
-      setEditPosisiIndex(null);
-      showAlert("success", "Posisi magang berhasil diperbarui");
-    } catch (err: any) {
-      showAlert("error", err.message || "Gagal mengubah posisi");
-    }
-  };
-
-  const fetchMentor = async () => {
-    try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/superadmin/mentor`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        },
-      );
-
-      const result = await res.json();
-
-      if (!res.ok) {
-        throw new Error(result.message || "Gagal memuat data mentor");
-      }
-
-      // ✅ HANYA MENTOR AKTIF
-      setMentorList(result.filter((m: any) => m.status === "Aktif"));
-    } catch (err: any) {
-      showAlert("error", err.message || "Gagal memuat mentor");
-    }
-  };
-
-  useEffect(() => {
-    if (mentorModal) {
-      fetchMentor();
-    }
-  }, [mentorModal]);
-
   return (
-    <div
-      className="
-            min-h-screen p-4 sm:p-6
-            bg-linear-to-br
-            from-slate-50 via-white to-indigo-50
-            dark:from-[#020617] dark:via-[#020617] dark:to-[#1E1B4B]
-            text-slate-800 dark:text-slate-100
-            transition-colors
-          "
-    >
+    <div className="min-h-screen p-4 sm:p-6 bg-linear-to-br from-slate-50 via-white to-indigo-50 dark:from-[#020617] dark:via-[#020617] dark:to-[#1E1B4B] text-slate-800 dark:text-slate-100 transition-colors">
       <h1 className="text-3xl font-bold tracking-tight mb-8">
         Data Pendaftaran
       </h1>
 
-      {/* ===================== SUMMARY CARD ===================== */}
+      {/* SUMMARY CARD */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
         <SummaryCard
           title="Jumlah Pendaftar"
@@ -517,19 +509,12 @@ export default function ViewPendaftaranPage() {
         />
       </div>
 
-      {/* ===================== SEARCH & EXPORT ===================== */}
+      {/* SEARCH & EXPORT */}
       <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        {/* SEARCH */}
-        <div
-          className="
-                  relative
-                  w-full sm:max-w-sm
-                "
-        >
+        <div className="relative w-full sm:max-w-sm">
           <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400">
             🔍
           </span>
-
           <input
             type="text"
             placeholder="Cari nama peserta..."
@@ -538,100 +523,37 @@ export default function ViewPendaftaranPage() {
               setSearch(e.target.value);
               setPage(1);
             }}
-            className="
-                    w-full
-                    pl-10 pr-4 py-2.5
-                    rounded-xl
-                    border border-slate-300 dark:border-slate-700
-                    bg-white dark:bg-slate-800
-                    text-sm
-                    text-slate-700 dark:text-slate-100
-                    placeholder:text-slate-400
-                    focus:outline-none
-                    focus:ring-2 focus:ring-[#B91C1C]/70 dark:focus:ring-indigo-500/70
-                    transition
-                  "
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-700 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#B91C1C]/70 dark:focus:ring-indigo-500/70 transition"
           />
         </div>
-
-        {/* DOWNLOAD */}
         <button
           onClick={downloadExcel}
-          className="
-                  inline-flex items-center justify-center gap-2
-                  px-5 py-2.5
-                  rounded-xl
-                  text-sm font-semibold
-                  text-white
-                  bg-linear-to-r from-emerald-500 to-green-600
-                  hover:opacity-90
-                  shadow-md hover:shadow-lg
-                  transition
-                  w-full sm:w-auto
-                "
+          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-linear-to-r from-emerald-500 to-green-600 hover:opacity-90 shadow-md hover:shadow-lg transition w-full sm:w-auto"
         >
           <HiDocumentText className="text-lg" />
           Download Excel
         </button>
       </div>
 
-      {/* ===================== TABLE ===================== */}
+      {/* TABLE */}
       {!loading && paginatedData.length === 0 ? (
-        <div
-          className="
-            rounded-3xl
-            bg-white/80 dark:bg-white/5
-            backdrop-blur
-            border border-[#F59E0B]/30 dark:border-indigo-500/30
-            shadow-xl
-            p-12 text-center
-          "
-        >
-          <div
-            className="
-              w-16 h-16 sm:w-20 sm:h-20
-              mx-auto mb-5
-              rounded-full
-              bg-linear-to-br
-              from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
-              dark:from-indigo-600 dark:to-violet-500
-              flex items-center justify-center
-              shadow-lg
-              animate-pulse
-            "
-          >
+        <div className="rounded-3xl bg-white/80 dark:bg-white/5 backdrop-blur border border-[#F59E0B]/30 dark:border-indigo-500/30 shadow-xl p-12 text-center">
+          <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-5 rounded-full bg-linear-to-br from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B] dark:from-indigo-600 dark:to-violet-500 flex items-center justify-center shadow-lg animate-pulse">
             <HiUser className="w-7 h-7 sm:w-10 sm:h-10 text-white" />
           </div>
-
           <h3 className="text-lg sm:text-xl font-bold text-[#7F1D1D] dark:text-indigo-300 mb-2">
             Data tidak ditemukan
           </h3>
-
           <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 max-w-md mx-auto">
             Tidak ada data yang dapat ditampilkan saat ini.
           </p>
         </div>
       ) : (
-        <div
-          className="
-            rounded-2xl
-            bg-white/90 dark:bg-white/5
-            backdrop-blur
-            border border-slate-200 dark:border-indigo-500/30
-            shadow-lg
-            overflow-hidden
-          "
-        >
+        <div className="rounded-2xl bg-white/90 dark:bg-white/5 backdrop-blur border border-slate-200 dark:border-indigo-500/30 shadow-lg overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-180 w-full text-sm sm:text-base">
-              {/* ================= HEAD ================= */}
               <thead>
-                <tr
-                  className="
-                    bg-slate-50 dark:bg-indigo-500/10
-                    border-b border-slate-200 dark:border-indigo-500/30
-                  "
-                >
+                <tr className="bg-slate-50 dark:bg-indigo-500/10 border-b border-slate-200 dark:border-indigo-500/30">
                   <th className="w-[6%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
                     No
                   </th>
@@ -652,32 +574,21 @@ export default function ViewPendaftaranPage() {
                   </th>
                 </tr>
               </thead>
-
-              {/* ================= BODY ================= */}
               <tbody className="divide-y divide-slate-100 dark:divide-indigo-500/20">
                 {paginatedData.map((item, i) => (
                   <tr
                     key={item._id}
                     className="hover:bg-[#FEF3C7]/40 dark:hover:bg-indigo-500/10 transition"
                   >
-                    {/* NO */}
                     <td className="py-4 px-6 text-center font-medium text-slate-500">
                       {i + 1}
                     </td>
-
-                    {/* PESERTA */}
                     <td
-                      className=" 
-                      px-6 py-4 font-medium text-center
-                      text-indigo-600 dark:text-indigo-400 
-                      hover:underline cursor-pointer 
-                      "
+                      className="px-6 py-4 font-medium text-center text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
                       onClick={() => setSelected(item)}
                     >
                       {item.peserta[0]?.nama}
                     </td>
-
-                    {/* EMAIL */}
                     <td className="py-4 px-6 text-center">
                       <div className="flex justify-center items-center gap-2 text-slate-600 dark:text-slate-300">
                         <HiMail className="w-4 h-4" />
@@ -686,38 +597,17 @@ export default function ViewPendaftaranPage() {
                         </span>
                       </div>
                     </td>
-
-                    {/* POSISI */}
                     <td className="py-4 px-6 text-center">
-                      <span
-                        className="
-                          inline-flex items-center gap-2
-                          px-3 py-1.5 rounded-full
-                          text-xs font-medium
-                          bg-blue-50 text-blue-700
-                          dark:bg-indigo-500/20 dark:text-indigo-200
-                        "
-                      >
+                      <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 dark:bg-indigo-500/20 dark:text-indigo-200">
                         <HiBriefcase className="w-3 h-3" />
                         {item.peserta[0]?.posisi}
                       </span>
                     </td>
-
-                    {/* KATEGORI */}
                     <td className="py-4 px-6 text-center">
-                      <span
-                        className="
-                          px-3 py-1.5 rounded-full
-                          text-xs font-medium
-                          bg-emerald-50 text-emerald-700
-                          border border-emerald-100
-                        "
-                      >
+                      <span className="px-3 py-1.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-100">
                         {item.kategori === "bersama" ? "Bersama" : "Sendiri"}
                       </span>
                     </td>
-
-                    {/* STATUS */}
                     <td className="py-4 px-6 text-center">
                       <StatusBadge status={item.status} />
                     </td>
@@ -727,74 +617,31 @@ export default function ViewPendaftaranPage() {
             </table>
           </div>
 
-          {/* ================= PAGINATION ================= */}
           {totalPage > 1 && (
             <div className="flex flex-wrap items-center justify-center gap-2 py-5">
               <button
                 disabled={page === 1}
                 onClick={() => setPage((p) => p - 1)}
-                className="
-                  px-4 py-2
-                  rounded-lg
-                  text-sm font-medium
-                  border
-                  border-slate-300 dark:border-indigo-500/30
-                  bg-white dark:bg-indigo-950
-                  text-slate-700 dark:text-indigo-200
-                  hover:bg-[#FFF1F2] dark:hover:bg-indigo-900/40
-                  disabled:opacity-40 disabled:cursor-not-allowed
-                  transition
-                "
+                className="px-4 py-2 rounded-lg text-sm font-medium border border-slate-300 dark:border-indigo-500/30 bg-white dark:bg-indigo-950 text-slate-700 dark:text-indigo-200 hover:bg-[#FFF1F2] dark:hover:bg-indigo-900/40 disabled:opacity-40 disabled:cursor-not-allowed transition"
               >
                 Prev
               </button>
-
               {Array.from({ length: totalPage }).map((_, i) => {
                 const active = page === i + 1;
                 return (
                   <button
                     key={i}
                     onClick={() => setPage(i + 1)}
-                    className={`
-                      min-w-9.5 h-9.5
-                      rounded-lg
-                      text-sm font-semibold
-                      transition
-                      ${
-                        active
-                          ? `
-                            bg-[#B91C1C] text-white shadow
-                            dark:bg-indigo-600 dark:text-white
-                          `
-                          : `
-                            bg-white dark:bg-indigo-950
-                            text-[#7F1D1D] dark:text-indigo-200
-                            border border-slate-300 dark:border-indigo-500/30
-                            hover:bg-[#FFF1F2] dark:hover:bg-indigo-900/40
-                          `
-                      }
-                    `}
+                    className={`min-w-9.5 h-9.5 rounded-lg text-sm font-semibold transition ${active ? "bg-[#B91C1C] text-white shadow dark:bg-indigo-600 dark:text-white" : "bg-white dark:bg-indigo-950 text-[#7F1D1D] dark:text-indigo-200 border border-slate-300 dark:border-indigo-500/30 hover:bg-[#FFF1F2] dark:hover:bg-indigo-900/40"}`}
                   >
                     {i + 1}
                   </button>
                 );
               })}
-
               <button
                 disabled={page === totalPage}
                 onClick={() => setPage((p) => p + 1)}
-                className="
-                  px-4 py-2
-                  rounded-lg
-                  text-sm font-medium
-                  border
-                  border-slate-300 dark:border-indigo-500/30
-                  bg-white dark:bg-indigo-950
-                  text-slate-700 dark:text-indigo-200
-                  hover:bg-[#FFF1F2] dark:hover:bg-indigo-900/40
-                  disabled:opacity-40 disabled:cursor-not-allowed
-                  transition
-                "
+                className="px-4 py-2 rounded-lg text-sm font-medium border border-slate-300 dark:border-indigo-500/30 bg-white dark:bg-indigo-950 text-slate-700 dark:text-indigo-200 hover:bg-[#FFF1F2] dark:hover:bg-indigo-900/40 disabled:opacity-40 disabled:cursor-not-allowed transition"
               >
                 Next
               </button>
@@ -803,61 +650,23 @@ export default function ViewPendaftaranPage() {
         </div>
       )}
 
-      {/* ===================== MODAL DETAIL ===================== */}
+      {/* MODAL DETAIL */}
       {selected && (
         <div className="fixed inset-y-0 right-0 left-0 lg:left-72 z-40 flex">
-          {/* OVERLAY (AREA CONTENT SAJA) */}
           <div
             className="absolute inset-y-0 right-0 left-0 bg-black/40 backdrop-blur-sm"
             onClick={closeModal}
           />
-
-          {/* MODAL CONTAINER */}
           <div
-            className="
-                    relative
-                    w-full h-full
-                    bg-linear-to-br
-                    from-white via-[#FFF5F5] to-[#FDECEC]
-                    dark:from-[#0B0614] dark:via-[#120A24] dark:to-[#1E0F3D]
-                    flex flex-col
-                  "
+            className="relative w-full h-full bg-linear-to-br from-white via-[#FFF5F5] to-[#FDECEC] dark:from-[#0B0614] dark:via-[#120A24] dark:to-[#1E0F3D] flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             {/* HEADER */}
-            <div
-              className="
-                      sticky top-0 z-50
-                      flex items-center justify-between
-                      px-6 py-4
-
-                      /* ===== BACKGROUND ===== */
-                      bg-linear-to-r
-                      from-[#FCA5A5] via-[#FDE8E8] to-white
-                      dark:from-indigo-900 dark:via-violet-800 dark:to-purple-800
-
-                      /* ===== BORDER & SHADOW ===== */
-                      border-b border-blue-200 dark:border-indigo-800/40
-                      shadow-lg
-
-                      /* ===== TEXT ===== */
-                      text-blue-950 dark:text-indigo-50
-                    "
-            >
-              {/* LEFT */}
+            <div className="sticky top-0 z-50 flex items-center justify-between px-6 py-4 bg-linear-to-r from-[#FCA5A5] via-[#FDE8E8] to-white dark:from-indigo-900 dark:via-violet-800 dark:to-purple-800 border-b border-blue-200 dark:border-indigo-800/40 shadow-lg text-blue-950 dark:text-indigo-50">
               <div className="flex items-center gap-4">
-                <div
-                  className="
-                          w-11 h-11
-                          rounded-xl
-                          bg-white/80 dark:bg-white/10
-                          flex items-center justify-center
-                          shadow
-                        "
-                >
+                <div className="w-11 h-11 rounded-xl bg-white/80 dark:bg-white/10 flex items-center justify-center shadow">
                   <HiDocumentText className="text-2xl text-[#B91C1C] dark:text-indigo-300" />
                 </div>
-
                 <div className="leading-tight">
                   <p className="text-xs font-medium text-blue-900/70 dark:text-indigo-200/80">
                     Detail
@@ -867,38 +676,18 @@ export default function ViewPendaftaranPage() {
                   </h2>
                 </div>
               </div>
-
-              {/* CLOSE BUTTON */}
               <button
                 onClick={closeModal}
-                className="
-                        w-10 h-10
-                        flex items-center justify-center
-                        rounded-full
-                        text-blue-900 dark:text-indigo-200
-                        hover:bg-white/70 dark:hover:bg-white/10
-                        transition
-                      "
+                className="w-10 h-10 flex items-center justify-center rounded-full text-blue-900 dark:text-indigo-200 hover:bg-white/70 dark:hover:bg-white/10 transition"
               >
                 <HiX className="text-xl" />
               </button>
             </div>
 
-            {/* ================= CONTENT ================= */}
+            {/* CONTENT */}
             <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
-              {/* ================= SURAT PENGANTAR ================= */}
-              <div
-                className="
-                        rounded-2xl
-                        p-5
-                        bg-linear-to-br
-                        from-[#FFF1F2] to-[#FFE4E6]
-                        dark:from-indigo-500/10 dark:to-violet-500/10
-                        border-[#FCA5A5] dark:border-indigo-700/40
-                        flex flex-col sm:flex-row sm:items-center sm:justify-between
-                        gap-4
-                      "
-              >
+              {/* SURAT PENGANTAR */}
+              <div className="rounded-2xl p-5 bg-linear-to-br from-[#FFF1F2] to-[#FFE4E6] dark:from-indigo-500/10 dark:to-violet-500/10 border-[#FCA5A5] dark:border-indigo-700/40 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-xl bg-[#B91C1C] dark:bg-indigo-700 text-white flex items-center justify-center">
                     <HiDocumentText className="text-xl" />
@@ -912,76 +701,37 @@ export default function ViewPendaftaranPage() {
                     </p>
                   </div>
                 </div>
-
                 <a
-                  href={`http://localhost:5000/uploads/${selected.suratPengantar}`}
+                  href={`${API_BASE}/uploads/${selected.suratPengantar}`}
                   target="_blank"
-                  className="
-                          inline-flex items-center gap-2
-                          px-5 py-2.5
-                          rounded-xl
-                          text-sm font-semibold
-                          text-white
-                          transition
-                          bg-[#B91C1C] hover:bg-[#991B1B]
-                          dark:bg-indigo-600 dark:hover:bg-indigo-700
-                        "
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition bg-[#B91C1C] hover:bg-[#991B1B] dark:bg-indigo-600 dark:hover:bg-indigo-700"
                 >
                   <HiDocumentText />
                   Lihat Surat
                 </a>
               </div>
 
-              {/* ===================== DATA PESERTA ===================== */}
+              {/* DATA PESERTA */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                 {selected.peserta.map((p, i) => (
                   <div
                     key={i}
-                    className="
-                            rounded-2xl
-                            bg-white/90
-                            dark:bg-[#140B2D]/80
-                            border-[#FCA5A5]
-                            dark:border-indigo-700/40
-                            p-6
-                            shadow-sm
-                          "
+                    className="rounded-2xl bg-white/90 dark:bg-[#140B2D]/80 border-[#FCA5A5] dark:border-indigo-700/40 p-6 shadow-sm"
                   >
-                    {/* HEADER PESERTA */}
-                    <div
-                      className="
-                      mb-4
-                      flex flex-col gap-3
-                      sm:flex-row sm:items-center sm:justify-between
-                    "
-                    >
-                      <div
-                        className="
-                        flex flex-col gap-2 w-full
-                        sm:flex-row sm:w-auto sm:items-center
-                      "
-                      >
+                    <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex flex-col gap-2 w-full sm:flex-row sm:w-auto sm:items-center">
                         <HiUser className="text-[#B91C1C] dark:text-indigo-400" />
                         <h3 className="text-lg font-semibold text-[#B91C1C] dark:text-indigo-400">
                           Peserta {i + 1}
                         </h3>
                       </div>
-
                       <div className="flex items-center gap-2">
                         {editPosisiIndex === i ? (
                           <>
                             <select
                               value={posisiBaru}
                               onChange={(e) => setPosisiBaru(e.target.value)}
-                              className="
-                                w-full sm:w-auto
-                                text-xs
-                                px-3 py-2
-                                rounded-lg
-                                border
-                                border-slate-300 dark:border-slate-600
-                                bg-white dark:bg-slate-800
-                              "
+                              className="w-full sm:w-auto text-xs px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800"
                             >
                               <option value="">Pilih Posisi</option>
                               {POSISI_MAGANG.map((pos) => (
@@ -990,71 +740,31 @@ export default function ViewPendaftaranPage() {
                                 </option>
                               ))}
                             </select>
-
                             <button
                               onClick={() => simpanPosisi(i)}
-                              className="
-                                w-full sm:w-auto
-                                text-xs
-                                px-3 py-2
-                                rounded-lg
-                                bg-emerald-600 hover:bg-emerald-700
-                                text-white
-                                transition
-                              "
+                              className="w-full sm:w-auto text-xs px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition"
                             >
                               Simpan
                             </button>
-
                             <button
                               onClick={() => setEditPosisiIndex(null)}
-                              className="
-                                w-full sm:w-auto
-                                text-xs
-                                px-3 py-2
-                                rounded-lg
-                                bg-slate-300 hover:bg-slate-400
-                                dark:bg-slate-600
-                                transition
-                              "
+                              className="w-full sm:w-auto text-xs px-3 py-2 rounded-lg bg-slate-300 hover:bg-slate-400 dark:bg-slate-600 transition"
                             >
                               Batal
                             </button>
                           </>
                         ) : (
                           <>
-                            <span
-                              className="
-                                text-xs font-semibold
-                                px-3 py-1 rounded-full
-                                bg-[#FEE2E2] text-[#7F1D1D]
-                                dark:bg-indigo-500/20 dark:text-indigo-300
-                                flex items-center gap-1
-                              "
-                            >
+                            <span className="text-xs font-semibold px-3 py-1 rounded-full bg-[#FEE2E2] text-[#7F1D1D] dark:bg-indigo-500/20 dark:text-indigo-300 flex items-center gap-1">
                               <HiBriefcase />
                               {p.posisi}
                             </span>
-
                             <button
                               onClick={() => {
                                 setEditPosisiIndex(i);
                                 setPosisiBaru(p.posisi);
                               }}
-                              className={`
-                                w-full sm:w-auto
-                                text-xs px-3 py-2
-                                rounded-lg
-                                text-white
-                                transition
-                                bg-[#B91C1C] hover:bg-[#991B1B]
-                                ${
-                                  p.mentor
-                                    ? "bg-amber-600 hover:bg-amber-700"
-                                    : "bg-[#B91C1C] hover:bg-[#991B1B]"
-                                }
-                                w-full sm:w-auto
-                              `}
+                              className={`w-full sm:w-auto text-xs px-3 py-2 rounded-lg text-white transition ${p.mentor ? "bg-amber-600 hover:bg-amber-700" : "bg-[#B91C1C] hover:bg-[#991B1B]"}`}
                             >
                               Ubah
                             </button>
@@ -1063,50 +773,42 @@ export default function ViewPendaftaranPage() {
                       </div>
                     </div>
 
-                    {/* INFORMASI */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                       <DetailItem
                         label="Nama Lengkap"
                         value={p.nama}
                         icon={<HiUser />}
                       />
-
                       <DetailItem
                         label="Jenis Kelamin"
                         value={p.jenisKelamin}
                         icon={<HiIdentification />}
                       />
-
                       <DetailItem
                         label="Mulai Magang"
                         value={p.tanggalMulaiMagang}
                         icon={<HiCalendar />}
                       />
-
                       <DetailItem
                         label="Selesai Magang"
                         value={p.tanggalSelesaiMagang}
                         icon={<HiCalendar />}
                       />
-
                       <DetailItem
                         label="Tempat Lahir"
                         value={p.tempatLahir}
                         icon={<HiLocationMarker />}
                       />
-
                       <DetailItem
                         label="Tanggal Lahir"
                         value={p.tanggalLahir}
                         icon={<HiCalendar />}
                       />
-
                       <DetailItem
                         label="Email"
                         value={p.email}
                         icon={<HiMail />}
                       />
-
                       <DetailItem
                         label="Asal"
                         value={
@@ -1114,54 +816,27 @@ export default function ViewPendaftaranPage() {
                         }
                         icon={<HiIdentification />}
                       />
-
                       <DetailItem
                         label="Jurusan"
                         value={p.jurusan}
                         icon={<HiBriefcase />}
                       />
-
                       <DetailItem
                         label="No WhatsApp"
                         value={p.wa}
                         icon={<HiPhone />}
                       />
-
-                      {/* ===== DURASI MAGANG (KANAN SAJA) ===== */}
                       {(() => {
                         const durasi = hitungDurasiMagang(
                           p.tanggalMulaiMagang,
                           p.tanggalSelesaiMagang,
                         );
-
                         if (!durasi) return null;
-
                         return (
-                          <div
-                            className="
-                              flex items-center gap-2
-                              px-3 py-1.5
-                              rounded-xl
-                              bg-[#FFF1F2] dark:bg-indigo-500/10
-                              border border-[#FCA5A5] dark:border-indigo-500/30
-                            "
-                          >
-                            {/* LINGKARAN BIRU */}
-                            <div
-                              className="
-                                w-8 h-8
-                                rounded-full
-                                bg-[#B91C1C]
-                                text-white
-                                flex items-center justify-center
-                                text-xs font-bold
-                                shadow
-                              "
-                            >
+                          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#FFF1F2] dark:bg-indigo-500/10 border border-[#FCA5A5] dark:border-indigo-500/30">
+                            <div className="w-8 h-8 rounded-full bg-[#B91C1C] text-white flex items-center justify-center text-xs font-bold shadow">
                               {durasi.bulan}
                             </div>
-
-                            {/* TEXT */}
                             <div className="leading-tight">
                               <p className="text-[11px] font-semibold text-[#7F1D1D] dark:text-indigo-300">
                                 Durasi Magang
@@ -1177,7 +852,6 @@ export default function ViewPendaftaranPage() {
                       })()}
                     </div>
 
-                    {/* ALAMAT */}
                     <div className="mt-4 border-t border-slate-200 dark:border-slate-700 pt-4">
                       <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">
                         Alamat Lengkap
@@ -1190,22 +864,12 @@ export default function ViewPendaftaranPage() {
                       </p>
                     </div>
 
-                    {/* ===================== MENTOR PER PESERTA ===================== */}
-                    <div
-                      className="
-    mt-4
-    flex items-center justify-between
-    rounded-xl
-    bg-slate-50 dark:bg-slate-900/60
-    border border-slate-200 dark:border-slate-700
-    px-4 py-3
-  "
-                    >
+                    {/* MENTOR PER PESERTA */}
+                    <div className="mt-4 flex items-center justify-between rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 px-4 py-3">
                       <div>
                         <p className="text-xs text-slate-500 dark:text-slate-400">
                           Mentor Peserta
                         </p>
-
                         {p.mentor ? (
                           <div>
                             <p className="text-sm font-semibold text-slate-800 dark:text-white">
@@ -1221,141 +885,26 @@ export default function ViewPendaftaranPage() {
                           </p>
                         )}
                       </div>
-
                       <button
                         onClick={() => {
                           setMentorModal(true);
                           setSelectedMentor("");
-                          setSelectedPesertaEmail(p.email); // 🔑 PENTING
+                          setSelectedPesertaEmail(p.email);
                         }}
-                        className={`text-xs px-3 py-1.5 rounded-lg text-white transition
-      ${
-        p.mentor
-          ? "bg-amber-600 hover:bg-amber-700"
-          : "bg-blue-600 hover:bg-blue-700"
-      }
-    `}
+                        className={`text-xs px-3 py-1.5 rounded-lg text-white transition ${p.mentor ? "bg-amber-600 hover:bg-amber-700" : "bg-blue-600 hover:bg-blue-700"}`}
                       >
                         {p.mentor ? "Ganti Mentor" : "Tambahkan Mentor"}
                       </button>
-
-                      {mentorModal && (
-                        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center">
-                          <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-md">
-                            <h3 className="text-lg font-semibold mb-4">
-                              Pilih Mentor
-                            </h3>
-
-                            <select
-                              value={selectedMentor}
-                              onChange={(e) =>
-                                setSelectedMentor(e.target.value)
-                              }
-                              className="w-full border rounded-lg px-3 py-2 mb-4"
-                            >
-                              <option value="">-- Pilih Mentor --</option>
-                              {mentorList.map((m) => (
-                                <option key={m._id} value={m._id}>
-                                  {m.name} ({m.posisiMentor})
-                                </option>
-                              ))}
-                            </select>
-
-                            <div className="flex justify-end gap-2">
-                              <button onClick={() => setMentorModal(false)}>
-                                Batal
-                              </button>
-                              <button
-                                onClick={async () => {
-                                  if (
-                                    !selected ||
-                                    !selectedMentor ||
-                                    !selectedPesertaEmail
-                                  ) {
-                                    showAlert(
-                                      "warning",
-                                      "Data mentor atau peserta belum lengkap",
-                                    );
-                                    return;
-                                  }
-
-                                  try {
-                                    const res = await fetch(
-                                      `${process.env.NEXT_PUBLIC_API_URL}/pendaftaran/${selected._id}/mentor-peserta`,
-                                      {
-                                        method: "PUT",
-                                        headers: {
-                                          "Content-Type": "application/json",
-                                          Authorization: `Bearer ${localStorage.getItem(
-                                            "token",
-                                          )}`,
-                                        },
-                                        body: JSON.stringify({
-                                          email: selectedPesertaEmail, // ✅ KUNCI UTAMA
-                                          mentorId: selectedMentor,
-                                        }),
-                                      },
-                                    );
-
-                                    const result = await res.json();
-
-                                    if (!res.ok) {
-                                      throw new Error(
-                                        result.message ||
-                                          "Gagal menyimpan mentor",
-                                      );
-                                    }
-
-                                    // ✅ UPDATE STATE DARI RESPONSE BACKEND
-                                    setSelected(result.data);
-
-                                    setMentorModal(false);
-                                    setSelectedMentor("");
-                                    setSelectedPesertaEmail("");
-
-                                    showAlert(
-                                      "success",
-                                      "Mentor peserta berhasil disimpan",
-                                    );
-                                  } catch (err: any) {
-                                    showAlert(
-                                      "error",
-                                      err.message || "Terjadi kesalahan",
-                                    );
-                                  }
-                                }}
-                                className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg"
-                              >
-                                Simpan
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      )}
                     </div>
 
-                    {/* ===================== STATUS AKUN ===================== */}
-                    <div
-                      className="
-          mt-3
-          flex items-center justify-between
-          rounded-xl
-          bg-slate-50 dark:bg-slate-900/60
-          border border-slate-200 dark:border-slate-700
-          px-4 py-3
-        "
-                    >
+                    {/* STATUS AKUN */}
+                    <div className="mt-3 flex items-center justify-between rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 px-4 py-3">
                       <div>
                         <p className="text-xs text-slate-500 dark:text-slate-400">
                           Status Akun
                         </p>
-
                         <span
-                          className={`inline-flex items-center gap-1 mt-1 px-3 py-1 rounded-full text-xs font-semibold ${
-                            isAkunTerdaftar(p.email)
-                              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300"
-                              : "bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300"
-                          }`}
+                          className={`inline-flex items-center gap-1 mt-1 px-3 py-1 rounded-full text-xs font-semibold ${isAkunTerdaftar(p.email) ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300" : "bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300"}`}
                         >
                           {isAkunTerdaftar(p.email) ? (
                             <HiCheckCircle />
@@ -1367,25 +916,12 @@ export default function ViewPendaftaranPage() {
                             : "Tidak Terdaftar"}
                         </span>
                       </div>
-
                       {!isAkunTerdaftar(p.email) && (
                         <button
                           onClick={() => {
-                            window.location.href =
-                              `/dashboard/superadmin/ManajemenAkun/buatpeserta` +
-                              `?email=${encodeURIComponent(p.email)}` +
-                              `&name=${encodeURIComponent(p.nama)}`;
+                            window.location.href = `/dashboard/admin/ManajemenAkun/buatpeserta?email=${encodeURIComponent(p.email)}&name=${encodeURIComponent(p.nama)}`;
                           }}
-                          className="
-              text-xs
-              px-3 py-1.5
-              rounded-lg
-              font-medium
-              transition
-              bg-blue-600 hover:bg-blue-700
-              text-white
-              dark:bg-indigo-600 dark:hover:bg-indigo-700
-            "
+                          className="text-xs px-3 py-1.5 rounded-lg font-medium transition bg-blue-600 hover:bg-blue-700 text-white dark:bg-indigo-600 dark:hover:bg-indigo-700"
                         >
                           Buatkan Akun
                         </button>
@@ -1395,29 +931,53 @@ export default function ViewPendaftaranPage() {
                 ))}
               </div>
 
-              {/* ===================== SURAT BALASAN (PDF) ===================== */}
+              {/* MENTOR MODAL */}
+              {mentorModal && (
+                <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center">
+                  <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-md">
+                    <h3 className="text-lg font-semibold mb-4">Pilih Mentor</h3>
+                    <select
+                      value={selectedMentor}
+                      onChange={(e) => setSelectedMentor(e.target.value)}
+                      className="w-full border rounded-lg px-3 py-2 mb-4"
+                    >
+                      <option value="">-- Pilih Mentor --</option>
+                      {mentorList.map((m) => (
+                        <option key={m._id} value={m._id}>
+                          {m.name} ({m.posisiMentor})
+                        </option>
+                      ))}
+                    </select>
+                    <div className="flex justify-end gap-2">
+                      <button
+                        onClick={() => setMentorModal(false)}
+                        className="px-3 py-2 rounded-lg bg-slate-200 hover:bg-slate-300"
+                      >
+                        Batal
+                      </button>
+                      <button
+                        onClick={simpanMentor}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg"
+                      >
+                        Simpan
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* SURAT BALASAN */}
               <div>
                 <label className="block text-sm font-semibold mb-2">
                   Surat Balasan (PDF)
                 </label>
-
                 {isAktif ? (
                   selected?.suratBalasan ? (
-                    /* ===== MODE AKTIF + FILE ADA ===== */
-                    <div
-                      className="
-                flex items-center justify-between
-                rounded-2xl
-                p-5
-                bg-emerald-50 dark:bg-emerald-500/10
-                border border-emerald-200 dark:border-emerald-500/30
-              "
-                    >
+                    <div className="flex items-center justify-between rounded-2xl p-5 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30">
                       <div className="flex items-center gap-3">
                         <div className="w-11 h-11 rounded-xl bg-emerald-600 text-white flex items-center justify-center">
                           <HiDocumentText className="text-xl" />
                         </div>
-
                         <div>
                           <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
                             Surat Balasan Tersedia
@@ -1427,66 +987,30 @@ export default function ViewPendaftaranPage() {
                           </p>
                         </div>
                       </div>
-
                       <a
-                        href={`http://localhost:5000/uploads/${selected.suratBalasan}`}
+                        href={`${API_BASE}/uploads/${selected.suratBalasan}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="
-                  inline-flex items-center gap-2
-                  px-4 py-2
-                  rounded-xl
-                  bg-emerald-600 hover:bg-emerald-700
-                  text-white text-sm font-semibold
-                "
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold"
                       >
-                        <HiDocumentText />
-                        Download
+                        <HiDocumentText /> Download
                       </a>
                     </div>
                   ) : (
-                    /* ===== MODE AKTIF + FILE BELUM ADA ===== */
-                    <div
-                      className="
-                rounded-2xl
-                p-5
-                bg-yellow-50 dark:bg-yellow-500/10
-                border border-yellow-200 dark:border-yellow-500/30
-                text-sm text-yellow-700 dark:text-yellow-300
-              "
-                    >
+                    <div className="rounded-2xl p-5 bg-yellow-50 dark:bg-yellow-500/10 border border-yellow-200 dark:border-yellow-500/30 text-sm text-yellow-700 dark:text-yellow-300">
                       Surat balasan belum tersedia
                     </div>
                   )
                 ) : (
-                  /* ===== MODE BELUM AKTIF (UPLOAD – UI AWAL) ===== */
                   <>
-                    <label
-                      className="
-                        flex flex-col items-center justify-center
-                        w-full
-                        min-h-35
-                        rounded-2xl
-                        border-2 border-dashed
-                        border-[#FCA5A5]
-                        dark:border-indigo-500/50
-                        bg-[#FFF1F2]
-                        dark:bg-indigo-500/10
-                        cursor-pointer
-                        transition
-                        hover:bg-indigo-100/60 dark:hover:bg-indigo-500/10
-                      "
-                    >
+                    <label className="flex flex-col items-center justify-center w-full min-h-35 rounded-2xl border-2 border-dashed border-[#FCA5A5] dark:border-indigo-500/50 bg-[#FFF1F2] dark:bg-indigo-500/10 cursor-pointer transition hover:bg-indigo-100/60 dark:hover:bg-indigo-500/10">
                       <HiDocumentText className="text-4xl text-[#B91C1C] dark:text-indigo-400 mb-2" />
-
                       <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
                         Klik untuk upload surat balasan
                       </p>
-
                       <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                         Format PDF • Maksimal 5MB
                       </p>
-
                       <input
                         type="file"
                         accept="application/pdf"
@@ -1496,25 +1020,12 @@ export default function ViewPendaftaranPage() {
                         className="hidden"
                       />
                     </label>
-
                     {suratBalasan && (
-                      <div
-                        className="
-                  mt-3
-                  flex items-center gap-2
-                  px-4 py-2
-                  rounded-xl
-                  bg-blue-50 dark:bg-blue-500/10
-                  border border-blue-200 dark:border-blue-500/30
-                  text-blue-700 dark:text-blue-300
-                  text-sm font-medium
-                "
-                      >
+                      <div className="mt-3 flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 text-blue-700 dark:text-blue-300 text-sm font-medium">
                         <HiCheckCircle className="text-lg" />
                         {suratBalasan.name}
                       </div>
                     )}
-
                     <p className="text-xs text-gray-400 mt-1">
                       Unggah surat balasan resmi (format PDF)
                     </p>
@@ -1522,12 +1033,11 @@ export default function ViewPendaftaranPage() {
                 )}
               </div>
 
-              {/* ===================== ALASAN ADMIN ===================== */}
+              {/* ALASAN ADMIN */}
               <div>
                 <label className="block text-sm font-semibold mb-2">
                   Alasan Persetujuan / Penolakan
                 </label>
-
                 <textarea
                   rows={4}
                   value={alasan || selected?.jawabanAdmin || ""}
@@ -1538,66 +1048,32 @@ export default function ViewPendaftaranPage() {
                       ? "Alasan persetujuan sudah ditetapkan"
                       : "Tuliskan alasan persetujuan atau penolakan pendaftaran..."
                   }
-                  className={`
-            w-full rounded-xl
-            border border-slate-300 dark:border-slate-700
-            px-4 py-3 text-sm
-            focus:ring-2 focus:ring-indigo-500
-            outline-none
-            ${
-              isAktif
-                ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed"
-                : "bg-white dark:bg-slate-800"
-            }
-          `}
+                  className={`w-full rounded-xl border border-slate-300 dark:border-slate-700 px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none ${isAktif ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed" : "bg-white dark:bg-slate-800"}`}
                 />
               </div>
             </div>
 
-            {/* ===================== ACTION BUTTON ===================== */}
+            {/* ACTION BUTTON */}
             {!isAktif && (
-              <div
-                className="
-            sticky bottom-0
-            px-6 py-4
-            bg-white/90 dark:bg-[#0B0614]/95
-            backdrop-blur
-            border-t border-blue-200 dark:border-indigo-800
-            flex flex-col sm:flex-row justify-end gap-3
-          "
-              >
+              <div className="sticky bottom-0 px-6 py-4 bg-white/90 dark:bg-[#0B0614]/95 backdrop-blur border-t border-blue-200 dark:border-indigo-800 flex flex-col sm:flex-row justify-end gap-3">
                 <button
                   onClick={() => updateStatus("Ditolak")}
-                  className="
-              inline-flex items-center justify-center gap-2
-              px-5 py-2.5 rounded-xl
-              bg-linear-to-r from-rose-500 to-red-600
-              text-white font-semibold
-              hover:opacity-90
-            "
+                  className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-linear-to-r from-rose-500 to-red-600 text-white font-semibold hover:opacity-90"
                 >
-                  <HiXCircle />
-                  Tolak
+                  <HiXCircle /> Tolak
                 </button>
-
                 <button
                   onClick={() => updateStatus("Disetujui")}
-                  className="
-              inline-flex items-center justify-center gap-2
-              px-5 py-2.5 rounded-xl
-              bg-linear-to-r from-emerald-500 to-green-600
-              text-white font-semibold
-              hover:opacity-90
-            "
+                  className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-linear-to-r from-emerald-500 to-green-600 text-white font-semibold hover:opacity-90"
                 >
-                  <HiCheckCircle />
-                  Setujui
+                  <HiCheckCircle /> Setujui
                 </button>
               </div>
             )}
           </div>
         </div>
       )}
+
       <AlertPopup
         open={alertOpen}
         type={alertType}
@@ -1609,32 +1085,19 @@ export default function ViewPendaftaranPage() {
   );
 }
 
-// ================= TYPES =================
-type SummaryColor = "default" | "green" | "red";
-
-type SummaryCardProps = {
-  title: string;
-  value: number | string;
-  color?: SummaryColor;
-  icon?: React.ReactNode;
-};
-
-/* ===================== COMPONENT ===================== */
-
+/* ================= COMPONENT ================= */
 function SummaryCard({
   title,
   value,
   color = "default",
   icon,
-}: SummaryCardProps) {
-  const colorMap: Record<
-    SummaryColor,
-    {
-      text: string;
-      badge: string;
-      border: string;
-    }
-  > = {
+}: {
+  title: string;
+  value: number | string;
+  color?: "default" | "green" | "red";
+  icon?: React.ReactNode;
+}) {
+  const colorMap = {
     default: {
       text: "text-[#7F1D1D] dark:text-white",
       badge: "bg-[#B91C1C]/90 dark:bg-indigo-600",
@@ -1651,24 +1114,10 @@ function SummaryCard({
       border: "border-rose-200 dark:border-rose-500/30",
     },
   };
-
   const c = colorMap[color];
-
   return (
     <div
-      className={`
-        group
-        relative
-        rounded-2xl
-        ${c.border}
-        bg-linear-to-br
-        from-[#FFFDF8] via-[#FFF4EC] to-white
-        dark:from-indigo-950 dark:via-indigo-900 dark:to-indigo-800
-        p-6
-        shadow-sm
-        hover:shadow-xl
-        transition
-      `}
+      className={`group relative rounded-2xl ${c.border} bg-linear-to-br from-[#FFFDF8] via-[#FFF4EC] to-white dark:from-indigo-950 dark:via-indigo-900 dark:to-indigo-800 p-6 shadow-sm hover:shadow-xl transition`}
     >
       <div className="flex items-center justify-between">
         <div>
@@ -1677,22 +1126,12 @@ function SummaryCard({
           </p>
           <p className={`text-4xl font-extrabold mt-1 ${c.text}`}>{value}</p>
         </div>
-
         <div
-          className={`
-            w-14 h-14
-            rounded-2xl
-            ${c.badge}
-            text-white
-            flex items-center justify-center
-            shadow
-            group-hover:scale-110 transition
-          `}
+          className={`w-14 h-14 rounded-2xl ${c.badge} text-white flex items-center justify-center shadow group-hover:scale-110 transition`}
         >
           {icon}
         </div>
       </div>
-
       <div className={`mt-4 pt-4 border-t ${c.border}`}>
         <p className="text-xs text-slate-600 dark:text-slate-300">
           Ringkasan data {title.toLowerCase()}
@@ -1702,29 +1141,10 @@ function SummaryCard({
   );
 }
 
-function Detail({ label, value }: { label: string; value?: string }) {
-  return (
-    <p className="text-sm">
-      <b>{label}:</b> {value || "-"}
-    </p>
-  );
-}
-
 function StatusBadge({ status }: { status: string }) {
   return (
     <span
-      className={`
-              inline-flex items-center justify-center
-              px-3 py-1 rounded-full
-              text-xs font-semibold
-              ${
-                status === "Disetujui"
-                  ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300"
-                  : status === "Ditolak"
-                    ? "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300"
-                    : "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-300"
-              }
-            `}
+      className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-semibold ${status === "Disetujui" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300" : status === "Ditolak" ? "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300" : "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-300"}`}
     >
       {status}
     </span>

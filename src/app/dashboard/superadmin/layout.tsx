@@ -230,7 +230,7 @@ export default function SuperadminLayout({
               }`}
             >
               <Link
-                href="/dashboard/admin"
+                href="/dashboard/superadmin"
                 className={`
                     flex items-center gap-3
                     py-2.5 rounded-xl
@@ -242,7 +242,7 @@ export default function SuperadminLayout({
                     ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
 
                     ${
-                      pathname === "/dashboard/admin"
+                      pathname === "/dashboard/superadmin"
                         ? `
                             bg-linear-to-r
                             from-[#FDE68A]/60
@@ -261,7 +261,7 @@ export default function SuperadminLayout({
               </Link>
 
               <Link
-                href="/dashboard/admin/ViewPendaftaran"
+                href="/dashboard/superadmin/ViewPendaftaran"
                 className={`
                     flex items-center gap-3
                     py-2.5 rounded-xl
@@ -292,7 +292,7 @@ export default function SuperadminLayout({
               </Link>
 
               <Link
-                href="/dashboard/admin/ViewPeserta"
+                href="/dashboard/superadmin/ViewPeserta"
                 className={`
                     flex items-center gap-3
                     py-2.5 rounded-xl
@@ -323,7 +323,7 @@ export default function SuperadminLayout({
               </Link>
 
               <Link
-                href="/dashboard/admin/ViewLogbook"
+                href="/dashboard/superadmin/ViewLogbook"
                 className={`
                     flex items-center gap-3
                     py-2.5 rounded-xl
@@ -354,7 +354,7 @@ export default function SuperadminLayout({
               </Link>
 
               <Link
-                href="/dashboard/admin/ViewLaporanBulanan"
+                href="/dashboard/superadmin/ViewLaporanBulanan"
                 className={`
                     flex items-center gap-3
                     py-2.5 rounded-xl
@@ -386,7 +386,7 @@ export default function SuperadminLayout({
               </Link>
 
               <Link
-                href="/dashboard/admin/ViewLaporanAkhir"
+                href="/dashboard/superadmin/ViewLaporanAkhir"
                 className={`
                     flex items-center gap-3
                     py-2.5 rounded-xl
@@ -480,7 +480,7 @@ export default function SuperadminLayout({
               </Link>
 
               <Link
-                href="/dashboard/admin/ManajemenAkun/buatmentor"
+                href="/dashboard/superadmin/ManajemenAkun/buatmentor"
                 className={`
                     flex items-center gap-3
                     py-2.5 rounded-xl
@@ -511,7 +511,7 @@ export default function SuperadminLayout({
               </Link>
 
               <Link
-                href="/dashboard/admin/ManajemenAkun/buatpeserta"
+                href="/dashboard/superadmin/ManajemenAkun/buatpeserta"
                 className={`
                     flex items-center gap-3
                     py-2.5 rounded-xl
@@ -573,7 +573,7 @@ export default function SuperadminLayout({
               }`}
             >
               <Link
-                href="/dashboard/admin/manajemenTampilan/LayoutUtama"
+                href="/dashboard/superadmin/manajemenTampilan/LayoutUtama"
                 className={`
     flex items-center gap-3
     py-2.5 rounded-xl
@@ -604,7 +604,7 @@ export default function SuperadminLayout({
               </Link>
 
               <Link
-                href="/dashboard/admin/layout/banner"
+                href="/dashboard/superadmin/layout/banner"
                 className={`
                     flex items-center gap-3
                     py-2.5 rounded-xl
