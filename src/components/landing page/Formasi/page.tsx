@@ -6,34 +6,34 @@ import { useEffect, useRef, useState } from "react";
 
 const formasiList = [
   {
-    title: "Analis Laboratorium",
+    title: "Fungsi Penindakan",
     divisi: "Laboratorium Pengujian",
     kuota: "3 Orang",
-    jurusan: "Kimia, Analis Kimia, Farmasi",
+    jurusan: "Hukum, dan lain-lain",
   },
   {
-    title: "Administrasi Umum",
+    title: "Fungsi Pengujian",
     divisi: "Tata Usaha",
     kuota: "2 Orang",
-    jurusan: "Administrasi, Manajemen, Akuntansi",
+    jurusan: "Kimia, Fisika, dan lain-lain",
   },
   {
-    title: "IT Support",
+    title: "Fungsi Pemeriksaan (Inspeksi dan sertiffikasi )",
     divisi: "Sistem Informasi",
     kuota: "2 Orang",
-    jurusan: "Informatika, Sistem Informasi",
+    jurusan: "Sistem Informasi,Sistem Komputer, dan lain-lain",
   },
   {
-    title: "Humas & Publikasi",
+    title: "Fungsi Informasi dan Komunikasi",
     divisi: "Informasi & Komunikasi",
     kuota: "2 Orang",
-    jurusan: "Ilmu Komunikasi, DKV",
+    jurusan: "Ilmu Komunikasi, dan lain-lain",
   },
   {
-    title: "Humas & Publikasi",
+    title: "Bagian tata Usaha",
     divisi: "Informasi & Komunikasi",
     kuota: "2 Orang",
-    jurusan: "Ilmu Komunikasi, DKV",
+    jurusan: "Administrasi, Akuntansi, dan lian-lain",
   },
 ];
 

@@ -720,17 +720,17 @@ span.flatpickr-weekday,
   @apply !bg-gray-50 dark:!bg-gray-900;
 }
 .jvectormap-region.jvectormap-element {
-  @apply !fill-gray-300 hover:!fill-brand-500 dark:!fill-gray-700 dark:hover:!fill-brand-500;
+  @apply !fill-gray-300 hover:fill-brand-500! dark:!fill-gray-700 dark:hover:!fill-brand-500;
 }
 .jvectormap-marker.jvectormap-element {
   @apply !stroke-gray-200 dark:!stroke-gray-800;
 }
 .jvectormap-tip {
-  @apply !bg-brand-500 !border-none !px-2 !py-1;
+  @apply !bg-brand-500 !border-none px-2! py-1!;
 }
 .jvectormap-zoomin,
 .jvectormap-zoomout {
-  @apply !hidden;
+  @apply hidden!;
 }
 
 .form-check-input:checked ~ span {
@@ -863,4 +863,40 @@ span.flatpickr-weekday,
 /* ERROR → MERAH */
 .toast-progress-error {
   background: linear-gradient(to right, #f43f5e, #e11d48) !important;
+}
+
+/* DARK MODE react-date-range */
+.dark .rdrCalendarWrapper {
+  background-color: #020617;
+  color: #e5e7eb;
+}
+
+.dark .rdrMonthAndYearPickers select {
+  color: #e5e7eb;
+  background: #020617;
+}
+
+.dark .rdrDayNumber span {
+  color: #e5e7eb;
+}
+
+.dark .rdrDayDisabled {
+  background: #020617;
+}
+
+.dark .rdrDayPassive span {
+  color: #6b7280;
+}
+
+.dark .rdrDateDisplayWrapper {
+  background-color: #020617;
+}
+
+.dark .rdrDefinedRangesWrapper {
+  background-color: #020617;
+  border-color: #334155;
+}
+
+.dark .rdrNextPrevButton {
+  background: #1e293b;
 }

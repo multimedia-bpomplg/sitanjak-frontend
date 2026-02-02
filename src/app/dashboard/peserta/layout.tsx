@@ -387,7 +387,7 @@ export default function PesertaLayout({
               </Link>
             </div>
 
-            {/* ===== PROFILE ===== */}
+            {/* ===== Setting ===== */}
             <button
               onClick={() => setHistoryOpen(!historyOpen)}
               className={`flex items-center gap-3 py-2 rounded-xl hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm dark:hover:bg-[#312E81]/40 dark:hover:text-white
@@ -446,6 +446,36 @@ export default function PesertaLayout({
                 📜 {!collapsed && "Ganti Password"}
               </Link>
             </div>
+
+            {/* Panduan Website */}
+            <Link
+              href="/panduan"
+              className={`
+                flex items-center gap-3
+                py-2 rounded-xl
+                hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm
+                dark:hover:bg-[#312E81]/40 dark:hover:text-white
+                transition w-full
+                ${collapsed ? "justify-center px-3" : "pl-5 pr-3"}
+                  
+                ${
+                  pathname.startsWith("/panduan")
+                    ? `
+                        bg-linear-to-r
+                        from-[#FDE68A]/60
+                        to-[#FACC15]/40
+                        text-[#7F1D1D]
+                        dark:from-indigo-500/30
+                        dark:via-purple-500/25
+                        dark:to-fuchsia-500/30
+                        dark:text-indigo-200
+                        shadow-inner
+                      `
+                    : "text-gray-700 dark:text-gray-300"
+                }`}
+            >
+              📖 {!collapsed && "Panduan Website"}
+            </Link>
           </nav>
         </aside>
 

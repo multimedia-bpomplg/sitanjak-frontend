@@ -970,6 +970,10 @@ export default function OversistemDashboard() {
     );
   };
 
+  const isMobile =
+    typeof window !== "undefined" && window.innerWidth < 640;
+
+
   /* ---------------------------
       Render - REAL TIME VERSION
       --------------------------- */
@@ -1524,16 +1528,26 @@ export default function OversistemDashboard() {
               </button>
 
               {showDatePicker && (
-                <div className="absolute right-0 mt-2 z-50 bg-white dark:bg-gray-800 shadow-2xl rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                <div className="
+                  fixed
+                  left-1/2 top-20
+                  -translate-x-1/2
+                  z-50
+                  w-[95vw] max-w-225
+                  bg-white dark:bg-gray-800
+                  shadow-2xl
+                  rounded-xl
+                  p-4
+                ">
                   <DateRange
                     ranges={[dateRange]}
                     onChange={(ranges) => {
                       setDateRange(ranges.selection);
                       setShowDatePicker(false);
                     }}
-                    months={2}
-                    direction="horizontal"
-                    rangeColors={["#3b82f6"]}
+                    months={isMobile ? 1 : 2}
+                    direction={isMobile ? "vertical" : "horizontal"}
+                    rangeColors={["#6366f1"]}
                   />
                 </div>
               )}
@@ -1648,33 +1662,30 @@ export default function OversistemDashboard() {
 
                   {/* Status Logbook */}
                   <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-300">
-                          Status Distribusi
-                        </p>
-                        <div className="space-y-1">
-                          {logbookStats.byStatus?.map(
-                            (item: any, index: number) => (
-                              <div key={index} className="flex justify-between">
-                                <span className="text-sm">
-                                  {item._id === "disetujui"
-                                    ? "Disetujui"
-                                    : item._id === "menunggu"
-                                      ? "Menunggu"
-                                      : item._id === "ditolak"
-                                        ? "Ditolak"
-                                        : item._id || "Tidak diketahui"}
-                                </span>
-                                <span className="font-semibold">
-                                  {item.count}
-                                </span>
-                              </div>
-                            ),
-                          )}
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-sm text-gray-600 dark:text-gray-300">
+                        Status Distribusi
+                      </p>
+                      <Eye className="w-6 h-6 text-green-500" />
+                    </div>
+
+                    <div className="space-y-2 text-sm">
+                      {logbookStats.byStatus?.map((item: any, index: number) => (
+                        <div key={index} className="flex justify-between items-center">
+                          <span className="text-gray-700 dark:text-gray-300">
+                            {item._id === "disetujui"
+                              ? "Disetujui"
+                              : item._id === "menunggu"
+                              ? "Menunggu"
+                              : item._id === "ditolak"
+                              ? "Ditolak"
+                              : item._id || "Tidak diketahui"}
+                          </span>
+                          <span className="font-semibold text-gray-900 dark:text-white">
+                            {item.count}
+                          </span>
                         </div>
-                      </div>
-                      <Eye className="w-8 h-8 text-green-500" />
+                      ))}
                     </div>
                   </div>
 
@@ -1750,67 +1761,71 @@ export default function OversistemDashboard() {
 
                   {/* Status Pendaftaran */}
                   <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-300">
-                          Status
-                        </p>
-                        <div className="space-y-1">
-                          {pendaftaranStats.byStatus?.map(
-                            (item: any, index: number) => (
-                              <div key={index} className="flex justify-between">
-                                <span className="text-sm">
-                                  {item._id === "Disetujui"
-                                    ? "Disetujui"
-                                    : item._id === "Menunggu"
-                                      ? "Menunggu"
-                                      : item._id === "Ditolak"
-                                        ? "Ditolak"
-                                        : item._id || "Tidak diketahui"}
-                                </span>
-                                <span
-                                  className={`font-semibold ${
-                                    item._id === "Disetujui"
-                                      ? "text-green-600"
-                                      : item._id === "Ditolak"
-                                        ? "text-red-600"
-                                        : "text-yellow-600"
-                                  }`}
-                                >
-                                  {item.count}
-                                </span>
-                              </div>
-                            ),
-                          )}
-                        </div>
-                      </div>
-                      <AlertCircle className="w-8 h-8 text-red-500" />
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-sm text-gray-600 dark:text-gray-300">
+                        Status Pendaftaran
+                      </p>
+                      <AlertCircle className="w-6 h-6 text-red-500" />
+                    </div>
+
+                    <div className="space-y-2 text-sm">
+                      {pendaftaranStats.byStatus?.map(
+                        (item: any, index: number) => (
+                          <div
+                            key={index}
+                            className="flex justify-between items-center"
+                          >
+                            <span className="text-gray-700 dark:text-gray-300">
+                              {item._id === "Disetujui"
+                                ? "Disetujui"
+                                : item._id === "Menunggu"
+                                ? "Menunggu"
+                                : item._id === "Ditolak"
+                                ? "Ditolak"
+                                : item._id || "Tidak diketahui"}
+                            </span>
+                            <span
+                              className={`font-semibold ${
+                                item._id === "Disetujui"
+                                  ? "text-green-600"
+                                  : item._id === "Ditolak"
+                                  ? "text-red-600"
+                                  : "text-yellow-600"
+                              }`}
+                            >
+                              {item.count}
+                            </span>
+                          </div>
+                        )
+                      )}
                     </div>
                   </div>
 
                   {/* Top Posisi */}
                   <div className="bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-lg">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-300">
-                          Top Posisi
-                        </p>
-                        <div className="space-y-1">
-                          {pendaftaranStats.topPosisi
-                            ?.slice(0, 3)
-                            .map((item: any, index: number) => (
-                              <div key={index} className="flex justify-between">
-                                <span className="text-sm truncate">
-                                  {item._id || "Tidak diketahui"}
-                                </span>
-                                <span className="font-semibold">
-                                  {item.count}
-                                </span>
-                              </div>
-                            ))}
-                        </div>
-                      </div>
-                      <Users className="w-8 h-8 text-indigo-500" />
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-sm text-gray-600 dark:text-gray-300">
+                        Top Posisi
+                      </p>
+                      <Users className="w-6 h-6 text-indigo-500" />
+                    </div>
+
+                    <div className="space-y-2 max-h-32 overflow-y-auto text-sm">
+                      {pendaftaranStats.topPosisi
+                        ?.slice(0, 3)
+                        .map((item: any, index: number) => (
+                          <div
+                            key={index}
+                            className="flex justify-between items-center"
+                          >
+                            <span className="truncate text-gray-700 dark:text-gray-300">
+                              {item._id || "Tidak diketahui"}
+                            </span>
+                            <span className="font-semibold text-gray-900 dark:text-white">
+                              {item.count}
+                            </span>
+                          </div>
+                        ))}
                     </div>
                   </div>
                 </div>

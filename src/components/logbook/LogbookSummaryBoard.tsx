@@ -117,8 +117,8 @@ function SummaryCard({
           pointer-events-none
           absolute inset-0
           rounded-3xl
-          [mask-image:linear-gradient(to_bottom,black,black_12%,transparent_12%)]
-          bg-gradient-to-r ${styles[variant].accent}
+          mask-[linear-gradient(to_bottom,black,black_12%,transparent_12%)]
+          bg-linear-to-r ${styles[variant].accent}
         `}
       />
 

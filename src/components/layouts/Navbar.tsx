@@ -84,6 +84,7 @@ export default function Navbar() {
             { label: "Formasi", id: "formasi" },
             { label: "Manfaat", id: "manfaat" },
             { label: "Peraturan", id: "peraturan" },
+            { label: "Panduan Pendaftaran", id: "panduan" },
           ].map((item) => (
             <button
               key={item.id}
@@ -130,6 +131,7 @@ export default function Navbar() {
               { label: "Formasi", id: "formasi" },
               { label: "Manfaat", id: "manfaat" },
               { label: "Peraturan", id: "peraturan" },
+              { label: "Panduan Pendaftaran", id: "panduan" },
             ].map((item) => (
               <button
                 key={item.id}

@@ -323,47 +323,49 @@ export default function RiwayatPendaftaran() {
                 </div>
               )}
 
-              {result.suratPengantar && (
-                <a
-                  href={`http://localhost:5000/uploads/${result.suratPengantar}`}
-                  target="_blank"
-                  className="
-                    inline-flex items-center gap-2
-                    px-5 py-2.5 rounded-xl
-                    bg-[#FEF3C7] text-[#7F1D1D] font-semibold
-                    hover:bg-[#FACC15] transition
-                  "
-                >
-                  📄 Lihat Surat Pengantar
-                </a>
-              )}
+              <div className="flex flex-wrap gap-3">
+                {result.suratPengantar && (
+                  <a
+                    href={`http://localhost:5000/uploads/${result.suratPengantar}`}
+                    target="_blank"
+                    className="
+                      inline-flex items-center gap-2
+                      px-5 py-2.5 rounded-xl
+                      bg-[#FEF3C7] text-[#7F1D1D] font-semibold
+                      hover:bg-[#FACC15] transition
+                    "
+                  >
+                    📄 Lihat Surat Pengantar
+                  </a>
+                )}
 
-              {/* SURAT BALASAN */}
-              {result.suratBalasan ? (
-                <a
-                  href={`http://localhost:5000/uploads/${result.suratBalasan}`}
-                  target="_blank"
-                  className="
-                    inline-flex items-center gap-2
-                    px-5 py-2.5 rounded-xl
-                    bg-green-100 text-green-700 font-semibold
-                    hover:bg-green-200 transition
-                  "
-                >
-                  ✅ Surat Balasan
-                </a>
-              ) : (
-                <div
-                  className="
-                    inline-flex items-center gap-2
-                    px-5 py-2.5 rounded-xl
-                    bg-red-100 text-red-700 font-semibold
-                    cursor-not-allowed
-                  "
-                >
-                  ❌ Surat Balasan Belum Ada
-                </div>
-              )}
+                {/* SURAT BALASAN */}
+                {result.suratBalasan ? (
+                  <a
+                    href={`http://localhost:5000/uploads/${result.suratBalasan}`}
+                    target="_blank"
+                    className="
+                      inline-flex items-center gap-2
+                      px-5 py-2.5 rounded-xl
+                      bg-green-100 text-green-700 font-semibold
+                      hover:bg-green-200 transition
+                    "
+                  >
+                    ✅ Surat Balasan
+                  </a>
+                ) : (
+                  <div
+                    className="
+                      inline-flex items-center gap-2
+                      px-5 py-2.5 rounded-xl
+                      bg-red-100 text-red-700 font-semibold
+                      cursor-not-allowed
+                    "
+                  >
+                    ❌ Surat Balasan Belum Ada
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* DIVIDER */}

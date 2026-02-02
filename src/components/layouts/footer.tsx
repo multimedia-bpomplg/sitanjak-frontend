@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { FaFacebookF, FaInstagram, FaYoutube, FaGlobe } from "react-icons/fa";
-import { HiHome, HiUser, HiClipboardList, HiGift, HiDocumentText } from "react-icons/hi";
+import { HiHome, HiUser, HiClipboardList, HiGift, HiDocumentText, HiOutlineInformationCircle, HiInformationCircle } from "react-icons/hi";
 
 export default function Footer() {
   return (
@@ -59,6 +59,7 @@ export default function Footer() {
                 { label: "Formasi", href: "/formasi", icon: HiClipboardList },
                 { label: "Manfaat", href: "/manfaat", icon: HiGift },
                 { label: "Peraturan", href: "/peraturan", icon: HiDocumentText },
+                { label: "Panduan Pendaftaran", href: "/panduan", icon: HiInformationCircle },
               ].map((menu, i) => (
                 <li key={i}>
                   <Link
