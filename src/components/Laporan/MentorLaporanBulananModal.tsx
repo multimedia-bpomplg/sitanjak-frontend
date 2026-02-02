@@ -465,7 +465,8 @@ export default function MentorLaporanBulananModal({
                         p-2
                       "
                     >
-                      {["Disetujui", "Ditolak", "Perbaiki", "Menunggu"].map(
+                      {["Disetujui", "Ditolak"].map(
+                        //  {["Disetujui", "Ditolak", "Perbaiki", "Menunggu"].map(
                         (s) => (
                           <button
                             key={s}

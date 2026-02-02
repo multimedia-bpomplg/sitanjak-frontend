@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { showToast  } from "@/components/ui/toastDashboard";
+import { showToast } from "@/components/ui/toastDashboard";
 
 type Props = {
   mode: "create" | "view";
@@ -35,7 +35,7 @@ export default function LaporanAkhirModal({ mode, onClose }: Props) {
             headers: {
               Authorization: `Bearer ${localStorage.getItem("token")}`,
             },
-          }
+          },
         );
 
         // ⛔ JIKA TIDAK OK → STOP
@@ -58,9 +58,7 @@ export default function LaporanAkhirModal({ mode, onClose }: Props) {
     fetchDetail();
   }, [mode]);
 
-
-  const isMin = (text: string, min: number) =>
-    text.trim().length >= min;
+  const isMin = (text: string, min: number) => text.trim().length >= min;
 
   /* ================= VALIDASI ================= */
   const submitDisabled =
@@ -104,7 +102,7 @@ export default function LaporanAkhirModal({ mode, onClose }: Props) {
             kesimpulan,
             saran,
           }),
-        }
+        },
       );
 
       const data = await res.json();
@@ -113,20 +111,15 @@ export default function LaporanAkhirModal({ mode, onClose }: Props) {
       if (!res.ok) {
         if (res.status === 401) {
           throw new Error(
-            "Sesi login Anda telah berakhir. Silakan login ulang."
+            "Sesi login Anda telah berakhir. Silakan login ulang.",
           );
         }
 
-        throw new Error(
-          data?.message || "Gagal menyimpan laporan akhir"
-        );
+        throw new Error(data?.message || "Gagal menyimpan laporan akhir");
       }
 
       // ✅ SUCCESS
-      showToast.updateSuccess(
-        toastId,
-        "🎉 Laporan akhir berhasil dikirim."
-      );
+      showToast.updateSuccess(toastId, "🎉 Laporan akhir berhasil dikirim.");
 
       setShowConfirm(false);
 
@@ -137,7 +130,7 @@ export default function LaporanAkhirModal({ mode, onClose }: Props) {
       // ❌ ERROR
       showToast.updateError(
         toastId,
-        err.message || "Terjadi kesalahan saat menyimpan laporan"
+        err.message || "Terjadi kesalahan saat menyimpan laporan",
       );
     }
   };
@@ -145,7 +138,7 @@ export default function LaporanAkhirModal({ mode, onClose }: Props) {
   const handleDownloadPdf = async () => {
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/laporan-akhir/pdf`
+        `${process.env.NEXT_PUBLIC_API_URL}/laporan-akhir/pdf`,
       );
 
       if (!res.ok) throw new Error();
@@ -228,7 +221,7 @@ export default function LaporanAkhirModal({ mode, onClose }: Props) {
               />
             )}
           </Field>
-          
+
           <Field label="Ringkasan Kegiatan Magang">
             {readonly ? (
               <TextBlock value={ringkasan} />
@@ -294,7 +287,6 @@ export default function LaporanAkhirModal({ mode, onClose }: Props) {
             )}
           </Field>
 
-
           {mode === "create" && (
             <button
               type="button"
@@ -333,7 +325,7 @@ export default function LaporanAkhirModal({ mode, onClose }: Props) {
         </div>
 
         {/* FOOTER */}
-        <div 
+        <div
           className="
             px-4 sm:px-6 py-4
             border-t border-slate-200 dark:border-slate-800
@@ -343,7 +335,7 @@ export default function LaporanAkhirModal({ mode, onClose }: Props) {
             gap-3
           "
         >
-          {/* KIRI: DOWNLOAD PDF */}
+          {/* KIRI: DOWNLOAD PDF
           {mode === "view" && approvedByMentor && (
             <button
               onClick={handleDownloadPdf}
@@ -363,7 +355,7 @@ export default function LaporanAkhirModal({ mode, onClose }: Props) {
             >
               📄 Download PDF
             </button>
-          )}
+          )} */}
 
           {/* KANAN: AKSI */}
           <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
@@ -579,8 +571,8 @@ function Input({
             isError
               ? "border-red-400 focus:ring-red-400"
               : isValid
-              ? "border-emerald-400 focus:ring-emerald-400"
-              : "border-slate-300 dark:border-slate-700 focus:ring-indigo-500"
+                ? "border-emerald-400 focus:ring-emerald-400"
+                : "border-slate-300 dark:border-slate-700 focus:ring-indigo-500"
           }
         `}
       />
@@ -588,9 +580,7 @@ function Input({
       {/* INFO BAWAH */}
       <div className="flex justify-between text-xs">
         {isError && (
-          <span className="text-red-500">
-            Minimal {min} karakter
-          </span>
+          <span className="text-red-500">Minimal {min} karakter</span>
         )}
 
         {isValid && (
@@ -622,11 +612,9 @@ function Textarea({
 }) {
   const length = value.trim().length;
 
-  const isError =
-    !optional && length > 0 && length < min;
+  const isError = !optional && length > 0 && length < min;
 
-  const isValid =
-    !optional && length >= min;
+  const isValid = !optional && length >= min;
 
   return (
     <div className="space-y-1">
@@ -646,10 +634,10 @@ function Textarea({
             optional
               ? "border-slate-300 dark:border-slate-700 focus:ring-indigo-500"
               : isError
-              ? "border-red-400 focus:ring-red-400"
-              : isValid
-              ? "border-emerald-400 focus:ring-emerald-400"
-              : "border-slate-300 dark:border-slate-700 focus:ring-indigo-500"
+                ? "border-red-400 focus:ring-red-400"
+                : isValid
+                  ? "border-emerald-400 focus:ring-emerald-400"
+                  : "border-slate-300 dark:border-slate-700 focus:ring-indigo-500"
           }
         `}
       />
@@ -658,9 +646,7 @@ function Textarea({
       {!optional && (
         <div className="flex justify-between text-xs">
           {isError && (
-            <span className="text-red-500">
-              Minimal {min} karakter
-            </span>
+            <span className="text-red-500">Minimal {min} karakter</span>
           )}
           {isValid && (
             <span className="text-emerald-600 dark:text-emerald-400">

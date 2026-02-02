@@ -172,13 +172,16 @@ export default function MentorLaporanAkhirModal({
   };
 
   return (
-    <div className="
+    <div
+      className="
       fixed inset-0 z-50
       bg-black/40 dark:bg-black/70
       backdrop-blur-md
       flex items-center justify-center p-3 sm:p-6
-    ">
-      <div className="
+    "
+    >
+      <div
+        className="
         w-full max-w-5xl
         bg-white/90 dark:bg-white/5
         backdrop-blur
@@ -188,7 +191,8 @@ export default function MentorLaporanAkhirModal({
         overflow-hidden
         max-h-[92vh]
         flex flex-col
-      ">
+      "
+      >
         {/* HEADER */}
         <div
           className="
@@ -264,7 +268,6 @@ export default function MentorLaporanAkhirModal({
                 `}
               >
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                  
                   {/* LEFT */}
                   <div className="flex items-center gap-3">
                     <div
@@ -274,7 +277,9 @@ export default function MentorLaporanAkhirModal({
                         ${getStatusColor(laporan.status).bg}
                       `}
                     >
-                      <span className={`${getStatusColor(laporan.status).icon}`}>
+                      <span
+                        className={`${getStatusColor(laporan.status).icon}`}
+                      >
                         {getStatusIcon(laporan.status)}
                       </span>
                     </div>
@@ -292,10 +297,10 @@ export default function MentorLaporanAkhirModal({
                         {laporan.status === "Disetujui"
                           ? "✅ Disetujui"
                           : laporan.status === "Ditolak"
-                          ? "❌ Ditolak"
-                          : laporan.status === "Revisi"
-                          ? "📝 Perlu Revisi"
-                          : "⏳ Menunggu Review"}
+                            ? "❌ Ditolak"
+                            : laporan.status === "Revisi"
+                              ? "📝 Perlu Revisi"
+                              : "⏳ Menunggu Review"}
                       </p>
                     </div>
                   </div>
@@ -305,7 +310,9 @@ export default function MentorLaporanAkhirModal({
                     <div className="text-xs sm:text-sm text-slate-500 dark:text-slate-300">
                       Direview:
                       <span className="ml-1 font-semibold">
-                        {new Date(laporan.approvedAt).toLocaleDateString("id-ID")}
+                        {new Date(laporan.approvedAt).toLocaleDateString(
+                          "id-ID",
+                        )}
                       </span>
                     </div>
                   )}
@@ -400,12 +407,15 @@ export default function MentorLaporanAkhirModal({
                         p-2
                       "
                     >
-                      {["Disetujui", "Ditolak", "Revisi", "Menunggu"].map((s) => (
-                        <button
-                          key={s}
-                          type="button"
-                          onClick={() => setStatus(s)}
-                          className={`
+                      {["Disetujui", "Ditolak"].map(
+                        (
+                          s, //{["Disetujui", "Ditolak", "Revisi", "Menunggu"].map((s) => ( (Untuk opsi Revisi dan Menunggu dihilangkan Maintenance 1.0 )
+                        ) => (
+                          <button
+                            key={s}
+                            type="button"
+                            onClick={() => setStatus(s)}
+                            className={`
                             px-4 py-2
                             rounded-lg
                             text-xs sm:text-sm
@@ -417,17 +427,18 @@ export default function MentorLaporanAkhirModal({
                                 ? s === "Disetujui"
                                   ? "bg-emerald-500 text-white shadow"
                                   : s === "Ditolak"
-                                  ? "bg-red-500 text-white shadow"
-                                  : s === "Revisi"
-                                  ? "bg-amber-500 text-white shadow"
-                                  : "bg-blue-500 text-white shadow"
+                                    ? "bg-red-500 text-white shadow"
+                                    : s === "Revisi"
+                                      ? "bg-amber-500 text-white shadow"
+                                      : "bg-blue-500 text-white shadow"
                                 : "text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/10"
                             }
                           `}
-                        >
-                          {s}
-                        </button>
-                      ))}
+                          >
+                            {s}
+                          </button>
+                        ),
+                      )}
                     </div>
                   </div>
 
@@ -534,9 +545,7 @@ function FieldViewCard({
     <div className="space-y-3">
       {/* HEADER */}
       <div className="flex items-center gap-2 text-slate-700 dark:text-white">
-        <span className="text-indigo-500 dark:text-indigo-400">
-          {icon}
-        </span>
+        <span className="text-indigo-500 dark:text-indigo-400">{icon}</span>
         <label className="font-semibold tracking-wide">{label}</label>
       </div>
 

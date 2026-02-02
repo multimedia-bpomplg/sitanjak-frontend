@@ -7,6 +7,9 @@ import {
   HiClipboardList,
   HiShieldCheck,
   HiDocumentReport,
+  HiCalendar,
+  HiMail,
+  HiPhone,
 } from "react-icons/hi";
 
 /* ================= TYPE ================= */
@@ -22,33 +25,63 @@ type Mentor = {
   email: string;
 };
 
+type PendaftaranTerbaru = {
+  _id: string;
+  peserta: Array<{
+    nama: string;
+    email: string;
+    wa: string;
+    posisi: string;
+    tanggalMulaiMagang: string;
+    tanggalSelesaiMagang: string;
+    asal?: {
+      jenis: string;
+      nama: string;
+    };
+  }>;
+  kategori: string;
+  status: "Menunggu" | "Sedang Diproses" | "Disetujui" | "Ditolak";
+  createdAt: string;
+};
+
 export default function AdminDashboard() {
   const [peserta, setPeserta] = useState<Peserta[]>([]);
   const [mentor, setMentor] = useState<Mentor[]>([]);
+  const [pendaftaranTerbaru, setPendaftaranTerbaru] = useState<
+    PendaftaranTerbaru[]
+  >([]);
   const [loading, setLoading] = useState(true);
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL;
 
   /* ================= FETCH DATA ================= */
   useEffect(() => {
     const fetchDashboard = async () => {
       try {
-        const [pesertaRes, mentorRes] = await Promise.all([
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/peserta`, {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
+        const token = localStorage.getItem("token");
+
+        const [pesertaRes, mentorRes, pendaftaranRes] = await Promise.all([
+          fetch(`${API_BASE}/admin/peserta`, {
+            headers: { Authorization: `Bearer ${token}` },
           }),
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/mentor`, {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
+          fetch(`${API_BASE}/admin/mentor`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          fetch(`${API_BASE}/admin/pendaftaran`, {
+            headers: { Authorization: `Bearer ${token}` },
           }),
         ]);
 
+        if (!pesertaRes.ok || !mentorRes.ok || !pendaftaranRes.ok) {
+          throw new Error("Gagal memuat data dashboard");
+        }
+
         const pesertaData = await pesertaRes.json();
         const mentorData = await mentorRes.json();
+        const pendaftaranData = await pendaftaranRes.json();
 
         setPeserta(pesertaData);
         setMentor(mentorData);
+        setPendaftaranTerbaru(pendaftaranData.slice(0, 6)); // Ambil 6 pendaftaran terbaru
       } catch (err) {
         console.error("❌ Gagal memuat dashboard admin", err);
       } finally {
@@ -63,7 +96,7 @@ export default function AdminDashboard() {
   const totalPeserta = peserta.length;
   const pesertaAktif = peserta.filter((p) => p.status === "Aktif").length;
   const totalMentor = mentor.length;
-  const menungguVerifikasi = peserta.filter(
+  const menungguVerifikasi = pendaftaranTerbaru.filter(
     (p) => p.status === "Menunggu",
   ).length;
 
@@ -94,7 +127,7 @@ export default function AdminDashboard() {
     },
   ];
 
-  /* ================= TASK ADMIN ================= */
+  /* ================= TASK ADMIN (HANYA TAMPILAN) ================= */
   const tasks = [
     {
       title: "Verifikasi Pendaftaran",
@@ -107,212 +140,277 @@ export default function AdminDashboard() {
       icon: <HiUserAdd />,
     },
     {
-      title: "Monitoring Logbook",
-      desc: "Pantau seluruh logbook peserta",
-      icon: <HiDocumentReport />,
+      title: "Kelola Peserta",
+      desc: "Kelola seluruh akun peserta magang",
+      icon: <HiUserGroup />,
     },
     {
       title: "Laporan & Statistik",
       desc: "Rekap dan analisis data magang",
-      icon: <HiShieldCheck />,
+      icon: <HiDocumentReport />,
     },
   ];
 
+  /* ================= FUNGSI UTILITAS ================= */
+  const formatTanggal = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("id-ID", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
+  const hitungHariLalu = (dateString: string) => {
+    const now = new Date();
+    const date = new Date(dateString);
+    const diffTime = now.getTime() - date.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) return "Hari ini";
+    if (diffDays === 1) return "Kemarin";
+    return `${diffDays} hari lalu`;
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "Menunggu":
+        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300";
+      case "Sedang Diproses":
+        return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300";
+      case "Disetujui":
+        return "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300";
+      case "Ditolak":
+        return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300";
+      default:
+        return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300";
+    }
+  };
+
   if (loading) {
     return (
-      <div className="p-6 text-sm text-gray-500">
-        ⏳ Memuat dashboard admin...
+      <div className="min-h-screen p-6 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+          <p className="mt-4 text-sm text-gray-500">
+            Memuat dashboard admin...
+          </p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div
-      className="
-        min-h-screen p-4 sm:p-6 lg:p-10
-        bg-linear-to-br
-        from-slate-50 via-white to-indigo-100
-        dark:from-[#0B0614] dark:via-[#120A24] dark:to-[#1E0F3D]
-        text-slate-800 dark:text-slate-100
-        transition-colors
-      "
-    >
+    <div className="min-h-screen p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-slate-50 via-white to-indigo-50 dark:from-[#0B0614] dark:via-[#120A24] dark:to-[#1E0F3D] text-slate-800 dark:text-slate-100 transition-colors">
       {/* HEADER */}
-      <div className="mb-10">
-        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight">
+      <div className="mb-8">
+        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B] dark:from-indigo-400 dark:via-violet-400 dark:to-purple-400">
           Dashboard Admin 🛠️
         </h1>
-        <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400">
-          Kontrol penuh data magang dan sistem
+        <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 mt-2">
+          Selamat datang! Kelola semua aktivitas magang dari sini.
         </p>
       </div>
 
-      {/* SUMMARY */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5 mb-12">
+      {/* SUMMARY CARDS */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {summary.map((s, i) => (
           <div
             key={i}
-            className="
-              group
-              relative rounded-3xl
-              bg-white/80 dark:bg-white/5
-              backdrop-blur
-              border border-slate-200 dark:border-slate-700
-              shadow-md hover:shadow-xl
-              transition-all
-            "
+            className="group relative rounded-2xl bg-white/80 dark:bg-white/5 backdrop-blur border border-slate-200 dark:border-slate-700 shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
           >
             <div
-              className={`
-                pointer-events-none absolute inset-0 rounded-3xl
-                bg-linear-to-br ${s.color}
-                opacity-0 group-hover:opacity-30 blur-xl
-                transition
-              `}
+              className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${s.color} opacity-0 group-hover:opacity-10 transition-opacity duration-300`}
             />
-            <div className="relative p-6 flex items-center gap-4">
-              {/* ICON */}
-              <div
-                className="
-                  w-14 h-14 sm:w-16 sm:h-16   
-                  rounded-2xl
-                  bg-linear-to-br from-[#7F1D1D] to-[#F59E0B]
-                  dark:from-indigo-600 dark:to-violet-500
-                  text-white
-                  flex items-center justify-center
-                  shadow-lg
-                "
-              >
-                <span className="text-xl sm:text-2xl">
-                  {s.icon}
-                </span>
-              </div>
-
-              {/* TEXT */}
+            <div className="relative p-5 flex items-center justify-between">
               <div>
-                <p className="text-sm text-slate-500 dark:text-slate-400">
+                <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
                   {s.label}
                 </p>
-                <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white">
+                <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
                   {s.value}
                 </h2>
+              </div>
+              <div
+                className={`w-12 h-12 rounded-xl bg-gradient-to-br ${s.color} text-white flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}
+              >
+                <span className="text-xl">{s.icon}</span>
               </div>
             </div>
           </div>
         ))}
       </div>
 
-      {/* GRID */}
+      {/* GRID UTAMA */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* TASK ADMIN */}
-        <div
-          className="
-            rounded-3xl
-            bg-white/80 dark:bg-white/5
-            backdrop-blur
-            border border-slate-200 dark:border-slate-700
-            shadow-lg
-            p-6
-          "
-        >
-          <h3 className="font-bold mb-5 flex items-center gap-2">
-            ⚙️ Tugas Admin
-          </h3>
-
-          <div className="grid grid-cols-1 sm:grid-cols-1 gap-3">
-            {tasks.map((t, i) => (
-              <div
-                key={i}
-                className="
-                  flex items-center gap-3
-                  p-3 sm:p-4
-                  rounded-2xl
-                  bg-white/90 dark:bg-white/5
-                  border border-slate-200 dark:border-slate-700
-                  shadow-sm hover:shadow-md
-                  transition
-                "
-              >
-                <div
-                  className="
-                    shrink-0
-                    w-10 h-10
-                    rounded-xl
-                    bg-linear-to-br from-[#7F1D1D] to-[#F59E0B]
-                    dark:from-indigo-600 dark:to-violet-500
-                    text-white
-                    flex items-center justify-center
-                    shadow
-                  "
-                >
-                  {t.icon}
-                </div>
-
-                <div className="leading-tight">
-                  <p className="font-semibold text-sm sm:text-base">{t.title}</p>
-                  <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">{t.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
         {/* PENDAFTARAN TERBARU */}
-        <div
-          className="
-            lg:col-span-2
-            rounded-3xl
-            bg-white/80 dark:bg-white/5
-            backdrop-blur
-            border border-slate-200 dark:border-slate-700
-            shadow-lg
-            p-6
-          "
-        >
-          <h3 className="font-bold mb-5 flex items-center gap-2">
-            🆕 Pendaftaran Terbaru
-          </h3>
+        <div className="lg:col-span-2">
+          <div className="rounded-2xl bg-white/80 dark:bg-white/5 backdrop-blur border border-slate-200 dark:border-slate-700 shadow-lg p-6 h-full">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-bold flex items-center gap-2">
+                📋 Pendaftaran Terbaru
+              </h3>
+              <a
+                href="/dashboard/admin/ViewPendaftaran"
+                className="text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:underline"
+              >
+                Lihat Semua →
+              </a>
+            </div>
 
-          {menungguVerifikasi === 0 ? (
-            <p className="text-sm text-gray-500">
-              🎉 Tidak ada pendaftaran baru
-            </p>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {peserta
-                .filter((p) => p.status === "Menunggu")
-                .slice(0, 4)
-                .map((p, i) => (
+            {pendaftaranTerbaru.length === 0 ? (
+              <div className="text-center py-10">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                  <HiUserGroup className="text-2xl text-slate-400" />
+                </div>
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  Belum ada pendaftaran baru
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {pendaftaranTerbaru.map((pendaftaran) => (
                   <div
-                    key={i}
-                    className="
-                      group
-                      flex flex-col gap-3
-                      rounded-2xl border p-4
-                      bg-white/90 dark:bg-white/5
-                      backdrop-blur
-                      hover:shadow-xl hover:-translate-y-1
-                      transition-all
-                    "
+                    key={pendaftaran._id}
+                    className="group rounded-xl border border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-white/5 hover:bg-white dark:hover:bg-white/10 p-4 transition-all duration-300 hover:shadow-md hover:-translate-y-1"
                   >
-                    <p className="font-semibold text-base sm:text-lg">{p.nama}</p>
-                    <p className="text-xs sm:text-sm text-slate-500">{p.posisi}</p>
-
-                    <div className="flex items-center justify-between mt-4">
-                      <span className="text-xs px-3 py-1 rounded-full bg-orange-100 text-orange-700">
-                        Menunggu
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <p className="font-semibold text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400">
+                          {pendaftaran.peserta[0]?.nama ||
+                            "Nama tidak tersedia"}
+                        </p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                          {pendaftaran.kategori === "bersama"
+                            ? "Pendaftaran Bersama"
+                            : "Pendaftaran Individu"}{" "}
+                          • {pendaftaran.peserta.length} peserta
+                        </p>
+                      </div>
+                      <span
+                        className={`text-xs font-medium px-3 py-1 rounded-full ${getStatusColor(pendaftaran.status)}`}
+                      >
+                        {pendaftaran.status}
                       </span>
+                    </div>
 
-                      <button className="text-sm font-medium text-indigo-600 hover:underline">
-                        Verifikasi →
-                      </button>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div className="flex items-center gap-2">
+                        <HiMail className="w-4 h-4 text-slate-400" />
+                        <span className="truncate">
+                          {pendaftaran.peserta[0]?.email || "-"}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <HiPhone className="w-4 h-4 text-slate-400" />
+                        <span>{pendaftaran.peserta[0]?.wa || "-"}</span>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                        <HiCalendar className="w-3 h-3" />
+                        <span>{formatTanggal(pendaftaran.createdAt)}</span>
+                        <span className="text-slate-400">•</span>
+                        <span>{hitungHariLalu(pendaftaran.createdAt)}</span>
+                      </div>
+                      <a
+                        href={`/dashboard/admin/ViewPendaftaran#${pendaftaran._id}`}
+                        className="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        Detail →
+                      </a>
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* TUGAS CEPAT (HANYA TAMPILAN) */}
+        <div>
+          <div className="rounded-2xl bg-white/80 dark:bg-white/5 backdrop-blur border border-slate-200 dark:border-slate-700 shadow-lg p-6 h-full">
+            <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
+              ⚡ Tugas Cepat
+            </h3>
+
+            <div className="space-y-4">
+              {tasks.map((task, i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-4 p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-white/5 transition-all duration-300"
+                >
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#7F1D1D] to-[#F59E0B] dark:from-indigo-600 dark:to-violet-500 text-white flex items-center justify-center shadow">
+                    {task.icon}
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-semibold text-slate-900 dark:text-white">
+                      {task.title}
+                    </p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      {task.desc}
+                    </p>
+                  </div>
+                </div>
+              ))}
             </div>
-          )}
+
+            {/* STATISTIK SINGKAT */}
+            <div className="mt-8 pt-6 border-t border-slate-200 dark:border-slate-700">
+              <h4 className="text-sm font-semibold mb-4">
+                📈 Statistik Hari Ini
+              </h4>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="text-center p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
+                  <p className="text-2xl font-bold">{menungguVerifikasi}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Menunggu
+                  </p>
+                </div>
+                <div className="text-center p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
+                  <p className="text-2xl font-bold">
+                    {
+                      pendaftaranTerbaru.filter((p) => p.status === "Disetujui")
+                        .length
+                    }
+                  </p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Disetujui
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
+
+      {/* NOTIFIKASI PENTING */}
+      {menungguVerifikasi > 0 && (
+        <div className="mt-6 p-4 rounded-xl bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 border border-amber-200 dark:border-amber-700/30">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                <span className="text-amber-600 dark:text-amber-400">!</span>
+              </div>
+              <div>
+                <p className="font-semibold text-slate-900 dark:text-white">
+                  Ada {menungguVerifikasi} pendaftaran menunggu verifikasi
+                </p>
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  Segera tinjau pendaftaran terbaru
+                </p>
+              </div>
+            </div>
+            <a
+              href="/dashboard/admin/ViewPendaftaran"
+              className="px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium transition-colors"
+            >
+              Verifikasi Sekarang
+            </a>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

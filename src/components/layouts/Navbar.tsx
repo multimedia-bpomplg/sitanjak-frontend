@@ -3,12 +3,19 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { HiMenu, HiX, HiOutlineLogin, HiUserAdd } from "react-icons/hi";
+import {
+  HiMenu,
+  HiX,
+  HiOutlineLogin,
+  HiUserAdd,
+  HiDownload,
+} from "react-icons/hi";
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
   const [hide, setHide] = useState(false);
   const [lastY, setLastY] = useState(0);
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     const onScroll = () => {
@@ -34,9 +41,8 @@ export default function Navbar() {
     const el = document.getElementById(id);
     if (!el) return;
 
-    const yOffset = -120; // tinggi navbar
-    const y =
-      el.getBoundingClientRect().top + window.pageYOffset + yOffset;
+    const yOffset = -120;
+    const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
 
     window.scrollTo({
       top: y,
@@ -44,6 +50,32 @@ export default function Navbar() {
     });
 
     setOpen(false);
+  };
+
+  // ===============================
+  // 📥 FUNGSI DOWNLOAD PDF dari public/pdf/
+  // ===============================
+  const handleDownloadPanduan = () => {
+    setDownloading(true);
+
+    // Nama file PDF yang ada di public/pdf/
+    const fileName = "Panduan_Pendaftaran_SIMAGGO_2024.pdf";
+
+    // Path ke file di public folder
+    const fileUrl = `/pdf/${fileName}`;
+
+    // Membuat link untuk download
+    const link = document.createElement("a");
+    link.href = fileUrl;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    // Simulasi loading untuk UX
+    setTimeout(() => {
+      setDownloading(false);
+    }, 500);
   };
 
   return (
@@ -60,7 +92,7 @@ export default function Navbar() {
         className="
           max-w-6xl w-full
           mx-4
-          bg-linear-to-r from-[#D4AF37] via-[#B91C1C] to-[#7F1D1D]
+          bg-gradient-to-r from-[#D4AF37] via-[#B91C1C] to-[#7F1D1D]
           backdrop-blur-xl
           rounded-full shadow-xl
           px-6 py-3
@@ -68,13 +100,18 @@ export default function Navbar() {
         "
       >
         {/* LOGO */}
-        <Image
-          src="/images/icons/sitanjak.png"
-          alt="SIMAGGO Logo"
-          width={70}
-          height={70}
-          className="rounded-full"
-        />
+        <div className="flex items-center gap-3">
+          <Image
+            src="/images/icons/sitanjak.png"
+            alt="SIMAGGO Logo"
+            width={70}
+            height={70}
+            className="rounded-full"
+          />
+          <span className="text-white font-bold text-lg hidden sm:block">
+            SIMAGGO
+          </span>
+        </div>
 
         {/* MENU DESKTOP */}
         <ul className="hidden md:flex gap-6 text-white font-semibold">
@@ -84,7 +121,6 @@ export default function Navbar() {
             { label: "Formasi", id: "formasi" },
             { label: "Manfaat", id: "manfaat" },
             { label: "Peraturan", id: "peraturan" },
-            { label: "Panduan Pendaftaran", id: "panduan" },
           ].map((item) => (
             <button
               key={item.id}
@@ -94,6 +130,17 @@ export default function Navbar() {
               {item.label}
             </button>
           ))}
+
+          {/* PANGGILAN PANDUAN PDF */}
+          <button
+            onClick={handleDownloadPanduan}
+            disabled={downloading}
+            className={`flex items-center gap-2 hover:text-[#FFE08A] hover:-translate-y-px hover:scale-105 transition ${
+              downloading ? "opacity-70 cursor-not-allowed" : ""
+            }`}
+          >
+            {downloading ? "Mengunduh..." : "Panduan Pendaftaran"}
+          </button>
         </ul>
 
         {/* AUTH */}
@@ -123,7 +170,7 @@ export default function Navbar() {
 
       {/* MOBILE MENU */}
       {open && (
-        <div className="absolute top-22.5 w-[90%] bg-linear-to-r from-[#D4AF37] via-[#B91C1C] to-[#7F1D1D] rounded-2xl p-6 text-white shadow-xl">
+        <div className="absolute top-22.5 w-[90%] bg-gradient-to-r from-[#D4AF37] via-[#B91C1C] to-[#7F1D1D] rounded-2xl p-6 text-white shadow-xl">
           <ul className="flex flex-col space-y-4 font-semibold">
             {[
               { label: "Home", id: "home" },
@@ -131,7 +178,6 @@ export default function Navbar() {
               { label: "Formasi", id: "formasi" },
               { label: "Manfaat", id: "manfaat" },
               { label: "Peraturan", id: "peraturan" },
-              { label: "Panduan Pendaftaran", id: "panduan" },
             ].map((item) => (
               <button
                 key={item.id}
@@ -141,6 +187,18 @@ export default function Navbar() {
                 {item.label}
               </button>
             ))}
+
+            {/* PANGGILAN PANDUAN PDF - MOBILE */}
+            <button
+              onClick={handleDownloadPanduan}
+              disabled={downloading}
+              className={`flex items-center gap-2 text-left transition hover:text-[#FFE08A] hover:pl-2 ${
+                downloading ? "opacity-70 cursor-not-allowed" : ""
+              }`}
+            >
+              <HiDownload className="inline" />
+              {downloading ? "Mengunduh..." : "Panduan Pendaftaran"}
+            </button>
           </ul>
 
           <div className="flex space-x-3 mt-6">
