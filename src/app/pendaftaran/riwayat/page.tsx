@@ -18,6 +18,8 @@ export default function RiwayatPendaftaran() {
   const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
+  const FILE_BASE_URL = "http://localhost:5000/api/uploads";
+
   const [popup, setPopup] = useState<{
     show: boolean;
     type: "error" | "warning" | "success";
@@ -53,7 +55,7 @@ export default function RiwayatPendaftaran() {
 
     try {
       const res = await fetch(
-        `http://localhost:5000/api/pendaftaran/cek?email=${email}`
+        `http://localhost:5000/api/pendaftaran/cek?email=${email}`,
       );
 
       const data = await res.json();
@@ -307,7 +309,7 @@ export default function RiwayatPendaftaran() {
 
                 <span
                   className={`px-4 py-1.5 rounded-full text-sm font-semibold ${getStatusColor(
-                    result.status
+                    result.status,
                   )}`}
                 >
                   {result.status}
@@ -326,7 +328,7 @@ export default function RiwayatPendaftaran() {
               <div className="flex flex-wrap gap-3">
                 {result.suratPengantar && (
                   <a
-                    href={`http://localhost:5000/uploads/${result.suratPengantar}`}
+                    href={`${FILE_BASE_URL}/${result.suratPengantar}`}
                     target="_blank"
                     className="
                       inline-flex items-center gap-2
@@ -342,7 +344,7 @@ export default function RiwayatPendaftaran() {
                 {/* SURAT BALASAN */}
                 {result.suratBalasan ? (
                   <a
-                    href={`http://localhost:5000/uploads/${result.suratBalasan}`}
+                    href={`${FILE_BASE_URL}/${result.suratBalasan}`}
                     target="_blank"
                     className="
                       inline-flex items-center gap-2
