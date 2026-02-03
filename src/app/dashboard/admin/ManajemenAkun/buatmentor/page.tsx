@@ -107,7 +107,7 @@ export default function BuatAkunMentorPage() {
 
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/mentor/buat-mentor`,
+        `${process.env.NEXT_PUBLIC_API_URL}/superadmin/buat-mentor`,
         {
           method: "POST",
           headers: {

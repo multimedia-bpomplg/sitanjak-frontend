@@ -30,6 +30,7 @@ export default function SuperadminLayout({
   const [layoutOpen, setLayoutOpen] = useState(false);
 
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [settingOpen, setSettingOpen] = useState(false);
 
   const router = useRouter();
   const pathname = usePathname();
@@ -506,6 +507,69 @@ export default function SuperadminLayout({
                   }`}
               >
                 📋 {!collapsed && "Buat Akun Peserta"}
+              </Link>
+            </div>
+
+            {/* ===== SETTING (ADMIN) ===== */}
+            <button
+              onClick={() => setSettingOpen(!settingOpen)}
+              className={`flex items-center gap-3 py-2 rounded-xl
+    hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm
+    dark:hover:bg-[#312E81]/40 dark:hover:text-white
+    transition w-full
+    ${collapsed ? "justify-center px-3" : "pl-5 pr-3 justify-between"}
+  `}
+            >
+              <div className="flex items-center gap-3">
+                🛠️ {!collapsed && <span>Setting</span>}
+              </div>
+
+              {!collapsed && (
+                <span
+                  className={`transition-transform ${
+                    settingOpen ? "rotate-90" : ""
+                  }`}
+                >
+                  ▶
+                </span>
+              )}
+            </button>
+
+            <div
+              className={`overflow-hidden transition-all duration-300 ${
+                settingOpen ? "max-h-40" : "max-h-0"
+              }`}
+            >
+              {/* Ganti Password */}
+              <Link
+                href="/dashboard/admin/ganti-password"
+                className={`
+      flex items-center gap-3
+      py-2.5 rounded-xl
+      text-sm
+      text-gray-700 dark:text-gray-300
+      hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm
+      dark:hover:bg-slate-800
+      transition
+      ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
+      ${
+        pathname === "/dashboard/admin/ganti-password"
+          ? `
+              bg-linear-to-r
+              from-[#FDE68A]/60
+              to-[#FACC15]/40
+              text-[#7F1D1D]
+              dark:from-indigo-500/30
+              dark:via-purple-500/25
+              dark:to-fuchsia-500/30
+              dark:text-indigo-200
+              shadow-inner
+            `
+          : ""
+      }
+    `}
+              >
+                🔒 {!collapsed && "Ganti Password"}
               </Link>
             </div>
 

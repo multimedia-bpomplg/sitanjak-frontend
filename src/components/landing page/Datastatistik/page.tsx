@@ -28,12 +28,7 @@ const stats = [
     icon: HiCheckCircle,
     color: "from-[#84CC16] to-[#365314]",
   },
-  {
-    label: "Tidak Diterima / Batal",
-    value: 9,
-    icon: HiXCircle,
-    color: "from-[#92400E] to-[#451A03]",
-  },
+
   {
     label: "Total Pendaftar",
     value: 75,
@@ -45,9 +40,7 @@ const stats = [
 export default function Statistik() {
   const sectionRef = useRef<HTMLDivElement | null>(null);
   const [hasAnimated, setHasAnimated] = useState(false);
-  const [counts, setCounts] = useState<(number | string)[]>(
-    stats.map(() => 0)
-  );
+  const [counts, setCounts] = useState<(number | string)[]>(stats.map(() => 0));
 
   // 🔥 OBSERVER — JALAN SEKALI SAJA
   useEffect(() => {
@@ -59,7 +52,7 @@ export default function Statistik() {
           observer.disconnect(); // ⛔ STOP
         }
       },
-      { threshold: 0.3 }
+      { threshold: 0.3 },
     );
 
     if (sectionRef.current) observer.observe(sectionRef.current);
@@ -71,9 +64,7 @@ export default function Statistik() {
   const runCountUp = () => {
     stats.forEach((item, index) => {
       const isPercent = typeof item.value === "string";
-      const endValue = isPercent
-        ? parseInt(item.value)
-        : item.value;
+      const endValue = isPercent ? parseInt(item.value) : item.value;
 
       let startTime: number | null = null;
       const duration = 1200;
@@ -114,8 +105,8 @@ export default function Statistik() {
             Statistik Program Magang
           </h2>
           <p className="text-gray-700 mt-3 max-w-2xl mx-auto">
-            Ringkasan data pelaksanaan program magang di Balai Besar POM Palembang
-            sebagai bentuk transparansi dan informasi publik.
+            Ringkasan data pelaksanaan program magang di Balai Besar POM
+            Palembang sebagai bentuk transparansi dan informasi publik.
           </p>
         </div>
 
@@ -149,9 +140,7 @@ export default function Statistik() {
                 {counts[index]}
               </h3>
 
-              <p className="text-gray-700 mt-1">
-                {item.label}
-              </p>
+              <p className="text-gray-700 mt-1">{item.label}</p>
             </div>
           ))}
         </div>

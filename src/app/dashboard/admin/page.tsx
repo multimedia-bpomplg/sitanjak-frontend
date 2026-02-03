@@ -241,6 +241,33 @@ export default function AdminDashboard() {
         ))}
       </div>
 
+      {/* NOTIFIKASI PENTING */}
+      {menungguVerifikasi > 0 && (
+        <div className="mt-6 mb-6 p-4 rounded-xl bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 border border-amber-200 dark:border-amber-700/30">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                <span className="text-amber-600 dark:text-amber-400">!</span>
+              </div>
+              <div>
+                <p className="font-semibold text-slate-900 dark:text-white">
+                  Ada {menungguVerifikasi} pendaftaran menunggu verifikasi
+                </p>
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  Segera tinjau pendaftaran terbaru
+                </p>
+              </div>
+            </div>
+            <a
+              href="/dashboard/admin/ViewPendaftaran"
+              className="px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium transition-colors"
+            >
+              Verifikasi Sekarang
+            </a>
+          </div>
+        </div>
+      )}
+
       {/* GRID UTAMA */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* PENDAFTARAN TERBARU */}
@@ -384,33 +411,6 @@ export default function AdminDashboard() {
           </div>
         </div>
       </div>
-
-      {/* NOTIFIKASI PENTING */}
-      {menungguVerifikasi > 0 && (
-        <div className="mt-6 p-4 rounded-xl bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 border border-amber-200 dark:border-amber-700/30">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
-                <span className="text-amber-600 dark:text-amber-400">!</span>
-              </div>
-              <div>
-                <p className="font-semibold text-slate-900 dark:text-white">
-                  Ada {menungguVerifikasi} pendaftaran menunggu verifikasi
-                </p>
-                <p className="text-sm text-slate-600 dark:text-slate-400">
-                  Segera tinjau pendaftaran terbaru
-                </p>
-              </div>
-            </div>
-            <a
-              href="/dashboard/admin/ViewPendaftaran"
-              className="px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium transition-colors"
-            >
-              Verifikasi Sekarang
-            </a>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

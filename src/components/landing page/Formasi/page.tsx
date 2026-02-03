@@ -8,31 +8,31 @@ const formasiList = [
   {
     title: "Fungsi Penindakan",
     divisi: "Laboratorium Pengujian",
-    kuota: "3 Orang",
+    kuota: "5 Orang",
     jurusan: "Hukum, dan lain-lain",
   },
   {
     title: "Fungsi Pengujian",
     divisi: "Tata Usaha",
-    kuota: "2 Orang",
+    kuota: "5 Orang",
     jurusan: "Kimia, Fisika, dan lain-lain",
   },
   {
     title: "Fungsi Pemeriksaan (Inspeksi dan sertiffikasi )",
     divisi: "Sistem Informasi",
-    kuota: "2 Orang",
+    kuota: "5 Orang",
     jurusan: "Sistem Informasi,Sistem Komputer, dan lain-lain",
   },
   {
     title: "Fungsi Informasi dan Komunikasi",
     divisi: "Informasi & Komunikasi",
-    kuota: "2 Orang",
+    kuota: "5 Orang",
     jurusan: "Ilmu Komunikasi, dan lain-lain",
   },
   {
     title: "Bagian tata Usaha",
     divisi: "Informasi & Komunikasi",
-    kuota: "2 Orang",
+    kuota: "5 Orang",
     jurusan: "Administrasi, Akuntansi, dan lian-lain",
   },
 ];
@@ -52,7 +52,7 @@ export default function Formasi() {
           observer.disconnect(); // ⛔ STOP → ringan
         }
       },
-      { threshold: 0.25 }
+      { threshold: 0.25 },
     );
 
     if (sectionRef.current) observer.observe(sectionRef.current);
@@ -85,8 +85,8 @@ export default function Formasi() {
             Formasi Magang
           </h2>
           <p className="text-gray-700 mt-3 max-w-2xl mx-auto">
-            Berikut adalah daftar formasi magang yang tersedia di Balai Besar POM Palembang.
-            Pilih formasi sesuai dengan jurusan dan minat Anda.
+            Berikut adalah daftar formasi magang yang tersedia di Balai Besar
+            POM Palembang. Pilih formasi sesuai dengan jurusan dan minat Anda.
           </p>
         </div>
 
@@ -113,17 +113,23 @@ export default function Formasi() {
               <div className="space-y-2 text-gray-700 text-sm">
                 <p className="flex items-center gap-2">
                   <HiBriefcase className="text-[#B91C1C]" />
-                  <span><b>Divisi:</b> {item.divisi}</span>
+                  <span>
+                    <b>Divisi:</b> {item.divisi}
+                  </span>
                 </p>
 
                 <p className="flex items-center gap-2">
                   <HiUsers className="text-[#FACC15]" />
-                  <span><b>Kuota:</b> {item.kuota}</span>
+                  <span>
+                    <b>Kuota:</b> {item.kuota}
+                  </span>
                 </p>
 
                 <p className="flex items-center gap-2">
                   <HiAcademicCap className="text-[#7F1D1D]" />
-                  <span><b>Jurusan:</b> {item.jurusan}</span>
+                  <span>
+                    <b>Jurusan:</b> {item.jurusan}
+                  </span>
                 </p>
               </div>
 

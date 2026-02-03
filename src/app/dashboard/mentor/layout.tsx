@@ -2,12 +2,18 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { ChevronsLeft, ChevronsRight, Sun, Moon, LogOut, X, } from "lucide-react";
+import {
+  ChevronsLeft,
+  ChevronsRight,
+  Sun,
+  Moon,
+  LogOut,
+  X,
+} from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { ConfirmProvider, useConfirm } from "@/components/ui/ConfirmProvider";
-
 
 type LoggedUser = {
   name: string;
@@ -30,6 +36,7 @@ export default function MentorLayout({
   const [reportOpen, setReportOpen] = useState(false);
 
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [settingOpen, setSettingOpen] = useState(false);
 
   const router = useRouter();
   const pathname = usePathname();
@@ -43,7 +50,7 @@ export default function MentorLayout({
   useEffect(() => {
     setMounted(true);
   }, []);
-  
+
   /* ===================== AUTO OPEN ===================== */
   useEffect(() => {
     if (pathname.startsWith("/dashboard/mentor")) {
@@ -95,7 +102,7 @@ export default function MentorLayout({
 
   return (
     <ConfirmProvider>
-      <div 
+      <div
         className="
           min-h-screen
           flex
@@ -151,9 +158,7 @@ export default function MentorLayout({
                 alt="SiTanjak Logo"
               />
               {!collapsed && (
-                <h1 className="text-lg font-semibold tracking-wide">
-                  Mentor
-                </h1>
+                <h1 className="text-lg font-semibold tracking-wide">Mentor</h1>
               )}
             </div>
 
@@ -196,8 +201,8 @@ export default function MentorLayout({
               className={`flex items-center gap-3 py-2 rounded-xl hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm dark:hover:bg-[#312E81]/40 dark:hover:text-white
                 transition w-full
                 ${
-                  collapsed 
-                    ? "justify-center px-3" 
+                  collapsed
+                    ? "justify-center px-3"
                     : "pl-5 pr-3 justify-between"
                 }
               `}
@@ -210,8 +215,8 @@ export default function MentorLayout({
                   className={`transition-transform ${
                     dashboardOpen ? "rotate-90" : ""
                   }`}
-                  >
-                    ▶
+                >
+                  ▶
                 </span>
               )}
             </button>
@@ -301,7 +306,7 @@ export default function MentorLayout({
               {!collapsed && (
                 <span
                   className={`transition-transform ${
-                      reportOpen ? "rotate-90" : ""
+                    reportOpen ? "rotate-90" : ""
                   }`}
                 >
                   ▶
@@ -407,7 +412,70 @@ export default function MentorLayout({
                 📂 {!collapsed && "Laporan Akhir"}
               </Link>
             </div>
-            
+
+            {/* ===== SETTING (ADMIN) ===== */}
+            <button
+              onClick={() => setSettingOpen(!settingOpen)}
+              className={`flex items-center gap-3 py-2 rounded-xl
+    hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm
+    dark:hover:bg-[#312E81]/40 dark:hover:text-white
+    transition w-full
+    ${collapsed ? "justify-center px-3" : "pl-5 pr-3 justify-between"}
+  `}
+            >
+              <div className="flex items-center gap-3">
+                🛠️ {!collapsed && <span>Setting</span>}
+              </div>
+
+              {!collapsed && (
+                <span
+                  className={`transition-transform ${
+                    settingOpen ? "rotate-90" : ""
+                  }`}
+                >
+                  ▶
+                </span>
+              )}
+            </button>
+
+            <div
+              className={`overflow-hidden transition-all duration-300 ${
+                settingOpen ? "max-h-40" : "max-h-0"
+              }`}
+            >
+              {/* Ganti Password */}
+              <Link
+                href="/dashboard/mentor/ganti-password"
+                className={`
+      flex items-center gap-3
+      py-2.5 rounded-xl
+      text-sm
+      text-gray-700 dark:text-gray-300
+      hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm
+      dark:hover:bg-slate-800
+      transition
+      ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
+      ${
+        pathname === "/dashboard/mentor/ganti-password"
+          ? `
+              bg-linear-to-r
+              from-[#FDE68A]/60
+              to-[#FACC15]/40
+              text-[#7F1D1D]
+              dark:from-indigo-500/30
+              dark:via-purple-500/25
+              dark:to-fuchsia-500/30
+              dark:text-indigo-200
+              shadow-inner
+            `
+          : ""
+      }
+    `}
+              >
+                🔒 {!collapsed && "Ganti Password"}
+              </Link>
+            </div>
+
             {/* Panduan Website */}
             <a
               href="https://docs.google.com/document/d/16QXQuE7mnh3uEB_AlG_sCgA3f7QzlY8yRhjYz8kVqiA/edit?usp=sharing"
@@ -632,6 +700,6 @@ export default function MentorLayout({
           draggable
         />
       </div>
-  </ConfirmProvider>
+    </ConfirmProvider>
   );
 }
