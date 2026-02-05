@@ -63,8 +63,7 @@ export default function Statistik() {
   // 🔢 COUNT UP FUNCTION
   const runCountUp = () => {
     stats.forEach((item, index) => {
-      const isPercent = typeof item.value === "string";
-      const endValue = isPercent ? parseInt(item.value) : item.value;
+      const endValue = item.value; // 🔥 number only
 
       let startTime: number | null = null;
       const duration = 1200;
@@ -76,7 +75,7 @@ export default function Statistik() {
 
         setCounts((prev) => {
           const updated = [...prev];
-          updated[index] = isPercent ? `${current}%` : current;
+          updated[index] = current;
           return updated;
         });
 
@@ -111,7 +110,7 @@ export default function Statistik() {
         </div>
 
         {/* GRID STATISTIK */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {stats.map((item, index) => (
             <div
               key={index}

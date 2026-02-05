@@ -11,7 +11,7 @@ const tabs = [
 ];
 
 export default function ProfilPage() {
-  const [activeTab, setActiveTab] = useState("tugas");
+  const [activeTab, setActiveTab] = useState("visi");
 
   // 🔥 ANIMASI SEKALI SAJA
   const sectionRef = useRef<HTMLDivElement | null>(null);
@@ -61,9 +61,9 @@ export default function ProfilPage() {
             `}
           >
             <h1 className="text-3xl lg:text-4xl font-extrabold text-[#7F1D1D] leading-tight">
-              Balai Besar Pengawas Obat dan Makanan
+              Balai Besar Pengawas Obat 
               <span className="block text-[#B91C1C]">
-                di Palembang
+                dan Makanan di Palembang
               </span>
             </h1>
 
@@ -216,10 +216,10 @@ export default function ProfilPage() {
             `}
           >
             <Image
-              src="/images/landing page/foto profil.png"
+              src="/images/landing page/bpom_logo.png"
               alt="Ilustrasi Profil"
-              width={420}
-              height={420}
+              width={400}
+              height={400}
               className="object-contain drop-shadow-xl"
             />
           </div>
