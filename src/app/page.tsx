@@ -1,11 +1,11 @@
 import Navbar from "@/components/layouts/Navbar";
 import Footer from "@/components/layouts/footer";
-import HeroSection from "@/components/landing page/Herosection/page";
-import Profil from "@/components/landing page/Profil/page";
-import Formasi from "@/components/landing page/Formasi/page";
-import Datastatistik from "@/components/landing page/Datastatistik/page";
-import Manfaat from "@/components/landing page/Manfaat/page";
-import Peraturan from "@/components/landing page/Peraturan/page";
+import HeroSection from "@/components/LandingPage/Herosection/page";
+import Profil from "@/components/LandingPage/Profil/page";
+import Formasi from "@/components/LandingPage/Formasi/page";
+import Datastatistik from "@/components/LandingPage/Datastatistik/page";
+import Manfaat from "@/components/LandingPage/Manfaat/page";
+import Peraturan from "@/components/LandingPage/Peraturan/page";
 import AnimatedSection from "@/components/ui/AnimatedSection";
 import LandingPopup from "@/components/ui/Banner";
 import WhatsAppBubble from "@/components/ui/WhatappBubble";

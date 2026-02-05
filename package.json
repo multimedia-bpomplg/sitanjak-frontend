@@ -12,6 +12,7 @@
   "dependencies": {
     "@marsidev/react-turnstile": "^1.4.0",
     "apexcharts": "^5.3.6",
+    "axios": "^1.13.4",
     "chart.js": "^4.5.1",
     "cloudflare": "^5.2.0",
     "date-fns": "^4.1.0",
