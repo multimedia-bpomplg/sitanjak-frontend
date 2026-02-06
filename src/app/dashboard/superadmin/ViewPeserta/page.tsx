@@ -29,6 +29,7 @@ type Peserta = {
   isTerdaftar: boolean;
   tanggalMulaiMagang: string;
   tanggalSelesaiMagang: string;
+  statusPendaftaran?: "Disetujui" | "Ditolak" | "Menunggu"; // ✅ TAMBAH
   createdAt: string;
 };
 
@@ -55,12 +56,11 @@ export default function ViewPesertaSuperadmin() {
         },
       );
       const data: Peserta[] = await res.json();
-      
+
       // 🔥 SORT DARI TERBARU KE TERLAMA
       const sortedData = [...data].sort(
         (a, b) =>
-          new Date(b.createdAt).getTime() -
-          new Date(a.createdAt).getTime()
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
       );
 
       setPesertaList(sortedData);
@@ -497,13 +497,7 @@ type StatCardProps = {
   color: StatCardColor;
 };
 
-function StatCard({
-  title,
-  value,
-  icon,
-  note,
-  color,
-}: StatCardProps) {
+function StatCard({ title, value, icon, note, color }: StatCardProps) {
   const iconColorMap: Record<StatCardColor, string> = {
     indigo: "bg-[#B91C1C]/90 dark:bg-indigo-600",
     emerald: "bg-emerald-500 dark:bg-emerald-600",
@@ -538,9 +532,7 @@ function StatCard({
           <p className="text-xs uppercase tracking-wide text-[#7F1D1D] dark:text-indigo-300">
             {title}
           </p>
-          <p
-            className={`text-4xl font-extrabold mt-1 ${textColorMap[color]}`}
-          >
+          <p className={`text-4xl font-extrabold mt-1 ${textColorMap[color]}`}>
             {value}
           </p>
         </div>
@@ -561,10 +553,36 @@ function StatCard({
 
       {/* FOOTER */}
       <div className="mt-4 pt-4 border-t border-[#FCA5A5]/40 dark:border-indigo-500/30">
-        <p className="text-xs text-slate-600 dark:text-slate-300">
-          {note}
-        </p>
+        <p className="text-xs text-slate-600 dark:text-slate-300">{note}</p>
       </div>
     </div>
   );
+}
+
+function getStatusMagang(
+  statusPendaftaran?: string,
+  mulai?: string,
+  selesai?: string,
+) {
+  if (statusPendaftaran === "Ditolak") {
+    return "Tidak Magang";
+  }
+
+  if (statusPendaftaran !== "Disetujui") {
+    return "Menunggu";
+  }
+
+  if (!mulai || !selesai) {
+    return "Menunggu";
+  }
+
+  const today = new Date();
+  const start = new Date(mulai);
+  const end = new Date(selesai);
+
+  if (today < start) return "Menunggu";
+  if (today >= start && today <= end) return "Sedang Magang";
+  if (today > end) return "Selesai Magang";
+
+  return "Menunggu";
 }

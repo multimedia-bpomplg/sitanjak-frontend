@@ -136,6 +136,7 @@ export default function Formasi() {
         `}
       >
         {/* HEADER */}
+
         <div
           className={`
             text-center mb-8
@@ -294,23 +295,6 @@ export default function Formasi() {
             ))}
           </div>
         )}
-
-        {/* INFO FOOTER */}
-        <div className="mt-10 text-center text-sm text-gray-600">
-          <p>
-            <span className="font-semibold">Total Formasi:</span>{" "}
-            {formasiList.length} posisi •
-            <span className="font-semibold ml-4">Total Kuota:</span>{" "}
-            {formasiList.reduce((sum, item) => sum + item.kuota, 0)} orang •
-            <span className="font-semibold ml-4">Total Pendaftar:</span>{" "}
-            {formasiList.reduce((sum, item) => sum + item.jumlahPendaftar, 0)}{" "}
-            orang
-          </p>
-          <p className="mt-2 text-xs">
-            Data diperbarui secara real-time. Formasi akan ditutup ketika kuota
-            terpenuhi.
-          </p>
-        </div>
       </div>
     </section>
   );

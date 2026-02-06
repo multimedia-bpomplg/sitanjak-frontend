@@ -44,8 +44,8 @@ import {
   XCircle,
 } from "lucide-react";
 import { DateRange } from "react-date-range";
-import "react-date-range/dist/styles.css";
-import "react-date-range/dist/theme/default.css";
+// import "react-date-range/dist/styles.css";
+// import "react-date-range/dist/theme/default.css";
 import {
   format,
   subMonths,
@@ -970,9 +970,7 @@ export default function OversistemDashboard() {
     );
   };
 
-  const isMobile =
-    typeof window !== "undefined" && window.innerWidth < 640;
-
+  const isMobile = typeof window !== "undefined" && window.innerWidth < 640;
 
   /* ---------------------------
       Render - REAL TIME VERSION
@@ -1513,45 +1511,6 @@ export default function OversistemDashboard() {
                 ))}
               </select>
             </div>
-
-            {/* Date Range Picker */}
-            <div className="relative">
-              <button
-                onClick={() => setShowDatePicker(!showDatePicker)}
-                className="px-4 py-2 bg-white dark:bg-gray-700 rounded-lg flex items-center gap-2 text-[#7F1D1D] dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 text-sm border border-amber-200 dark:border-indigo-500/40"
-              >
-                <Filter className="w-4 h-4" />
-                <span>
-                  {format(dateRange.startDate, "dd MMM yyyy")} -{" "}
-                  {format(dateRange.endDate, "dd MMM yyyy")}
-                </span>
-              </button>
-
-              {showDatePicker && (
-                <div className="
-                  fixed
-                  left-1/2 top-20
-                  -translate-x-1/2
-                  z-50
-                  w-[95vw] max-w-225
-                  bg-white dark:bg-gray-800
-                  shadow-2xl
-                  rounded-xl
-                  p-4
-                ">
-                  <DateRange
-                    ranges={[dateRange]}
-                    onChange={(ranges) => {
-                      setDateRange(ranges.selection);
-                      setShowDatePicker(false);
-                    }}
-                    months={isMobile ? 1 : 2}
-                    direction={isMobile ? "vertical" : "horizontal"}
-                    rangeColors={["#6366f1"]}
-                  />
-                </div>
-              )}
-            </div>
           </div>
         </div>
       </div>
@@ -1670,22 +1629,27 @@ export default function OversistemDashboard() {
                     </div>
 
                     <div className="space-y-2 text-sm">
-                      {logbookStats.byStatus?.map((item: any, index: number) => (
-                        <div key={index} className="flex justify-between items-center">
-                          <span className="text-gray-700 dark:text-gray-300">
-                            {item._id === "disetujui"
-                              ? "Disetujui"
-                              : item._id === "menunggu"
-                              ? "Menunggu"
-                              : item._id === "ditolak"
-                              ? "Ditolak"
-                              : item._id || "Tidak diketahui"}
-                          </span>
-                          <span className="font-semibold text-gray-900 dark:text-white">
-                            {item.count}
-                          </span>
-                        </div>
-                      ))}
+                      {logbookStats.byStatus?.map(
+                        (item: any, index: number) => (
+                          <div
+                            key={index}
+                            className="flex justify-between items-center"
+                          >
+                            <span className="text-gray-700 dark:text-gray-300">
+                              {item._id === "disetujui"
+                                ? "Disetujui"
+                                : item._id === "menunggu"
+                                  ? "Menunggu"
+                                  : item._id === "ditolak"
+                                    ? "Ditolak"
+                                    : item._id || "Tidak diketahui"}
+                            </span>
+                            <span className="font-semibold text-gray-900 dark:text-white">
+                              {item.count}
+                            </span>
+                          </div>
+                        ),
+                      )}
                     </div>
                   </div>
 
@@ -1779,24 +1743,24 @@ export default function OversistemDashboard() {
                               {item._id === "Disetujui"
                                 ? "Disetujui"
                                 : item._id === "Menunggu"
-                                ? "Menunggu"
-                                : item._id === "Ditolak"
-                                ? "Ditolak"
-                                : item._id || "Tidak diketahui"}
+                                  ? "Menunggu"
+                                  : item._id === "Ditolak"
+                                    ? "Ditolak"
+                                    : item._id || "Tidak diketahui"}
                             </span>
                             <span
                               className={`font-semibold ${
                                 item._id === "Disetujui"
                                   ? "text-green-600"
                                   : item._id === "Ditolak"
-                                  ? "text-red-600"
-                                  : "text-yellow-600"
+                                    ? "text-red-600"
+                                    : "text-yellow-600"
                               }`}
                             >
                               {item.count}
                             </span>
                           </div>
-                        )
+                        ),
                       )}
                     </div>
                   </div>

@@ -1,82 +1,123 @@
 "use client";
 
-import {
-  HiBriefcase,
-  HiUserGroup,
-  HiCheckCircle,
-  HiXCircle,
-  HiClipboardList,
-} from "react-icons/hi";
+import { HiBriefcase, HiUsers, HiCheckCircle } from "react-icons/hi";
+
+import { FaUserCheck } from "react-icons/fa";
+
 import { useEffect, useRef, useState } from "react";
-
-const stats = [
-  {
-    label: "Total Lowongan Dibuka",
-    value: 12,
-    icon: HiBriefcase,
-    color: "from-[#FACC15] to-[#EAB308]",
-  },
-  {
-    label: "Sedang Magang",
-    value: 18,
-    icon: HiUserGroup,
-    color: "from-[#B91C1C] to-[#7F1D1D]",
-  },
-  {
-    label: "Selesai Magang",
-    value: 42,
-    icon: HiCheckCircle,
-    color: "from-[#84CC16] to-[#365314]",
-  },
-
-  {
-    label: "Total Pendaftar",
-    value: 75,
-    icon: HiClipboardList,
-    color: "from-[#F97316] to-[#9A3412]",
-  },
-];
+import { fetchFormasi, IFormasi } from "@/services/formasiService";
 
 export default function Statistik() {
   const sectionRef = useRef<HTMLDivElement | null>(null);
-  const [hasAnimated, setHasAnimated] = useState(false);
-  const [counts, setCounts] = useState<(number | string)[]>(stats.map(() => 0));
 
-  // 🔥 OBSERVER — JALAN SEKALI SAJA
+  const [formasiList, setFormasiList] = useState<IFormasi[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [hasAnimated, setHasAnimated] = useState(false);
+
+  const [counts, setCounts] = useState<number[]>([0, 0, 0, 0]);
+
+  // =====================================
+  // FETCH DATA
+  // =====================================
   useEffect(() => {
+    const loadData = async () => {
+      try {
+        const data = await fetchFormasi();
+        setFormasiList(data);
+      } catch (err) {
+        console.error("Gagal load statistik:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
+
+  // =====================================
+  // HITUNG DATA
+  // =====================================
+  const totalKuota = formasiList.reduce((a, b) => a + b.kuota, 0);
+
+  const totalPendaftar = formasiList.reduce((a, b) => a + b.jumlahPendaftar, 0);
+
+  const sedangMagang = formasiList.reduce(
+    (a, b) => a + Math.max(0, b.kuota - b.sisaKuota),
+    0,
+  );
+
+  const selesaiMagang = formasiList.reduce(
+    (a, b) => a + (b.sisaKuota === 0 ? b.kuota : 0),
+    0,
+  );
+
+  // =====================================
+  // DATA UI
+  // =====================================
+  const stats = [
+    {
+      label: "Total Kuota",
+      value: totalKuota,
+      color: "from-yellow-400 to-yellow-600",
+      icon: HiBriefcase,
+    },
+    {
+      label: "Total Pendaftar",
+      value: totalPendaftar,
+      color: "from-blue-400 to-blue-600",
+      icon: HiUsers,
+    },
+    {
+      label: "Sedang Magang",
+      value: sedangMagang,
+      color: "from-green-400 to-green-600",
+      icon: FaUserCheck,
+    },
+    {
+      label: "Selesai Magang",
+      value: selesaiMagang,
+      color: "from-red-400 to-red-600",
+      icon: HiCheckCircle,
+    },
+  ];
+
+  // =====================================
+  // ANIMASI COUNT-UP
+  // =====================================
+  useEffect(() => {
+    if (loading) return;
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting && !hasAnimated) {
           runCountUp();
           setHasAnimated(true);
-          observer.disconnect(); // ⛔ STOP
         }
       },
       { threshold: 0.3 },
     );
 
     if (sectionRef.current) observer.observe(sectionRef.current);
-    return () => observer.disconnect();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasAnimated]);
 
-  // 🔢 COUNT UP FUNCTION
+    return () => observer.disconnect();
+  }, [loading, hasAnimated, stats]);
+
   const runCountUp = () => {
     stats.forEach((item, index) => {
-      const endValue = item.value; // 🔥 number only
-
-      let startTime: number | null = null;
+      let start: number | null = null;
       const duration = 1200;
 
       const animate = (time: number) => {
-        if (!startTime) startTime = time;
-        const progress = Math.min((time - startTime) / duration, 1);
-        const current = Math.floor(progress * endValue);
+        if (!start) start = time;
+
+        const progress = Math.min((time - start) / duration, 1);
+
+        const current = Math.floor(progress * item.value);
 
         setCounts((prev) => {
-          const updated = [...prev];
-          updated[index] = current;
-          return updated;
+          const copy = [...prev];
+          copy[index] = current;
+          return copy;
         });
 
         if (progress < 1) requestAnimationFrame(animate);
@@ -86,63 +127,123 @@ export default function Statistik() {
     });
   };
 
+  // =====================================
+  // UI
+  // =====================================
   return (
     <section
       id="statistik"
       ref={sectionRef}
-      className="w-full flex justify-center px-4 mt-24"
+      className="w-full flex justify-center px-4 mt-28"
     >
-      <div
-        className="
-          max-w-6xl w-full
-          px-8 lg:px-14 py-14
-        "
-      >
-        {/* HEADER */}
-        <div className="text-center mb-12">
+      <div className="max-w-6xl w-full px-6 lg:px-14 py-16">
+        {/* ================= HEADER ================= */}
+        <div className="text-center mb-14">
+          {/* Badge */}
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-green-100 text-green-700 text-sm font-medium mb-4">
+            ● Data Real-Time
+          </div>
+
           <h2 className="text-3xl lg:text-4xl font-extrabold text-[#7F1D1D]">
             Statistik Program Magang
           </h2>
-          <p className="text-gray-700 mt-3 max-w-2xl mx-auto">
-            Ringkasan data pelaksanaan program magang di Balai Besar POM
-            Palembang sebagai bentuk transparansi dan informasi publik.
+
+          <p className="text-gray-600 mt-4 max-w-2xl mx-auto leading-relaxed">
+            Ringkasan data program magang Balai Besar POM Palembang berdasarkan
+            formasi aktif dan pendaftar terbaru.
           </p>
         </div>
 
-        {/* GRID STATISTIK */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          {stats.map((item, index) => (
-            <div
-              key={index}
-              className="
-                bg-white/45 backdrop-blur-lg
-                border border-white/60
-                rounded-3xl p-6
-                shadow-md
-                hover:shadow-xl hover:-translate-y-1
-                transition-all duration-300
-              "
-            >
+        {/* ================= LOADING ================= */}
+        {loading && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 animate-pulse">
+            {[...Array(4)].map((_, i) => (
               <div
-                className={`
-                  w-14 h-14 flex items-center justify-center
-                  rounded-2xl mb-4
-                  bg-linear-to-r ${item.color}
-                  text-white shadow-lg
-                  ring-2 ring-[#FDE68A]/40
-                `}
+                key={i}
+                className="bg-white/70 border border-white/60 rounded-3xl p-6 shadow"
               >
-                <item.icon size={28} />
+                <div className="w-12 h-12 bg-gray-200 rounded-xl mb-4"></div>
+
+                <div className="h-6 bg-gray-200 rounded w-2/3 mb-2"></div>
+
+                <div className="h-4 bg-gray-200 rounded w-full"></div>
               </div>
+            ))}
+          </div>
+        )}
 
-              <h3 className="text-3xl font-extrabold text-[#7F1D1D]">
-                {counts[index]}
-              </h3>
+        {/* ================= STATISTIK ================= */}
+        {!loading && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {stats.map((item, i) => (
+              <div
+                key={i}
+                className="
+                  relative
+                  bg-white/60 backdrop-blur-xl
+                  border border-white/70
+                  rounded-3xl p-6
+                  shadow-md
+                  hover:shadow-xl
+                  hover:-translate-y-1
+                  transition-all duration-300
+                  overflow-hidden
+                  group
+                "
+              >
+                {/* Background Effect */}
+                <div
+                  className="
+                    absolute inset-0 opacity-0
+                    group-hover:opacity-100
+                    bg-gradient-to-r from-white/10 to-white/30
+                    transition
+                  "
+                />
 
-              <p className="text-gray-700 mt-1">{item.label}</p>
-            </div>
-          ))}
-        </div>
+                {/* Icon */}
+                <div
+                  className={`
+                    relative z-10
+                    w-14 h-14
+                    flex items-center justify-center
+                    rounded-2xl
+                    bg-gradient-to-r ${item.color}
+                    text-white
+                    shadow-lg
+                    mb-4
+                  `}
+                >
+                  <item.icon size={26} />
+                </div>
+
+                {/* Value */}
+                <h3 className="relative z-10 text-3xl font-extrabold text-[#7F1D1D]">
+                  {counts[i]}
+                </h3>
+
+                {/* Label */}
+                <p className="relative z-10 text-gray-600 mt-1 text-sm">
+                  {item.label}
+                </p>
+
+                {/* Progress */}
+                <div className="mt-4 h-1.5 w-full bg-gray-200 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full bg-gradient-to-r ${item.color}`}
+                    style={{
+                      width: `${
+                        item.value === 0
+                          ? 0
+                          : Math.min(100, (counts[i] / item.value) * 100)
+                      }%`,
+                    }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );

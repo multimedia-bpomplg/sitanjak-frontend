@@ -22,23 +22,23 @@ export default function Calendar({ onSelectDate, filledDates }: Props) {
   const [currentMonth, setCurrentMonth] = useState(getNowWIB());
   const [holidays, setHolidays] = useState<Record<string, string>>({});
 
-  useEffect(() => {
-    const fetchHolidays = async () => {
-      const res = await fetch("https://api-harilibur.vercel.app/api");
-      const data = await res.json();
+  // useEffect(() => {
+  //   const fetchHolidays = async () => {
+  //     const res = await fetch("https://api-harilibur.vercel.app/api");
+  //     const data = await res.json();
 
-      const mapped: Record<string, string> = {};
-      data.forEach((item: any) => {
-        if (item.is_national_holiday) {
-          mapped[item.holiday_date] = item.holiday_name;
-        }
-      });
+  //     const mapped: Record<string, string> = {};
+  //     data.forEach((item: any) => {
+  //       if (item.is_national_holiday) {
+  //         mapped[item.holiday_date] = item.holiday_name;
+  //       }
+  //     });
 
-      setHolidays(mapped);
-    };
+  //     setHolidays(mapped);
+  //   };
 
-    fetchHolidays();
-  }, []);
+  //   fetchHolidays();
+  // }, []);
 
   const year = currentMonth.getFullYear();
   const month = currentMonth.getMonth();

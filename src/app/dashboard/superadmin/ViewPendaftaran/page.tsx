@@ -13,6 +13,7 @@ import {
   HiCalendar,
   HiBriefcase,
   HiCheckCircle,
+  HiClock,
   HiXCircle,
 } from "react-icons/hi";
 import * as XLSX from "xlsx";
@@ -47,6 +48,8 @@ type Peserta = {
   kelurahan: string;
   alamatLengkap: string;
   isTerdaftar: boolean;
+
+  statusMagang?: "Menunggu" | "Sedang Magang" | "Selesai Magang";
 };
 
 type Pendaftaran = {
@@ -572,6 +575,10 @@ export default function ViewPendaftaranPage() {
                   <th className="w-[16%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
                     Status
                   </th>
+
+                  <th className="w-[16%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
+                    Status Magang
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-indigo-500/20">
@@ -611,6 +618,11 @@ export default function ViewPendaftaranPage() {
                     <td className="py-4 px-6 text-center">
                       <StatusBadge status={item.status} />
                     </td>
+                    <StatusMagangBadge
+                      statusPendaftaran={item.status}
+                      tanggalMulai={item.peserta[0]?.tanggalMulaiMagang}
+                      tanggalSelesai={item.peserta[0]?.tanggalSelesaiMagang}
+                    />
                   </tr>
                 ))}
               </tbody>
@@ -919,7 +931,7 @@ export default function ViewPendaftaranPage() {
                       {!isAkunTerdaftar(p.email) && (
                         <button
                           onClick={() => {
-                            window.location.href = `/dashboard/admin/ManajemenAkun/buatpeserta?email=${encodeURIComponent(p.email)}&name=${encodeURIComponent(p.nama)}`;
+                            window.location.href = `/dashboard/superadmin/ManajemenAkun/buatpeserta?email=${encodeURIComponent(p.email)}&name=${encodeURIComponent(p.nama)}`;
                           }}
                           className="text-xs px-3 py-1.5 rounded-lg font-medium transition bg-blue-600 hover:bg-blue-700 text-white dark:bg-indigo-600 dark:hover:bg-indigo-700"
                         >
@@ -1170,5 +1182,93 @@ function DetailItem({
         </p>
       </div>
     </div>
+  );
+}
+
+/* ================== STATUS MAGANG BADGE ================== */
+
+function getStatusMagang(
+  statusPendaftaran: string,
+  mulai?: string,
+  selesai?: string,
+) {
+  if (statusPendaftaran === "Ditolak") {
+    return "Tidak Magang";
+  }
+
+  if (statusPendaftaran !== "Disetujui") {
+    return "Menunggu";
+  }
+
+  if (!mulai || !selesai) {
+    return "Menunggu";
+  }
+
+  const today = new Date();
+  const start = new Date(mulai);
+  const end = new Date(selesai);
+
+  if (today < start) {
+    return "Menunggu";
+  }
+
+  if (today >= start && today <= end) {
+    return "Sedang Magang";
+  }
+
+  if (today > end) {
+    return "Selesai Magang";
+  }
+
+  return "Menunggu";
+}
+
+function StatusMagangBadge({
+  statusPendaftaran,
+  tanggalMulai,
+  tanggalSelesai,
+}: {
+  statusPendaftaran: string;
+  tanggalMulai?: string;
+  tanggalSelesai?: string;
+}) {
+  const status = getStatusMagang(
+    statusPendaftaran,
+    tanggalMulai,
+    tanggalSelesai,
+  );
+
+  if (status === "Tidak Magang") {
+    return (
+      <span className="inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-semibold bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300">
+        <HiXCircle className="w-3 h-3 mr-1" />
+        Tidak Magang
+      </span>
+    );
+  }
+
+  if (status === "Sedang Magang") {
+    return (
+      <span className="inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300">
+        <HiClock className="w-3 h-3 mr-1" />
+        Sedang Magang
+      </span>
+    );
+  }
+
+  if (status === "Selesai Magang") {
+    return (
+      <span className="inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300">
+        <HiCheckCircle className="w-3 h-3 mr-1" />
+        Selesai Magang
+      </span>
+    );
+  }
+
+  return (
+    <span className="inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-300">
+      <HiClock className="w-3 h-3 mr-1" />
+      Menunggu
+    </span>
   );
 }
