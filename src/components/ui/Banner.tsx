@@ -83,7 +83,7 @@ export default function PopupPromo({
         {/* IMAGE HEADER */}
         <div className="relative h-52">
           <Image
-            src="/images/cards/card-01.png"
+            src="/images/cards/popup_sitanjak.png"
             alt="Popup Promo"
             fill
             priority

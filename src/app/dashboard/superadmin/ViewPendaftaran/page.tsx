@@ -573,7 +573,7 @@ export default function ViewPendaftaranPage() {
                     Kategori
                   </th>
                   <th className="w-[16%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
-                    Status
+                    Status Pendaftaran
                   </th>
 
                   <th className="w-[16%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
@@ -590,11 +590,36 @@ export default function ViewPendaftaranPage() {
                     <td className="py-4 px-6 text-center font-medium text-slate-500">
                       {i + 1}
                     </td>
-                    <td
-                      className="px-6 py-4 font-medium text-center text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
-                      onClick={() => setSelected(item)}
-                    >
-                      {item.peserta[0]?.nama}
+                    <td className="py-4 px-6 text-center">
+                      <div className="flex justify-center">
+                        <div
+                          onClick={() => setSelected(item)}
+                          className="flex items-center gap-3 cursor-pointer group"
+                        >
+                          <div
+                            className="
+                              shrink-0 w-10 h-10 min-w-10 min-h-10
+                              rounded-full
+                              bg-linear-to-br from-[#7F1D1D] to-[#F59E0B]
+                              dark:from-indigo-600 dark:to-violet-500
+                              flex items-center justify-center
+                              text-white shadow
+                              group-hover:scale-110 transition
+                            "
+                          >
+                            <HiUser className="w-5 h-5" />
+                          </div>
+
+                          <div className="text-left">
+                            <p className="font-medium text-slate-800 dark:text-slate-100">
+                              {item.peserta[0]?.nama}
+                            </p>
+                            <p className="text-xs text-[#7F1D1D]">
+                              Klik untuk lihat detail
+                            </p>
+                          </div>
+                        </div>
+                      </div>
                     </td>
                     <td className="py-4 px-6 text-center">
                       <div className="flex justify-center items-center gap-2 text-slate-600 dark:text-slate-300">
@@ -618,11 +643,12 @@ export default function ViewPendaftaranPage() {
                     <td className="py-4 px-6 text-center">
                       <StatusBadge status={item.status} />
                     </td>
-                    <StatusMagangBadge
+                    <td className="py-4 px-6 text-center">
+                      <StatusMagangBadge
                       statusPendaftaran={item.status}
                       tanggalMulai={item.peserta[0]?.tanggalMulaiMagang}
-                      tanggalSelesai={item.peserta[0]?.tanggalSelesaiMagang}
-                    />
+                      tanggalSelesai={item.peserta[0]?.tanggalSelesaiMagang} />
+                    </td>
                   </tr>
                 ))}
               </tbody>

@@ -462,7 +462,7 @@ export default function SuperadminLayout({
                     ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
 
                     ${
-                      pathname.includes("/ManajemenAkun/buatmentor")
+                      pathname.includes("/ManajemenAkun/buatadmin")
                         ? `
                             bg-linear-to-r
                             from-[#FDE68A]/60

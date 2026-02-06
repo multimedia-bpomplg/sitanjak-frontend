@@ -355,8 +355,8 @@ export default function ViewPendaftaranUI() {
                             <p className="font-medium text-slate-800 dark:text-slate-100">
                               {p.nama}
                             </p>
-                            <p className="text-xs text-slate-500">
-                              Klik untuk detail
+                            <p className="text-xs text-[#7F1D1D]">
+                              Klik untuk lihat detail
                             </p>
                           </div>
                         </div>

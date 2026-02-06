@@ -58,25 +58,25 @@ export default function Statistik() {
     {
       label: "Total Kuota",
       value: totalKuota,
-      color: "from-yellow-400 to-yellow-600",
+      color: "from-[#FACC15] to-[#EAB308]",
       icon: HiBriefcase,
     },
     {
       label: "Total Pendaftar",
       value: totalPendaftar,
-      color: "from-blue-400 to-blue-600",
+      color: "from-[#B91C1C] to-[#7F1D1D]",
       icon: HiUsers,
     },
     {
       label: "Sedang Magang",
       value: sedangMagang,
-      color: "from-green-400 to-green-600",
+      color: "from-[#84CC16] to-[#365314]",
       icon: FaUserCheck,
     },
     {
       label: "Selesai Magang",
       value: selesaiMagang,
-      color: "from-red-400 to-red-600",
+      color: "from-[#F97316] to-[#9A3412]",
       icon: HiCheckCircle,
     },
   ];
@@ -139,14 +139,17 @@ export default function Statistik() {
       <div className="max-w-6xl w-full px-6 lg:px-14 py-16">
         {/* ================= HEADER ================= */}
         <div className="text-center mb-14">
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-green-100 text-green-700 text-sm font-medium mb-4">
-            ● Data Real-Time
-          </div>
+          <div className="flex items-center justify-center gap-3 flex-wrap">
+            <h2 className="text-3xl lg:text-4xl font-extrabold text-[#7F1D1D]">
+              Statistik Program Magang
+            </h2>
 
-          <h2 className="text-3xl lg:text-4xl font-extrabold text-[#7F1D1D]">
-            Statistik Program Magang
-          </h2>
+            {/* Badge */}
+            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-100 text-green-700 text-sm font-semibold">
+              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+              Real-Time
+            </span>
+          </div>
 
           <p className="text-gray-600 mt-4 max-w-2xl mx-auto leading-relaxed">
             Ringkasan data program magang Balai Besar POM Palembang berdasarkan
@@ -196,7 +199,7 @@ export default function Statistik() {
                   className="
                     absolute inset-0 opacity-0
                     group-hover:opacity-100
-                    bg-gradient-to-r from-white/10 to-white/30
+                    bg-linear-to-r from-white/10 to-white/30
                     transition
                   "
                 />
@@ -208,7 +211,7 @@ export default function Statistik() {
                     w-14 h-14
                     flex items-center justify-center
                     rounded-2xl
-                    bg-gradient-to-r ${item.color}
+                    bg-linear-to-r ${item.color}
                     text-white
                     shadow-lg
                     mb-4
@@ -230,7 +233,7 @@ export default function Statistik() {
                 {/* Progress */}
                 <div className="mt-4 h-1.5 w-full bg-gray-200 rounded-full overflow-hidden">
                   <div
-                    className={`h-full bg-gradient-to-r ${item.color}`}
+                    className={`h-full bg-linear-to-r ${item.color}`}
                     style={{
                       width: `${
                         item.value === 0

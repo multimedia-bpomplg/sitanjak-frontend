@@ -369,13 +369,14 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex flex-col lg:grid lg:grid-cols-2">
       {/* IMAGE ATAS */}
-      <div className="lg:hidden w-full relative aspect-video bg-linear-to-br from-[#FFFBF5] via-[#FFF7ED] to-[#FEF3C7]">
+      <div className="lg:hidden w-full relative aspect-video bg-linear-to-br from-[#FFFBF5] via-[#FFF7ED] to-[#FEF3C7] flex items-center justify-center">
         <Image
-          src="/images/logins/icon login.png"
+          src="/images/logins/sitanjak_login1.png"
           alt="Login Background"
-          fill
-          className="object-cover"
+          className="object-contain"
           priority
+          width={350}
+          height={350}
         />
       </div>
 
@@ -557,7 +558,7 @@ export default function LoginPage() {
       "
       >
         <Image
-          src="/images/logins/icon login.png"
+          src="/images/logins/sitanjak_login1.png"
           alt="Login Background"
           fill
           className="object-contain"
