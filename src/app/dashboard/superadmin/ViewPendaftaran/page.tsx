@@ -19,6 +19,7 @@ import {
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import AlertPopup from "@/components/ui/AlertPopup";
+import { fetchFormasi, IFormasi } from "@/services/formasiService";
 
 /* ===================== TYPE ===================== */
 type Peserta = {
@@ -304,6 +305,12 @@ export default function ViewPendaftaranPage() {
   const simpanPosisi = async (index: number) => {
     if (!selected?._id || !posisiBaru) return;
 
+    // ✅ CEK SLOT
+    if (getSisaKuota(posisiBaru) <= 0) {
+      showAlert("error", "Kuota formasi sudah habis");
+      return;
+    }
+
     try {
       const token = localStorage.getItem("token");
       const res = await fetch(
@@ -336,6 +343,12 @@ export default function ViewPendaftaranPage() {
 
       setSelected(updated);
       setEditPosisiIndex(null);
+      await loadData();
+
+      // refresh kuota
+      const data = await fetchFormasi();
+      setFormasiList(data);
+
       showAlert("success", "Posisi magang berhasil diperbarui");
     } catch (err: any) {
       showAlert("error", err.message || "Gagal mengubah posisi");
@@ -483,6 +496,29 @@ export default function ViewPendaftaranPage() {
       type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     });
     saveAs(file, `data-pendaftaran-${Date.now()}.xlsx`);
+  };
+
+  const [formasiList, setFormasiList] = useState<IFormasi[]>([]);
+  const [loadingFormasi, setLoadingFormasi] = useState(true);
+
+  useEffect(() => {
+    const loadFormasi = async () => {
+      try {
+        const data = await fetchFormasi();
+        setFormasiList(data);
+      } catch (err) {
+        console.error("Gagal load formasi:", err);
+      } finally {
+        setLoadingFormasi(false);
+      }
+    };
+
+    loadFormasi();
+  }, []);
+
+  const getSisaKuota = (posisi: string) => {
+    const f = formasiList.find((x) => x.title === posisi);
+    return f ? f.sisaKuota : 0;
   };
 
   return (
@@ -645,9 +681,12 @@ export default function ViewPendaftaranPage() {
                     </td>
                     <td className="py-4 px-6 text-center">
                       <StatusMagangBadge
-                      statusPendaftaran={item.status}
-                      tanggalMulai={item.peserta[0]?.tanggalMulaiMagang}
-                      tanggalSelesai={item.peserta[0]?.tanggalSelesaiMagang} />
+                        status={getStatusMagang(
+                          item.status,
+                          item.peserta[0]?.tanggalMulaiMagang,
+                          item.peserta[0]?.tanggalSelesaiMagang,
+                        )}
+                      />
                     </td>
                   </tr>
                 ))}
@@ -768,13 +807,32 @@ export default function ViewPendaftaranPage() {
                           <>
                             <select
                               value={posisiBaru}
-                              onChange={(e) => setPosisiBaru(e.target.value)}
+                              onChange={(e) => {
+                                const val = e.target.value;
+
+                                // ❌ Cegah kalau penuh
+                                if (getSisaKuota(val) <= 0) {
+                                  showAlert(
+                                    "warning",
+                                    "Kuota formasi ini sudah penuh",
+                                  );
+                                  return;
+                                }
+
+                                setPosisiBaru(val);
+                              }}
+                              disabled={loadingFormasi}
                               className="w-full sm:w-auto text-xs px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800"
                             >
                               <option value="">Pilih Posisi</option>
-                              {POSISI_MAGANG.map((pos) => (
-                                <option key={pos} value={pos}>
-                                  {pos}
+                              {formasiList.map((f) => (
+                                <option
+                                  key={f._id}
+                                  value={f.title}
+                                  disabled={f.sisaKuota === 0}
+                                >
+                                  {f.title} ({f.sisaKuota} slot)
+                                  {f.sisaKuota === 0 ? " - PENUH" : ""}
                                 </option>
                               ))}
                             </select>
@@ -1249,52 +1307,34 @@ function getStatusMagang(
   return "Menunggu";
 }
 
-function StatusMagangBadge({
-  statusPendaftaran,
-  tanggalMulai,
-  tanggalSelesai,
-}: {
-  statusPendaftaran: string;
-  tanggalMulai?: string;
-  tanggalSelesai?: string;
-}) {
-  const status = getStatusMagang(
-    statusPendaftaran,
-    tanggalMulai,
-    tanggalSelesai,
-  );
-
+function StatusMagangBadge({ status }: { status: string }) {
   if (status === "Tidak Magang") {
     return (
-      <span className="inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-semibold bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300">
-        <HiXCircle className="w-3 h-3 mr-1" />
-        Tidak Magang
+      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-rose-100 text-rose-700">
+        ❌ Tidak Magang
       </span>
     );
   }
 
   if (status === "Sedang Magang") {
     return (
-      <span className="inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300">
-        <HiClock className="w-3 h-3 mr-1" />
-        Sedang Magang
+      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
+        🟢 Sedang Magang
       </span>
     );
   }
 
   if (status === "Selesai Magang") {
     return (
-      <span className="inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300">
-        <HiCheckCircle className="w-3 h-3 mr-1" />
-        Selesai Magang
+      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">
+        ✅ Selesai
       </span>
     );
   }
 
   return (
-    <span className="inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-300">
-      <HiClock className="w-3 h-3 mr-1" />
-      Menunggu
+    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700">
+      ⏳ Menunggu
     </span>
   );
 }

@@ -1,14 +1,16 @@
+// dashboard/peserta/isi-logbook/page.tsx - Tambahkan tombol
 "use client";
 
 import { useState, useEffect } from "react";
 import Calendar from "@/components/logbook/Calendar";
 import LogbookModal from "@/components/logbook/LogbookModal";
 import LogbookSummaryBoard from "@/components/logbook/LogbookSummaryBoard";
+import { FiDownload } from "react-icons/fi";
+import { showToast } from "@/components/ui/toastDashboard";
 
 export default function IsiLogbookPage() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [modalMode, setModalMode] = useState<"create" | "view">("create");
-
   const [filledDates, setFilledDates] = useState<Record<string, string>>({});
   const [summary, setSummary] = useState({
     total: 0,
@@ -16,6 +18,7 @@ export default function IsiLogbookPage() {
     tidakHadirDenganKeterangan: 0,
     tidakHadirTanpaKeterangan: 0,
   });
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const token =
     typeof window !== "undefined" ? localStorage.getItem("token") : "";
@@ -49,17 +52,96 @@ export default function IsiLogbookPage() {
     refreshAll();
   }, []);
 
+  // Fungsi untuk download semua logbook
+  const handleDownloadAll = async () => {
+    if (summary.total === 0) {
+      showToast.error("Belum ada logbook untuk diunduh");
+      return;
+    }
+
+    setIsDownloading(true);
+    const toastId = showToast.loading("Menyiapkan PDF logbook...");
+
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/logbook/download/pdf`,
+        {
+          headers,
+        },
+      );
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error("Belum ada logbook yang diisi");
+        }
+        throw new Error("Gagal mengunduh logbook");
+      }
+
+      // Buat blob dari response
+      const blob = await response.blob();
+
+      // Buat URL untuk blob
+      const url = window.URL.createObjectURL(blob);
+
+      // Buat link untuk download
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `logbook-${new Date().toISOString().split("T")[0]}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+
+      // Bersihkan URL
+      window.URL.revokeObjectURL(url);
+
+      showToast.updateSuccess(toastId, "PDF logbook berhasil diunduh! ✅");
+    } catch (error: any) {
+      console.error("Download error:", error);
+      showToast.updateError(
+        toastId,
+        error.message || "Gagal mengunduh logbook",
+      );
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   return (
     <div className="space-y-10">
       {/* ================= PAGE HEADER ================= */}
       <div className="space-y-2">
-        <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-white">
-          📘 Logbook Kegiatan
-        </h1>
-        <p className="text-slate-600 dark:text-slate-400 max-w-4xl leading-relaxed">
-          Catat aktivitas harian selama magang, pantau kehadiran, dan kelola
-          laporan harian dengan rapi.
-        </p>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-white">
+              📘 Logbook Kegiatan
+            </h1>
+            <p className="text-slate-600 dark:text-slate-400 max-w-4xl leading-relaxed">
+              Catat aktivitas harian selama magang, pantau kehadiran, dan kelola
+              laporan harian dengan rapi.
+            </p>
+          </div>
+
+          {/* TOMBOL DOWNLOAD ALL */}
+          <button
+            onClick={handleDownloadAll}
+            disabled={isDownloading || summary.total === 0}
+            className={`
+              flex items-center justify-center gap-2
+              px-5 py-3 rounded-xl
+              font-semibold text-sm
+              transition-all duration-300
+              ${
+                summary.total === 0 || isDownloading
+                  ? "bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed"
+                  : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg hover:shadow-xl active:scale-95"
+              }
+              whitespace-nowrap
+            `}
+          >
+            <FiDownload className={isDownloading ? "animate-spin" : ""} />
+            {isDownloading ? "Membuat PDF..." : "Download Semua Logbook"}
+          </button>
+        </div>
       </div>
 
       {/* ================= SUMMARY BOARD ================= */}

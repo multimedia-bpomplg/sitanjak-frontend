@@ -61,6 +61,7 @@ export default function ViewLogbookSuperadmin() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [logbookModalData, setLogbookModalData] = useState<any>(null);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   // Pagination state
   const [page, setPage] = useState(1);
@@ -87,6 +88,12 @@ export default function ViewLogbookSuperadmin() {
       const pesertaWithStats: Peserta[] = [];
 
       logbooksData.forEach((logbook: Logbook) => {
+        // ✅ CEK USER DULU
+        if (!logbook.user || !logbook.user._id) {
+          console.warn("Logbook tanpa user:", logbook);
+          return; // skip data rusak
+        }
+
         const userId = logbook.user._id;
 
         if (!pesertaMap.has(userId)) {
@@ -147,9 +154,8 @@ export default function ViewLogbookSuperadmin() {
   };
 
   const loadPesertaLogbookSummary = (pesertaId: string) => {
-    // Filter logbook untuk peserta tertentu
     const pesertaLogbooks = allLogbooks.filter(
-      (logbook) => logbook.user._id === pesertaId,
+      (logbook) => logbook.user && logbook.user._id === pesertaId,
     );
 
     // Hitung summary
@@ -178,6 +184,45 @@ export default function ViewLogbookSuperadmin() {
     setSelectedPeserta(peserta);
     loadPesertaLogbookSummary(peserta._id);
     setShowCalendarModal(true);
+  };
+
+  /* ================= DOWNLOAD PDF (ADMIN/SUPERADMIN) ================= */
+  const handleDownloadPDF = async (userId: string, name: string) => {
+    try {
+      setDownloadingId(userId);
+
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/logbook/admin/${userId}/download/pdf`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        },
+      );
+
+      if (!res.ok) {
+        throw new Error("Gagal download PDF");
+      }
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `logbook-${name}.pdf`;
+
+      document.body.appendChild(a);
+      a.click();
+
+      document.body.removeChild(a);
+
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("[DOWNLOAD ADMIN PDF]", err);
+      alert("Gagal download PDF logbook");
+    } finally {
+      setDownloadingId(null);
+    }
   };
 
   const handleSelectDate = async (date: string, isFilled: boolean) => {
@@ -212,7 +257,9 @@ export default function ViewLogbookSuperadmin() {
       // Fallback: coba ambil dari data yang sudah dimuat
       const fallbackLogbook = allLogbooks.find(
         (logbook) =>
-          logbook.user._id === selectedPeserta._id && logbook.date === date,
+          logbook.user &&
+          logbook.user._id === selectedPeserta._id &&
+          logbook.date === date,
       );
       if (fallbackLogbook) {
         setLogbookModalData(fallbackLogbook);
@@ -347,14 +394,16 @@ export default function ViewLogbookSuperadmin() {
 
     return (
       <div className="w-full max-w-4xl mx-auto">
-        <div className="
+        <div
+          className="
           rounded-2xl
           bg-white/80 dark:bg-indigo-950/50
           backdrop-blur
           shadow-lg
           p-6
           text-slate-800 dark:text-slate-100
-        ">
+        "
+        >
           {/* Header */}
           <div className="mb-4 grid grid-cols-3 items-center">
             {/* KIRI (kosong biar center beneran) */}
@@ -516,14 +565,17 @@ export default function ViewLogbookSuperadmin() {
 
     if (isLoadingDetail) {
       return (
-        <div className="
+        <div
+          className="
           fixed inset-0 z-50
           flex items-center justify-center
           bg-black/40 dark:bg-black/70
           backdrop-blur-md
           p-4
-        ">
-          <div className="
+        "
+        >
+          <div
+            className="
             rounded-3xl
             px-8 py-7
             bg-white/90 dark:bg-indigo-950/50
@@ -531,9 +583,11 @@ export default function ViewLogbookSuperadmin() {
             border border-[#F59E0B]/40 dark:border-indigo-500/30
             shadow-2xl
             flex flex-col items-center gap-4
-          ">
+          "
+          >
             {/* Spinner */}
-            <div className="
+            <div
+              className="
               w-12 h-12
               rounded-full
               border-4
@@ -542,14 +596,17 @@ export default function ViewLogbookSuperadmin() {
               dark:border-indigo-400
               dark:border-t-indigo-600
               animate-spin
-            " />
+            "
+            />
 
             {/* Text */}
-            <p className="
+            <p
+              className="
               text-sm font-medium
               text-[#7F1D1D]
               dark:text-indigo-200
-            ">
+            "
+            >
               Memuat logbook...
             </p>
           </div>
@@ -559,7 +616,8 @@ export default function ViewLogbookSuperadmin() {
 
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 dark:bg-black/70 backdrop-blur-md p-3 sm:p-6">
-        <div className="
+        <div
+          className="
           w-full max-w-2xl
           bg-white/90 dark:bg-indigo-950/40
           backdrop-blur
@@ -569,16 +627,19 @@ export default function ViewLogbookSuperadmin() {
           flex flex-col
           max-h-[92vh]
           overflow-hidden
-        ">
+        "
+        >
           {/* Header */}
-          <div className="
+          <div
+            className="
             px-5 sm:px-6 py-4 sm:py-5
             bg-linear-to-r
             from-[#F59E0B] via-[#B91C1C] to-[#7F1D1D]
             dark:from-indigo-600 dark:to-violet-500
             text-white
             flex items-center justify-between
-          ">
+          "
+          >
             {/* LEFT */}
             <div className="flex items-center gap-3">
               <HiCalendar className="text-xl" />
@@ -620,14 +681,17 @@ export default function ViewLogbookSuperadmin() {
 
                 {/* Status Kehadiran */}
                 <div className="space-y-3">
-                  <label className="
+                  <label
+                    className="
                     text-md font-bold tracking-wide
                     text-[#7F1D1D]
                     dark:text-indigo-300
-                  ">
+                  "
+                  >
                     Status Kehadiran
                   </label>
-                  <div className="
+                  <div
+                    className="
                     ml-3
                     inline-flex items-center gap-2
                     px-4 py-2.5
@@ -637,7 +701,8 @@ export default function ViewLogbookSuperadmin() {
                     dark:border-indigo-500/40
                     text-black
                     dark:text-white
-                  ">
+                  "
+                  >
                     <span className="font-semibold">
                       {logbookModalData.status === "hadir"
                         ? "✅ Hadir"
@@ -652,14 +717,17 @@ export default function ViewLogbookSuperadmin() {
                   <>
                     {/* Uraian Aktivitas */}
                     <div className="space-y-3">
-                      <label className="
+                      <label
+                        className="
                         text-md font-bold tracking-wide
                         text-[#7F1D1D]
                         dark:text-indigo-300
-                      ">
+                      "
+                      >
                         Uraian Aktivitas
                       </label>
-                      <div className="
+                      <div
+                        className="
                         mt-2
                         p-4
                         rounded-2xl
@@ -667,21 +735,25 @@ export default function ViewLogbookSuperadmin() {
                         border border-slate-200 dark:border-indigo-500/30
                         whitespace-pre-line
                         text-slate-700 dark:text-slate-100
-                      ">
+                      "
+                      >
                         {logbookModalData.judul || "-"}
                       </div>
                     </div>
 
                     {/* Pembelajaran */}
                     <div className="space-y-3">
-                      <label className="
+                      <label
+                        className="
                         text-md font-bold tracking-wide
                         text-[#7F1D1D]
                         dark:text-indigo-300
-                      ">
+                      "
+                      >
                         Pembelajaran
                       </label>
-                      <div className="
+                      <div
+                        className="
                         mt-2
                         p-4
                         rounded-2xl
@@ -689,21 +761,25 @@ export default function ViewLogbookSuperadmin() {
                         border border-slate-200 dark:border-indigo-500/30
                         whitespace-pre-line
                         text-slate-700 dark:text-slate-100
-                      ">
+                      "
+                      >
                         {logbookModalData.pengalaman || "-"}
                       </div>
                     </div>
 
                     {/* Kendala */}
                     <div className="space-y-3">
-                      <label className="
+                      <label
+                        className="
                         text-md font-bold tracking-wide
                         text-[#7F1D1D]
                         dark:text-indigo-300
-                      ">
+                      "
+                      >
                         Kendala
                       </label>
-                      <div className="
+                      <div
+                        className="
                         mt-2
                         p-4
                         rounded-2xl
@@ -711,7 +787,8 @@ export default function ViewLogbookSuperadmin() {
                         border border-slate-200 dark:border-indigo-500/30
                         whitespace-pre-line
                         text-slate-700 dark:text-slate-100
-                      ">
+                      "
+                      >
                         {logbookModalData.kendala || "-"}
                       </div>
                     </div>
@@ -720,11 +797,13 @@ export default function ViewLogbookSuperadmin() {
                     {logbookModalData.files &&
                       logbookModalData.files.length > 0 && (
                         <div className="space-y-3">
-                          <label className="
+                          <label
+                            className="
                             text-md font-bold tracking-wide
                             text-[#7F1D1D]
                             dark:text-indigo-300
-                          ">
+                          "
+                          >
                             Dokumentasi
                           </label>
                           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -753,14 +832,17 @@ export default function ViewLogbookSuperadmin() {
 
                 {logbookModalData.status !== "hadir" && (
                   <div className="space-y-3">
-                    <label className="
+                    <label
+                      className="
                       text-md font-bold tracking-wide
                       text-[#7F1D1D]
                       dark:text-indigo-300
-                    ">
+                    "
+                    >
                       Alasan Tidak Hadir
                     </label>
-                    <div className="
+                    <div
+                      className="
                       mt-2
                       p-4
                       rounded-2xl
@@ -768,7 +850,8 @@ export default function ViewLogbookSuperadmin() {
                       border border-slate-200 dark:border-indigo-500/30
                       whitespace-pre-line
                       text-slate-700 dark:text-slate-100
-                    ">
+                    "
+                    >
                       {logbookModalData.keterangan || "-"}
                     </div>
                   </div>
@@ -777,14 +860,17 @@ export default function ViewLogbookSuperadmin() {
                 {/* Catatan Mentor */}
                 {logbookModalData.mentorNote && (
                   <div className="space-y-3">
-                    <label className="
+                    <label
+                      className="
                       text-md font-bold tracking-wide
                       text-[#7F1D1D]
                       dark:text-indigo-300
-                    ">
+                    "
+                    >
                       Catatan Mentor
                     </label>
-                    <div className="
+                    <div
+                      className="
                       mt-2
                       p-4
                       rounded-2xl
@@ -792,7 +878,8 @@ export default function ViewLogbookSuperadmin() {
                       dark:bg-indigo-900/40
                       border border-amber-300/60
                       dark:border-indigo-500/40
-                    ">
+                    "
+                    >
                       <p className="text-amber-800 dark:text-indigo-200 whitespace-pre-line">
                         {logbookModalData.mentorNote}
                       </p>
@@ -854,7 +941,6 @@ export default function ViewLogbookSuperadmin() {
                   </div>
                 )}
 
-
                 {/* Created At */}
                 {logbookModalData.createdAt && (
                   <div className="text-sm text-slate-500 dark:text-slate-300 text-right">
@@ -879,7 +965,8 @@ export default function ViewLogbookSuperadmin() {
           </div>
 
           {/* Footer */}
-          <div className="
+          <div
+            className="
             px-6 py-4
             border-t
             border-slate-200
@@ -887,7 +974,8 @@ export default function ViewLogbookSuperadmin() {
             bg-slate-50/80
             dark:bg-indigo-950/40
             backdrop-blur
-          ">
+          "
+          >
             <button
               onClick={() => {
                 setSelectedDate(null);
@@ -1016,7 +1104,10 @@ export default function ViewLogbookSuperadmin() {
                 </tr>
               ) : currentItems.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-14 text-center text-slate-500 dark:text-slate-400">
+                  <td
+                    colSpan={8}
+                    className="py-14 text-center text-slate-500 dark:text-slate-400"
+                  >
                     {search
                       ? "Peserta tidak ditemukan"
                       : "Tidak ada data peserta"}
@@ -1067,7 +1158,9 @@ export default function ViewLogbookSuperadmin() {
                     <td className="py-4 px-6 text-center">
                       <div className="flex justify-center items-center gap-2">
                         <HiDocumentText className="w-4 h-4 text-slate-400" />
-                        <span className="font-semibold">{p.totalLogbooks || 0}</span>
+                        <span className="font-semibold">
+                          {p.totalLogbooks || 0}
+                        </span>
                       </div>
                     </td>
 
@@ -1075,7 +1168,9 @@ export default function ViewLogbookSuperadmin() {
                     <td className="py-4 px-6 text-center">
                       <div className="flex justify-center items-center gap-2 text-emerald-600">
                         <HiCheckCircle className="w-4 h-4" />
-                        <span className="font-semibold">{p.approvedLogbooks || 0}</span>
+                        <span className="font-semibold">
+                          {p.approvedLogbooks || 0}
+                        </span>
                       </div>
                     </td>
 
@@ -1083,7 +1178,9 @@ export default function ViewLogbookSuperadmin() {
                     <td className="py-4 px-6 text-center">
                       <div className="flex justify-center items-center gap-2 text-amber-600">
                         <HiClock className="w-4 h-4" />
-                        <span className="font-semibold">{p.pendingLogbooks || 0}</span>
+                        <span className="font-semibold">
+                          {p.pendingLogbooks || 0}
+                        </span>
                       </div>
                     </td>
 
@@ -1091,32 +1188,59 @@ export default function ViewLogbookSuperadmin() {
                     <td className="py-4 px-6 text-center">
                       <div className="flex justify-center items-center gap-2 text-red-600">
                         <HiXCircle className="w-4 h-4" />
-                        <span className="font-semibold">{p.rejectedLogbooks || 0}</span>
+                        <span className="font-semibold">
+                          {p.rejectedLogbooks || 0}
+                        </span>
                       </div>
                     </td>
 
                     {/* AKSI */}
+                    {/* AKSI */}
                     <td className="py-4 px-6 text-center">
-                      <button
-                        onClick={() => handleViewCalendar(p)}
-                        disabled={p.totalLogbooks === 0}
-                        className="
-                          inline-flex items-center gap-2
-                          px-4 py-2
-                          rounded-xl
-                          text-sm font-semibold
-                          text-white
-                          bg-linear-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
-                          dark:from-indigo-600 dark:to-violet-500
-                          shadow hover:shadow-xl
-                          hover:-translate-y-0.5
-                          transition
-                          disabled:opacity-50 disabled:cursor-not-allowed
-                        "
-                      >
-                        <FiEye />
-                        {p.totalLogbooks === 0 ? "Belum Ada" : "Lihat Logbook"}
-                      </button>
+                      <div className="flex justify-center gap-2 flex-wrap">
+                        {/* LIHAT */}
+                        <button
+                          onClick={() => handleViewCalendar(p)}
+                          disabled={p.totalLogbooks === 0}
+                          className="
+        inline-flex items-center gap-2
+        px-3 py-2
+        rounded-lg
+        text-sm font-semibold
+        text-white
+        bg-linear-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
+        dark:from-indigo-600 dark:to-violet-500
+        shadow
+        hover:shadow-xl
+        transition
+        disabled:opacity-50
+      "
+                        >
+                          <FiEye />
+                          Lihat
+                        </button>
+
+                        {/* DOWNLOAD */}
+                        <button
+                          onClick={() => handleDownloadPDF(p._id, p.name)}
+                          disabled={
+                            p.totalLogbooks === 0 || downloadingId === p._id
+                          }
+                          className="
+        inline-flex items-center gap-2
+        px-3 py-2
+        rounded-lg
+        text-sm font-semibold
+        text-white
+        bg-emerald-600 hover:bg-emerald-700
+        shadow
+        transition
+        disabled:opacity-50
+      "
+                        >
+                          {downloadingId === p._id ? "..." : "PDF"}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -1207,7 +1331,8 @@ export default function ViewLogbookSuperadmin() {
       {/* Calendar Modal */}
       {showCalendarModal && selectedPeserta && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 dark:bg-black/70 backdrop-blur-md p-3 sm:p-6">
-          <div className="
+          <div
+            className="
             w-full max-w-5xl
             bg-white/90 dark:bg-indigo-950/40
             backdrop-blur
@@ -1217,16 +1342,19 @@ export default function ViewLogbookSuperadmin() {
             flex flex-col
             max-h-[92vh]
             overflow-hidden
-          ">
+          "
+          >
             {/* Header */}
-            <div className="
+            <div
+              className="
               px-5 sm:px-6 py-4 sm:py-5
               bg-linear-to-r
               from-[#F59E0B] via-[#B91C1C] to-[#7F1D1D]
               dark:from-indigo-600 dark:to-violet-500
               text-white
               flex items-center justify-between
-            ">
+            "
+            >
               {/* LEFT */}
               <div className="flex items-center gap-3">
                 <HiCalendar className="text-xl" />
@@ -1259,18 +1387,22 @@ export default function ViewLogbookSuperadmin() {
 
             {/* Summary Stats */}
             {logbookSummary && (
-              <div className="
+              <div
+                className="
                 px-5 sm:px-6 py-5
                 border-b border-slate-200 dark:border-indigo-500/30
                 bg-slate-50/80 dark:bg-indigo-950/30
-              ">
+              "
+              >
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  <div className="
+                  <div
+                    className="
                     rounded-2xl p-4 text-center
                     bg-white dark:bg-indigo-900/40
                     border border-slate-200 dark:border-indigo-500/30
                     shadow-sm
-                  ">
+                  "
+                  >
                     <div className="text-2xl font-bold text-slate-800 dark:text-white">
                       {logbookSummary.total}
                     </div>
@@ -1278,34 +1410,44 @@ export default function ViewLogbookSuperadmin() {
                       Total Logbook
                     </div>
                   </div>
-                  <div className="
+                  <div
+                    className="
                     rounded-2xl p-4 text-center
                     bg-white dark:bg-indigo-900/40
                     border border-slate-200 dark:border-indigo-500/30
                     shadow-sm
-                  ">
+                  "
+                  >
                     <div className="text-2xl font-bold text-emerald-600">
                       {logbookSummary.hadir}
                     </div>
-                    <div className="text-sm text-slate-500 dark:text-slate-400">Hadir</div>
+                    <div className="text-sm text-slate-500 dark:text-slate-400">
+                      Hadir
+                    </div>
                   </div>
-                  <div className="
+                  <div
+                    className="
                     rounded-2xl p-4 text-center
                     bg-white dark:bg-indigo-900/40
                     border border-slate-200 dark:border-indigo-500/30
                     shadow-sm
-                  ">
+                  "
+                  >
                     <div className="text-2xl font-bold text-blue-600">
                       {logbookSummary.tidakHadirDenganKeterangan}
                     </div>
-                    <div className="text-sm text-slate-500 dark:text-slate-400">Izin</div>
+                    <div className="text-sm text-slate-500 dark:text-slate-400">
+                      Izin
+                    </div>
                   </div>
-                  <div className="
+                  <div
+                    className="
                     rounded-2xl p-4 text-center
                     bg-white dark:bg-indigo-900/40
                     border border-slate-200 dark:border-indigo-500/30
                     shadow-sm
-                  ">
+                  "
+                  >
                     <div className="text-2xl font-bold text-red-600">
                       {logbookSummary.tidakHadirTanpaKeterangan}
                     </div>
@@ -1319,12 +1461,14 @@ export default function ViewLogbookSuperadmin() {
 
             {/* Calendar */}
             <div className="flex-1 overflow-y-auto p-4 sm:p-6">
-              <div className="
+              <div
+                className="
                 rounded-2xl
                 bg-white dark:bg-indigo-950/40
                 border border-slate-200 dark:border-indigo-500/30
                 p-3 sm:p-4
-              ">
+              "
+              >
                 <Calendar
                   onSelectDate={handleSelectDate}
                   filledDates={filledDates}

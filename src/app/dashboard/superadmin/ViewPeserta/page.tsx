@@ -21,15 +21,18 @@ type Peserta = {
   posisi: string;
   jurusan: string;
   kategori: string;
+
+  statusMagang?: "Menunggu" | "Sedang Magang" | "Selesai Magang";
   mentor?: {
     _id: string;
     name: string;
     email: string;
   };
+
   isTerdaftar: boolean;
   tanggalMulaiMagang: string;
   tanggalSelesaiMagang: string;
-  statusPendaftaran?: "Disetujui" | "Ditolak" | "Menunggu"; // ✅ TAMBAH
+  statusPendaftaran?: "Disetujui" | "Ditolak" | "Menunggu";
   createdAt: string;
 };
 
@@ -156,9 +159,7 @@ export default function ViewPesertaSuperadmin() {
         <StatCard
           title="Aktif Magang"
           value={
-            pesertaList.filter(
-              (p) => new Date(p.tanggalSelesaiMagang) > new Date(),
-            ).length
+            pesertaList.filter((p) => p.statusMagang === "Sedang Magang").length
           }
           icon={<HiCalendar className="w-7 h-7" />}
           note="Sedang menjalani magang"
@@ -168,9 +169,8 @@ export default function ViewPesertaSuperadmin() {
         <StatCard
           title="Sudah Selesai"
           value={
-            pesertaList.filter(
-              (p) => new Date(p.tanggalSelesaiMagang) <= new Date(),
-            ).length
+            pesertaList.filter((p) => p.statusMagang === "Selesai Magang")
+              .length
           }
           icon={<HiBriefcase className="w-7 h-7" />}
           note="Magang telah selesai"
@@ -279,6 +279,9 @@ export default function ViewPesertaSuperadmin() {
                   <th className="w-[18%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
                     Mentor
                   </th>
+                  <th className="w-[18%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
+                    Status Magang
+                  </th>
                   <th className="w-[14%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
                     Aksi
                   </th>
@@ -369,6 +372,13 @@ export default function ViewPesertaSuperadmin() {
                           Belum ada mentor
                         </span>
                       )}
+                    </td>
+
+                    {/* STATUS MAGANG */}
+                    <td className="py-4 px-6 text-center">
+                      <StatusMagangBadge
+                        status={p.statusMagang || "Menunggu"}
+                      />
                     </td>
 
                     {/* AKSI */}
@@ -559,30 +569,34 @@ function StatCard({ title, value, icon, note, color }: StatCardProps) {
   );
 }
 
-function getStatusMagang(
-  statusPendaftaran?: string,
-  mulai?: string,
-  selesai?: string,
-) {
-  if (statusPendaftaran === "Ditolak") {
-    return "Tidak Magang";
+function StatusMagangBadge({ status }: { status: string }) {
+  if (status === "Sedang Magang") {
+    return (
+      <span className="px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
+        🟢 Sedang Magang
+      </span>
+    );
   }
 
-  if (statusPendaftaran !== "Disetujui") {
-    return "Menunggu";
+  if (status === "Tidak Magang") {
+    return (
+      <span className="px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700">
+        ❌ Tidak Magang
+      </span>
+    );
   }
 
-  if (!mulai || !selesai) {
-    return "Menunggu";
+  if (status === "Selesai Magang") {
+    return (
+      <span className="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">
+        ✅ Selesai
+      </span>
+    );
   }
 
-  const today = new Date();
-  const start = new Date(mulai);
-  const end = new Date(selesai);
-
-  if (today < start) return "Menunggu";
-  if (today >= start && today <= end) return "Sedang Magang";
-  if (today > end) return "Selesai Magang";
-
-  return "Menunggu";
+  return (
+    <span className="px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700">
+      ⏳ Menunggu
+    </span>
+  );
 }

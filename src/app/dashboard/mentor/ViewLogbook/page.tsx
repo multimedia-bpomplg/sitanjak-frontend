@@ -30,6 +30,8 @@ export default function ViewLogbookMentor() {
   const [selectedPeserta, setSelectedPeserta] = useState<Peserta | null>(null);
   const [filledDates, setFilledDates] = useState<Record<string, string>>({});
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -211,6 +213,66 @@ export default function ViewLogbookMentor() {
     );
   }
 
+  /* ================= DOWNLOAD PDF ================= */
+  const handleDownloadLogbook = async (p: Peserta) => {
+    try {
+      let userId = p._id;
+
+      /* ===== JIKA ID MASIH TEMP, CARI DARI EMAIL ===== */
+      if (!userId || userId.includes("temp-")) {
+        const loadingToast = showToast.loading("Mengambil data peserta...");
+
+        const fetchedUserId = await getUserIdByEmail(p.email);
+
+        if (!fetchedUserId) {
+          showToast.updateError(loadingToast, "Gagal menemukan ID peserta");
+          return;
+        }
+
+        userId = fetchedUserId;
+
+        showToast.updateSuccess(loadingToast, "Data peserta ditemukan");
+      }
+
+      setDownloadingId(userId);
+
+      /* ===== DOWNLOAD ===== */
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/logbook/mentor/${userId}/download/pdf`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        },
+      );
+
+      if (!res.ok) {
+        throw new Error("Gagal download");
+      }
+
+      const blob = await res.blob();
+
+      const url = window.URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `logbook-${p.nama}.pdf`;
+
+      document.body.appendChild(a);
+      a.click();
+
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
+      showToast.success("Logbook berhasil diunduh");
+    } catch (err) {
+      console.error("[DOWNLOAD ERROR]", err);
+      showToast.error("Gagal download logbook");
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
   return (
     <div
       className="
@@ -368,7 +430,9 @@ export default function ViewLogbookMentor() {
                 </div>
               </div>
               <div className="mt-4 pt-4 border-t border-[#FCA5A5]/40 dark:border-indigo-500/30">
-                <p className="text-xs text-slate-600 dark:text-slate-300">Berbagai posisi magang</p>
+                <p className="text-xs text-slate-600 dark:text-slate-300">
+                  Berbagai posisi magang
+                </p>
               </div>
             </div>
           </div>
@@ -398,7 +462,8 @@ export default function ViewLogbookMentor() {
             </div>
             <div className="mt-2 flex flex-wrap justify-between text-sm text-slate-500">
               <p>
-                Menampilkan {filteredPeserta.length} dari {peserta.length} peserta
+                Menampilkan {filteredPeserta.length} dari {peserta.length}{" "}
+                peserta
               </p>
               {searchQuery && (
                 <button
@@ -564,31 +629,52 @@ export default function ViewLogbookMentor() {
                             </span>
                           </div>
                         </td>
-                        <td className="py-4 px-6 text-center">
+                        <td className="py-4 px-6 text-center space-y-2">
+                          {/* LIHAT */}
                           <button
                             onClick={() => handleViewLogbook(p)}
                             className="
-                              group
-                              inline-flex items-center justify-center gap-2
-                              px-4 sm:px-5 py-2 sm:py-2.5
-                              rounded-xl
-                              text-xs sm:text-sm font-semibold
-                              text-white
+      group
+      inline-flex items-center justify-center gap-2
+      px-4 sm:px-5 py-2 sm:py-2.5
+      rounded-xl
+      text-xs sm:text-sm font-semibold
+      text-white
 
-                              bg-linear-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
-                              hover:from-[#991B1B] hover:via-[#DC2626] hover:to-[#FBBF24]
+      bg-linear-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
+      hover:from-[#991B1B] hover:via-[#DC2626] hover:to-[#FBBF24]
 
-                              dark:from-indigo-600 dark:to-violet-500
-                              dark:hover:from-indigo-500 dark:hover:to-violet-400
+      dark:from-indigo-600 dark:to-violet-500
+      dark:hover:from-indigo-500 dark:hover:to-violet-400
 
-                              shadow-md hover:shadow-xl
-                              hover:-translate-y-0.5
-                              transition-all duration-300
-                            "
+      shadow-md hover:shadow-xl
+      transition
+    "
                           >
-                            <HiCalendar className="w-4 h-4 group-hover:scale-110 transition" />
-                            <span className="hidden sm:inline">Lihat Logbook</span>
-                            <span className="sm:hidden">Logbook</span>
+                            <HiCalendar className="w-4 h-4" />
+                            Lihat
+                          </button>
+
+                          {/* DOWNLOAD */}
+                          <button
+                            onClick={() => handleDownloadLogbook(p)}
+                            disabled={downloadingId === p._id}
+                            className="
+      group
+      inline-flex items-center justify-center gap-2
+      px-4 sm:px-5 py-2 sm:py-2.5
+      rounded-xl
+      text-xs sm:text-sm font-semibold
+      text-white
+
+      bg-emerald-600 hover:bg-emerald-700
+      disabled:opacity-50
+
+      shadow-md hover:shadow-xl
+      transition
+    "
+                          >
+                            📄 {downloadingId === p._id ? "Loading..." : "PDF"}
                           </button>
                         </td>
                       </tr>

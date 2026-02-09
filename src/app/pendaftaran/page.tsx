@@ -13,7 +13,11 @@ import {
   HiArrowLeft,
   HiClipboardList,
   HiCalendar,
+  HiDownload,
+  HiDocument,
 } from "react-icons/hi";
+import { fetchFormasi, IFormasi } from "@/services/formasiService";
+import { useSearchParams } from "next/navigation";
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const waRegex = /^08[0-9]{8,11}$/;
@@ -542,6 +546,56 @@ export default function PendaftaranPage() {
     setPendingSubmit(false);
   };
 
+  /* ================== DOWNLOAD TEMPLATE ================== */
+  const handleDownloadTemplate = () => {
+    const templateUrl = "/pdf/template-surat-pengantar-magang.pdf";
+    const link = document.createElement("a");
+    link.href = templateUrl;
+    link.download = "Template_Surat_Pengantar_Magang.pdf";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.info("📥 Template surat pengantar sedang diunduh...");
+  };
+
+  const searchParams = useSearchParams();
+
+  const [formasiList, setFormasiList] = useState<IFormasi[]>([]);
+  const [loadingFormasi, setLoadingFormasi] = useState(true);
+
+  useEffect(() => {
+    const loadFormasi = async () => {
+      try {
+        const data = await fetchFormasi();
+        setFormasiList(data);
+      } catch (err) {
+        console.error("Gagal load formasi:", err);
+      } finally {
+        setLoadingFormasi(false);
+      }
+    };
+
+    loadFormasi();
+  }, []);
+
+  useEffect(() => {
+    const formasi = searchParams.get("formasi");
+
+    if (formasi) {
+      setPeserta((prev) =>
+        prev.map((p) => ({
+          ...p,
+          posisi: formasi,
+        })),
+      );
+    }
+  }, [searchParams]);
+
+  const getSisaKuota = (posisi: string) => {
+    const f = formasiList.find((x) => x.title === posisi);
+    return f ? f.sisaKuota : 0;
+  };
+
   return (
     <div className="min-h-screen bg-linear-to-br from-[#FFF7ED] via-[#FEF3C7] to-[#FFFFFF] py-16 px-4">
       <div className="max-w-6xl mx-auto">
@@ -596,11 +650,12 @@ export default function PendaftaranPage() {
           </p>
         </div>
 
-        {/* CEK RIWAYAT */}
-        <div className="max-w-4xl mx-auto mb-10">
+        {/* CEK RIWAYAT DAN DOWNLOAD TEMPLATE */}
+        <div className="max-w-4xl mx-auto mb-10 space-y-4">
+          {/* CARD: CEK RIWAYAT */}
           <div
             className="bg-white/80 backdrop-blur rounded-2xl shadow-md px-6 py-5
-                            flex flex-col md:flex-row md:items-center md:justify-between gap-4"
+                        flex flex-col md:flex-row md:items-center md:justify-between gap-4"
           >
             <div>
               <h3 className="text-base font-semibold text-gray-800">
@@ -622,6 +677,33 @@ export default function PendaftaranPage() {
               <HiClipboardList className="text-lg" />
               Lihat Riwayat Pendaftaran
             </Link>
+          </div>
+
+          {/* CARD: DOWNLOAD TEMPLATE SURAT PENGANTAR */}
+          <div
+            className="bg-gradient-to-r from-[#FEF3C7] to-[#FDE68A] rounded-2xl shadow-md px-6 py-5
+                        flex flex-col md:flex-row md:items-center md:justify-between gap-4 border border-[#F59E0B]/30"
+          >
+            <div>
+              <h3 className="text-base font-semibold text-gray-800">
+                Butuh template surat pengantar?
+              </h3>
+              <p className="text-sm text-gray-600">
+                Unduh template resmi surat pengantar magang yang dapat diisi
+                sesuai kebutuhan.
+              </p>
+            </div>
+
+            <button
+              onClick={handleDownloadTemplate}
+              className="inline-flex items-center gap-2 px-5 py-2.5
+                          rounded-xl text-sm font-semibold
+                          bg-linear-to-r from-[#7F1D1D] to-[#B91C1C] text-white
+                          hover:brightness-110 transition"
+            >
+              <HiDownload className="text-lg" />
+              Download Template
+            </button>
           </div>
         </div>
 
@@ -738,7 +820,16 @@ export default function PendaftaranPage() {
                   <select
                     value={peserta[i].posisi}
                     onChange={(e) => {
-                      update(i, "posisi", e.target.value);
+                      const val = e.target.value;
+
+                      // ❌ Cegah kalau penuh
+                      if (getSisaKuota(val) <= 0) {
+                        toast.error("❌ Kuota formasi ini sudah penuh");
+                        return;
+                      }
+
+                      update(i, "posisi", val);
+
                       setErrors((prev) => ({
                         ...prev,
                         [`posisi-${i}`]: false,
@@ -746,9 +837,14 @@ export default function PendaftaranPage() {
                     }}
                   >
                     <option value="">Pilih Posisi Magang</option>
-                    {POSISI_MAGANG.map((p) => (
-                      <option key={p} value={p}>
-                        {p}
+                    {formasiList.map((f) => (
+                      <option
+                        key={f._id}
+                        value={f.title}
+                        disabled={f.sisaKuota === 0}
+                      >
+                        {f.title} ({f.sisaKuota} slot)
+                        {f.sisaKuota === 0 ? " - PENUH" : ""}
                       </option>
                     ))}
                   </select>
