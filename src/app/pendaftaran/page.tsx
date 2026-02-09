@@ -345,15 +345,21 @@ export default function PendaftaranPage() {
   };
 
   const isCapitalizeEachWord = (text: string) => {
-    return text
-      .trim()
-      .split(" ")
-      .every(
-        (word) =>
-          word.length > 0 &&
-          word[0] === word[0].toUpperCase() &&
-          word.slice(1) === word.slice(1).toLowerCase(),
+    const words = text.trim().split(" ");
+
+    return words.every((word) => {
+      if (!word) return false;
+
+      // izinkan kata dalam tanda kurung seperti (S1), (D3)
+      if (/^\([A-Za-z0-9]+\)$/.test(word)) {
+        return true;
+      }
+
+      return (
+        word[0] === word[0].toUpperCase() &&
+        word.slice(1) === word.slice(1).toLowerCase()
       );
+    });
   };
 
   const isValidNamaInstansi = (jenis: "Universitas" | "SMK", text: string) => {
@@ -390,12 +396,22 @@ export default function PendaftaranPage() {
   /* ================== VALIDASI ================== */
   const validateForm = () => {
     const newErrors: Record<string, boolean> = {};
+    let hasSpecificError = false;
 
     peserta.forEach((p, i) => {
       if (!p.nama) newErrors[`nama-${i}`] = true;
       if (!p.posisi) newErrors[`posisi-${i}`] = true;
 
       if (!p.tanggalMulaiMagang) newErrors[`tanggalMulaiMagang-${i}`] = true;
+      const todayStr = new Date().toISOString().split("T")[0];
+      if (p.tanggalMulaiMagang && p.tanggalMulaiMagang < todayStr) {
+        newErrors[`tanggalMulaiMagang-${i}`] = true;
+        toast.error(
+          `❌ Tanggal mulai magang tidak boleh sebelum hari ini (Peserta ${i + 1})`
+        );
+        hasSpecificError = true;
+      }
+
       if (!p.tanggalSelesaiMagang)
         newErrors[`tanggalSelesaiMagang-${i}`] = true;
 
@@ -408,6 +424,7 @@ export default function PendaftaranPage() {
         toast.error(
           `❌ Tanggal selesai harus setelah tanggal mulai (Peserta ${i + 1})`,
         );
+        hasSpecificError = true;
       }
 
       if (!p.tempatLahir) newErrors[`tempatLahir-${i}`] = true;
@@ -431,6 +448,7 @@ export default function PendaftaranPage() {
               : "❌ Penulisan SMK harus diawali dengan 'SMK' (huruf besar), dan kata setelahnya menggunakan huruf kapital.\n\nContoh: SMK Negeri 1",
             { autoClose: 4500 },
           );
+          hasSpecificError = true;
         }
       }
 
@@ -445,9 +463,10 @@ export default function PendaftaranPage() {
           newErrors[`jurusanLainnya-${i}`] = true;
 
           toast.error(
-            `❌ Nama jurusan harus ditulis dengan huruf kapital di awal setiap kata.\n\nContoh: Teknik Informatika`,
+            `❌ Nama jurusan harus ditulis dengan huruf kapital di awal setiap kata.\n\nContoh: Teknik Informatika (S1)`,
             { autoClose: 4000 },
           );
+          hasSpecificError = true;
         }
       }
 
@@ -463,6 +482,7 @@ export default function PendaftaranPage() {
       } else if (!emailRegex.test(p.email)) {
         newErrors[`email-${i}`] = true;
         toast.error(`❌ Email Peserta ${i + 1} tidak valid`);
+        hasSpecificError = true;
       }
 
       if (!p.wa) {
@@ -472,6 +492,7 @@ export default function PendaftaranPage() {
         toast.error(
           `❌ Nomor WhatsApp Peserta ${i + 1} harus diawali 08 & valid`,
         );
+        hasSpecificError = true;
       }
     });
 
@@ -479,8 +500,17 @@ export default function PendaftaranPage() {
 
     setErrors(newErrors);
 
+    const firstErrorKey = Object.keys(newErrors)[0];
+    if (firstErrorKey) {
+      const el = document.querySelector(`[name="${firstErrorKey}"]`);
+      if (el instanceof HTMLElement) el.focus();
+    }
+
+    // tampilkan warning umum jika ada field kosong
     if (Object.keys(newErrors).length > 0) {
-      toast.warning("❗ Mohon lengkapi semua kolom yang wajib diisi");
+      if (!hasSpecificError) {
+        toast.warning("❗ Mohon lengkapi semua kolom yang wajib diisi");
+      }
       return false;
     }
 
@@ -764,6 +794,7 @@ export default function PendaftaranPage() {
 
         <form
           onSubmit={handleSubmit}
+          noValidate
           className="space-y-10 bg-white/70 backdrop-blur-xl rounded-3xl shadow-xl p-10"
         >
           {/* INFORMASI PERMOHONAN */}
@@ -862,57 +893,145 @@ export default function PendaftaranPage() {
               </div>
 
               <div>
-                <label className="text-sm font-medium text-gray-700 mb-1 block">
+                <label className="text-sm font-medium text-gray-700 mb-3 block">
                   Posisi Magang <span className="text-red-500">*</span>
                 </label>
 
                 <div
-                  className={`form-field ${
-                    errors[`posisi-${i}`] ? "form-error" : ""
-                  }`}
+                  className={`
+                    grid gap-4
+                    sm:grid-cols-2
+                    ${
+                      errors[`posisi-${i}`]
+                        ? "ring-2 ring-red-400 rounded-xl p-3"
+                        : ""
+                    }
+                  `}
                 >
-                  <HiBriefcase className="form-icon" />
-                  <select
-                    value={peserta[i].posisi}
-                    onChange={(e) => {
-                      const val = e.target.value;
+                  {formasiList.map((f) => {
+                    const total = f.kuota || 1; // total kuota
+                    const sisa = f.sisaKuota;
+                    const terisi = total - sisa;
+                    const persen = Math.round((terisi / total) * 100);
 
-                      // ❌ Cegah kalau penuh
-                      if (getSisaKuota(val) <= 0) {
-                        toast.error("❌ Kuota formasi ini sudah penuh");
-                        return;
-                      }
+                    const penuh = sisa === 0;
+                    const hampirPenuh = sisa > 0 && sisa <= 3;
 
-                      update(i, "posisi", val);
+                    let colorStyle = "";
+                    let badge = "";
 
-                      setErrors((prev) => ({
-                        ...prev,
-                        [`posisi-${i}`]: false,
-                      }));
-                    }}
-                  >
-                    <option value="">Pilih Posisi Magang</option>
+                    if (penuh) {
+                      colorStyle =
+                        "border-red-300 text-red-700 opacity-70 cursor-not-allowed";
+                      badge = "Penuh";
+                    } else if (hampirPenuh) {
+                      colorStyle =
+                        "border-yellow-300 text-yellow-700 hover:border-yellow-400";
+                      badge = "Hampir Penuh";
+                    } else {
+                      colorStyle =
+                        "border-green-300 text-green-700 hover:border-green-400";
+                      badge = "Tersedia";
+                    }
 
-                    {formasiList.map((f) => {
-                      const penuh = f.sisaKuota === 0;
+                    const selected = peserta[i].posisi === f.title;
 
-                      return (
-                        <option
-                          key={f._id}
-                          value={f.title}
-                          disabled={penuh}
-                        >
-                          {f.title} ({f.sisaKuota} slot)
-                          {f.sisaKuota === 0 ? " - PENUH" : ""}
-                        </option>
-                      );
-                    })}
-                  </select>
+                    return (
+                      <button
+                        type="button"
+                        key={f._id}
+                        disabled={penuh}
+                        onClick={() => {
+                          if (penuh) {
+                            toast.error("❌ Kuota formasi ini sudah penuh");
+                            return;
+                          }
+
+                          update(i, "posisi", f.title);
+                          setErrors((prev) => ({
+                            ...prev,
+                            [`posisi-${i}`]: false,
+                          }));
+                        }}
+                        className={`
+                          w-full text-left
+                          border rounded-xl p-4
+                          transition-all duration-200
+                          flex flex-col gap-3
+                          bg-white
+                          shadow-sm hover:shadow-md
+                          ${colorStyle}
+                          ${selected ? "ring-2 ring-offset-1 ring-[#7F1D1D]" : ""}
+                        `}
+                      >
+                        {/* Header */}
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`
+                              w-10 h-10 rounded-lg
+                              flex items-center justify-center
+                              ${
+                                penuh
+                                  ? "bg-red-100"
+                                  : hampirPenuh
+                                  ? "bg-yellow-100"
+                                  : "bg-green-100"
+                              }
+                            `}
+                          >
+                            <HiBriefcase className="text-lg" />
+                          </div>
+
+                          <p className="font-semibold leading-tight">
+                            {f.title}
+                          </p>
+                        </div>
+
+                        {/* Info kuota */}
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs opacity-80">
+                            Sisa kuota: {sisa} / {total}
+                          </span>
+
+                          <span
+                            className={`
+                              text-xs font-semibold px-3 py-1 rounded-full
+                              ${
+                                penuh
+                                  ? "bg-red-200 text-red-800"
+                                  : hampirPenuh
+                                  ? "bg-yellow-200 text-yellow-800"
+                                  : "bg-green-200 text-green-800"
+                              }
+                            `}
+                          >
+                            {badge}
+                          </span>
+                        </div>
+
+                        {/* Progress bar */}
+                        <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                          <div
+                            className={`
+                              h-full transition-all duration-300
+                              ${
+                                penuh
+                                  ? "bg-red-500"
+                                  : hampirPenuh
+                                  ? "bg-yellow-400"
+                                  : "bg-green-500"
+                              }
+                            `}
+                            style={{ width: `${persen}%` }}
+                          />
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
 
-                {/* Info kecil di bawah field */}
-                <p className="text-xs text-gray-500 mt-1">
-                  Pilih posisi dengan kuota yang masih tersedia.
+                <p className="text-xs text-gray-500 mt-2">
+                  Pilih posisi magang sesuai ketersediaan kuota.
                 </p>
               </div>
 
@@ -1302,7 +1421,7 @@ export default function PendaftaranPage() {
                       )}
 
                       <p className="text-xs text-gray-400 mt-1">
-                        Contoh penulisan yang benar: <b>Teknik Informatika</b>
+                        Contoh penulisan yang benar: <b>Teknik Informatika (S1)</b>
                       </p>
                     </div>
                   )}
