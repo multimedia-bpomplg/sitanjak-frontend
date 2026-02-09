@@ -1292,7 +1292,7 @@ function getStatusMagang(
   const end = new Date(selesai);
 
   if (today < start) {
-    return "Menunggu";
+    return "Belum Waktu Magang"; // ✅ BARU
   }
 
   if (today >= start && today <= end) {
@@ -1311,6 +1311,14 @@ function StatusMagangBadge({ status }: { status: string }) {
     return (
       <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-rose-100 text-rose-700">
         Tidak Magang
+      </span>
+    );
+  }
+
+  if (status === "Belum Waktu Magang") {
+    return (
+      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-700">
+        Belum Waktu Magang
       </span>
     );
   }

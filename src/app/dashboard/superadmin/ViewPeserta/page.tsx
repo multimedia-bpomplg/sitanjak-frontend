@@ -22,7 +22,12 @@ type Peserta = {
   jurusan: string;
   kategori: string;
 
-  statusMagang?: "Menunggu" | "Sedang Magang" | "Selesai Magang";
+  statusMagang?:
+    | "Menunggu"
+    | "Belum Waktu Magang" // ✅ BARU
+    | "Sedang Magang"
+    | "Selesai Magang"
+    | "Tidak Magang";
   mentor?: {
     _id: string;
     name: string;
@@ -159,10 +164,14 @@ export default function ViewPesertaSuperadmin() {
         <StatCard
           title="Aktif Magang"
           value={
-            pesertaList.filter((p) => p.statusMagang === "Sedang Magang").length
+            pesertaList.filter(
+              (p) =>
+                p.statusMagang === "Sedang Magang" ||
+                p.statusMagang === "Belum Waktu Magang", // ✅ BARU
+            ).length
           }
           icon={<HiCalendar className="w-7 h-7" />}
-          note="Sedang menjalani magang"
+          note="Sedang / akan menjalani magang"
           color="amber"
         />
 
@@ -569,6 +578,14 @@ function StatCard({ title, value, icon, note, color }: StatCardProps) {
 }
 
 function StatusMagangBadge({ status }: { status: string }) {
+  if (status === "Belum Waktu Magang") {
+    return (
+      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-700">
+        Belum Waktu Magang
+      </span>
+    );
+  }
+
   if (status === "Sedang Magang") {
     return (
       <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
