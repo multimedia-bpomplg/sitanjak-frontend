@@ -667,7 +667,6 @@ export default function ViewPendaftaranPage() {
                     </td>
                     <td className="py-4 px-6 text-center">
                       <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 dark:bg-indigo-500/20 dark:text-indigo-200">
-                        <HiBriefcase className="w-3 h-3" />
                         {item.peserta[0]?.posisi}
                       </span>
                     </td>
@@ -1311,7 +1310,7 @@ function StatusMagangBadge({ status }: { status: string }) {
   if (status === "Tidak Magang") {
     return (
       <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-rose-100 text-rose-700">
-        ❌ Tidak Magang
+        Tidak Magang
       </span>
     );
   }
@@ -1319,7 +1318,7 @@ function StatusMagangBadge({ status }: { status: string }) {
   if (status === "Sedang Magang") {
     return (
       <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
-        🟢 Sedang Magang
+        Sedang Magang
       </span>
     );
   }
@@ -1327,14 +1326,14 @@ function StatusMagangBadge({ status }: { status: string }) {
   if (status === "Selesai Magang") {
     return (
       <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">
-        ✅ Selesai
+        Selesai
       </span>
     );
   }
 
   return (
     <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700">
-      ⏳ Menunggu
+      Menunggu
     </span>
   );
 }

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import {
-  HiBriefcase,
+  HiOutlineOfficeBuilding ,
   HiUsers,
   HiAcademicCap,
   HiCheckCircle,
@@ -211,15 +211,15 @@ export default function Formasi() {
 
                 <div className="space-y-3 text-gray-700 text-sm">
                   <p className="flex items-center gap-2">
-                    <HiBriefcase className="text-[#B91C1C] flex-shrink-0" />
+                    <HiOutlineOfficeBuilding className="text-[#B91C1C] shrink-0" />
                     <span>
-                      <b>Divisi:</b> {item.divisi}
+                      <b>Balai Besar POM di Palembang</b>
                     </span>
                   </p>
 
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <HiUsers className="text-[#FACC15] flex-shrink-0" />
+                      <HiUsers className="text-[#FACC15] shrink-0" />
                       <span>
                         <b>Kuota:</b> {item.kuota} orang
                       </span>
@@ -256,7 +256,7 @@ export default function Formasi() {
                   </div>
 
                   <p className="flex items-start gap-2">
-                    <HiAcademicCap className="text-[#7F1D1D] flex-shrink-0 mt-1" />
+                    <HiAcademicCap className="text-[#7F1D1D] shrink-0 mt-1" />
                     <span>
                       <b>Jurusan:</b> {formatJurusan(item.jurusan)}
                     </span>
@@ -280,7 +280,7 @@ export default function Formasi() {
                     ${
                       item.sisaKuota === 0
                         ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                        : "text-[#7F1D1D] bg-gradient-to-r from-[#FACC15] to-[#EAB308] hover:opacity-90"
+                        : "text-[#7F1D1D] bg-linear-to-r from-[#FACC15] to-[#EAB308] hover:opacity-90"
                     }
                   `}
                   onClick={(e) => {

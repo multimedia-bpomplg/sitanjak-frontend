@@ -351,7 +351,6 @@ export default function ViewPesertaSuperadmin() {
                           dark:bg-indigo-500/20 dark:text-indigo-200
                         "
                       >
-                        <HiBriefcase className="w-3 h-3" />
                         {p.posisi}
                       </span>
                     </td>
@@ -572,31 +571,31 @@ function StatCard({ title, value, icon, note, color }: StatCardProps) {
 function StatusMagangBadge({ status }: { status: string }) {
   if (status === "Sedang Magang") {
     return (
-      <span className="px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
-        🟢 Sedang Magang
+      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
+        Sedang Magang
       </span>
     );
   }
 
   if (status === "Tidak Magang") {
     return (
-      <span className="px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700">
-        ❌ Tidak Magang
+      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700">
+        Tidak Magang
       </span>
     );
   }
 
   if (status === "Selesai Magang") {
     return (
-      <span className="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">
-        ✅ Selesai
+      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">
+        Selesai
       </span>
     );
   }
 
   return (
-    <span className="px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700">
-      ⏳ Menunggu
+    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700">
+      Menunggu
     </span>
   );
 }

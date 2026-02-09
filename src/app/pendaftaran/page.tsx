@@ -33,6 +33,7 @@ const POSISI_MAGANG = [
 
 // ==================== ASAL INSTANSI UNIVERSITAS ====================
 const UNIVERSITAS_LIST = [
+  "UNSRI/Universitas Sriwijaya",
   "UIN Raden Fatah Palembang",
   "Universitas Bina Darma",
   "MDP/Universitas Multi Data Palembang",
@@ -52,15 +53,24 @@ const SMK_LIST = [
 
 // ==================== JURUSAN UNTUK SETIAP UNIVERSITAS ====================
 const JURUSAN_BY_UNIVERSITAS: Record<string, string[]> = {
+  "UNSRI/Universitas Sriwijaya": [
+    "Kimia (S1)",
+    "Biologi (S1)",
+    "Farmasi (S1)",
+    "Ilmu Hukum (S1)",
+    "Kesehatan Masyarakat (S1)",
+    "Sistem Informasi (S1)",
+    "Teknik Informatika (S1)",
+    "LAINNYA",
+  ],
   "UIN Raden Fatah Palembang": [
-    "Kimia (S.Si.)",
-    "Biologi (S.Si.)",
-    "Pendidikan Kimia (S.Pd.)",
-    "Pendidikan Biologi (S.Pd.)",
-    "Sistem Informasi (S.Kom.)",
-    "Psikologi Islam (S.Psi.)",
-    "Ilmu Komunikasi (S.I.Kom.)",
-    "Jurnalistik (S.Sos.)",
+    "Kimia (S1)",
+    "Biologi (S1)",
+    "Pendidikan Kimia (S1)",
+    "Pendidikan Biologi (S1)",
+    "Sistem Informasi (S1)",
+    "Psikologi Islam (S1)",
+    "Ilmu Komunikasi (S1)",
     "LAINNYA",
   ],
   "Universitas Bina Darma": [
@@ -596,6 +606,8 @@ export default function PendaftaranPage() {
     return f ? f.sisaKuota : 0;
   };
 
+  const today = new Date().toISOString().split("T")[0];
+
   return (
     <div className="min-h-screen bg-linear-to-br from-[#FFF7ED] via-[#FEF3C7] to-[#FFFFFF] py-16 px-4">
       <div className="max-w-6xl mx-auto">
@@ -650,56 +662,99 @@ export default function PendaftaranPage() {
           </p>
         </div>
 
-        {/* CEK RIWAYAT DAN DOWNLOAD TEMPLATE */}
-        <div className="max-w-4xl mx-auto mb-10 space-y-4">
-          {/* CARD: CEK RIWAYAT */}
-          <div
-            className="bg-white/80 backdrop-blur rounded-2xl shadow-md px-6 py-5
-                        flex flex-col md:flex-row md:items-center md:justify-between gap-4"
+        {/* ================= CEK RIWAYAT & DOWNLOAD TEMPLATE ================= */}
+        <div className="max-w-4xl mx-auto mb-10 md:mb-12 space-y-4 md:space-y-6">
+          
+          {/* CARD UTAMA RIWAYAT */}
+          <Link
+            href="/pendaftaran/riwayat"
+            className="
+              block rounded-3xl
+              bg-linear-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
+              text-white
+              p-5 sm:p-6 md:p-8
+              shadow-xl
+              hover:scale-[1.01]
+              transition
+            "
           >
-            <div>
-              <h3 className="text-base font-semibold text-gray-800">
-                Sudah pernah mendaftar magang?
-              </h3>
-              <p className="text-sm text-gray-500">
-                Anda dapat melihat status dan riwayat pendaftaran yang telah
-                diajukan.
-              </p>
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
+              
+              <div className="flex items-start gap-3 sm:gap-4">
+                <div
+                  className="
+                    w-12 h-12 sm:w-14 sm:h-14
+                    rounded-2xl
+                    bg-white/20
+                    flex items-center justify-center
+                    backdrop-blur
+                  "
+                >
+                  <HiClipboardList className="text-2xl sm:text-3xl" />
+                </div>
+
+                <div>
+                  <h3 className="text-lg sm:text-xl md:text-2xl font-bold leading-tight">
+                    Cek Riwayat Pendaftaran Anda
+                  </h3>
+                  <p className="text-white/90 mt-1 text-sm sm:text-base">
+                    Lihat status pengajuan magang dan hasil seleksi di sini.
+                  </p>
+                </div>
+              </div>
+
+              <div className="w-full md:w-auto">
+                <span
+                  className="
+                    inline-flex items-center justify-center
+                    w-full md:w-auto
+                    bg-white text-[#7F1D1D]
+                    px-5 py-3
+                    rounded-xl
+                    font-semibold
+                    shadow
+                  "
+                >
+                  Lihat Riwayat
+                </span>
+              </div>
             </div>
+          </Link>
 
-            <Link
-              href="/pendaftaran/riwayat"
-              className="inline-flex items-center gap-2 px-5 py-2.5
-                          rounded-xl text-sm font-semibold
-                          bg-linear-to-r from-[#7F1D1D] to-[#B91C1C] text-white
-                          hover:brightness-110 transition"
-            >
-              <HiClipboardList className="text-lg" />
-              Lihat Riwayat Pendaftaran
-            </Link>
-          </div>
-
-          {/* CARD: DOWNLOAD TEMPLATE SURAT PENGANTAR */}
+          {/* CARD SEKUNDER: TEMPLATE */}
           <div
-            className="bg-gradient-to-r from-[#FEF3C7] to-[#FDE68A] rounded-2xl shadow-md px-6 py-5
-                        flex flex-col md:flex-row md:items-center md:justify-between gap-4 border border-[#F59E0B]/30"
+            className="
+              bg-white/80 backdrop-blur
+              rounded-2xl shadow-md
+              px-5 py-5 sm:px-6
+              flex flex-col md:flex-row
+              md:items-center md:justify-between
+              gap-4
+              border border-gray-200
+            "
           >
             <div>
-              <h3 className="text-base font-semibold text-gray-800">
-                Butuh template surat pengantar?
+              <h3 className="text-sm sm:text-base font-semibold text-gray-800">
+                Template surat pengantar tersedia di sini
               </h3>
-              <p className="text-sm text-gray-600">
-                Unduh template resmi surat pengantar magang yang dapat diisi
-                sesuai kebutuhan.
+              <p className="text-xs sm:text-sm text-gray-500">
+                Unduh template resmi surat pengantar magang.
               </p>
             </div>
 
             <button
               onClick={handleDownloadTemplate}
-              className="inline-flex items-center gap-2 px-5 py-2.5
-                          rounded-xl text-sm font-semibold
-                          bg-linear-to-r from-[#7F1D1D] to-[#B91C1C] text-white
-                          hover:brightness-110 transition"
+              className="
+                inline-flex items-center justify-center gap-2
+                w-full md:w-auto
+                px-5 py-2.5
+                rounded-xl
+                text-sm font-semibold
+                bg-linear-to-r from-[#F59E0B] to-[#FACC15]
+                text-white
+                hover:brightness-110
+                transition
+              "
             >
               <HiDownload className="text-lg" />
               Download Template
@@ -837,18 +892,28 @@ export default function PendaftaranPage() {
                     }}
                   >
                     <option value="">Pilih Posisi Magang</option>
-                    {formasiList.map((f) => (
-                      <option
-                        key={f._id}
-                        value={f.title}
-                        disabled={f.sisaKuota === 0}
-                      >
-                        {f.title} ({f.sisaKuota} slot)
-                        {f.sisaKuota === 0 ? " - PENUH" : ""}
-                      </option>
-                    ))}
+
+                    {formasiList.map((f) => {
+                      const penuh = f.sisaKuota === 0;
+
+                      return (
+                        <option
+                          key={f._id}
+                          value={f.title}
+                          disabled={penuh}
+                        >
+                          {f.title} ({f.sisaKuota} slot)
+                          {f.sisaKuota === 0 ? " - PENUH" : ""}
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
+
+                {/* Info kecil di bawah field */}
+                <p className="text-xs text-gray-500 mt-1">
+                  Pilih posisi dengan kuota yang masih tersedia.
+                </p>
               </div>
 
               <div className="grid md:grid-cols-2 gap-6">
@@ -865,7 +930,10 @@ export default function PendaftaranPage() {
                   >
                     <input
                       type="date"
-                      ref={(el) => (dateRefs.current[`mulai-${i}`] = el)}
+                      min={today}
+                      ref={(el) => {
+                        dateRefs.current[`mulai-${i}`] = el;
+                      }}
                       value={peserta[i].tanggalMulaiMagang}
                       onChange={(e) => {
                         update(i, "tanggalMulaiMagang", e.target.value);
@@ -905,7 +973,9 @@ export default function PendaftaranPage() {
                   >
                     <input
                       type="date"
-                      ref={(el) => (dateRefs.current[`selesai-${i}`] = el)}
+                      ref={(el) => {
+                        dateRefs.current[`selesai-${i}`] = el;
+                      }}
                       value={peserta[i].tanggalSelesaiMagang}
                       onChange={(e) => {
                         update(i, "tanggalSelesaiMagang", e.target.value);
@@ -972,7 +1042,9 @@ export default function PendaftaranPage() {
                   >
                     <input
                       type="date"
-                      ref={(el) => (dateRefs.current[`lahir-${i}`] = el)}
+                      ref={(el) => {
+                        dateRefs.current[`lahir-${i}`] = el;
+                      }}
                       value={peserta[i].tanggalLahir}
                       onChange={(e) => {
                         update(i, "tanggalLahir", e.target.value);
@@ -1237,6 +1309,28 @@ export default function PendaftaranPage() {
                 </>
               )}
 
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-1 block">
+                  Alamat Lengkap <span className="text-red-500">*</span>
+                </label>
+
+                <div
+                  className={`form-field ${
+                    errors[`alamat-${i}`] ? "form-error" : ""
+                  }`}
+                >
+                  <textarea
+                    rows={3}
+                    placeholder="Alamat lengkap sesuai domisili"
+                    value={peserta[i].alamatLengkap}
+                    onChange={(e) => {
+                      update(i, "alamatLengkap", e.target.value);
+                      setErrors((p) => ({ ...p, [`alamat-${i}`]: false }));
+                    }}
+                  />
+                </div>
+              </div>
+
               {/* WILAYAH */}
               <div className="grid md:grid-cols-2 gap-6">
                 {/* Provinsi */}
@@ -1370,28 +1464,6 @@ export default function PendaftaranPage() {
                       Kelurahan wajib dipilih
                     </p>
                   )}
-                </div>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-1 block">
-                  Alamat Lengkap <span className="text-red-500">*</span>
-                </label>
-
-                <div
-                  className={`form-field ${
-                    errors[`alamat-${i}`] ? "form-error" : ""
-                  }`}
-                >
-                  <textarea
-                    rows={3}
-                    placeholder="Alamat lengkap sesuai domisili"
-                    value={peserta[i].alamatLengkap}
-                    onChange={(e) => {
-                      update(i, "alamatLengkap", e.target.value);
-                      setErrors((p) => ({ ...p, [`alamat-${i}`]: false }));
-                    }}
-                  />
                 </div>
               </div>
 

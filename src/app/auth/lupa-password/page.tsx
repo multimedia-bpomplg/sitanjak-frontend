@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { HiMail, HiKey, HiLockClosed, HiArrowLeft, HiEye, HiEyeOff, } from "react-icons/hi";
 
@@ -142,7 +143,7 @@ export default function LupaPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen w-full grid grid-cols-1 lg:grid-cols-2">
+    <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2">
       
       {/* ================= LEFT SIDE (FORM) ================= */}
       <div className="relative flex items-center justify-center bg-white px-6">
@@ -406,25 +407,19 @@ export default function LupaPasswordPage() {
       {/* ================= RIGHT SIDE (IMAGE) ================= */}
       <div
         className="
-          hidden lg:flex
-          items-center justify-center
-          bg-linear-to-br from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
-          px-12
+          hidden lg:block
+          relative
+          w-full
+          min-h-screen
         "
       >
-        <div className="text-center text-white max-w-md">
-          <div className="mx-auto mb-6 w-28 h-28 rounded-3xl bg-[#FEF3C7]/30 flex items-center justify-center">
-            <HiKey className="text-6xl" />
-          </div>
-
-          <h2 className="text-3xl font-bold mb-3">
-            Lupa Password?
-          </h2>
-          <p className="text-white/90 text-base leading-relaxed">
-            Jangan khawatir. Kami akan membantu Anda memulihkan akses akun
-            dengan aman dan cepat.
-          </p>
-        </div>
+        <Image
+          src="/images/logins/lupapassword_sitanjak.png"
+          alt="Lupa Password Background"
+          fill
+          className="object-cover"
+          priority
+        />
       </div>
     </div>
   );
