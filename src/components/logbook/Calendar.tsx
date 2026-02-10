@@ -2,9 +2,14 @@
 
 import { useEffect, useState } from "react";
 
+type FilledDate = {
+  status: string;
+  approvalStatus: "menunggu" | "disetujui" | "ditolak";
+};
+
 type Props = {
   onSelectDate: (date: string, isFilled: boolean) => void;
-  filledDates: Record<string, string>;
+  filledDates: Record<string, FilledDate>;
 };
 
 function getNowWIB() {
@@ -155,12 +160,45 @@ export default function Calendar({ onSelectDate, filledDates }: Props) {
             const isoDate = date.toLocaleDateString("en-CA", {
               timeZone: "Asia/Jakarta",
             });
+
             const isSunday = date.getDay() === 0;
             const isHoliday = Boolean(holidays[isoDate]);
-            const isFilled = Boolean(filledDates?.[isoDate]);
+
+            const log = filledDates?.[isoDate];
+
+            const isFilled = Boolean(log);
+
+            const status = log?.status;
+            const approval = log?.approvalStatus;
+
             const isToday = date.getTime() === today.getTime();
 
-            const disabled = isSunday || isHoliday || (!isFilled && !isToday); // ⬅️ KUNCI FIX
+            const disabled =
+              isSunday || isHoliday || (!isFilled && !isToday && date < today);
+
+            // ================= WARNA & TEXT =================
+            let statusClass = "";
+            let statusText = "";
+
+            if (log) {
+              if (approval === "ditolak") {
+                statusClass =
+                  "bg-red-50 border-red-400 text-red-700 dark:bg-red-900/30";
+                statusText = "❌ Ditolak";
+              } else if (approval === "menunggu") {
+                statusClass =
+                  "bg-amber-50 border-amber-400 text-amber-700 dark:bg-amber-900/30";
+                statusText = "⏳ Menunggu";
+              } else if (approval === "disetujui" && status === "hadir") {
+                statusClass =
+                  "bg-emerald-50 border-emerald-400 text-emerald-700 dark:bg-emerald-900/30";
+                statusText = "✅ Hadir";
+              } else if (status?.startsWith("tidak_hadir")) {
+                statusClass =
+                  "bg-orange-50 border-orange-400 text-orange-700 dark:bg-orange-900/30";
+                statusText = "⚠️ Tidak Hadir";
+              }
+            }
 
             return (
               <button
@@ -168,61 +206,51 @@ export default function Calendar({ onSelectDate, filledDates }: Props) {
                 disabled={disabled}
                 onClick={() => onSelectDate(isoDate, isFilled)}
                 className={`
-                  relative aspect-[6/5] xl:aspect-[5/4]
-                  rounded-xl sm:rounded-2xl
-                  border
-                  p-1.5 sm:p-2 md:p-3 lg:p-4
-                  ${
-                    isFilled
-                      ? "bg-emerald-50 dark:bg-emerald-900/30 border-emerald-400"
-                      : isToday
-                        ? "bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600"
-                        : "bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-not-allowed"
-                  }
-                `}
+        relative aspect-[6/5] xl:aspect-[5/4]
+        rounded-xl sm:rounded-2xl
+        border
+        p-1.5 sm:p-2 md:p-3 lg:p-4
+        transition
+
+        ${
+          statusClass
+            ? statusClass
+            : isToday
+              ? "bg-indigo-50 border-indigo-400 text-indigo-700"
+              : "bg-slate-100 dark:bg-slate-800 text-slate-400"
+        }
+
+        ${disabled ? "cursor-not-allowed opacity-60" : "hover:scale-[1.03]"}
+      `}
               >
                 {/* Tanggal */}
                 <div className="text-xs sm:text-sm md:text-base font-bold">
                   {date.getDate()}
                 </div>
 
-                {/* Libur */}
-                {isHoliday && (
-                  <span className="hidden sm:block text-[10px] text-red-600">
-                    {holidays[isoDate]}
-                  </span>
-                )}
-
-                {isSunday && !isHoliday && (
-                  <span className="hidden sm:block text-[10px] text-red-500">
-                    Minggu
-                  </span>
-                )}
-
                 {/* Status */}
-                {isFilled && (
+                {isFilled && statusText && (
                   <span
                     className="
-                      absolute bottom-1 left-1 right-1
-                      hidden sm:block
-                      text-[10px]
-                      text-center font-semibold
-                      text-emerald-600 dark:text-emerald-300
-                    "
+            absolute bottom-1 left-1 right-1
+            hidden sm:block
+            text-[10px]
+            text-center font-semibold
+          "
                   >
-                    ✔ Diisi
+                    {statusText}
                   </span>
                 )}
 
                 {!isFilled && isToday && (
                   <span
                     className="
-                      absolute bottom-1 left-1 right-1
-                      hidden sm:block
-                      text-[10px]
-                      text-center font-semibold
-                      text-indigo-600 dark:text-indigo-300
-                    "
+            absolute bottom-1 left-1 right-1
+            hidden sm:block
+            text-[10px]
+            text-center font-semibold
+            text-indigo-600 dark:text-indigo-300
+          "
                   >
                     Hari Ini
                   </span>

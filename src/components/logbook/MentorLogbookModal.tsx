@@ -39,6 +39,7 @@ export default function MentorLogbookModal({
   const [approvedByMentor, setApprovedByMentor] = useState(false);
   const [mentorNote, setMentorNote] = useState("");
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [pdfFile, setPdfFile] = useState<string | null>(null);
 
   // 🔥 STATE BARU
   const [approvalStatus, setApprovalStatus] = useState<
@@ -91,7 +92,7 @@ export default function MentorLogbookModal({
 
       if (res.status === 404) {
         showToast.error("Logbook ini belum dibuat oleh peserta");
-        onClose();
+        setIsLoading(false);
         return;
       }
 
@@ -106,6 +107,7 @@ export default function MentorLogbookModal({
       setKendala(data.kendala || "");
       setKeterangan(data.keterangan || "");
       setFiles(data.files || []);
+      setPdfFile(data.pdfFile || null);
       setApprovedByMentor(Boolean(data.approvedByMentor));
       setApprovalStatus(data.approvalStatus || "menunggu");
       setMentorNote(data.mentorNote || "");
@@ -527,15 +529,88 @@ export default function MentorLogbookModal({
                     </div>
                   </div>
                 )}
+                {/* PDF */}
+                {pdfFile && (
+                  <div className="mt-4 p-3 border rounded-xl bg-slate-50">
+                    <div className="flex items-center gap-2">
+                      <FiFileText />
+                      <span className="font-semibold">Dokumen PDF</span>
+                    </div>
+
+                    <a
+                      href={getImageUrl(pdfFile)}
+                      target="_blank"
+                      className="text-indigo-600 underline text-sm"
+                    >
+                      📄 Lihat / Download PDF
+                    </a>
+                  </div>
+                )}
               </>
             )}
 
             {status === "tidak_hadir_keterangan" && (
-              <FieldSection
-                icon={<FiFileText />}
-                label="Alasan Tidak Hadir"
-                value={keterangan}
-              />
+              <>
+                {/* Alasan */}
+                <FieldSection
+                  icon={<FiFileText />}
+                  label="Alasan Tidak Hadir"
+                  value={keterangan}
+                />
+
+                {/* Bukti Foto */}
+                {files.length > 0 && (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <FiImage />
+                      <label className="font-semibold">Bukti Pendukung</label>
+                    </div>
+
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      {files.map((f, i) => {
+                        const imageUrl = getImageUrl(f);
+
+                        return (
+                          <div
+                            key={i}
+                            className="relative cursor-pointer"
+                            onClick={() => setPreviewImage(imageUrl)}
+                          >
+                            <img
+                              src={imageUrl}
+                              className="w-full h-40 object-cover rounded-lg"
+                              alt={`Bukti ${i + 1}`}
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Jika tidak ada foto */}
+                {files.length === 0 && (
+                  <p className="text-sm text-slate-400">Tidak ada foto bukti</p>
+                )}
+
+                {/* PDF Bukti */}
+                {pdfFile && (
+                  <div className="mt-4 p-3 border rounded-xl bg-blue-50">
+                    <div className="flex items-center gap-2">
+                      <FiFileText />
+                      <span className="font-semibold">Dokumen Bukti (PDF)</span>
+                    </div>
+
+                    <a
+                      href={getImageUrl(pdfFile)}
+                      target="_blank"
+                      className="text-blue-600 underline text-sm"
+                    >
+                      📄 Lihat / Download PDF
+                    </a>
+                  </div>
+                )}
+              </>
             )}
           </div>
 

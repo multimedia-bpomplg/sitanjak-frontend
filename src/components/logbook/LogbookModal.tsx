@@ -46,6 +46,7 @@ export default function LogbookModal({
   const [judul, setJudul] = useState("");
   const [pengalaman, setPengalaman] = useState("");
   const [kendala, setKendala] = useState("");
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [keterangan, setKeterangan] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [fileUrls, setFileUrls] = useState<string[]>([]);
@@ -60,6 +61,7 @@ export default function LogbookModal({
   const [approvedAt, setApprovedAt] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const [logbookId, setLogbookId] = useState<string | null>(null);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
 
   // Format tanggal untuk display
   const formatDate = (dateString: string) => {
@@ -78,6 +80,24 @@ export default function LogbookModal({
       return `${process.env.NEXT_PUBLIC_API_URL}/logbook/mentor/peserta/${userId}/date/${date}`;
     }
     return `${process.env.NEXT_PUBLIC_API_URL}/logbook/date/${date}`;
+  };
+
+  const handlePdfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+
+    if (!file) return;
+
+    if (file.type !== "application/pdf") {
+      showToast.error("File harus PDF");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      showToast.error("Maksimal PDF 5MB");
+      return;
+    }
+
+    setPdfFile(file);
   };
 
   // Fetch Data for View Mode
@@ -111,7 +131,14 @@ export default function LogbookModal({
         setPengalaman(data.pengalaman || "");
         setKendala(data.kendala || "");
         setKeterangan(data.keterangan || "");
-        setFileUrls(data.files || []);
+        setFileUrls(
+          Array.isArray(data.files)
+            ? data.files.filter((f: any) => typeof f === "string")
+            : [],
+        );
+
+        setPdfUrl(typeof data.pdfFile === "string" ? data.pdfFile : null);
+
         setApprovedByMentor(Boolean(data.approvedByMentor));
         setApprovalStatus(data.approvalStatus || "menunggu");
         setMentorNote(data.mentorNote || "");
@@ -164,22 +191,20 @@ export default function LogbookModal({
   const isTextValid = (text: string) => text.trim().length >= MIN_TEXT_LENGTH;
 
   const isFilesValid =
-    files.length > 0 &&
     files.length <= MAX_FILES &&
     files.every((f) => f.type.startsWith("image/") && f.size <= MAX_FILE_SIZE);
 
   const getSubmitDisabled = () => {
     if (readonly || !agree) return true;
 
+    // HADIR
     if (status === "hadir") {
-      return !(
-        isTextValid(judul) &&
-        isTextValid(pengalaman) &&
-        isTextValid(kendala) &&
-        isFilesValid
+      return (
+        !isTextValid(judul) || !isTextValid(pengalaman) || !isTextValid(kendala)
       );
     }
 
+    // TIDAK HADIR + KETERANGAN
     if (status === "tidak_hadir_keterangan") {
       return !isTextValid(keterangan);
     }
@@ -189,7 +214,6 @@ export default function LogbookModal({
 
   const submitDisabled = getSubmitDisabled();
 
-  // Submit Handler
   const handleSubmit = async () => {
     if (readonly || submitDisabled) return;
 
@@ -203,7 +227,16 @@ export default function LogbookModal({
       formData.append("pengalaman", pengalaman);
       formData.append("kendala", kendala);
       formData.append("keterangan", keterangan);
-      files.forEach((f) => formData.append("files", f));
+
+      // ✅ FOTO (boleh kosong)
+      files.forEach((f) => {
+        formData.append("files", f);
+      });
+
+      // ✅ PDF
+      if (pdfFile) {
+        formData.append("pdfFile", pdfFile);
+      }
 
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/logbook`, {
         method: "POST",
@@ -280,28 +313,21 @@ export default function LogbookModal({
     }
   };
 
-  // 🔥 PERBAIKAN: Fungsi untuk mendapatkan URL gambar yang benar
-  const getImageUrl = (path: string) => {
-    if (!path) return "";
+  const getImageUrl = (path: any) => {
+    if (!path || typeof path !== "string") return "";
 
-    // Jika sudah full URL
-    if (path.startsWith("http://") || path.startsWith("https://")) {
-      return path;
-    }
+    // kalau sudah full url
+    if (path.startsWith("http")) return path;
 
-    // Jika path dimulai dengan uploads/
-    if (path.startsWith("uploads/")) {
-      const baseUrl =
-        process.env.NEXT_PUBLIC_API_URL ||
-        process.env.NEXT_PUBLIC_BASE_URL ||
-        "";
-      // Hapus slash ganda jika ada
-      return `${baseUrl.replace(/\/$/, "")}/${path}`;
-    }
+    // base api (sudah ada /api)
+    const base =
+      process.env.NEXT_PUBLIC_API_URL || window.location.origin + "/api";
 
-    // Jika hanya nama file, tambahkan base URL
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || window.location.origin;
-    return `${baseUrl}/${path}`;
+    // buang "uploads/" di depan kalau ada
+    const cleanPath = path.replace(/^uploads\//, "");
+
+    // arahkan ke /api/uploads
+    return `${base.replace(/\/$/, "")}/uploads/${cleanPath}`;
   };
 
   // Status badge component
@@ -676,18 +702,232 @@ export default function LogbookModal({
                   </div>
                 )}
               </div>
+
+              {/* Upload PDF */}
+              <div className="space-y-3 mt-4">
+                <div className="flex items-center gap-2">
+                  <FiFileText className="text-slate-500" />
+                  <label className="font-semibold">
+                    Dokumen PDF (Opsional)
+                  </label>
+                </div>
+
+                {!readonly && (
+                  <label className="block">
+                    <div className="border-2 border-dashed rounded-xl p-4 text-center cursor-pointer hover:bg-slate-50 transition">
+                      <FiUpload className="mx-auto mb-2" />
+                      <p className="text-sm">
+                        {pdfFile ? pdfFile.name : "Upload PDF laporan"}
+                      </p>
+                    </div>
+
+                    <input
+                      type="file"
+                      accept="application/pdf"
+                      onChange={handlePdfChange}
+                      className="hidden"
+                    />
+                  </label>
+                )}
+
+                {readonly && pdfUrl && (
+                  <div className="text-sm">
+                    <a
+                      href={getImageUrl(pdfUrl)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="text-indigo-600 underline font-medium"
+                    >
+                      📄 Lihat PDF
+                    </a>
+                  </div>
+                )}
+              </div>
+            </>
+          ) : status === "tidak_hadir_keterangan" ? (
+            <>
+              {/* Alasan Tidak Hadir */}
+              <FieldSection
+                icon={<FiFileText />}
+                label="Alasan Tidak Hadir"
+                value={keterangan}
+                onChange={setKeterangan}
+                readonly={readonly}
+                minLength={MIN_TEXT_LENGTH}
+                placeholder="Jelaskan alasan ketidakhadiran Anda..."
+              />
+
+              {/* Upload Foto untuk tidak hadir dengan keterangan */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <FiImage className="text-slate-500 dark:text-white" />
+                  <label className="font-semibold text-slate-700 dark:text-white">
+                    Bukti Pendukung{" "}
+                    {!readonly && `(Max ${MAX_FILES} foto, 2MB/foto)`}
+                  </label>
+                </div>
+
+                {!readonly ? (
+                  <>
+                    {files.length === 0 ? (
+                      <label className="block">
+                        <div
+                          className="
+                          border-2 border-dashed 
+                          border-blue-300 bg-blue-50/60
+                          rounded-xl p-8 text-center cursor-pointer 
+                          hover:border-blue-400
+                          hover:bg-blue-100
+                          dark:bg-indigo-900/30
+                          dark:border-indigo-700 
+                          transition"
+                        >
+                          <FiUpload className="text-3xl text-slate-400 mx-auto mb-3" />
+                          <p className="font-medium text-slate-700">
+                            Klik untuk upload foto bukti
+                          </p>
+                          <p className="text-sm text-slate-500 mt-1">
+                            Upload foto bukti seperti surat dokter, dll
+                          </p>
+                        </div>
+                        <input
+                          type="file"
+                          multiple
+                          accept="image/*"
+                          onChange={handleFileChange}
+                          className="hidden"
+                        />
+                      </label>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                          {files.map((file, i) => (
+                            <div key={i} className="relative group">
+                              <img
+                                src={URL.createObjectURL(file)}
+                                className="w-full h-40 object-cover rounded-lg"
+                                alt={`Upload ${i + 1}`}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => removeFile(i)}
+                                className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition"
+                              >
+                                <FiX className="text-sm" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                        <label className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 hover:bg-blue-200 rounded-lg cursor-pointer transition">
+                          <FiUpload />
+                          <span className="font-medium">
+                            Tambah Foto Lainnya
+                          </span>
+                          <input
+                            type="file"
+                            multiple
+                            accept="image/*"
+                            onChange={handleFileChange}
+                            className="hidden"
+                          />
+                        </label>
+                      </div>
+                    )}
+                    {errorFile && (
+                      <p className="text-sm text-red-600">{errorFile}</p>
+                    )}
+                  </>
+                ) : fileUrls.length > 0 ? (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {fileUrls.map((url, i) => {
+                      const imageUrl = getImageUrl(url);
+                      return (
+                        <div
+                          key={i}
+                          className="relative group cursor-pointer"
+                          onClick={() => setPreviewImage(imageUrl)}
+                        >
+                          <img
+                            src={imageUrl}
+                            className="w-full h-40 object-cover rounded-lg"
+                            alt={`Bukti ${i + 1}`}
+                            onError={(e) => {
+                              console.error(`Gagal memuat gambar ${i}:`, url);
+                              e.currentTarget.src = `https://via.placeholder.com/300x200?text=Gambar+Tidak+Tersedia`;
+                            }}
+                          />
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition rounded-lg" />
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-slate-400">
+                    <FiImage className="text-3xl mx-auto mb-2" />
+                    <p>Tidak ada bukti pendukung</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Upload PDF untuk tidak hadir dengan keterangan */}
+              <div className="space-y-3 mt-4">
+                <div className="flex items-center gap-2">
+                  <FiFileText className="text-slate-500" />
+                  <label className="font-semibold">
+                    Dokumen PDF Bukti (Opsional)
+                  </label>
+                </div>
+
+                {!readonly && (
+                  <label className="block">
+                    <div className="border-2 border-dashed border-blue-300 bg-blue-50 rounded-xl p-4 text-center cursor-pointer hover:bg-blue-100 transition">
+                      <FiUpload className="mx-auto mb-2" />
+                      <p className="text-sm">
+                        {pdfFile ? pdfFile.name : "Upload PDF bukti"}
+                      </p>
+                      <p className="text-xs text-slate-500 mt-1">
+                        Contoh: surat dokter, surat izin, dll
+                      </p>
+                    </div>
+
+                    <input
+                      type="file"
+                      accept="application/pdf"
+                      onChange={handlePdfChange}
+                      className="hidden"
+                    />
+                  </label>
+                )}
+
+                {readonly && pdfUrl && (
+                  <div className="text-sm">
+                    <a
+                      href={getImageUrl(pdfUrl)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="text-blue-600 underline font-medium"
+                    >
+                      📄 Lihat PDF Bukti
+                    </a>
+                  </div>
+                )}
+              </div>
             </>
           ) : (
-            /* Alasan Tidak Hadir */
-            <FieldSection
-              icon={<FiFileText />}
-              label="Alasan Tidak Hadir"
-              value={keterangan}
-              onChange={setKeterangan}
-              readonly={readonly}
-              minLength={MIN_TEXT_LENGTH}
-              placeholder="Jelaskan alasan ketidakhadiran Anda..."
-            />
+            /* Tidak Hadir Tanpa Keterangan - Tidak ada inputan tambahan */
+            <div className="p-4 rounded-xl bg-red-50 border border-red-200 dark:bg-red-900/30 dark:border-red-700">
+              <div className="flex items-center gap-2 text-red-700 dark:text-red-300">
+                <FiX className="text-lg" />
+                <span className="font-semibold">
+                  Tidak Hadir Tanpa Keterangan
+                </span>
+              </div>
+              <p className="text-red-600 dark:text-red-400 mt-2">
+                Status ini tidak memerlukan keterangan atau bukti pendukung.
+              </p>
+            </div>
           )}
 
           {/* 🔥 PERBAIKAN: Approval Status Dipindahkan ke sini (setelah gambar) */}
@@ -748,7 +988,11 @@ export default function LogbookModal({
                   <p
                     className={`
                       font-medium
-                      ${agree ? "text-emerald-700 dark:text-emerald-300" : "text-slate-700 dark:text-slate-200"}
+                      ${
+                        agree
+                          ? "text-emerald-700 dark:text-emerald-300"
+                          : "text-slate-700 dark:text-slate-200"
+                      }
                     `}
                   >
                     Konfirmasi
@@ -756,7 +1000,11 @@ export default function LogbookModal({
                   <p
                     className={`
                       text-sm mt-1
-                      ${agree ? "text-emerald-600 dark:text-emerald-400" : "text-slate-500 dark:text-slate-400"}
+                      ${
+                        agree
+                          ? "text-emerald-600 dark:text-emerald-400"
+                          : "text-slate-500 dark:text-slate-400"
+                      }
                     `}
                   >
                     Saya menyatakan bahwa semua data yang diisi adalah benar dan

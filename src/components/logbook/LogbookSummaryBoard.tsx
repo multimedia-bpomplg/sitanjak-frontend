@@ -5,6 +5,7 @@ type SummaryProps = {
   hadir: number;
   tidakHadirDenganKeterangan: number;
   tidakHadirTanpaKeterangan: number;
+  ditolak: number; // 🔥 TAMBAHAN
 };
 
 export default function LogbookSummaryBoard({
@@ -12,9 +13,20 @@ export default function LogbookSummaryBoard({
   hadir,
   tidakHadirDenganKeterangan,
   tidakHadirTanpaKeterangan,
+  ditolak,
 }: SummaryProps) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+    <div
+      className="
+    grid
+    grid-cols-1
+    sm:grid-cols-2
+    md:grid-cols-3
+    lg:grid-cols-4
+    xl:grid-cols-5
+    gap-4
+  "
+    >
       {/* TOTAL */}
       <SummaryCard
         title="Total Logbook"
@@ -50,6 +62,15 @@ export default function LogbookSummaryBoard({
         variant="red"
         icon="❌"
       />
+
+      {/* DITOLAK MENTOR */}
+      <SummaryCard
+        title="Ditolak Mentor"
+        value={ditolak}
+        subtitle="Perlu revisi"
+        variant="purple"
+        icon="⛔"
+      />
     </div>
   );
 }
@@ -66,7 +87,7 @@ function SummaryCard({
   title: string;
   subtitle: string;
   value: number;
-  variant: "blue" | "green" | "amber" | "red";
+  variant: "blue" | "green" | "amber" | "red" | "purple";
   icon: string;
 }) {
   const styles = {
@@ -93,6 +114,12 @@ function SummaryCard({
       accent: "from-rose-500 to-red-500",
       text: "text-rose-600 dark:text-rose-400",
       ring: "ring-rose-500/20",
+    },
+    purple: {
+      border: "border-violet-400/40",
+      accent: "from-violet-500 to-fuchsia-500",
+      text: "text-violet-600 dark:text-violet-400",
+      ring: "ring-violet-500/20",
     },
   };
 
