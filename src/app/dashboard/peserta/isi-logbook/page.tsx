@@ -120,27 +120,6 @@ export default function IsiLogbookPage() {
               laporan harian dengan rapi.
             </p>
           </div>
-
-          {/* TOMBOL DOWNLOAD ALL */}
-          <button
-            onClick={handleDownloadAll}
-            disabled={isDownloading || summary.total === 0}
-            className={`
-              flex items-center justify-center gap-2
-              px-5 py-3 rounded-xl
-              font-semibold text-sm
-              transition-all duration-300
-              ${
-                summary.total === 0 || isDownloading
-                  ? "bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed"
-                  : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg hover:shadow-xl active:scale-95"
-              }
-              whitespace-nowrap
-            `}
-          >
-            <FiDownload className={isDownloading ? "animate-spin" : ""} />
-            {isDownloading ? "Membuat PDF..." : "Download Semua Logbook"}
-          </button>
         </div>
       </div>
 
@@ -153,16 +132,20 @@ export default function IsiLogbookPage() {
       <div
         className="
           rounded-3xl
-          bg-white/80 dark:bg-slate-900/70
+          border border-[#FCA5A5]/40 dark:border-indigo-500/30
+          bg-linear-to-br
+          from-[#FFFDF8] via-[#FFF1E8] to-white
+          dark:from-indigo-950 dark:via-indigo-900 dark:to-indigo-800
           backdrop-blur
           shadow-[0_10px_30px_-10px_rgba(0,0,0,0.15)]
           p-6 md:p-8
-          space-y-4
+          space-y-6
         "
       >
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          {/* JUDUL */}
           <div>
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            <h2 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-[#7F1D1D] dark:text-white">
               📅 Kalender Logbook
             </h2>
             <p className="text-sm text-slate-500 dark:text-slate-400">
@@ -170,23 +153,57 @@ export default function IsiLogbookPage() {
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-3 text-[11px] sm:text-xs items-center text-xs font-medium">
-            {/* Sudah diisi */}
-            <div className="flex items-center gap-2">
-              <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 dark:bg-emerald-400" />
-              <span className="text-slate-700 dark:text-slate-300">
-                Sudah diisi
-              </span>
+          {/* ACTION DOWNLOAD */}
+          <button
+            onClick={handleDownloadAll}
+            disabled={isDownloading || summary.total === 0}
+            className={`
+              group
+              w-full lg:w-auto
+              flex items-center justify-center gap-3
+              px-6 py-3
+              rounded-2xl
+              font-semibold text-sm
+              transition-all duration-300
+
+              ${
+                summary.total === 0 || isDownloading
+                  ? "bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed"
+                  : `
+                    bg-linear-to-r
+                    from-[#F59E0B] via-[#F97316] to-[#7F1D1D]
+                    dark:from-indigo-600 dark:via-indigo-500 dark:to-violet-500
+                    text-white
+                    shadow-lg
+                    hover:shadow-xl
+                    hover:scale-[1.02]
+                  `
+              }
+            `}
+          >
+            <div
+              className="
+                w-9 h-9
+                rounded-xl
+                bg-white/20
+                flex items-center justify-center
+                backdrop-blur
+              "
+            >
+              <FiDownload
+                className={`text-lg ${isDownloading ? "animate-spin" : ""}`}
+              />
             </div>
 
-            {/* Belum diisi */}
-            <div className="flex items-center gap-2">
-              <span className="h-2.5 w-2.5 rounded-full bg-slate-300 dark:bg-slate-600" />
-              <span className="text-slate-600 dark:text-slate-400">
-                Belum diisi
-              </span>
+            <div className="text-left leading-tight">
+              <p className="text-sm font-bold">
+                {isDownloading ? "Menyiapkan PDF..." : "Download Logbook"}
+              </p>
+              <p className="text-[11px] opacity-80">
+                Unduh semua logbook dalam satu file PDF
+              </p>
             </div>
-          </div>
+          </button>
         </div>
 
         <Calendar

@@ -62,6 +62,9 @@ export default function LogbookModal({
   const [isLoading, setIsLoading] = useState(false);
   const [logbookId, setLogbookId] = useState<string | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [pendingSubmit, setPendingSubmit] = useState(false);
+
 
   // Format tanggal untuk display
   const formatDate = (dateString: string) => {
@@ -214,10 +217,18 @@ export default function LogbookModal({
 
   const submitDisabled = getSubmitDisabled();
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     if (readonly || submitDisabled) return;
+    setShowConfirm(true);
+  };
 
-    const toastId = showToast.loading("Menyimpan logbook...");
+  const submitConfirmed = async () => {
+    if (pendingSubmit) return;
+
+    setPendingSubmit(true);
+    setShowConfirm(false);
+
+    const toastId = showToast.loading("Mengirim logbook...");
 
     try {
       const formData = new FormData();
@@ -228,12 +239,10 @@ export default function LogbookModal({
       formData.append("kendala", kendala);
       formData.append("keterangan", keterangan);
 
-      // ✅ FOTO (boleh kosong)
       files.forEach((f) => {
         formData.append("files", f);
       });
 
-      // ✅ PDF
       if (pdfFile) {
         formData.append("pdfFile", pdfFile);
       }
@@ -248,7 +257,7 @@ export default function LogbookModal({
 
       if (!res.ok) throw new Error("Gagal menyimpan logbook");
 
-      showToast.updateSuccess(toastId, "Logbook berhasil disimpan! ✅");
+      showToast.updateSuccess(toastId, "Logbook berhasil dikirim! ✅");
       onClose();
     } catch (err: any) {
       showToast.updateError(
@@ -256,6 +265,8 @@ export default function LogbookModal({
         err.message || "Terjadi kesalahan saat menyimpan",
       );
     }
+
+    setPendingSubmit(false);
   };
 
   // Handle Approve/Reject
@@ -596,7 +607,7 @@ export default function LogbookModal({
                   <FiImage className="text-slate-500 dark:text-white" />
                   <label className="font-semibold text-slate-700 dark:text-white">
                     Dokumentasi{" "}
-                    {!readonly && `(Max ${MAX_FILES} foto, 2MB/foto)`}
+                    {!readonly && `- Max ${MAX_FILES} foto, 2MB/foto (Opsional)`}
                   </label>
                 </div>
 
@@ -606,20 +617,43 @@ export default function LogbookModal({
                       <label className="block">
                         <div
                           className="
-                          border-2 border-dashed 
-                          border-amber-300 bg-amber-50/60
-                          rounded-xl p-8 text-center cursor-pointer 
-                          hover:border-amber-400
-                          hover:bg-amber-100
-                          dark:bg-indigo-900/30
-                          dark:border-indigo-700 
-                          transition"
+                            border-2 border-dashed
+                            border-[#F59E0B]
+                            bg-linear-to-br
+                            from-[#FFF7ED] via-[#FEF3C7] to-[#FFF1F2]
+                            dark:from-indigo-900/40
+                            dark:via-indigo-800/40
+                            dark:to-indigo-900/60
+                            rounded-2xl
+                            p-6 sm:p-8
+                            text-center
+                            cursor-pointer
+                            transition-all
+                            hover:scale-[1.01]
+                            hover:shadow-md
+                            dark:border-indigo-600
+                          "
                         >
-                          <FiUpload className="text-3xl text-slate-400 mx-auto mb-3" />
-                          <p className="font-medium text-slate-700">
+                          <div
+                            className="
+                              mx-auto mb-3
+                              w-14 h-14
+                              rounded-xl
+                              flex items-center justify-center
+                              bg-linear-to-br
+                              from-[#F59E0B] to-[#B91C1C]
+                              dark:from-indigo-500
+                              dark:to-violet-500
+                              text-white
+                              shadow
+                            "
+                          >
+                            <FiUpload className="text-2xl" />
+                          </div>
+                          <p className="font-semibold text-slate-800 dark:text-white">
                             Klik untuk upload foto
                           </p>
-                          <p className="text-sm text-slate-500 mt-1">
+                          <p className="text-xs text-slate-400 mt-1">
                             Drag & drop atau klik untuk memilih file
                           </p>
                         </div>
@@ -651,11 +685,24 @@ export default function LogbookModal({
                             </div>
                           ))}
                         </div>
-                        <label className="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg cursor-pointer transition">
+                        <label
+                          className="
+                            inline-flex items-center justify-center
+                            gap-2 px-4 py-2.5
+                            rounded-xl
+                            text-sm font-semibold
+                            cursor-pointer
+                            bg-linear-to-r
+                            from-[#F59E0B] to-[#B91C1C]
+                            dark:from-indigo-600 dark:to-violet-500
+                            text-white
+                            shadow hover:shadow-lg
+                            transition
+                          "
+                        >
                           <FiUpload />
-                          <span className="font-medium">
-                            Tambah Foto Lainnya
-                          </span>
+                          Tambah Foto Lainnya
+
                           <input
                             type="file"
                             multiple
@@ -713,13 +760,94 @@ export default function LogbookModal({
                 </div>
 
                 {!readonly && (
-                  <label className="block">
-                    <div className="border-2 border-dashed rounded-xl p-4 text-center cursor-pointer hover:bg-slate-50 transition">
-                      <FiUpload className="mx-auto mb-2" />
-                      <p className="text-sm">
-                        {pdfFile ? pdfFile.name : "Upload PDF laporan"}
-                      </p>
-                    </div>
+                  <label className="block cursor-pointer">
+                    {!pdfFile ? (
+                      // === SEBELUM UPLOAD ===
+                      <div
+                        className="
+                          border-2 border-dashed
+                          border-[#B91C1C]
+                          dark:border-indigo-600
+                          rounded-2xl
+                          p-6
+                          text-center
+                          transition-all
+                          bg-linear-to-br
+                          from-[#FFF7ED] via-[#FFF1F2] to-white
+                          dark:from-indigo-950
+                          dark:via-indigo-900
+                          dark:to-indigo-950
+                          hover:shadow-md
+                        "
+                      >
+                        <div
+                          className="
+                            mx-auto mb-3
+                            w-12 h-12
+                            rounded-xl
+                            flex items-center justify-center
+                            bg-linear-to-br
+                            from-[#F97316] to-[#7F1D1D]
+                            dark:from-indigo-500
+                            dark:to-violet-500
+                            text-white
+                          "
+                        >
+                          <FiUpload className="text-xl" />
+                        </div>
+
+                        <p className="text-sm font-semibold text-slate-800 dark:text-indigo-100">
+                          Upload PDF laporan
+                        </p>
+                      </div>
+                    ) : (
+                      // === SETELAH UPLOAD ===
+                      <div
+                        className="
+                          border
+                          border-emerald-300
+                          dark:border-emerald-600
+                          rounded-2xl
+                          p-4
+                          flex items-center gap-4
+                          bg-emerald-50
+                          dark:bg-emerald-900/20
+                          transition
+                        "
+                      >
+                        <div
+                          className="
+                            w-12 h-12
+                            rounded-xl
+                            flex items-center justify-center
+                            bg-emerald-500
+                            text-white
+                          "
+                        >
+                          <FiFileText className="text-xl" />
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-300 truncate">
+                            {pdfFile.name}
+                          </p>
+                          <p className="text-xs text-emerald-600 dark:text-emerald-400">
+                            PDF siap diunggah
+                          </p>
+                        </div>
+
+                        <span
+                          className="
+                            text-xs font-semibold
+                            px-3 py-1 rounded-full
+                            bg-emerald-200 text-emerald-800
+                            dark:bg-emerald-800 dark:text-emerald-200
+                          "
+                        >
+                          Siap
+                        </span>
+                      </div>
+                    )}
 
                     <input
                       type="file"
@@ -731,17 +859,60 @@ export default function LogbookModal({
                 )}
 
                 {readonly && pdfUrl && (
-                  <div className="text-sm">
-                    <a
-                      href={getImageUrl(pdfUrl)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      className="text-indigo-600 underline font-medium"
+                  <a
+                    href={getImageUrl(pdfUrl)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="
+                      flex items-center gap-4
+                      p-4 rounded-2xl
+                      border
+                      border-amber-200 dark:border-indigo-700
+                      bg-amber-50 dark:bg-indigo-900/30
+                      hover:shadow-md
+                      transition
+                      group
+                    "
+                  >
+                    {/* Icon */}
+                    <div
+                      className="
+                        w-12 h-12
+                        rounded-xl
+                        flex items-center justify-center
+                        bg-linear-to-br
+                        from-amber-500 to-orange-600
+                        dark:from-indigo-500 dark:to-violet-600
+                        text-white
+                        group-hover:scale-105
+                        transition
+                      "
+                    >
+                      <FiFileText className="text-xl" />
+                    </div>
+
+                    {/* Text */}
+                    <div className="flex-1">
+                      <p className="font-semibold text-amber-800 dark:text-indigo-200">
+                        Dokumen PDF
+                      </p>
+                      <p className="text-xs text-amber-600 dark:text-indigo-400">
+                        Klik untuk melihat file
+                      </p>
+                    </div>
+                    {/* Action badge */}
+                    <span
+                      className="
+                        text-xs font-semibold
+                        px-3 py-1 rounded-full
+                        bg-amber-200 text-amber-800
+                        dark:bg-indigo-800 dark:text-indigo-200
+                      "
                     >
                       📄 Lihat PDF
-                    </a>
-                  </div>
+                    </span>
+                  </a>
                 )}
               </div>
             </>
@@ -764,7 +935,7 @@ export default function LogbookModal({
                   <FiImage className="text-slate-500 dark:text-white" />
                   <label className="font-semibold text-slate-700 dark:text-white">
                     Bukti Pendukung{" "}
-                    {!readonly && `(Max ${MAX_FILES} foto, 2MB/foto)`}
+                    {!readonly && `- Max ${MAX_FILES} foto, 2MB/foto (Opsional)`}
                   </label>
                 </div>
 
@@ -774,20 +945,45 @@ export default function LogbookModal({
                       <label className="block">
                         <div
                           className="
-                          border-2 border-dashed 
-                          border-blue-300 bg-blue-50/60
-                          rounded-xl p-8 text-center cursor-pointer 
-                          hover:border-blue-400
-                          hover:bg-blue-100
-                          dark:bg-indigo-900/30
-                          dark:border-indigo-700 
-                          transition"
+                            separate-card
+                            border-2 border-dashed
+                            border-[#F59E0B]
+                            bg-linear-to-br
+                            from-[#FFF7ED] via-[#FEF3C7] to-[#FFF1F2]
+                            dark:from-indigo-900/40
+                            dark:via-indigo-800/40
+                            dark:to-indigo-900/60
+                            rounded-2xl
+                            p-6 sm:p-8
+                            text-center
+                            cursor-pointer
+                            transition-all
+                            hover:scale-[1.01]
+                            hover:shadow-md
+                            dark:border-indigo-600
+                          "
                         >
-                          <FiUpload className="text-3xl text-slate-400 mx-auto mb-3" />
-                          <p className="font-medium text-slate-700">
+                          <div
+                            className="
+                              mx-auto mb-3
+                              w-14 h-14
+                              rounded-xl
+                              flex items-center justify-center
+                              bg-linear-to-br
+                              from-[#F59E0B] to-[#B91C1C]
+                              dark:from-indigo-500
+                              dark:to-violet-500
+                              text-white
+                              shadow
+                            "
+                          >
+                            <FiUpload className="text-2xl" />
+                          </div>
+
+                          <p className="font-semibold text-slate-700 dark:text-white">
                             Klik untuk upload foto bukti
                           </p>
-                          <p className="text-sm text-slate-500 mt-1">
+                          <p className="text-sm text-slate-500 dark:text-slate-400  mt-1">
                             Upload foto bukti seperti surat dokter, dll
                           </p>
                         </div>
@@ -819,11 +1015,24 @@ export default function LogbookModal({
                             </div>
                           ))}
                         </div>
-                        <label className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 hover:bg-blue-200 rounded-lg cursor-pointer transition">
+                        <label
+                          className="
+                            inline-flex items-center justify-center
+                            gap-2 px-4 py-2.5
+                            rounded-xl
+                            text-sm font-semibold
+                            cursor-pointer
+                            bg-linear-to-r
+                            from-[#F59E0B] to-[#B91C1C]
+                            dark:from-indigo-600 dark:to-violet-500
+                            text-white
+                            shadow hover:shadow-lg
+                            transition
+                          "
+                        >
                           <FiUpload />
-                          <span className="font-medium">
-                            Tambah Foto Lainnya
-                          </span>
+                          Tambah Foto Lainnya
+                          
                           <input
                             type="file"
                             multiple
@@ -880,16 +1089,97 @@ export default function LogbookModal({
                 </div>
 
                 {!readonly && (
-                  <label className="block">
-                    <div className="border-2 border-dashed border-blue-300 bg-blue-50 rounded-xl p-4 text-center cursor-pointer hover:bg-blue-100 transition">
-                      <FiUpload className="mx-auto mb-2" />
-                      <p className="text-sm">
-                        {pdfFile ? pdfFile.name : "Upload PDF bukti"}
-                      </p>
-                      <p className="text-xs text-slate-500 mt-1">
-                        Contoh: surat dokter, surat izin, dll
-                      </p>
-                    </div>
+                  <label className="block cursor-pointer">
+                    {!pdfFile ? (
+                      // === SEBELUM UPLOAD ===
+                      <div
+                        className="
+                          border-2 border-dashed
+                          border-[#B91C1C]
+                          dark:border-indigo-600
+                          rounded-2xl
+                          p-6
+                          text-center
+                          transition-all
+                          bg-linear-to-br
+                          from-[#FFF7ED] via-[#FFF1F2] to-white
+                          dark:from-indigo-950
+                          dark:via-indigo-900
+                          dark:to-indigo-950
+                          hover:shadow-md
+                        "
+                      >
+                        <div
+                          className="
+                            mx-auto mb-3
+                            w-12 h-12
+                            rounded-xl
+                            flex items-center justify-center
+                            bg-linear-to-br
+                            from-[#F97316] to-[#7F1D1D]
+                            dark:from-indigo-500
+                            dark:to-violet-500
+                            text-white
+                          "
+                        >
+                          <FiUpload className="text-xl" />
+                        </div>
+
+                        <p className="text-sm font-semibold text-slate-800 dark:text-indigo-100">
+                          Upload PDF bukti
+                        </p>
+                        <p className="text-xs text-slate-500 dark:text-indigo-300 mt-1">
+                          Contoh: surat dokter, surat izin, dll
+                        </p>
+                      </div>
+                    ) : (
+                      // === SETELAH UPLOAD ===
+                      <div
+                        className="
+                          border
+                          border-emerald-300
+                          dark:border-emerald-600
+                          rounded-2xl
+                          p-4
+                          flex items-center gap-4
+                          bg-emerald-50
+                          dark:bg-emerald-900/20
+                          transition
+                        "
+                      >
+                        <div
+                          className="
+                            w-12 h-12
+                            rounded-xl
+                            flex items-center justify-center
+                            bg-emerald-500
+                            text-white
+                          "
+                        >
+                          <FiFileText className="text-xl" />
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-300 truncate">
+                            {pdfFile.name}
+                          </p>
+                          <p className="text-xs text-emerald-600 dark:text-emerald-400">
+                            PDF siap diunggah
+                          </p>
+                        </div>
+
+                        <span
+                          className="
+                            text-xs font-semibold
+                            px-3 py-1 rounded-full
+                            bg-emerald-200 text-emerald-800
+                            dark:bg-emerald-800 dark:text-emerald-200
+                          "
+                        >
+                          Siap
+                        </span>
+                      </div>
+                    )}
 
                     <input
                       type="file"
@@ -901,17 +1191,61 @@ export default function LogbookModal({
                 )}
 
                 {readonly && pdfUrl && (
-                  <div className="text-sm">
-                    <a
-                      href={getImageUrl(pdfUrl)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      className="text-blue-600 underline font-medium"
+                  <a
+                    href={getImageUrl(pdfUrl)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="
+                      flex items-center gap-4
+                      p-4 rounded-2xl
+                      border
+                      border-amber-200 dark:border-indigo-700
+                      bg-amber-50 dark:bg-indigo-900/30
+                      hover:shadow-md
+                      transition
+                      group
+                    "
+                  >
+                    {/* Icon */}
+                    <div
+                      className="
+                        w-12 h-12
+                        rounded-xl
+                        flex items-center justify-center
+                        bg-linear-to-br
+                        from-amber-500 to-orange-600
+                        dark:from-indigo-500 dark:to-violet-600
+                        text-white
+                        group-hover:scale-105
+                        transition
+                      "
                     >
-                      📄 Lihat PDF Bukti
-                    </a>
-                  </div>
+                      <FiFileText className="text-xl" />
+                    </div>
+
+                    {/* Text */}
+                    <div className="flex-1">
+                      <p className="font-semibold text-amber-800 dark:text-indigo-200">
+                        Dokumen PDF
+                      </p>
+                      <p className="text-xs text-amber-600 dark:text-indigo-400">
+                        Klik untuk melihat file
+                      </p>
+                    </div>
+
+                    {/* Action badge */}
+                    <span
+                      className="
+                        text-xs font-semibold
+                        px-3 py-1 rounded-full
+                        bg-amber-200 text-amber-800
+                        dark:bg-indigo-800 dark:text-indigo-200
+                      "
+                    >
+                      📄 Lihat PDF
+                    </span>
+                  </a>
                 )}
               </div>
             </>
@@ -1164,6 +1498,105 @@ export default function LogbookModal({
               e.currentTarget.src = `https://via.placeholder.com/800x600?text=Gambar+Tidak+Dapat+Dimuat`;
             }}
           />
+        </div>
+      )}
+
+      {/* Modal Konfirmasi Kirim Logbook */}
+      {showConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={() => setShowConfirm(false)}
+          />
+
+          <div
+            className="
+              relative
+              w-full max-w-sm sm:max-w-md
+              rounded-3xl
+              bg-white dark:bg-slate-900
+              shadow-2xl
+              p-6 sm:p-8
+              text-center
+              animate-scaleIn
+            "
+          >
+            {/* Icon tengah */}
+            <div
+              className="
+                mx-auto mb-4
+                w-20 h-20
+                rounded-full
+                flex items-center justify-center
+                shadow-lg
+                bg-linear-to-br
+                from-[#F59E0B] to-[#B91C1C]
+                dark:from-indigo-500 dark:to-violet-600
+                text-white
+              "
+            >
+              <FiCheck className="text-3xl" />
+            </div>
+
+            {/* Title */}
+            <h3 className="text-xl font-extrabold text-slate-800 dark:text-white mb-2">
+              Kirim Logbook Sekarang?
+            </h3>
+
+            {/* Description */}
+            <p className="text-sm text-slate-600 dark:text-slate-300 mb-6 leading-relaxed">
+              Pastikan semua aktivitas sudah diisi dengan benar.
+              <br />
+              <span className="text-slate-500 dark:text-slate-400">
+                Logbook yang sudah dikirim tidak dapat diubah.
+              </span>
+            </p>
+
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                onClick={() => setShowConfirm(false)}
+                className="
+                  w-full
+                  px-4 py-3
+                  rounded-xl
+                  border
+                  border-slate-300
+                  text-slate-700
+                  font-medium
+                  bg-white
+                  hover:bg-slate-100
+                  dark:bg-slate-800
+                  dark:border-slate-600
+                  dark:text-slate-200
+                  dark:hover:bg-slate-700
+                  transition
+                "
+              >
+                Periksa Lagi
+              </button>
+
+              <button
+                onClick={submitConfirmed}
+                className="
+                  w-full
+                  px-4 py-3
+                  rounded-xl
+                  font-semibold
+                  text-white
+                  shadow-lg
+                  transition-all
+                  bg-linear-to-r
+                  from-[#F59E0B] via-[#F97316] to-[#7F1D1D]
+                  hover:brightness-110
+                  dark:from-indigo-600
+                  dark:via-indigo-500
+                  dark:to-violet-600
+                "
+              >
+                Ya, Kirim Logbook
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

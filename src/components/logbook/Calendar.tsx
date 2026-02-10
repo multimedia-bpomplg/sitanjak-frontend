@@ -71,7 +71,7 @@ export default function Calendar({ onSelectDate, filledDates }: Props) {
         className="
           mx-auto
           max-w-7xl
-          2xl:max-w-[1400px]
+          2xl:max-w-350
           rounded-3xl
           bg-white/80 dark:bg-slate-900/70
           backdrop-blur
@@ -80,7 +80,7 @@ export default function Calendar({ onSelectDate, filledDates }: Props) {
         "
       >
         {/* ================= HEADER ================= */}
-        <div className="relative mb-4 flex items-center justify-end">
+        <div className="relative mb-20 flex items-center justify-end">
           {/* Judul Bulan (TENGAH) */}
           <h2
             className="
@@ -184,19 +184,19 @@ export default function Calendar({ onSelectDate, filledDates }: Props) {
               if (approval === "ditolak") {
                 statusClass =
                   "bg-red-50 border-red-400 text-red-700 dark:bg-red-900/30";
-                statusText = "❌ Ditolak";
+                statusText = "Ditolak";
               } else if (approval === "menunggu") {
                 statusClass =
                   "bg-amber-50 border-amber-400 text-amber-700 dark:bg-amber-900/30";
-                statusText = "⏳ Menunggu";
+                statusText = "Menunggu";
               } else if (approval === "disetujui" && status === "hadir") {
                 statusClass =
                   "bg-emerald-50 border-emerald-400 text-emerald-700 dark:bg-emerald-900/30";
-                statusText = "✅ Hadir";
+                statusText = "Hadir";
               } else if (status?.startsWith("tidak_hadir")) {
                 statusClass =
                   "bg-orange-50 border-orange-400 text-orange-700 dark:bg-orange-900/30";
-                statusText = "⚠️ Tidak Hadir";
+                statusText = "Tidak Hadir";
               }
             }
 
@@ -206,7 +206,7 @@ export default function Calendar({ onSelectDate, filledDates }: Props) {
                 disabled={disabled}
                 onClick={() => onSelectDate(isoDate, isFilled)}
                 className={`
-        relative aspect-[6/5] xl:aspect-[5/4]
+        relative aspect-6/5 xl:aspect-5/4
         rounded-xl sm:rounded-2xl
         border
         p-1.5 sm:p-2 md:p-3 lg:p-4

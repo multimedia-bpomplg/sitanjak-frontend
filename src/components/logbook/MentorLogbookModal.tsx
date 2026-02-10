@@ -595,18 +595,64 @@ export default function MentorLogbookModal({
 
                 {/* PDF Bukti */}
                 {pdfFile && (
-                  <div className="mt-4 p-3 border rounded-xl bg-blue-50">
-                    <div className="flex items-center gap-2">
-                      <FiFileText />
+                  <div className="mt-4 p-3 border rounded-xl">
+                    <div className="flex items-center gap-2 mb-4">
+                      <FiFileText className="text-slate-500" />
                       <span className="font-semibold">Dokumen Bukti (PDF)</span>
                     </div>
 
                     <a
                       href={getImageUrl(pdfFile)}
                       target="_blank"
-                      className="text-blue-600 underline text-sm"
+                      className="
+                        flex items-center gap-4
+                        p-4 rounded-2xl
+                        border
+                        border-amber-200 dark:border-indigo-700
+                        bg-amber-50 dark:bg-indigo-900/30
+                        hover:shadow-md
+                        transition
+                        group
+                      "
                     >
-                      📄 Lihat / Download PDF
+                      {/* Icon */}
+                      <div
+                        className="
+                          w-12 h-12
+                          rounded-xl
+                          flex items-center justify-center
+                          bg-linear-to-br
+                          from-amber-500 to-orange-600
+                          dark:from-indigo-500 dark:to-violet-600
+                          text-white
+                          group-hover:scale-105
+                          transition
+                        "
+                      >
+                        <FiFileText className="text-xl" />
+                      </div>
+
+                      {/* Text */}
+                      <div className="flex-1">
+                        <p className="font-semibold text-amber-800 dark:text-indigo-200">
+                          Dokumen PDF
+                        </p>
+                        <p className="text-xs text-amber-600 dark:text-indigo-400">
+                          Klik untuk melihat file
+                        </p>
+                      </div>
+
+                      {/* Action badge */}
+                      <span
+                        className="
+                          text-xs font-semibold
+                          px-3 py-1 rounded-full
+                          bg-amber-200 text-amber-800
+                          dark:bg-indigo-800 dark:text-indigo-200
+                        "
+                      >
+                        📄 Lihat / Download PDF
+                      </span>
                     </a>
                   </div>
                 )}
