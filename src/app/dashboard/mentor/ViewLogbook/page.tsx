@@ -28,12 +28,23 @@ export default function ViewLogbookMentor() {
   const [peserta, setPeserta] = useState<Peserta[]>([]);
   const [filteredPeserta, setFilteredPeserta] = useState<Peserta[]>([]);
   const [selectedPeserta, setSelectedPeserta] = useState<Peserta | null>(null);
-  const [filledDates, setFilledDates] = useState<Record<string, string>>({});
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [filledDates, setFilledDates] = useState<
+    Record<
+      string,
+      {
+        status:
+          | "hadir"
+          | "tidak_hadir_keterangan"
+          | "tidak_hadir_tanpa_keterangan";
+        approvalStatus: "menunggu" | "disetujui" | "ditolak";
+      }
+    >
+  >({});
 
   /* ================= FETCH PESERTA BIMBINGAN ================= */
   useEffect(() => {
@@ -123,11 +134,26 @@ export default function ViewLogbookMentor() {
       const data = await res.json();
       console.log("LOGBOOK DATA:", data);
 
-      const map: Record<string, string> = {};
+      // Format data untuk Calendar component
+      const map: Record<
+        string,
+        {
+          status:
+            | "hadir"
+            | "tidak_hadir_keterangan"
+            | "tidak_hadir_tanpa_keterangan";
+          approvalStatus: "menunggu" | "disetujui" | "ditolak";
+        }
+      > = {};
+
       data.forEach((l: any) => {
-        map[l.date] = l.status;
+        map[l.date] = {
+          status: l.status,
+          approvalStatus: l.approvalStatus || "menunggu",
+        };
       });
 
+      // PERBAIKAN: setFilledDates bukan setFiledDates
       setFilledDates(map);
     } catch (err) {
       console.error("LOAD CALENDAR ERROR:", err);

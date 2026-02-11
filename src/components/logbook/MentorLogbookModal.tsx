@@ -186,6 +186,13 @@ export default function MentorLogbookModal({
         approved ? "Logbook berhasil disetujui" : "Logbook berhasil ditolak",
       );
 
+      // 🔥 tutup modal SETELAH toast selesai
+      setTimeout(() => {
+        try {
+          onClose();
+        } catch {}
+      }, 1200);
+
       // Auto close setelah 2 detik
       setTimeout(() => {
         onClose();
@@ -194,6 +201,41 @@ export default function MentorLogbookModal({
       showToast.updateError(toastId, err.message || "Terjadi kesalahan");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleRevision = async () => {
+    if (!logbookId) return;
+
+    if (!mentorNote.trim()) {
+      showToast.error("Catatan wajib untuk revisi");
+      return;
+    }
+
+    const toastId = showToast.loading("Mengirim revisi...");
+
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/logbook/mentor/revisi/${logbookId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+          body: JSON.stringify({
+            mentorNote: mentorNote.trim(),
+          }),
+        },
+      );
+
+      if (!res.ok) throw new Error("Gagal revisi");
+
+      showToast.updateSuccess(toastId, "Dikirim untuk revisi");
+
+      onClose();
+    } catch (err: any) {
+      showToast.updateError(toastId, err.message);
     }
   };
 
@@ -785,6 +827,22 @@ export default function MentorLogbookModal({
                       Tolak
                     </>
                   )}
+                </button>
+
+                {/* REVISI */}
+                <button
+                  onClick={handleRevision}
+                  disabled={isSubmitting || !mentorNote.trim()}
+                  className="
+    w-full sm:w-auto
+    inline-flex items-center justify-center gap-2
+    px-5 py-2.5 rounded-xl font-semibold
+    bg-purple-600 hover:bg-purple-700
+    text-white shadow-md
+  "
+                >
+                  <FiEdit />
+                  Revisi
                 </button>
 
                 {/* SETUJUI */}

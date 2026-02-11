@@ -12,6 +12,7 @@ import {
   FiUserCheck,
   FiUserX,
   FiEdit,
+  FiRefreshCw, // 🔥 TAMBAH ICON REVISI
 } from "react-icons/fi";
 import { showToast } from "@/components/ui/toastDashboard";
 
@@ -20,12 +21,14 @@ type Status =
   | "tidak_hadir_keterangan"
   | "tidak_hadir_tanpa_keterangan";
 
+// 🔥 TAMBAH TIPE PROPS UNTUK MODE EDIT
 type Props = {
   date: string;
-  mode: "create" | "view";
+  mode: "create" | "view" | "edit"; // 🔥 TAMBAH "edit"
   onClose: () => void;
   userId?: string;
   role?: "peserta" | "mentor";
+  logbookId?: string; // 🔥 TAMBAH UNTUK EDIT
 };
 
 const MIN_TEXT_LENGTH = 50;
@@ -38,10 +41,9 @@ export default function LogbookModal({
   onClose,
   userId,
   role = "peserta",
+  logbookId,
 }: Props) {
-  const readonly = mode === "view";
-
-  // State Management
+  // 🔥 STATE HARUS DIDEKLARASIKAN DULU SEBELUM DIGUNAKAN
   const [status, setStatus] = useState<Status>("hadir");
   const [judul, setJudul] = useState("");
   const [pengalaman, setPengalaman] = useState("");
@@ -55,16 +57,28 @@ export default function LogbookModal({
   const [approvedByMentor, setApprovedByMentor] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [mentorNote, setMentorNote] = useState("");
+  const [revisionNote, setRevisionNote] = useState(""); // 🔥 TAMBAH CATATAN REVISI
   const [approvalStatus, setApprovalStatus] = useState<
-    "menunggu" | "disetujui" | "ditolak"
+    "menunggu" | "disetujui" | "ditolak" | "revisi" // 🔥 TAMBAH "revisi"
   >("menunggu");
   const [approvedAt, setApprovedAt] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
-  const [logbookId, setLogbookId] = useState<string | null>(null);
+  const [logbookIdState, setLogbookIdState] = useState<string | null>(
+    logbookId || null,
+  );
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
   const [pendingSubmit, setPendingSubmit] = useState(false);
+  const [showRevisionModal, setShowRevisionModal] = useState(false); // 🔥 MODAL REVISI
+  const [revisionRequestedAt, setRevisionRequestedAt] = useState<string>(""); // 🔥 TANGGAL REVISI
 
+  const readonly = mode === "view" && approvalStatus !== "revisi";
+  const isEditMode = mode === "edit";
+  // 🔥 KUNCI STATUS JIKA REVISI
+  const lockStatus = approvalStatus === "revisi" && isEditMode;
+  // 🔥 BOLEH EDIT JIKA CREATE / EDIT / REVISI
+  const canEdit =
+    mode === "create" || mode === "edit" || approvalStatus === "revisi";
 
   // Format tanggal untuk display
   const formatDate = (dateString: string) => {
@@ -85,32 +99,34 @@ export default function LogbookModal({
     return `${process.env.NEXT_PUBLIC_API_URL}/logbook/date/${date}`;
   };
 
-  const handlePdfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-
-    if (!file) return;
-
-    if (file.type !== "application/pdf") {
-      showToast.error("File harus PDF");
-      return;
+  // 🔥 ENDPOINT UNTUK DETAIL LOGBOOK
+  const getLogbookDetailEndpoint = () => {
+    if (logbookIdState) {
+      return `${process.env.NEXT_PUBLIC_API_URL}/logbook/${logbookIdState}/detail`;
     }
-
-    if (file.size > 5 * 1024 * 1024) {
-      showToast.error("Maksimal PDF 5MB");
-      return;
-    }
-
-    setPdfFile(file);
+    return null;
   };
 
   // Fetch Data for View Mode
   useEffect(() => {
-    if (mode !== "view") return;
+    if (mode !== "view" && mode !== "edit") return;
 
     const fetchLogbook = async () => {
       setIsLoading(true);
       try {
-        const res = await fetch(getEndpoint(), {
+        let endpoint;
+
+        if (mode === "edit" && logbookIdState) {
+          endpoint = getLogbookDetailEndpoint();
+          if (!endpoint) {
+            showToast.error("ID logbook tidak valid");
+            return;
+          }
+        } else {
+          endpoint = getEndpoint();
+        }
+
+        const res = await fetch(endpoint!, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
@@ -141,12 +157,13 @@ export default function LogbookModal({
         );
 
         setPdfUrl(typeof data.pdfFile === "string" ? data.pdfFile : null);
-
         setApprovedByMentor(Boolean(data.approvedByMentor));
         setApprovalStatus(data.approvalStatus || "menunggu");
         setMentorNote(data.mentorNote || "");
+        setRevisionNote(data.revisionNote || ""); // 🔥 AMBIL CATATAN REVISI
         setApprovedAt(data.approvedAt || "");
-        setLogbookId(data._id || null);
+        setRevisionRequestedAt(data.revisionRequestedAt || ""); // 🔥 AMBIL TANGGAL REVISI
+        setLogbookIdState(data._id || null);
       } catch (error) {
         console.error(error);
         showToast.error("Gagal memuat data logbook");
@@ -156,11 +173,130 @@ export default function LogbookModal({
     };
 
     fetchLogbook();
-  }, [mode, date, role, userId]);
+  }, [mode, date, role, userId, logbookIdState]);
+
+  // 🔥 FUNGSI UNTUK REQUEST REVISION (MENTOR)
+  const handleRequestRevision = async () => {
+    if (!revisionNote.trim()) {
+      showToast.error("Harap berikan catatan revisi");
+      return;
+    }
+
+    if (!logbookIdState) {
+      showToast.error("Logbook tidak ditemukan");
+      return;
+    }
+
+    const toastId = showToast.loading("Mengirim permintaan revisi...");
+
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/logbook/${logbookIdState}/request-revision`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+          body: JSON.stringify({
+            revisionNote: revisionNote.trim(),
+          }),
+        },
+      );
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || "Gagal meminta revisi");
+      }
+
+      showToast.updateSuccess(
+        toastId,
+        "Permintaan revisi berhasil dikirim ke peserta",
+      );
+
+      setShowRevisionModal(false);
+      setApprovalStatus("revisi");
+      setRevisionRequestedAt(new Date().toISOString());
+
+      setTimeout(() => {
+        onClose();
+      }, 1500);
+    } catch (err: any) {
+      showToast.updateError(toastId, err.message || "Terjadi kesalahan");
+    }
+  };
+
+  // 🔥 FUNGSI UNTUK UPDATE LOGBOOK (REVISI)
+  const handleUpdateLogbook = async () => {
+    if (pendingSubmit) return;
+
+    setPendingSubmit(true);
+    const toastId = showToast.loading("Mengirim revisi logbook...");
+
+    try {
+      const formData = new FormData();
+      formData.append("date", date);
+      formData.append("status", status);
+      formData.append("judul", judul);
+      formData.append("pengalaman", pengalaman);
+      formData.append("kendala", kendala);
+      formData.append("keterangan", keterangan);
+
+      files.forEach((f) => {
+        formData.append("files", f);
+      });
+
+      if (pdfFile) {
+        formData.append("pdfFile", pdfFile);
+      }
+
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/logbook/${logbookIdState}`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+          body: formData,
+        },
+      );
+
+      if (!res.ok) throw new Error("Gagal menyimpan revisi logbook");
+
+      showToast.updateSuccess(toastId, "Revisi logbook berhasil dikirim! ✅");
+      onClose();
+    } catch (err: any) {
+      showToast.updateError(
+        toastId,
+        err.message || "Terjadi kesalahan saat menyimpan",
+      );
+    }
+
+    setPendingSubmit(false);
+  };
+
+  const handlePdfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+
+    if (!file) return;
+
+    if (file.type !== "application/pdf") {
+      showToast.error("File harus PDF");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      showToast.error("Maksimal PDF 5MB");
+      return;
+    }
+
+    setPdfFile(file);
+  };
 
   // File Handler
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (readonly) return;
+    if (readonly && !isEditMode) return;
 
     const selectedFiles = Array.from(e.target.files || []);
 
@@ -198,7 +334,7 @@ export default function LogbookModal({
     files.every((f) => f.type.startsWith("image/") && f.size <= MAX_FILE_SIZE);
 
   const getSubmitDisabled = () => {
-    if (readonly || !agree) return true;
+    if ((readonly && !isEditMode) || (mode === "create" && !agree)) return true;
 
     // HADIR
     if (status === "hadir") {
@@ -271,7 +407,7 @@ export default function LogbookModal({
 
   // Handle Approve/Reject
   const handleApprove = async (approved: boolean) => {
-    if (!logbookId) {
+    if (!logbookIdState) {
       showToast.error("Logbook tidak ditemukan");
       return;
     }
@@ -286,7 +422,7 @@ export default function LogbookModal({
 
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/logbook/mentor/approve/${logbookId}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/logbook/mentor/approve/${logbookIdState}`,
         {
           method: "PUT",
           headers: {
@@ -389,6 +525,13 @@ export default function LogbookModal({
         border: "border-amber-200",
         textColor: "text-amber-700",
       },
+      revisi: {
+        icon: <FiRefreshCw className="text-purple-600" />, // 🔥 GANTI ICON
+        text: "Perlu Revisi",
+        bg: "bg-purple-50",
+        border: "border-purple-200",
+        textColor: "text-purple-700",
+      },
       disetujui: {
         icon: <FiCheck className="text-emerald-600" />,
         text: "Disetujui Mentor",
@@ -405,7 +548,8 @@ export default function LogbookModal({
       },
     };
 
-    const { icon, text, bg, border, textColor } = config[approvalStatus];
+    const { icon, text, bg, border, textColor } =
+      config[approvalStatus] || config.menunggu;
 
     return (
       <div
@@ -417,6 +561,12 @@ export default function LogbookModal({
           {approvedAt && approvalStatus !== "menunggu" && (
             <p className="text-sm text-slate-500 mt-1">
               Diproses: {new Date(approvedAt).toLocaleDateString("id-ID")}
+            </p>
+          )}
+          {revisionRequestedAt && approvalStatus === "revisi" && (
+            <p className="text-sm text-purple-500 mt-1">
+              Diminta revisi:{" "}
+              {new Date(revisionRequestedAt).toLocaleDateString("id-ID")}
             </p>
           )}
         </div>
@@ -431,6 +581,144 @@ export default function LogbookModal({
       "border-amber-500 bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
     tidak_hadir_tanpa_keterangan:
       "border-red-500 bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300",
+  };
+
+  // 🔥 RENDER TOMBOL ACTION BERDASARKAN STATUS
+  const renderActionButtons = () => {
+    // Mode Create
+    if (mode === "create") {
+      return (
+        <button
+          disabled={submitDisabled}
+          onClick={handleSubmit}
+          className={`
+            w-full sm:w-auto justify-center
+            px-8 py-3
+            rounded-full
+            font-semibold
+            flex items-center gap-2
+            transition-all
+            ${
+              submitDisabled
+                ? "bg-slate-300 text-slate-500 cursor-not-allowed"
+                : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg hover:shadow-xl active:scale-[0.98]"
+            }
+          `}
+        >
+          <FiCheck />
+          Simpan Logbook
+        </button>
+      );
+    }
+
+    // Mode Edit (Revisi)
+    if (mode === "edit") {
+      return (
+        <button
+          disabled={submitDisabled}
+          onClick={handleUpdateLogbook}
+          className={`
+            w-full sm:w-auto justify-center
+            px-8 py-3
+            rounded-full
+            font-semibold
+            flex items-center gap-2
+            transition-all
+            ${
+              submitDisabled
+                ? "bg-slate-300 text-slate-500 cursor-not-allowed"
+                : "bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl active:scale-[0.98]"
+            }
+          `}
+        >
+          <FiCheck />
+          Kirim Revisi
+        </button>
+      );
+    }
+
+    // Mode View untuk Mentor
+    if (role === "mentor" && mode === "view") {
+      if (approvalStatus === "menunggu") {
+        return (
+          <>
+            {/* Tombol Revisi */}
+            <button
+              onClick={() => setShowRevisionModal(true)}
+              className={`
+                w-full sm:w-auto justify-center
+                px-6 py-3 rounded-full
+                font-semibold
+                flex items-center gap-2
+                transition-all
+                ${
+                  !mentorNote.trim()
+                    ? "bg-slate-300 text-slate-500 cursor-not-allowed"
+                    : "bg-blue-600 hover:bg-blue-700 text-white shadow-lg"
+                }
+              `}
+              disabled={!mentorNote.trim()}
+            >
+              <FiRefreshCw />
+              Minta Revisi
+            </button>
+
+            {/* Tombol Tolak */}
+            <button
+              onClick={() => handleApprove(false)}
+              disabled={!mentorNote.trim()}
+              className={`
+                w-full sm:w-auto justify-center
+                px-6 py-3 rounded-full
+                font-semibold
+                flex items-center gap-2
+                transition-all
+                ${
+                  !mentorNote.trim()
+                    ? "bg-slate-300 text-slate-500 cursor-not-allowed"
+                    : "bg-red-600 hover:bg-red-700 text-white shadow-lg"
+                }
+              `}
+            >
+              <FiX />
+              Tolak
+            </button>
+
+            {/* Tombol Setujui */}
+            <button
+              onClick={() => handleApprove(true)}
+              disabled={!mentorNote.trim()}
+              className={`
+                w-full sm:w-auto justify-center
+                px-6 py-3 rounded-full
+                font-semibold
+                flex items-center gap-2
+                transition-all
+                ${
+                  !mentorNote.trim()
+                    ? "bg-slate-300 text-slate-500 cursor-not-allowed"
+                    : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg"
+                }
+              `}
+            >
+              <FiCheck />
+              Setujui
+            </button>
+          </>
+        );
+      } else if (approvalStatus === "revisi") {
+        return (
+          <div className="text-center py-2 w-full">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-800 rounded-full">
+              <FiRefreshCw className="animate-spin" />
+              <span className="font-semibold">Menunggu Revisi Peserta</span>
+            </div>
+          </div>
+        );
+      }
+    }
+
+    return null;
   };
 
   if (isLoading) {
@@ -480,11 +768,17 @@ export default function LogbookModal({
                 <h2 className="text-lg sm:text-xl font-bold leading-tight">
                   {mode === "view"
                     ? "Detail Logbook Harian"
-                    : "Isi Logbook Harian"}
+                    : mode === "edit"
+                      ? "Edit Logbook Harian"
+                      : "Isi Logbook Harian"}
                 </h2>
                 <p className="text-xs sm:text-sm opacity-90">
                   {formatDate(date)} •{" "}
-                  {mode === "view" ? "Mode Baca" : "Mode Buat"}
+                  {mode === "view"
+                    ? "Mode Baca"
+                    : mode === "edit"
+                      ? "Mode Edit"
+                      : "Mode Buat"}
                 </p>
               </div>
             </div>
@@ -502,6 +796,21 @@ export default function LogbookModal({
           <ApprovalBadge />
         </div>
 
+        {/* Catatan Revisi jika ada */}
+        {approvalStatus === "revisi" && revisionNote && (
+          <div className="mx-6 mb-4 p-4 rounded-xl bg-purple-50 border border-purple-200">
+            <div className="flex items-center gap-2 mb-2">
+              <FiRefreshCw className="text-purple-600" />
+              <span className="font-semibold text-purple-700">
+                Catatan Revisi dari Mentor:
+              </span>
+            </div>
+            <p className="text-purple-800 whitespace-pre-line">
+              {revisionNote}
+            </p>
+          </div>
+        )}
+
         {/* Body Content */}
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
           {/* Status Kehadiran */}
@@ -512,7 +821,7 @@ export default function LogbookModal({
                 Status Kehadiran
               </label>
             </div>
-            {readonly ? (
+            {readonly || approvalStatus === "revisi" ? (
               <StatusBadge status={status} />
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -532,7 +841,10 @@ export default function LogbookModal({
                   <button
                     key={option.value}
                     type="button"
-                    onClick={() => setStatus(option.value as Status)}
+                    onClick={() => {
+                      if (lockStatus) return;
+                      setStatus(option.value as Status);
+                    }}
                     className={`
                       flex items-center gap-3 p-4 rounded-xl border transition-all
                       ${
@@ -575,6 +887,7 @@ export default function LogbookModal({
                 value={judul}
                 onChange={setJudul}
                 readonly={readonly}
+                editable={canEdit}
                 minLength={MIN_TEXT_LENGTH}
                 placeholder="Jelaskan aktivitas yang dilakukan hari ini..."
               />
@@ -586,6 +899,7 @@ export default function LogbookModal({
                 value={pengalaman}
                 onChange={setPengalaman}
                 readonly={readonly}
+                editable={canEdit}
                 minLength={MIN_TEXT_LENGTH}
                 placeholder="Apa yang Anda pelajari hari ini?"
               />
@@ -597,6 +911,7 @@ export default function LogbookModal({
                 value={kendala}
                 onChange={setKendala}
                 readonly={readonly}
+                editable={canEdit}
                 minLength={MIN_TEXT_LENGTH}
                 placeholder="Apakah ada kendala yang dihadapi?"
               />
@@ -607,13 +922,14 @@ export default function LogbookModal({
                   <FiImage className="text-slate-500 dark:text-white" />
                   <label className="font-semibold text-slate-700 dark:text-white">
                     Dokumentasi{" "}
-                    {!readonly && `- Max ${MAX_FILES} foto, 2MB/foto (Opsional)`}
+                    {!readonly &&
+                      `- Max ${MAX_FILES} foto, 2MB/foto (Opsional)`}
                   </label>
                 </div>
 
                 {!readonly ? (
                   <>
-                    {files.length === 0 ? (
+                    {files.length === 0 && fileUrls.length === 0 ? (
                       <label className="block">
                         <div
                           className="
@@ -668,12 +984,40 @@ export default function LogbookModal({
                     ) : (
                       <div className="space-y-4">
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                          {/* Tampilkan file yang sudah ada */}
+                          {fileUrls.map((url, i) => {
+                            const imageUrl = getImageUrl(url);
+                            return (
+                              <div key={`existing-${i}`} className="relative">
+                                <img
+                                  src={imageUrl}
+                                  className="w-full h-40 object-cover rounded-lg"
+                                  alt={`Existing ${i + 1}`}
+                                />
+                                {!readonly && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const newUrls = [...fileUrls];
+                                      newUrls.splice(i, 1);
+                                      setFileUrls(newUrls);
+                                    }}
+                                    className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-80 hover:opacity-100 transition"
+                                  >
+                                    <FiX className="text-sm" />
+                                  </button>
+                                )}
+                              </div>
+                            );
+                          })}
+
+                          {/* Tampilkan file baru */}
                           {files.map((file, i) => (
-                            <div key={i} className="relative group">
+                            <div key={`new-${i}`} className="relative group">
                               <img
                                 src={URL.createObjectURL(file)}
                                 className="w-full h-40 object-cover rounded-lg"
-                                alt={`Upload ${i + 1}`}
+                                alt={`New ${i + 1}`}
                               />
                               <button
                                 type="button"
@@ -702,7 +1046,6 @@ export default function LogbookModal({
                         >
                           <FiUpload />
                           Tambah Foto Lainnya
-
                           <input
                             type="file"
                             multiple
@@ -721,7 +1064,6 @@ export default function LogbookModal({
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                     {fileUrls.map((url, i) => {
                       const imageUrl = getImageUrl(url);
-                      console.log(`Image URL ${i}:`, imageUrl); // Debug log
                       return (
                         <div
                           key={i}
@@ -759,9 +1101,9 @@ export default function LogbookModal({
                   </label>
                 </div>
 
-                {!readonly && (
+                {!readonly ? (
                   <label className="block cursor-pointer">
-                    {!pdfFile ? (
+                    {!pdfFile && !pdfUrl ? (
                       // === SEBELUM UPLOAD ===
                       <div
                         className="
@@ -829,10 +1171,10 @@ export default function LogbookModal({
 
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-300 truncate">
-                            {pdfFile.name}
+                            {pdfFile ? pdfFile.name : "File PDF Terlampir"}
                           </p>
                           <p className="text-xs text-emerald-600 dark:text-emerald-400">
-                            PDF siap diunggah
+                            {pdfFile ? "PDF siap diunggah" : "PDF sudah ada"}
                           </p>
                         </div>
 
@@ -844,7 +1186,7 @@ export default function LogbookModal({
                             dark:bg-emerald-800 dark:text-emerald-200
                           "
                         >
-                          Siap
+                          {pdfFile ? "Baru" : "Ada"}
                         </span>
                       </div>
                     )}
@@ -856,15 +1198,14 @@ export default function LogbookModal({
                       className="hidden"
                     />
                   </label>
-                )}
-
-                {readonly && pdfUrl && (
-                  <a
-                    href={getImageUrl(pdfUrl)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                    className="
+                ) : (
+                  pdfUrl && (
+                    <a
+                      href={getImageUrl(pdfUrl)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="
                       flex items-center gap-4
                       p-4 rounded-2xl
                       border
@@ -874,10 +1215,10 @@ export default function LogbookModal({
                       transition
                       group
                     "
-                  >
-                    {/* Icon */}
-                    <div
-                      className="
+                    >
+                      {/* Icon */}
+                      <div
+                        className="
                         w-12 h-12
                         rounded-xl
                         flex items-center justify-center
@@ -888,31 +1229,32 @@ export default function LogbookModal({
                         group-hover:scale-105
                         transition
                       "
-                    >
-                      <FiFileText className="text-xl" />
-                    </div>
+                      >
+                        <FiFileText className="text-xl" />
+                      </div>
 
-                    {/* Text */}
-                    <div className="flex-1">
-                      <p className="font-semibold text-amber-800 dark:text-indigo-200">
-                        Dokumen PDF
-                      </p>
-                      <p className="text-xs text-amber-600 dark:text-indigo-400">
-                        Klik untuk melihat file
-                      </p>
-                    </div>
-                    {/* Action badge */}
-                    <span
-                      className="
+                      {/* Text */}
+                      <div className="flex-1">
+                        <p className="font-semibold text-amber-800 dark:text-indigo-200">
+                          Dokumen PDF
+                        </p>
+                        <p className="text-xs text-amber-600 dark:text-indigo-400">
+                          Klik untuk melihat file
+                        </p>
+                      </div>
+                      {/* Action badge */}
+                      <span
+                        className="
                         text-xs font-semibold
                         px-3 py-1 rounded-full
                         bg-amber-200 text-amber-800
                         dark:bg-indigo-800 dark:text-indigo-200
                       "
-                    >
-                      📄 Lihat PDF
-                    </span>
-                  </a>
+                      >
+                        📄 Lihat PDF
+                      </span>
+                    </a>
+                  )
                 )}
               </div>
             </>
@@ -925,6 +1267,7 @@ export default function LogbookModal({
                 value={keterangan}
                 onChange={setKeterangan}
                 readonly={readonly}
+                editable={canEdit}
                 minLength={MIN_TEXT_LENGTH}
                 placeholder="Jelaskan alasan ketidakhadiran Anda..."
               />
@@ -935,13 +1278,14 @@ export default function LogbookModal({
                   <FiImage className="text-slate-500 dark:text-white" />
                   <label className="font-semibold text-slate-700 dark:text-white">
                     Bukti Pendukung{" "}
-                    {!readonly && `- Max ${MAX_FILES} foto, 2MB/foto (Opsional)`}
+                    {!readonly &&
+                      `- Max ${MAX_FILES} foto, 2MB/foto (Opsional)`}
                   </label>
                 </div>
 
                 {!readonly ? (
                   <>
-                    {files.length === 0 ? (
+                    {files.length === 0 && fileUrls.length === 0 ? (
                       <label className="block">
                         <div
                           className="
@@ -998,12 +1342,37 @@ export default function LogbookModal({
                     ) : (
                       <div className="space-y-4">
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                          {/* File existing */}
+                          {fileUrls.map((url, i) => (
+                            <div key={`existing-${i}`} className="relative">
+                              <img
+                                src={getImageUrl(url)}
+                                className="w-full h-40 object-cover rounded-lg"
+                                alt={`Existing ${i + 1}`}
+                              />
+                              {!readonly && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const newUrls = [...fileUrls];
+                                    newUrls.splice(i, 1);
+                                    setFileUrls(newUrls);
+                                  }}
+                                  className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-80 hover:opacity-100 transition"
+                                >
+                                  <FiX className="text-sm" />
+                                </button>
+                              )}
+                            </div>
+                          ))}
+
+                          {/* File baru */}
                           {files.map((file, i) => (
-                            <div key={i} className="relative group">
+                            <div key={`new-${i}`} className="relative group">
                               <img
                                 src={URL.createObjectURL(file)}
                                 className="w-full h-40 object-cover rounded-lg"
-                                alt={`Upload ${i + 1}`}
+                                alt={`New ${i + 1}`}
                               />
                               <button
                                 type="button"
@@ -1032,7 +1401,6 @@ export default function LogbookModal({
                         >
                           <FiUpload />
                           Tambah Foto Lainnya
-                          
                           <input
                             type="file"
                             multiple
@@ -1088,9 +1456,9 @@ export default function LogbookModal({
                   </label>
                 </div>
 
-                {!readonly && (
+                {!readonly ? (
                   <label className="block cursor-pointer">
-                    {!pdfFile ? (
+                    {!pdfFile && !pdfUrl ? (
                       // === SEBELUM UPLOAD ===
                       <div
                         className="
@@ -1161,10 +1529,10 @@ export default function LogbookModal({
 
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-300 truncate">
-                            {pdfFile.name}
+                            {pdfFile ? pdfFile.name : "File PDF Bukti"}
                           </p>
                           <p className="text-xs text-emerald-600 dark:text-emerald-400">
-                            PDF siap diunggah
+                            {pdfFile ? "PDF siap diunggah" : "PDF sudah ada"}
                           </p>
                         </div>
 
@@ -1176,7 +1544,7 @@ export default function LogbookModal({
                             dark:bg-emerald-800 dark:text-emerald-200
                           "
                         >
-                          Siap
+                          {pdfFile ? "Baru" : "Ada"}
                         </span>
                       </div>
                     )}
@@ -1188,15 +1556,14 @@ export default function LogbookModal({
                       className="hidden"
                     />
                   </label>
-                )}
-
-                {readonly && pdfUrl && (
-                  <a
-                    href={getImageUrl(pdfUrl)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                    className="
+                ) : (
+                  pdfUrl && (
+                    <a
+                      href={getImageUrl(pdfUrl)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="
                       flex items-center gap-4
                       p-4 rounded-2xl
                       border
@@ -1206,10 +1573,10 @@ export default function LogbookModal({
                       transition
                       group
                     "
-                  >
-                    {/* Icon */}
-                    <div
-                      className="
+                    >
+                      {/* Icon */}
+                      <div
+                        className="
                         w-12 h-12
                         rounded-xl
                         flex items-center justify-center
@@ -1220,32 +1587,33 @@ export default function LogbookModal({
                         group-hover:scale-105
                         transition
                       "
-                    >
-                      <FiFileText className="text-xl" />
-                    </div>
+                      >
+                        <FiFileText className="text-xl" />
+                      </div>
 
-                    {/* Text */}
-                    <div className="flex-1">
-                      <p className="font-semibold text-amber-800 dark:text-indigo-200">
-                        Dokumen PDF
-                      </p>
-                      <p className="text-xs text-amber-600 dark:text-indigo-400">
-                        Klik untuk melihat file
-                      </p>
-                    </div>
+                      {/* Text */}
+                      <div className="flex-1">
+                        <p className="font-semibold text-amber-800 dark:text-indigo-200">
+                          Dokumen PDF
+                        </p>
+                        <p className="text-xs text-amber-600 dark:text-indigo-400">
+                          Klik untuk melihat file
+                        </p>
+                      </div>
 
-                    {/* Action badge */}
-                    <span
-                      className="
+                      {/* Action badge */}
+                      <span
+                        className="
                         text-xs font-semibold
                         px-3 py-1 rounded-full
                         bg-amber-200 text-amber-800
                         dark:bg-indigo-800 dark:text-indigo-200
                       "
-                    >
-                      📄 Lihat PDF
-                    </span>
-                  </a>
+                      >
+                        📄 Lihat PDF
+                      </span>
+                    </a>
+                  )
                 )}
               </div>
             </>
@@ -1264,23 +1632,18 @@ export default function LogbookModal({
             </div>
           )}
 
-          {/* 🔥 PERBAIKAN: Approval Status Dipindahkan ke sini (setelah gambar) */}
-          {mode === "view" && (
-            <div className="space-y-4">
-              {/* Catatan Mentor (Tampilkan jika ada catatan) */}
-              {mentorNote && approvalStatus !== "menunggu" && (
-                <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 dark:bg-indigo-900/30 dark:border-indigo-700">
-                  <div className="flex items-center gap-2 mb-2">
-                    <FiEdit className="flex items-center gap-2" />
-                    <span className="font-semibold text-slate-700 dark:text-white">
-                      Catatan Mentor:
-                    </span>
-                  </div>
-                  <p className="text-amber-800 dark:text-indigo-200 whitespace-pre-line">
-                    {mentorNote}
-                  </p>
-                </div>
-              )}
+          {/* Catatan Mentor (Tampilkan jika ada catatan) */}
+          {mode === "view" && mentorNote && approvalStatus !== "menunggu" && (
+            <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 dark:bg-indigo-900/30 dark:border-indigo-700">
+              <div className="flex items-center gap-2 mb-2">
+                <FiEdit className="flex items-center gap-2" />
+                <span className="font-semibold text-slate-700 dark:text-white">
+                  Catatan Mentor:
+                </span>
+              </div>
+              <p className="text-amber-800 dark:text-indigo-200 whitespace-pre-line">
+                {mentorNote}
+              </p>
             </div>
           )}
 
@@ -1349,7 +1712,7 @@ export default function LogbookModal({
             </div>
           )}
 
-          {/* 🔥 PERBAIKAN: Catatan Mentor Input untuk Mentor (hanya jika status menunggu) */}
+          {/* Catatan Mentor Input untuk Mentor (hanya jika status menunggu) */}
           {role === "mentor" &&
             mode === "view" &&
             approvalStatus === "menunggu" && (
@@ -1403,75 +1766,7 @@ export default function LogbookModal({
             </button>
 
             <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-              {/* Create Mode: Save Button */}
-              {mode === "create" && (
-                <button
-                  disabled={submitDisabled}
-                  onClick={handleSubmit}
-                  className={`
-                    w-full sm:w-auto justify-center
-                    px-8 py-3
-                    rounded-full
-                    font-semibold
-                    flex items-center gap-2
-                    transition-all
-                    ${
-                      submitDisabled
-                        ? "bg-slate-300 text-slate-500 cursor-not-allowed"
-                        : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg hover:shadow-xl active:scale-[0.98]"
-                    }
-                  `}
-                >
-                  <FiCheck />
-                  Simpan Logbook
-                </button>
-              )}
-
-              {/* Mentor Mode: Approve/Reject Buttons */}
-              {role === "mentor" &&
-                mode === "view" &&
-                approvalStatus === "menunggu" && (
-                  <>
-                    <button
-                      onClick={() => handleApprove(false)}
-                      disabled={!mentorNote.trim()}
-                      className={`
-                        w-full sm:w-auto justify-center
-                        px-6 py-3 rounded-full
-                        font-semibold
-                        flex items-center gap-2
-                        transition-all
-                        ${
-                          !mentorNote.trim()
-                            ? "bg-slate-300 text-slate-500 cursor-not-allowed"
-                            : "bg-red-600 hover:bg-red-700 text-white shadow-lg"
-                        }
-                      `}
-                    >
-                      <FiX />
-                      Tolak
-                    </button>
-                    <button
-                      onClick={() => handleApprove(true)}
-                      disabled={!mentorNote.trim()}
-                      className={`
-                        w-full sm:w-auto justify-center
-                        px-6 py-3 rounded-full
-                        font-semibold
-                        flex items-center gap-2
-                        transition-all
-                        ${
-                          !mentorNote.trim()
-                            ? "bg-slate-300 text-slate-500 cursor-not-allowed"
-                            : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg"
-                        }
-                      `}
-                    >
-                      <FiCheck />
-                      Setujui
-                    </button>
-                  </>
-                )}
+              {renderActionButtons()}
             </div>
           </div>
         </div>
@@ -1599,6 +1894,62 @@ export default function LogbookModal({
           </div>
         </div>
       )}
+
+      {/* Modal Permintaan Revisi */}
+      {showRevisionModal && (
+        <div className="fixed inset-0 z-999 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="relative w-full max-w-md rounded-3xl bg-white dark:bg-slate-900 shadow-2xl p-8">
+            <div className="text-center mb-6">
+              <div className="mx-auto mb-4 w-16 h-16 rounded-full flex items-center justify-center bg-blue-100 text-blue-600">
+                <FiRefreshCw className="text-2xl" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">
+                Minta Revisi Logbook
+              </h3>
+              <p className="text-sm text-slate-600 dark:text-slate-300">
+                Berikan catatan revisi untuk peserta
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <textarea
+                value={revisionNote}
+                onChange={(e) => setRevisionNote(e.target.value)}
+                rows={5}
+                className="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 resize-none outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Jelaskan bagian mana yang perlu direvisi dan bagaimana perbaikannya..."
+              />
+
+              <p className="text-sm text-slate-500">
+                Catatan ini akan dikirim ke peserta untuk perbaikan logbook
+              </p>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setShowRevisionModal(false)}
+                className="flex-1 px-4 py-3 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 transition"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleRequestRevision}
+                disabled={!revisionNote.trim()}
+                className={`
+                  flex-1 px-4 py-3 rounded-xl font-semibold text-white transition
+                  ${
+                    !revisionNote.trim()
+                      ? "bg-slate-300 cursor-not-allowed"
+                      : "bg-blue-600 hover:bg-blue-700"
+                  }
+                `}
+              >
+                Kirim Permintaan Revisi
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1609,7 +1960,7 @@ function FieldSection({
   label,
   value,
   onChange,
-  readonly,
+  editable,
   minLength = MIN_TEXT_LENGTH,
   placeholder = "",
 }: {
@@ -1617,7 +1968,7 @@ function FieldSection({
   label: string;
   value: string;
   onChange: (value: string) => void;
-  readonly: boolean;
+  editable: boolean;
   minLength?: number;
   placeholder?: string;
 }) {
@@ -1634,7 +1985,7 @@ function FieldSection({
         </label>
       </div>
 
-      {readonly ? (
+      {!editable ? (
         <div
           className="
             p-4 rounded-xl border min-h-25 whitespace-pre-line

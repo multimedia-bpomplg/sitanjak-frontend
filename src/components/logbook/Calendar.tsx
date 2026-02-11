@@ -3,12 +3,17 @@
 import { useEffect, useState } from "react";
 
 type FilledDate = {
-  status: string;
-  approvalStatus: "menunggu" | "disetujui" | "ditolak";
+  status: "hadir" | "tidak_hadir_keterangan" | "tidak_hadir_tanpa_keterangan";
+  approvalStatus: "menunggu" | "disetujui" | "ditolak" | "revisi";
 };
 
 type Props = {
-  onSelectDate: (date: string, isFilled: boolean) => void;
+  onSelectDate: (
+    date: string,
+    isFilled: boolean,
+    approvalStatus?: "menunggu" | "disetujui" | "ditolak" | "revisi",
+  ) => void;
+
   filledDates: Record<string, FilledDate>;
 };
 
@@ -173,14 +178,21 @@ export default function Calendar({ onSelectDate, filledDates }: Props) {
 
             const isToday = date.getTime() === today.getTime();
 
+            const isRevisi = approval === "revisi";
+
             const disabled =
-              isSunday || isHoliday || (!isFilled && !isToday && date < today);
+              isSunday || isHoliday || (!isToday && !isFilled && !isRevisi);
 
             // ================= WARNA & TEXT =================
             let statusClass = "";
             let statusText = "";
 
             if (log) {
+              if (approval === "revisi") {
+                statusClass =
+                  "bg-purple-50 border-purple-400 text-purple-700 dark:bg-purple-900/30";
+                statusText = "Revisi";
+              }
               if (approval === "ditolak") {
                 statusClass =
                   "bg-red-50 border-red-400 text-red-700 dark:bg-red-900/30";
@@ -204,7 +216,7 @@ export default function Calendar({ onSelectDate, filledDates }: Props) {
               <button
                 key={idx}
                 disabled={disabled}
-                onClick={() => onSelectDate(isoDate, isFilled)}
+                onClick={() => onSelectDate(isoDate, isFilled, approval)}
                 className={`
         relative aspect-6/5 xl:aspect-5/4
         rounded-xl sm:rounded-2xl
