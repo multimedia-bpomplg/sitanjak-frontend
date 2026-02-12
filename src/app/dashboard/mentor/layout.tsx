@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 import { ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+// import "react-toastify/dist/ReactToastify.css";
 import { ConfirmProvider, useConfirm } from "@/components/ui/ConfirmProvider";
 
 type LoggedUser = {
@@ -351,37 +351,6 @@ export default function MentorLayout({
               </Link>
 
               <Link
-                href="/dashboard/mentor/ViewLaporanBulanan"
-                className={`
-                  flex items-center gap-3
-                  py-2.5 rounded-xl
-                  text-sm
-                  text-gray-700 dark:text-gray-300
-                  hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm
-                  dark:hover:bg-slate-800
-                  transition
-                  ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
-                    
-                  ${
-                    pathname.includes("ViewLaporanBulanan")
-                      ? `
-                          bg-linear-to-r
-                          from-[#FDE68A]/60
-                          to-[#FACC15]/40
-                          text-[#7F1D1D]
-                          dark:from-indigo-500/30
-                          dark:via-purple-500/25
-                          dark:to-fuchsia-500/30
-                          dark:text-indigo-200
-                          shadow-inner
-                        `
-                      : ""
-                  }`}
-              >
-                📊 {!collapsed && "Laporan Bulanan"}
-              </Link>
-
-              <Link
                 href="/dashboard/mentor/ViewLaporanAkhir"
                 className={`
                   flex items-center gap-3
@@ -410,6 +379,37 @@ export default function MentorLayout({
                   }`}
               >
                 📂 {!collapsed && "Laporan Akhir"}
+              </Link>
+
+              <Link
+                href="/dashboard/mentor/ViewLaporanBulanan"
+                className={`
+                  flex items-center gap-3
+                  py-2.5 rounded-xl
+                  text-sm
+                  text-gray-700 dark:text-gray-300
+                  hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm
+                  dark:hover:bg-slate-800
+                  transition
+                  ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
+                    
+                  ${
+                    pathname.includes("ViewLaporanBulanan")
+                      ? `
+                          bg-linear-to-r
+                          from-[#FDE68A]/60
+                          to-[#FACC15]/40
+                          text-[#7F1D1D]
+                          dark:from-indigo-500/30
+                          dark:via-purple-500/25
+                          dark:to-fuchsia-500/30
+                          dark:text-indigo-200
+                          shadow-inner
+                        `
+                      : ""
+                  }`}
+              >
+                📊 {!collapsed && "Feedback Dari Peserta"}
               </Link>
             </div>
 

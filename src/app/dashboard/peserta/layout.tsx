@@ -13,7 +13,7 @@ import {
 
 import { useRouter, usePathname } from "next/navigation";
 import { ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+// import "react-toastify/dist/ReactToastify.css";
 import { ConfirmProvider, useConfirm } from "@/components/ui/ConfirmProvider";
 
 export default function PesertaLayout({
@@ -325,37 +325,6 @@ export default function PesertaLayout({
               </Link>
 
               <Link
-                href="/dashboard/peserta/laporan-bulanan"
-                className={`
-                  flex items-center gap-3
-                  py-2.5 rounded-xl
-                  text-sm
-                  text-gray-700 dark:text-gray-300
-                  hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm
-                  dark:hover:bg-slate-800
-                  transition
-                  ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
-                  
-                  ${
-                    pathname.startsWith("/dashboard/peserta/laporan-bulanan")
-                      ? `
-                          bg-linear-to-r
-                          from-[#FDE68A]/60
-                          to-[#FACC15]/40
-                          text-[#7F1D1D]
-                          dark:from-indigo-500/30
-                          dark:via-purple-500/25
-                          dark:to-fuchsia-500/30
-                          dark:text-indigo-200
-                          shadow-inner
-                        `
-                      : ""
-                  }`}
-              >
-                🗓 {!collapsed && "Laporan Bulanan"}
-              </Link>
-
-              <Link
                 href="/dashboard/peserta/laporan-akhir"
                 className={`
                   flex items-center gap-3
@@ -384,6 +353,37 @@ export default function PesertaLayout({
                   }`}
               >
                 📄 {!collapsed && "Laporan Akhir"}
+              </Link>
+
+              <Link
+                href="/dashboard/peserta/laporan-bulanan"
+                className={`
+                  flex items-center gap-3
+                  py-2.5 rounded-xl
+                  text-sm
+                  text-gray-700 dark:text-gray-300
+                  hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm
+                  dark:hover:bg-slate-800
+                  transition
+                  ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
+                  
+                  ${
+                    pathname.startsWith("/dashboard/peserta/laporan-bulanan")
+                      ? `
+                          bg-linear-to-r
+                          from-[#FDE68A]/60
+                          to-[#FACC15]/40
+                          text-[#7F1D1D]
+                          dark:from-indigo-500/30
+                          dark:via-purple-500/25
+                          dark:to-fuchsia-500/30
+                          dark:text-indigo-200
+                          shadow-inner
+                        `
+                      : ""
+                  }`}
+              >
+                🗓 {!collapsed && "Feedback"}
               </Link>
             </div>
 

@@ -1,169 +1,109 @@
+// components/Laporan/LaporanAkhirUploadModal.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useCallback } from "react";
+import { useDropzone } from "react-dropzone";
+import { FiX, FiFile, FiCheckCircle, FiAlertCircle } from "react-icons/fi";
 import { showToast } from "@/components/ui/toastDashboard";
 
 type Props = {
-  mode: "create" | "view";
   onClose: (submitted?: boolean) => void;
 };
 
-export default function LaporanAkhirModal({ mode, onClose }: Props) {
-  const readonly = mode === "view";
-
-  const [judul, setJudul] = useState("");
-  const [ringkasan, setRingkasan] = useState("");
-  const [hasil, setHasil] = useState("");
-  const [kendala, setKendala] = useState("");
-  const [kesimpulan, setKesimpulan] = useState("");
-  const [saran, setSaran] = useState("");
-
+export default function LaporanAkhirUploadModal({ onClose }: Props) {
+  const [file, setFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [agree, setAgree] = useState(false);
-  const [approvedByMentor, setApprovedByMentor] = useState(false);
 
-  const [showConfirm, setShowConfirm] = useState(false);
+  const onDrop = useCallback((acceptedFiles: File[]) => {
+    const selectedFile = acceptedFiles[0];
 
-  /* ================= FETCH (VIEW MODE) ================= */
-  useEffect(() => {
-    if (mode !== "view") return;
-
-    const fetchDetail = async () => {
-      try {
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/laporan-akhir`,
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
-          },
-        );
-
-        // ⛔ JIKA TIDAK OK → STOP
-        if (!res.ok) return;
-
-        const data = await res.json();
-
-        setJudul(data.judul || "");
-        setRingkasan(data.ringkasan || "");
-        setHasil(data.hasil || "");
-        setKendala(data.kendala || "");
-        setKesimpulan(data.kesimpulan || "");
-        setSaran(data.saran || "");
-        setApprovedByMentor(Boolean(data.approvedByMentor));
-      } catch (err) {
-        console.error("Gagal memuat laporan akhir", err);
-      }
-    };
-
-    fetchDetail();
-  }, [mode]);
-
-  const isMin = (text: string, min: number) => text.trim().length >= min;
-
-  /* ================= VALIDASI ================= */
-  const submitDisabled =
-    readonly ||
-    !agree ||
-    !isMin(judul, 20) ||
-    !isMin(ringkasan, 50) ||
-    !isMin(hasil, 50) ||
-    !isMin(kendala, 50) ||
-    !isMin(kesimpulan, 50);
-
-  /* ================= SUBMIT ================= */
-  const handleSubmit = async () => {
-    if (readonly || submitDisabled) return;
-
-    // 1️⃣ AMBIL TOKEN SEKALI
-    const token = localStorage.getItem("token");
-
-    // 2️⃣ CEK TOKEN SEBELUM REQUEST
-    if (!token) {
-      showToast.error("Sesi login habis. Silakan login ulang.");
+    // Validasi format
+    if (selectedFile.type !== "application/pdf") {
+      showToast.error("Hanya file PDF yang diperbolehkan");
       return;
     }
 
-    const toastId = showToast.loading("Menyimpan laporan akhir...");
+    // Validasi ukuran (10MB)
+    if (selectedFile.size > 10 * 1024 * 1024) {
+      showToast.error("Ukuran file maksimal 10MB");
+      return;
+    }
+
+    setFile(selectedFile);
+  }, []);
+
+  const { getRootProps, getInputProps, isDragActive, isDragReject } =
+    useDropzone({
+      onDrop,
+      accept: {
+        "application/pdf": [".pdf"],
+      },
+      maxFiles: 1,
+      maxSize: 10 * 1024 * 1024,
+    });
+
+  /* ================= UPLOAD ================= */
+  const handleUpload = async () => {
+    if (!file || !agree) return;
+
+    setUploading(true);
+    const toastId = showToast.loading("Mengupload laporan akhir...");
 
     try {
+      const token = localStorage.getItem("token");
+      const formData = new FormData();
+      formData.append("file", file);
+
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/laporan-akhir`,
+        `${process.env.NEXT_PUBLIC_API_URL}/laporan-akhir/upload`,
         {
           method: "POST",
           headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`, // 3️⃣ PAKAI TOKEN DI SINI
+            Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({
-            judul,
-            ringkasan,
-            hasil,
-            kendala,
-            kesimpulan,
-            saran,
-          }),
+          body: formData,
         },
       );
 
       const data = await res.json();
 
-      // ✨ TANGANI TOKEN INVALID DENGAN JELAS
       if (!res.ok) {
-        if (res.status === 401) {
-          throw new Error(
-            "Sesi login Anda telah berakhir. Silakan login ulang.",
-          );
-        }
-
-        throw new Error(data?.message || "Gagal menyimpan laporan akhir");
+        throw new Error(data.message || "Gagal mengupload laporan");
       }
 
-      // ✅ SUCCESS
-      showToast.updateSuccess(toastId, "🎉 Laporan akhir berhasil dikirim.");
-
-      setShowConfirm(false);
+      showToast.updateSuccess(toastId, "✅ Laporan akhir berhasil diupload!");
 
       setTimeout(() => {
         onClose(true);
-      }, 1200);
-    } catch (err: any) {
-      // ❌ ERROR
+      }, 1500);
+    } catch (error: any) {
       showToast.updateError(
         toastId,
-        err.message || "Terjadi kesalahan saat menyimpan laporan",
+        error.message || "Terjadi kesalahan saat mengupload",
       );
+    } finally {
+      setUploading(false);
     }
   };
 
-  const handleDownloadPdf = async () => {
-    try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/laporan-akhir/pdf`,
-      );
+  /* ================= REMOVE FILE ================= */
+  const removeFile = () => {
+    setFile(null);
+  };
 
-      if (!res.ok) throw new Error();
-
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "Laporan_Akhir_Magang.pdf";
-      document.body.appendChild(a);
-      a.click();
-
-      a.remove();
-      window.URL.revokeObjectURL(url);
-    } catch {
-      alert("❌ Gagal mengunduh PDF laporan akhir");
-    }
+  /* ================= FORMAT FILE SIZE ================= */
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return bytes + " B";
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+    return (bytes / (1024 * 1024)).toFixed(1) + " MB";
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-3 sm:p-6">
       <div
         className="
-          w-full max-w-3xl
+          w-full max-w-2xl
           rounded-3xl
           bg-white dark:bg-slate-900
           shadow-2xl
@@ -180,114 +120,105 @@ export default function LaporanAkhirModal({ mode, onClose }: Props) {
             bg-linear-to-r
             from-[#FCA5A5] via-[#FDE68A] to-[#FFF7ED]
             dark:from-indigo-800 dark:via-indigo-700 dark:to-indigo-900
-            text-slate-900 dark:text-white
+            flex items-start justify-between
           "
         >
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h2 className="text-lg sm:text-xl font-extrabold text-slate-800 dark:text-white">
-                📘 Laporan Akhir Magang
-              </h2>
-              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-                Dokumen akhir – hanya dapat diisi satu kali
-              </p>
-            </div>
-
-            <span className="px-3 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-700">
-              FINAL
-            </span>
+          <div>
+            <h2 className="text-lg sm:text-xl font-extrabold text-slate-800 dark:text-white flex items-center gap-2">
+              📤 Upload Laporan Akhir
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+              Upload file PDF laporan akhir magang Anda
+            </p>
           </div>
+
+          <button
+            onClick={() => onClose()}
+            className="p-2 text-red-600 hover:bg-red-100 dark:text-red-400 dark:hover:bg-red-900/30 rounded-lg transition"
+          >
+            <FiX className="text-xl" />
+          </button>
         </div>
-
-        {/* INFO FINAL */}
-        {mode === "view" && (
-          <div className="mx-8 mt-4 rounded-xl bg-yellow-50 border border-yellow-300 p-4 text-sm text-yellow-700">
-            🔒 <b>Laporan akhir bersifat final</b> dan tidak dapat diubah
-            kembali.
-          </div>
-        )}
 
         {/* BODY */}
         <div className="flex-1 overflow-y-auto px-5 sm:px-6 py-6 space-y-6">
-          <Field label="Judul Laporan Akhir">
-            {readonly ? (
-              <TextBlock value={judul} />
-            ) : (
-              <Input
-                value={judul}
-                onChange={setJudul}
-                disabled={readonly}
-                min={20}
-              />
-            )}
-          </Field>
+          {/* INFO FINAL */}
+          <div className="rounded-xl bg-amber-50 border border-amber-300 p-4 text-sm text-amber-700 dark:bg-amber-900/20 dark:border-amber-700 dark:text-amber-200">
+            <div className="flex items-start gap-3">
+              <FiAlertCircle className="text-xl shrink-0 mt-0.5" />
+              <div>
+                <p className="font-bold">Perhatian!</p>
+                <p className="text-xs mt-1">
+                  Laporan akhir hanya dapat diupload <b>satu kali</b> dan
+                  bersifat final. Pastikan file PDF sudah benar dan lengkap
+                  sebelum mengupload.
+                </p>
+              </div>
+            </div>
+          </div>
 
-          <Field label="Ringkasan Kegiatan Magang">
-            {readonly ? (
-              <TextBlock value={ringkasan} />
-            ) : (
-              <Textarea
-                value={ringkasan}
-                onChange={setRingkasan}
-                disabled={readonly}
-                min={50}
-              />
-            )}
-          </Field>
+          {/* DROPZONE */}
+          {!file ? (
+            <div
+              {...getRootProps()}
+              className={`
+                border-2 border-dashed rounded-2xl p-8
+                flex flex-col items-center justify-center
+                text-center cursor-pointer
+                transition-all
+                min-h-[200px]
+                ${
+                  isDragActive
+                    ? "border-emerald-400 bg-emerald-50 dark:bg-emerald-900/20"
+                    : isDragReject
+                      ? "border-red-400 bg-red-50 dark:bg-red-900/20"
+                      : "border-slate-300 dark:border-slate-700 hover:border-indigo-400 dark:hover:border-indigo-600"
+                }
+              `}
+            >
+              <input {...getInputProps()} />
 
-          <Field label="Hasil & Pencapaian">
-            {readonly ? (
-              <TextBlock value={hasil} />
-            ) : (
-              <Textarea
-                value={hasil}
-                onChange={setHasil}
-                disabled={readonly}
-                min={50}
-              />
-            )}
-          </Field>
+              <div className="text-5xl mb-4">{isDragActive ? "📂" : "📎"}</div>
 
-          <Field label="Kendala Selama Magang">
-            {readonly ? (
-              <TextBlock value={kendala} />
-            ) : (
-              <Textarea
-                value={kendala}
-                onChange={setKendala}
-                disabled={readonly}
-                min={50}
-              />
-            )}
-          </Field>
+              <p className="text-base font-semibold text-slate-700 dark:text-slate-200">
+                {isDragActive
+                  ? "Lepaskan file di sini..."
+                  : "Klik atau drag & drop file PDF"}
+              </p>
 
-          <Field label="Kesimpulan">
-            {readonly ? (
-              <TextBlock value={kesimpulan} />
-            ) : (
-              <Textarea
-                value={kesimpulan}
-                onChange={setKesimpulan}
-                disabled={readonly}
-                min={50}
-              />
-            )}
-          </Field>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+                Hanya file PDF • Maksimal 10MB
+              </p>
+            </div>
+          ) : (
+            /* FILE PREVIEW */
+            <div className="rounded-2xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 p-5">
+              <div className="flex items-start gap-4">
+                <div className="p-3 bg-emerald-100 dark:bg-emerald-800 rounded-xl">
+                  <FiFile className="text-2xl text-emerald-600 dark:text-emerald-300" />
+                </div>
 
-          <Field label="Saran (Opsional)">
-            {readonly ? (
-              <TextBlock value={saran} />
-            ) : (
-              <Textarea
-                value={saran}
-                onChange={setSaran}
-                disabled={readonly}
-                optional
-              />
-            )}
-          </Field>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-slate-800 dark:text-white truncate">
+                    {file.name}
+                  </p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    {formatFileSize(file.size)} • PDF
+                  </p>
+                </div>
 
-          {mode === "create" && (
+                <button
+                  onClick={removeFile}
+                  className="p-2 text-red-600 hover:bg-red-100 dark:text-red-400 dark:hover:bg-red-900/30 rounded-lg transition"
+                >
+                  <FiX />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* AGREEMENT */}
+          {file && (
             <button
               type="button"
               onClick={() => setAgree(!agree)}
@@ -313,12 +244,13 @@ export default function LaporanAkhirModal({ mode, onClose }: Props) {
                   }
                 `}
               >
-                {agree && "✓"}
+                {agree && <FiCheckCircle className="w-4 h-4" />}
               </span>
 
               <span className="text-left text-slate-700 dark:text-slate-200">
-                Saya menyatakan laporan akhir ini dibuat dengan <b>jujur</b>,
-                <b> benar</b>, dan saya bertanggung jawab penuh atas isinya.
+                Saya menyatakan bahwa laporan akhir yang diupload adalah{" "}
+                <b>benar</b>,<b> asli</b>, dan saya bertanggung jawab penuh atas
+                isinya.
               </span>
             </button>
           )}
@@ -331,362 +263,54 @@ export default function LaporanAkhirModal({ mode, onClose }: Props) {
             border-t border-slate-200 dark:border-slate-800
             bg-slate-50 dark:bg-slate-900
             flex flex-col-reverse sm:flex-row
-            sm:items-center sm:justify-between
+            sm:items-center sm:justify-end
             gap-3
           "
         >
-          {/* KIRI: DOWNLOAD PDF
-          {mode === "view" && approvedByMentor && (
-            <button
-              onClick={handleDownloadPdf}
-              className="
-                inline-flex items-center justify-center gap-2
-                px-5 py-2.5
-                rounded-full
-                text-sm font-semibold
-                text-emerald-700 dark:text-emerald-300
-                border border-emerald-400 dark:border-emerald-500
-                bg-transparent
-                hover:bg-emerald-50 dark:hover:bg-emerald-900/30
-                shadow-sm hover:shadow-md
-                transition
-                focus:outline-none focus:ring-2 focus:ring-emerald-400
-              "
-            >
-              📄 Download PDF
-            </button>
-          )} */}
-
-          {/* KANAN: AKSI */}
-          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-            <button
-              onClick={() => onClose()}
-              className="
-                w-full sm:w-auto
-                px-5 py-2.5
-                rounded-full
-                text-sm font-semibold
-                text-red-600 dark:text-red-400
-                border border-red-400 dark:border-red-500
-                bg-transparent
-                hover:bg-red-50 dark:hover:bg-red-900/30
-                shadow-sm hover:shadow-md
-                transition
-                focus:outline-none focus:ring-2 focus:ring-red-400
-              "
-            >
-              Tutup
-            </button>
-
-            {mode === "create" && (
-              <button
-                disabled={submitDisabled}
-                onClick={() => setShowConfirm(true)}
-                className={`
-                  w-full sm:w-auto
-                  rounded-full px-6 py-2.5
-                  text-sm font-semibold text-white
-                  transition-all
-                  focus:outline-none focus:ring-2
-                  ${
-                    submitDisabled
-                      ? "bg-slate-400 cursor-not-allowed"
-                      : "bg-emerald-600 hover:bg-emerald-700 shadow-md hover:shadow-lg focus:ring-emerald-400"
-                  }
-                `}
-              >
-                🚀 Kirim Laporan Akhir
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* KONFIRMASI */}
-      {showConfirm && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-          <div
+          <button
+            onClick={() => onClose()}
             className="
-              w-full max-w-md
-              rounded-3xl
-              bg-white dark:bg-slate-900
-              shadow-[0_25px_80px_-20px_rgba(0,0,0,0.45)]
-              border border-slate-200 dark:border-slate-800
-              overflow-hidden
-              animate-scaleIn
+              w-full sm:w-auto
+              px-5 py-2.5
+              rounded-full
+              text-sm font-semibold
+              text-red-600 dark:text-red-400
+              border border-red-400 dark:border-red-500
+              bg-transparent
+              hover:bg-red-50 dark:hover:bg-red-900/30
+              transition
             "
           >
-            {/* HEADER */}
-            <div
-              className="
-                px-6 py-5
-                bg-linear-to-r from-indigo-50 to-blue-50
-                dark:from-slate-800 dark:to-slate-900
-                border-b border-slate-200 dark:border-slate-800
-                flex items-center gap-3
-              "
-            >
-              <div
-                className="
-                  h-10 w-10
-                  rounded-full
-                  flex items-center justify-center
-                  bg-indigo-100 dark:bg-indigo-900/40
-                  text-indigo-600 dark:text-indigo-300
-                  text-lg
-                "
-              >
-                ⚠️
-              </div>
+            Batal
+          </button>
 
-              <div>
-                <h3 className="text-base sm:text-lg font-extrabold text-slate-800 dark:text-white">
-                  Konfirmasi Laporan Akhir
-                </h3>
-                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-                  Pastikan laporan sudah benar
-                </p>
-              </div>
-            </div>
-
-            {/* BODY */}
-            <div className="px-6 py-6 space-y-4">
-              <p className="text-sm sm:text-base text-slate-700 dark:text-slate-200 leading-relaxed">
-                Apakah Anda yakin ingin mengirim laporan akhir ini?
-              </p>
-
-              <div
-                className="
-                  rounded-xl
-                  border border-amber-300
-                  bg-amber-50 dark:bg-amber-900/20
-                  px-4 py-3
-                  text-sm text-amber-800 dark:text-amber-200
-                "
-              >
-                ⚠️ <b>Perhatian:</b> Setelah dikirim, laporan
-                <b> tidak dapat diubah kembali</b>.
-              </div>
-            </div>
-
-            <div
-              className="
-                px-6 py-4
-                bg-slate-50 dark:bg-slate-900
-                border-t border-slate-200 dark:border-slate-800
-                flex flex-col-reverse sm:flex-row
-                gap-3
-                sm:justify-end
-              "
-            >
-              <button
-                onClick={() => setShowConfirm(false)}
-                className="
-                  w-full sm:w-auto
-                  px-5 py-2.5
-                  rounded-full
-                  text-sm font-semibold
-                  text-slate-600 dark:text-slate-300
-                  border border-slate-300 dark:border-slate-700
-                  hover:bg-slate-100 dark:hover:bg-slate-800
-                  transition
-                "
-              >
-                Batal
-              </button>
-
-              <button
-                onClick={handleSubmit}
-                className="
-                  w-full sm:w-auto
-                  px-6 py-2.5
-                  rounded-full
-                  text-sm font-semibold text-white
-                  bg-emerald-600 hover:bg-emerald-700
-                  shadow-md hover:shadow-lg
-                  transition
-                "
-              >
-                ✅ Iya, Kirim Final
-              </button>
-            </div>
-          </div>
+          <button
+            onClick={handleUpload}
+            disabled={!file || !agree || uploading}
+            className={`
+              w-full sm:w-auto
+              px-6 py-2.5
+              rounded-full
+              text-sm font-semibold text-white
+              transition-all
+              ${
+                !file || !agree || uploading
+                  ? "bg-slate-400 cursor-not-allowed"
+                  : "bg-emerald-600 hover:bg-emerald-700 shadow-md hover:shadow-lg"
+              }
+            `}
+          >
+            {uploading ? (
+              <span className="flex items-center gap-2">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                Mengupload...
+              </span>
+            ) : (
+              "🚀 Upload Laporan Akhir"
+            )}
+          </button>
         </div>
-      )}
-    </div>
-  );
-}
-
-/* ================= REUSABLE ================= */
-function Field({ label, children }: any) {
-  return (
-    <div>
-      <label
-        className="
-          text-[15px] sm:text-base
-          font-extrabold
-          text-slate-800 dark:text-slate-100
-          mb-2 block
-        "
-      >
-        {label}
-      </label>
-      {children}
-    </div>
-  );
-}
-
-function Input({
-  value,
-  onChange,
-  disabled,
-  min = 20,
-  type = "text",
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  disabled?: boolean;
-  min?: number;
-  type?: string;
-}) {
-  const length = value.trim().length;
-  const isError = length > 0 && length < min;
-  const isValid = length >= min;
-
-  return (
-    <div className="space-y-1">
-      <input
-        type={type}
-        value={value}
-        disabled={disabled}
-        readOnly={disabled}
-        onChange={(e) => onChange(e.target.value)}
-        className={`
-          w-full rounded-2xl px-4 py-3
-          text-sm sm:text-base
-          bg-white dark:bg-slate-800
-          border transition
-          focus:outline-none focus:ring-2
-          ${
-            isError
-              ? "border-red-400 focus:ring-red-400"
-              : isValid
-                ? "border-emerald-400 focus:ring-emerald-400"
-                : "border-slate-300 dark:border-slate-700 focus:ring-indigo-500"
-          }
-        `}
-      />
-
-      {/* INFO BAWAH */}
-      <div className="flex justify-between text-xs">
-        {isError && (
-          <span className="text-red-500">Minimal {min} karakter</span>
-        )}
-
-        {isValid && (
-          <span className="text-emerald-600 dark:text-emerald-400">
-            ✓ Sudah memenuhi
-          </span>
-        )}
-
-        <span className="text-slate-400">
-          {length}/{min}
-        </span>
       </div>
-    </div>
-  );
-}
-
-function Textarea({
-  value,
-  onChange,
-  disabled,
-  min = 50,
-  optional = false,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  disabled?: boolean;
-  min?: number;
-  optional?: boolean;
-}) {
-  const length = value.trim().length;
-
-  const isError = !optional && length > 0 && length < min;
-
-  const isValid = !optional && length >= min;
-
-  return (
-    <div className="space-y-1">
-      <textarea
-        value={value}
-        disabled={disabled}
-        rows={4}
-        onChange={(e) => onChange(e.target.value)}
-        className={`
-          w-full resize-y max-h-[40vh]
-          rounded-xl px-3 py-2
-          text-sm sm:text-base
-          bg-white dark:bg-slate-800
-          border transition
-          focus:outline-none focus:ring-2
-          ${
-            optional
-              ? "border-slate-300 dark:border-slate-700 focus:ring-indigo-500"
-              : isError
-                ? "border-red-400 focus:ring-red-400"
-                : isValid
-                  ? "border-emerald-400 focus:ring-emerald-400"
-                  : "border-slate-300 dark:border-slate-700 focus:ring-indigo-500"
-          }
-        `}
-      />
-
-      {/* INFO BAWAH */}
-      {!optional && (
-        <div className="flex justify-between text-xs">
-          {isError && (
-            <span className="text-red-500">Minimal {min} karakter</span>
-          )}
-          {isValid && (
-            <span className="text-emerald-600 dark:text-emerald-400">
-              ✓ Sudah memenuhi
-            </span>
-          )}
-          <span className="text-slate-400">
-            {length}/{min}
-          </span>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function TextBlock({ value }: { value: string }) {
-  return (
-    <div
-      className="
-        w-full
-        rounded-xl
-        border
-        px-4 py-3
-        text-sm sm:text-base
-        leading-relaxed
-        whitespace-pre-line
-        text-justify
-
-        bg-white
-        border-slate-200
-        text-slate-800
-
-        dark:bg-slate-800/80
-        dark:border-slate-700
-        dark:text-slate-200
-        
-        shadow-sm
-      "
-    >
-      {value || <span className="text-slate-400">-</span>}
     </div>
   );
 }
