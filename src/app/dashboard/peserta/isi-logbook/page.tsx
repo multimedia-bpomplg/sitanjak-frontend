@@ -171,7 +171,7 @@ export default function IsiLogbookPage() {
                   ? "bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed"
                   : `
                     bg-linear-to-r
-                    from-[#F59E0B] via-[#F97316] to-[#7F1D1D]
+                    from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
                     dark:from-indigo-600 dark:via-indigo-500 dark:to-violet-500
                     text-white
                     shadow-lg

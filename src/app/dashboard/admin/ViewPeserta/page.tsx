@@ -261,8 +261,7 @@ export default function ViewPesertaAdmin() {
                       </div>
                     </td>
                     <td className="py-4 px-6 text-center">
-                      <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 dark:bg-indigo-500/20 dark:text-indigo-200">
-                        <HiBriefcase className="w-3 h-3" />
+                      <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 dark:bg-indigo-500/20 dark:text-indigo-200">
                         {p.posisi}
                       </span>
                     </td>

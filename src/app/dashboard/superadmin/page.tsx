@@ -459,7 +459,7 @@ export default function OversistemDashboard() {
     });
   };
 
-  const getChartData = (): ChartData<"bar" | "line"> => {
+  const getChartData = (): ChartData<"bar"> => {
     // Tentukan data mana yang akan digunakan
     const useDetailedData =
       (activeTab === "logbook" || activeTab === "pendaftaran") &&
@@ -886,7 +886,30 @@ export default function OversistemDashboard() {
   };
 
   const lineChartOptions: ChartOptions<"line"> = {
-    ...barChartOptions,
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: "top",
+      },
+      title: {
+        display: true,
+        text:
+          dataStatus === "empty"
+            ? "Tidak Ada Data"
+            : `Statistik ${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} - ${selectedYear}`,
+        font: {
+          size: 16,
+          weight: "bold",
+        },
+      },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: { precision: 0 },
+      },
+    },
     elements: {
       line: {
         tension: 0.4,
@@ -932,7 +955,27 @@ export default function OversistemDashboard() {
   };
 
   const doughnutChartOptions: ChartOptions<"doughnut"> = {
-    ...pieChartOptions,
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: "right",
+      },
+      tooltip: {
+        callbacks: {
+          label: (context) => {
+            const label = context.label || "";
+            const value = context.parsed;
+            const total = context.dataset.data.reduce(
+              (a: number, b: number) => a + b,
+              0,
+            );
+            const percentage = Math.round((value / total) * 100);
+            return `${label}: ${value} (${percentage}%)`;
+          },
+        },
+      },
+    },
   };
 
   /* ---------------------------
@@ -1548,7 +1591,10 @@ export default function OversistemDashboard() {
             ) : chartType === "bar" ? (
               <Bar data={getChartData()} options={barChartOptions} />
             ) : chartType === "line" ? (
-              <Line data={getChartData()} options={lineChartOptions} />
+              <Line
+                data={getChartData() as ChartData<"line">}
+                options={lineChartOptions}
+              />
             ) : chartType === "pie" ? (
               <Pie data={getPosisiChartData()} options={pieChartOptions} />
             ) : (

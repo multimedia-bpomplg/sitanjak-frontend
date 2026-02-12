@@ -355,7 +355,7 @@ export default function ViewPesertaSuperadmin() {
                         className="
                           inline-flex items-center gap-2
                           px-3 py-1.5 rounded-full
-                          text-xs font-medium
+                          text-xs font-semibold
                           bg-blue-50 text-blue-700
                           dark:bg-indigo-500/20 dark:text-indigo-200
                         "
