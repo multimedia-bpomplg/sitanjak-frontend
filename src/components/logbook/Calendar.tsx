@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 type FilledDate = {
+  _id: string; // 🔥 TAMBAH ID
   status: "hadir" | "tidak_hadir_keterangan" | "tidak_hadir_tanpa_keterangan";
   approvalStatus: "menunggu" | "disetujui" | "ditolak" | "revisi";
 };

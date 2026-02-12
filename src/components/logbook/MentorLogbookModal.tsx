@@ -13,7 +13,6 @@ import {
   FiUserX,
   FiEdit,
   FiEye,
-  FiUpload,
 } from "react-icons/fi";
 
 type Props = {
@@ -40,10 +39,8 @@ export default function MentorLogbookModal({
   const [mentorNote, setMentorNote] = useState("");
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [pdfFile, setPdfFile] = useState<string | null>(null);
-
-  // 🔥 STATE BARU
   const [approvalStatus, setApprovalStatus] = useState<
-    "menunggu" | "disetujui" | "ditolak"
+    "menunggu" | "disetujui" | "ditolak" | "revisi"
   >("menunggu");
   const [isFinalized, setIsFinalized] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -54,26 +51,21 @@ export default function MentorLogbookModal({
     fetchLogbook();
   }, [date, pesertaId]);
 
-  // 🔥 FUNGSI UNTUK MENDAPATKAN URL GAMBAR YANG BENAR
   const getImageUrl = (path: string) => {
     if (!path) return "";
 
-    // Jika sudah full URL
     if (path.startsWith("http://") || path.startsWith("https://")) {
       return path;
     }
 
-    // Jika path dimulai dengan uploads/
     if (path.startsWith("uploads/")) {
       const baseUrl =
         process.env.NEXT_PUBLIC_API_URL ||
         process.env.NEXT_PUBLIC_BASE_URL ||
         "";
-      // Hapus slash ganda jika ada
       return `${baseUrl.replace(/\/$/, "")}/${path}`;
     }
 
-    // Jika hanya nama file, tambahkan base URL
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || window.location.origin;
     return `${baseUrl}/${path}`;
   };
@@ -112,39 +104,25 @@ export default function MentorLogbookModal({
       setApprovalStatus(data.approvalStatus || "menunggu");
       setMentorNote(data.mentorNote || "");
       setApprovedAt(data.approvedAt || "");
-
-      // Debug: Lihat data yang diterima
-      console.log("Logbook data:", {
-        files: data.files,
-        fileCount: data.files?.length,
-        baseUrl: process.env.NEXT_PUBLIC_BASE_URL,
-        apiUrl: process.env.NEXT_PUBLIC_API_URL,
-      });
-
-      // 🔥 CEK APAKAH SUDAH FINAL
       setIsFinalized(data.isFinalized || false);
-    } catch (err) {
-      console.error("Error fetching logbook:", err);
+    } catch {
       showToast.error("Gagal memuat logbook");
     } finally {
       setIsLoading(false);
     }
   };
 
-  // 🔥 FUNGSI APPROVE/DENY DENGAN VALIDASI
   const handleApprove = async (approved: boolean) => {
     if (!logbookId) {
       showToast.error("Logbook tidak ditemukan");
       return;
     }
 
-    // 🔥 CEK JIKA SUDAH FINAL
     if (isFinalized) {
       showToast.error("Logbook sudah diproses dan tidak dapat diubah");
       return;
     }
 
-    // 🔥 VALIDASI: HARUS ADA CATATAN (untuk approve ATAU reject)
     if (!mentorNote.trim()) {
       showToast.error("Harap berikan catatan terlebih dahulu");
       return;
@@ -175,7 +153,6 @@ export default function MentorLogbookModal({
         throw new Error(data.message || "Gagal memproses logbook");
       }
 
-      // 🔥 UPDATE STATE SETELAH BERHASIL
       setIsFinalized(true);
       setApprovalStatus(approved ? "disetujui" : "ditolak");
       setApprovedByMentor(approved);
@@ -186,17 +163,11 @@ export default function MentorLogbookModal({
         approved ? "Logbook berhasil disetujui" : "Logbook berhasil ditolak",
       );
 
-      // 🔥 tutup modal SETELAH toast selesai
       setTimeout(() => {
         try {
           onClose();
         } catch {}
       }, 1200);
-
-      // Auto close setelah 2 detik
-      setTimeout(() => {
-        onClose();
-      }, 2000);
     } catch (err: any) {
       showToast.updateError(toastId, err.message || "Terjadi kesalahan");
     } finally {
@@ -205,18 +176,22 @@ export default function MentorLogbookModal({
   };
 
   const handleRevision = async () => {
-    if (!logbookId) return;
-
-    if (!mentorNote.trim()) {
-      showToast.error("Catatan wajib untuk revisi");
+    if (!logbookId) {
+      showToast.error("Logbook tidak ditemukan");
       return;
     }
 
-    const toastId = showToast.loading("Mengirim revisi...");
+    if (!mentorNote.trim()) {
+      showToast.error("Catatan revisi wajib diisi");
+      return;
+    }
+
+    setIsSubmitting(true);
+    const toastId = showToast.loading("Mengirim permintaan revisi...");
 
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/logbook/mentor/revisi/${logbookId}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/logbook/mentor/request-revision/${logbookId}`,
         {
           method: "PUT",
           headers: {
@@ -224,18 +199,55 @@ export default function MentorLogbookModal({
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
           body: JSON.stringify({
-            mentorNote: mentorNote.trim(),
+            revisionNote: mentorNote.trim(),
           }),
         },
       );
 
-      if (!res.ok) throw new Error("Gagal revisi");
+      const data = await res.json();
 
-      showToast.updateSuccess(toastId, "Dikirim untuk revisi");
+      if (!res.ok) {
+        throw new Error(data.message || "Gagal mengirim revisi");
+      }
 
-      onClose();
+      showToast.updateSuccess(toastId, "Revisi berhasil dikirim");
+
+      setApprovalStatus("revisi");
+      setIsFinalized(false);
+
+      setTimeout(() => {
+        onClose();
+      }, 1200);
     } catch (err: any) {
-      showToast.updateError(toastId, err.message);
+      showToast.updateError(toastId, err.message || "Terjadi kesalahan");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    if (!dateString) return "";
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString("id-ID", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch {
+      return dateString;
+    }
+  };
+
+  const formatSimpleDate = (dateString: string) => {
+    if (!dateString) return "";
+    try {
+      return new Date(dateString).toLocaleDateString("id-ID");
+    } catch {
+      return dateString;
     }
   };
 
@@ -257,17 +269,12 @@ export default function MentorLogbookModal({
             p-8
             text-center
             shadow-2xl
-
-            /* Light */
             bg-linear-to-br from-[#FFFDF8] via-[#FFF1E8] to-[#FEF3C7]
             border border-[#FCA5A5]/40
-
-            /* Dark */
             dark:bg-linear-to-br dark:from-indigo-950 dark:via-indigo-900 dark:to-indigo-800
             dark:border-indigo-500/30
           "
         >
-          {/* glow */}
           <div
             className="
               pointer-events-none absolute inset-0 rounded-3xl
@@ -277,7 +284,6 @@ export default function MentorLogbookModal({
             "
           />
 
-          {/* spinner */}
           <div className="relative">
             <div
               className="
@@ -292,7 +298,6 @@ export default function MentorLogbookModal({
             />
           </div>
 
-          {/* text */}
           <p className="relative mt-5 text-sm font-semibold text-[#7F1D1D] dark:text-indigo-300">
             Memuat logbook...
           </p>
@@ -300,34 +305,6 @@ export default function MentorLogbookModal({
       </div>
     );
   }
-
-  // 🔥 FUNGSI UNTUK FORMAT TANGGAL
-  const formatDate = (dateString: string) => {
-    if (!dateString) return "";
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString("id-ID", {
-        weekday: "long",
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-    } catch (error) {
-      return dateString;
-    }
-  };
-
-  // 🔥 FORMAT TANGGAL SEDERHANA
-  const formatSimpleDate = (dateString: string) => {
-    if (!dateString) return "";
-    try {
-      return new Date(dateString).toLocaleDateString("id-ID");
-    } catch (error) {
-      return dateString;
-    }
-  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-3 sm:p-6">
@@ -342,7 +319,6 @@ export default function MentorLogbookModal({
           overflow-hidden
         "
       >
-        {/* HEADER */}
         <div
           className="
             px-5 sm:px-6 py-4
@@ -377,18 +353,18 @@ export default function MentorLogbookModal({
           </div>
         </div>
 
-        {/* BODY */}
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
-          {/* 🔥 STATUS APPROVAL */}
           <div
             className={`
               rounded-xl border px-5 py-4
               ${
                 approvalStatus === "disetujui"
-                  ? "border-emerald-300 bg-emerald-50 text-emerald-800"
+                  ? "border-emerald-300 bg-emerald-50 text-emerald-800 dark:bg-emerald-900/30 dark:border-emerald-600 dark:text-emerald-300"
                   : approvalStatus === "ditolak"
-                    ? "border-red-300 bg-red-50 text-red-800"
-                    : "border-amber-300 bg-amber-50 text-amber-800"
+                    ? "border-red-300 bg-red-50 text-red-800 dark:bg-red-900/30 dark:border-red-600 dark:text-red-300"
+                    : approvalStatus === "revisi"
+                      ? "border-purple-300 bg-purple-50 text-purple-800 dark:bg-purple-900/30 dark:border-purple-600 dark:text-purple-300"
+                      : "border-amber-300 bg-amber-50 text-amber-800 dark:bg-amber-900/30 dark:border-amber-600 dark:text-amber-300"
               }
             `}
           >
@@ -398,18 +374,24 @@ export default function MentorLogbookModal({
                   <FiCheck />
                 ) : approvalStatus === "ditolak" ? (
                   <FiX />
+                ) : approvalStatus === "revisi" ? (
+                  <FiEdit />
                 ) : (
                   <FiClock />
                 )}
               </span>
+
               <div className="flex-1">
                 <p className="font-semibold">
                   {approvalStatus === "disetujui"
                     ? "Logbook Disetujui"
                     : approvalStatus === "ditolak"
                       ? "Logbook Ditolak"
-                      : "Menunggu Persetujuan"}
+                      : approvalStatus === "revisi"
+                        ? "Menunggu Revisi Peserta"
+                        : "Menunggu Persetujuan"}
                 </p>
+
                 {approvedAt && approvalStatus !== "menunggu" && (
                   <p className="text-sm mt-1">
                     Diproses pada: {formatDate(approvedAt)}
@@ -419,7 +401,6 @@ export default function MentorLogbookModal({
             </div>
           </div>
 
-          {/* 🔥 ALERT JIKA SUDAH FINAL */}
           {isFinalized && (
             <div
               className="
@@ -440,9 +421,7 @@ export default function MentorLogbookModal({
             </div>
           )}
 
-          {/* KONTEN LOGBOOK */}
           <div className="space-y-6">
-            {/* Status Kehadiran */}
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <FiUserCheck className="text-slate-500 dark:text-white" />
@@ -456,7 +435,6 @@ export default function MentorLogbookModal({
                   px-4 py-2.5 rounded-xl border
                   text-sm font-semibold
                   transition
-
                   ${
                     status === "hadir"
                       ? "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-300 dark:border-emerald-700/40"
@@ -484,28 +462,24 @@ export default function MentorLogbookModal({
 
             {status === "hadir" && (
               <>
-                {/* Uraian Aktivitas */}
                 <FieldSection
                   icon={<FiFileText />}
                   label="Uraian Aktivitas"
                   value={judul}
                 />
 
-                {/* Pembelajaran */}
                 <FieldSection
                   icon={<FiFileText />}
                   label="Pembelajaran"
                   value={pengalaman}
                 />
 
-                {/* Kendala */}
                 <FieldSection
                   icon={<FiFileText />}
                   label="Kendala"
                   value={kendala}
                 />
 
-                {/* 🔥 PERBAIKAN: DOKUMENTASI GAMBAR */}
                 {files.length > 0 && (
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
@@ -517,10 +491,6 @@ export default function MentorLogbookModal({
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                       {files.map((f, i) => {
                         const imageUrl = getImageUrl(f);
-                        console.log(`Image ${i}:`, {
-                          original: f,
-                          url: imageUrl,
-                        });
 
                         return (
                           <div
@@ -533,7 +503,6 @@ export default function MentorLogbookModal({
                               className="w-full h-40 object-cover rounded-lg"
                               alt={`Dokumentasi ${i + 1}`}
                               onError={(e) => {
-                                console.error(`Gagal memuat gambar ${i}:`, f);
                                 e.currentTarget.src = `https://via.placeholder.com/300x200?text=Gambar+Tidak+Tersedia`;
                               }}
                             />
@@ -550,7 +519,6 @@ export default function MentorLogbookModal({
                   </div>
                 )}
 
-                {/* Jika tidak ada gambar */}
                 {files.length === 0 && status === "hadir" && (
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
@@ -571,7 +539,7 @@ export default function MentorLogbookModal({
                     </div>
                   </div>
                 )}
-                {/* PDF */}
+
                 {pdfFile && (
                   <div className="mt-4 p-3 border rounded-xl bg-slate-50">
                     <div className="flex items-center gap-2">
@@ -593,14 +561,12 @@ export default function MentorLogbookModal({
 
             {status === "tidak_hadir_keterangan" && (
               <>
-                {/* Alasan */}
                 <FieldSection
                   icon={<FiFileText />}
                   label="Alasan Tidak Hadir"
                   value={keterangan}
                 />
 
-                {/* Bukti Foto */}
                 {files.length > 0 && (
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
@@ -622,6 +588,9 @@ export default function MentorLogbookModal({
                               src={imageUrl}
                               className="w-full h-40 object-cover rounded-lg"
                               alt={`Bukti ${i + 1}`}
+                              onError={(e) => {
+                                e.currentTarget.src = `https://via.placeholder.com/300x200?text=Gambar+Tidak+Tersedia`;
+                              }}
                             />
                           </div>
                         );
@@ -630,12 +599,10 @@ export default function MentorLogbookModal({
                   </div>
                 )}
 
-                {/* Jika tidak ada foto */}
                 {files.length === 0 && (
                   <p className="text-sm text-slate-400">Tidak ada foto bukti</p>
                 )}
 
-                {/* PDF Bukti */}
                 {pdfFile && (
                   <div className="mt-4 p-3 border rounded-xl">
                     <div className="flex items-center gap-2 mb-4">
@@ -657,7 +624,6 @@ export default function MentorLogbookModal({
                         group
                       "
                     >
-                      {/* Icon */}
                       <div
                         className="
                           w-12 h-12
@@ -674,7 +640,6 @@ export default function MentorLogbookModal({
                         <FiFileText className="text-xl" />
                       </div>
 
-                      {/* Text */}
                       <div className="flex-1">
                         <p className="font-semibold text-amber-800 dark:text-indigo-200">
                           Dokumen PDF
@@ -684,7 +649,6 @@ export default function MentorLogbookModal({
                         </p>
                       </div>
 
-                      {/* Action badge */}
                       <span
                         className="
                           text-xs font-semibold
@@ -702,9 +666,7 @@ export default function MentorLogbookModal({
             )}
           </div>
 
-          {/* 🔥 CATATAN MENTOR SECTION */}
           <div className="space-y-4">
-            {/* Jika sudah final, tampilkan catatan sebagai read-only */}
             {isFinalized && mentorNote && (
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
@@ -726,7 +688,6 @@ export default function MentorLogbookModal({
               </div>
             )}
 
-            {/* Jika belum final, tampilkan textarea untuk input */}
             {!isFinalized && (
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
@@ -742,14 +703,10 @@ export default function MentorLogbookModal({
                   placeholder="Berikan catatan atau komentar untuk peserta..."
                   className="
                     w-full px-4 py-3 rounded-xl resize-none outline-none transition
-
                     bg-white text-slate-800
                     dark:bg-slate-900 dark:text-slate-100
-
                     border border-amber-400
                     dark:border-indigo-500
-
-                    /* focus ring */
                     focus:border-amber-500 focus:ring-2 focus:ring-amber-200
                     dark:focus:border-indigo-400 dark:focus:ring-indigo-400/30
                   "
@@ -762,7 +719,6 @@ export default function MentorLogbookModal({
           </div>
         </div>
 
-        {/* FOOTER */}
         <div
           className="
             sticky bottom-0 z-20
@@ -773,7 +729,6 @@ export default function MentorLogbookModal({
           "
         >
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-between items-stretch sm:items-center">
-            {/* LEFT */}
             <button
               onClick={onClose}
               className="
@@ -793,10 +748,8 @@ export default function MentorLogbookModal({
               Tutup
             </button>
 
-            {/* 🔥 TOMBOL ACTION - HANYA TAMPIL JIKA BELUM FINAL */}
             {!isFinalized && (
               <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-                {/* TOLAK */}
                 <button
                   onClick={() => handleApprove(false)}
                   disabled={isSubmitting || !mentorNote.trim()}
@@ -829,23 +782,21 @@ export default function MentorLogbookModal({
                   )}
                 </button>
 
-                {/* REVISI */}
                 <button
                   onClick={handleRevision}
                   disabled={isSubmitting || !mentorNote.trim()}
                   className="
-    w-full sm:w-auto
-    inline-flex items-center justify-center gap-2
-    px-5 py-2.5 rounded-xl font-semibold
-    bg-purple-600 hover:bg-purple-700
-    text-white shadow-md
-  "
+                    w-full sm:w-auto
+                    inline-flex items-center justify-center gap-2
+                    px-5 py-2.5 rounded-xl font-semibold
+                    bg-purple-600 hover:bg-purple-700
+                    text-white shadow-md
+                  "
                 >
                   <FiEdit />
                   Revisi
                 </button>
 
-                {/* SETUJUI */}
                 <button
                   onClick={() => handleApprove(true)}
                   disabled={isSubmitting || !mentorNote.trim()}
@@ -883,7 +834,6 @@ export default function MentorLogbookModal({
         </div>
       </div>
 
-      {/* 🔥 PERBAIKAN: IMAGE PREVIEW MODAL */}
       {previewImage && (
         <div
           className="fixed inset-0 z-999 bg-black/90 flex items-center justify-center p-4"
@@ -901,7 +851,6 @@ export default function MentorLogbookModal({
               className="max-h-[85vh] max-w-full rounded-lg object-contain"
               alt="Preview"
               onError={(e) => {
-                console.error("Gagal memuat gambar preview:", previewImage);
                 e.currentTarget.src = `https://via.placeholder.com/800x600?text=Gambar+Tidak+Dapat+Dimuat`;
               }}
             />
@@ -912,7 +861,6 @@ export default function MentorLogbookModal({
   );
 }
 
-// 🔥 FIELD SECTION COMPONENT UNTUK READ-ONLY
 function FieldSection({
   icon,
   label,
@@ -940,10 +888,8 @@ function FieldSection({
           whitespace-pre-line
           text-sm sm:text-base
           leading-relaxed sm:leading-loose
-
           bg-white text-slate-800
           dark:bg-slate-800 dark:text-slate-200
-
           border border-slate-300 dark:border-slate-700
           shadow-sm
         "

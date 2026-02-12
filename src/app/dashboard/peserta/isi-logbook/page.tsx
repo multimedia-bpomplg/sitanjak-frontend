@@ -1,4 +1,3 @@
-// dashboard/peserta/isi-logbook/page.tsx - Tambahkan tombol
 "use client";
 
 import { useState, useEffect } from "react";
@@ -8,24 +7,35 @@ import LogbookSummaryBoard from "@/components/logbook/LogbookSummaryBoard";
 import { FiDownload } from "react-icons/fi";
 import { showToast } from "@/components/ui/toastDashboard";
 
+type FilledDateType = {
+  _id: string;
+  status: "hadir" | "tidak_hadir_keterangan" | "tidak_hadir_tanpa_keterangan";
+  approvalStatus: "menunggu" | "disetujui" | "ditolak" | "revisi";
+};
+
 export default function IsiLogbookPage() {
+  const [selectedLogbookId, setSelectedLogbookId] = useState<string | null>(
+    null,
+  );
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [modalMode, setModalMode] = useState<"create" | "view">("create");
-  const [filledDates, setFilledDates] = useState<Record<string, string>>({});
+  const [modalMode, setModalMode] = useState<"create" | "view" | "edit">(
+    "create",
+  );
+  const [filledDates, setFilledDates] = useState<
+    Record<string, FilledDateType>
+  >({});
   const [summary, setSummary] = useState({
     total: 0,
     hadir: 0,
     tidakHadirDenganKeterangan: 0,
     tidakHadirTanpaKeterangan: 0,
+    ditolak: 0,
   });
   const [isDownloading, setIsDownloading] = useState(false);
 
   const token =
     typeof window !== "undefined" ? localStorage.getItem("token") : "";
-
-  const headers = {
-    Authorization: `Bearer ${token}`,
-  };
+  const headers = { Authorization: `Bearer ${token}` };
 
   const refreshAll = async () => {
     try {
@@ -41,6 +51,7 @@ export default function IsiLogbookPage() {
       const datesJson = await datesRes.json();
       const summaryJson = await summaryRes.json();
 
+      console.log("📅 Filled dates:", datesJson);
       setFilledDates(datesJson);
       setSummary(summaryJson);
     } catch (err) {
@@ -52,7 +63,7 @@ export default function IsiLogbookPage() {
     refreshAll();
   }, []);
 
-  // Fungsi untuk download semua logbook
+  // Download semua logbook
   const handleDownloadAll = async () => {
     if (summary.total === 0) {
       showToast.error("Belum ada logbook untuk diunduh");
@@ -65,9 +76,7 @@ export default function IsiLogbookPage() {
     try {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/logbook/download/pdf`,
-        {
-          headers,
-        },
+        { headers },
       );
 
       if (!response.ok) {
@@ -77,21 +86,14 @@ export default function IsiLogbookPage() {
         throw new Error("Gagal mengunduh logbook");
       }
 
-      // Buat blob dari response
       const blob = await response.blob();
-
-      // Buat URL untuk blob
       const url = window.URL.createObjectURL(blob);
-
-      // Buat link untuk download
       const a = document.createElement("a");
       a.href = url;
       a.download = `logbook-${new Date().toISOString().split("T")[0]}.pdf`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-
-      // Bersihkan URL
       window.URL.revokeObjectURL(url);
 
       showToast.updateSuccess(toastId, "PDF logbook berhasil diunduh! ✅");
@@ -108,7 +110,7 @@ export default function IsiLogbookPage() {
 
   return (
     <div className="space-y-10">
-      {/* ================= PAGE HEADER ================= */}
+      {/* Header */}
       <div className="space-y-2">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
@@ -123,27 +125,14 @@ export default function IsiLogbookPage() {
         </div>
       </div>
 
-      {/* ================= SUMMARY BOARD ================= */}
+      {/* Summary Board */}
       <div className="relative">
         <LogbookSummaryBoard {...summary} />
       </div>
 
-      {/* ================= CALENDAR SECTION ================= */}
-      <div
-        className="
-          rounded-3xl
-          border border-[#FCA5A5]/40 dark:border-indigo-500/30
-          bg-linear-to-br
-          from-[#FFFDF8] via-[#FFF1E8] to-white
-          dark:from-indigo-950 dark:via-indigo-900 dark:to-indigo-800
-          backdrop-blur
-          shadow-[0_10px_30px_-10px_rgba(0,0,0,0.15)]
-          p-6 md:p-8
-          space-y-6
-        "
-      >
+      {/* Calendar Section */}
+      <div className="rounded-3xl border border-[#FCA5A5]/40 dark:border-indigo-500/30 bg-linear-to-br from-[#FFFDF8] via-[#FFF1E8] to-white dark:from-indigo-950 dark:via-indigo-900 dark:to-indigo-800 backdrop-blur shadow-[0_10px_30px_-10px_rgba(0,0,0,0.15)] p-6 md:p-8 space-y-6">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          {/* JUDUL */}
           <div>
             <h2 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-[#7F1D1D] dark:text-white">
               📅 Kalender Logbook
@@ -153,48 +142,24 @@ export default function IsiLogbookPage() {
             </p>
           </div>
 
-          {/* ACTION DOWNLOAD */}
+          {/* Tombol Download */}
           <button
             onClick={handleDownloadAll}
             disabled={isDownloading || summary.total === 0}
             className={`
-              group
-              w-full lg:w-auto
-              flex items-center justify-center gap-3
-              px-6 py-3
-              rounded-2xl
-              font-semibold text-sm
-              transition-all duration-300
-
+              group w-full lg:w-auto flex items-center justify-center gap-3 px-6 py-3 rounded-2xl font-semibold text-sm transition-all duration-300
               ${
                 summary.total === 0 || isDownloading
                   ? "bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed"
-                  : `
-                    bg-linear-to-r
-                    from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
-                    dark:from-indigo-600 dark:via-indigo-500 dark:to-violet-500
-                    text-white
-                    shadow-lg
-                    hover:shadow-xl
-                    hover:scale-[1.02]
-                  `
+                  : "bg-linear-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B] dark:from-indigo-600 dark:via-indigo-500 dark:to-violet-500 text-white shadow-lg hover:shadow-xl hover:scale-[1.02]"
               }
             `}
           >
-            <div
-              className="
-                w-9 h-9
-                rounded-xl
-                bg-white/20
-                flex items-center justify-center
-                backdrop-blur
-              "
-            >
+            <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center backdrop-blur">
               <FiDownload
                 className={`text-lg ${isDownloading ? "animate-spin" : ""}`}
               />
             </div>
-
             <div className="text-left leading-tight">
               <p className="text-sm font-bold">
                 {isDownloading ? "Menyiapkan PDF..." : "Download Logbook"}
@@ -208,21 +173,40 @@ export default function IsiLogbookPage() {
 
         <Calendar
           filledDates={filledDates}
-          onSelectDate={(date, isFilled) => {
+          onSelectDate={(date, isFilled, approval, logbookId) => {
+            console.log("📅 Selected from Calendar:", {
+              date,
+              isFilled,
+              approval,
+              logbookId,
+            });
+
             setSelectedDate(date);
-            setModalMode(isFilled ? "view" : "create");
+            setSelectedLogbookId(logbookId || null);
+
+            // 🔥 Tentukan mode berdasarkan status
+            if (approval === "revisi") {
+              setModalMode("edit"); // Mode edit untuk revisi
+            } else if (isFilled) {
+              setModalMode("view"); // Mode view untuk logbook yang sudah diisi
+            } else {
+              setModalMode("create"); // Mode create untuk tanggal baru
+            }
           }}
         />
       </div>
 
-      {/* ================= MODAL ================= */}
+      {/* Modal */}
       {selectedDate && (
         <LogbookModal
           date={selectedDate}
           mode={modalMode}
+          logbookId={selectedLogbookId}
           onClose={() => {
+            console.log("🔴 Modal closed");
             setSelectedDate(null);
-            refreshAll();
+            setSelectedLogbookId(null);
+            refreshAll(); // Refresh data setelah modal ditutup
           }}
         />
       )}
