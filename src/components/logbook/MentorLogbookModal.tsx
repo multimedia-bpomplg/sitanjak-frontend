@@ -541,19 +541,75 @@ export default function MentorLogbookModal({
                 )}
 
                 {pdfFile && (
-                  <div className="mt-4 p-3 border rounded-xl bg-slate-50">
+                  <div className="mt-4 space-y-3">
                     <div className="flex items-center gap-2">
-                      <FiFileText />
-                      <span className="font-semibold">Dokumen PDF</span>
+                      <FiFileText className="text-slate-500" />
+                      <span className="font-semibold">Dokumen PDF (Opsional)</span>
                     </div>
 
-                    <a
-                      href={getImageUrl(pdfFile)}
-                      target="_blank"
-                      className="text-indigo-600 underline text-sm"
-                    >
-                      📄 Lihat / Download PDF
-                    </a>
+                    {pdfFile ? (
+                      <a
+                        href={getImageUrl(pdfFile)}
+                        target="_blank"
+                        className="
+                          flex items-center gap-4
+                          p-4 rounded-2xl
+                          border
+                          border-amber-200 dark:border-indigo-700
+                          bg-amber-50 dark:bg-indigo-900/30
+                          hover:shadow-md
+                          transition
+                          group
+                        "
+                      >
+                        <div
+                          className="
+                            w-12 h-12
+                            rounded-xl
+                            flex items-center justify-center
+                            bg-linear-to-br
+                            from-amber-500 to-orange-600
+                            dark:from-indigo-500 dark:to-violet-600
+                            text-white
+                            group-hover:scale-105
+                            transition
+                          "
+                        >
+                          <FiFileText className="text-xl" />
+                        </div>
+
+                        <div className="flex-1">
+                          <p className="font-semibold text-amber-800 dark:text-indigo-200">
+                            Dokumen PDF
+                          </p>
+                          <p className="text-xs text-amber-600 dark:text-indigo-400">
+                            Klik untuk melihat file
+                          </p>
+                        </div>
+
+                        <span
+                          className="
+                            text-xs font-semibold
+                            px-3 py-1 rounded-full
+                            bg-amber-200 text-amber-800
+                            dark:bg-indigo-800 dark:text-indigo-200
+                          "
+                        >
+                          📄 Lihat PDF
+                        </span>
+                      </a>
+                    ) : (
+                      <div
+                        className="
+                          text-center py-8 rounded-xl border-2 border-dashed
+                          text-slate-400 border-slate-300
+                          dark:text-slate-300 dark:border-slate-700
+                        "
+                      >
+                        <FiFileText className="text-3xl mx-auto mb-2" />
+                        <p>Tidak ada File</p>
+                      </div>
+                    )}
                   </div>
                 )}
               </>
@@ -604,62 +660,73 @@ export default function MentorLogbookModal({
                 )}
 
                 {pdfFile && (
-                  <div className="mt-4 p-3 border rounded-xl">
-                    <div className="flex items-center gap-2 mb-4">
+                  <div className="mt-4 space-y-3">
+                    <div className="flex items-center gap-2">
                       <FiFileText className="text-slate-500" />
                       <span className="font-semibold">Dokumen Bukti (PDF)</span>
                     </div>
 
-                    <a
-                      href={getImageUrl(pdfFile)}
-                      target="_blank"
-                      className="
-                        flex items-center gap-4
-                        p-4 rounded-2xl
-                        border
-                        border-amber-200 dark:border-indigo-700
-                        bg-amber-50 dark:bg-indigo-900/30
-                        hover:shadow-md
-                        transition
-                        group
-                      "
-                    >
+                    {pdfFile ? (
+                      <a
+                        href={getImageUrl(pdfFile)}
+                        target="_blank"
+                        className="
+                          flex items-center gap-4
+                          p-4 rounded-2xl
+                          border
+                          border-amber-200 dark:border-indigo-700
+                          bg-amber-50 dark:bg-indigo-900/30
+                          hover:shadow-md
+                          transition
+                          group
+                        "
+                      >
+                        <div
+                          className="
+                            w-12 h-12
+                            rounded-xl
+                            flex items-center justify-center
+                            bg-linear-to-br
+                            from-amber-500 to-orange-600
+                            dark:from-indigo-500 dark:to-violet-600
+                            text-white
+                          "
+                        >
+                          <FiFileText className="text-xl" />
+                        </div>
+
+                        <div className="flex-1">
+                          <p className="font-semibold text-amber-800 dark:text-indigo-200">
+                            Dokumen PDF
+                          </p>
+                          <p className="text-xs text-amber-600 dark:text-indigo-400">
+                            Klik untuk melihat file
+                          </p>
+                        </div>
+
+                        <span
+                          className="
+                            text-xs font-semibold
+                            px-3 py-1 rounded-full
+                            bg-amber-200 text-amber-800
+                            dark:bg-indigo-800 dark:text-indigo-200
+                          "
+                        >
+                          📄 Lihat PDF
+                        </span>
+                      </a>
+                    ) : (
                       <div
                         className="
-                          w-12 h-12
-                          rounded-xl
-                          flex items-center justify-center
-                          bg-linear-to-br
-                          from-amber-500 to-orange-600
-                          dark:from-indigo-500 dark:to-violet-600
-                          text-white
-                          group-hover:scale-105
-                          transition
+                          text-center py-8 rounded-xl border-2 border-dashed
+                          text-slate-400 border-slate-300
+                          dark:text-slate-300 dark:border-slate-700
                         "
                       >
-                        <FiFileText className="text-xl" />
+                        <FiFileText className="text-3xl mx-auto mb-2" />
+                        <p>Tidak ada File</p>
                       </div>
-
-                      <div className="flex-1">
-                        <p className="font-semibold text-amber-800 dark:text-indigo-200">
-                          Dokumen PDF
-                        </p>
-                        <p className="text-xs text-amber-600 dark:text-indigo-400">
-                          Klik untuk melihat file
-                        </p>
-                      </div>
-
-                      <span
-                        className="
-                          text-xs font-semibold
-                          px-3 py-1 rounded-full
-                          bg-amber-200 text-amber-800
-                          dark:bg-indigo-800 dark:text-indigo-200
-                        "
-                      >
-                        📄 Lihat / Download PDF
-                      </span>
-                    </a>
+                    )}
                   </div>
                 )}
               </>
@@ -785,16 +852,32 @@ export default function MentorLogbookModal({
                 <button
                   onClick={handleRevision}
                   disabled={isSubmitting || !mentorNote.trim()}
-                  className="
+                  className={`
                     w-full sm:w-auto
                     inline-flex items-center justify-center gap-2
                     px-5 py-2.5 rounded-xl font-semibold
-                    bg-purple-600 hover:bg-purple-700
-                    text-white shadow-md
-                  "
+                    transition-all
+                    ${
+                      isSubmitting || !mentorNote.trim()
+                        ? "bg-slate-200 dark:bg-slate-700 text-slate-400 cursor-not-allowed"
+                        : `
+                          bg-amber-500 hover:bg-amber-600
+                          text-white shadow-md hover:shadow-xl
+                        `
+                    }
+                  `}
                 >
-                  <FiEdit />
-                  Revisi
+                  {isSubmitting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                      <span>Memproses...</span>
+                    </>
+                  ) : (
+                    <>
+                      <FiEdit />
+                      Revisi
+                    </>
+                  )}
                 </button>
 
                 <button

@@ -24,6 +24,12 @@ type Peserta = {
   kategori?: string;
 };
 
+type FilledDateType = {
+  _id: string;
+  status: "hadir" | "tidak_hadir_keterangan" | "tidak_hadir_tanpa_keterangan";
+  approvalStatus: "menunggu" | "disetujui" | "ditolak" | "revisi";
+};
+
 export default function ViewLogbookMentor() {
   const [peserta, setPeserta] = useState<Peserta[]>([]);
   const [filteredPeserta, setFilteredPeserta] = useState<Peserta[]>([]);
@@ -34,16 +40,7 @@ export default function ViewLogbookMentor() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [filledDates, setFilledDates] = useState<
-    Record<
-      string,
-      {
-        status:
-          | "hadir"
-          | "tidak_hadir_keterangan"
-          | "tidak_hadir_tanpa_keterangan";
-        approvalStatus: "menunggu" | "disetujui" | "ditolak";
-      }
-    >
+    Record<string, FilledDateType>
   >({});
 
   /* ================= FETCH PESERTA BIMBINGAN ================= */
@@ -135,19 +132,12 @@ export default function ViewLogbookMentor() {
       console.log("LOGBOOK DATA:", data);
 
       // Format data untuk Calendar component
-      const map: Record<
-        string,
-        {
-          status:
-            | "hadir"
-            | "tidak_hadir_keterangan"
-            | "tidak_hadir_tanpa_keterangan";
-          approvalStatus: "menunggu" | "disetujui" | "ditolak";
-        }
-      > = {};
+      const map: Record<string, FilledDateType> = {};
+
 
       data.forEach((l: any) => {
         map[l.date] = {
+          _id: l._id, // WAJIB
           status: l.status,
           approvalStatus: l.approvalStatus || "menunggu",
         };

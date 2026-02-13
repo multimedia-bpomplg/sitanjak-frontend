@@ -7,6 +7,7 @@ import {
   FiX,
   FiCalendar,
   FiFileText,
+  FiFile,
   FiImage,
   FiClock,
   FiUserCheck,
@@ -1149,14 +1150,13 @@ export default function LogbookModal({
                       className="hidden"
                     />
                   </label>
-                ) : (
-                  pdfUrl && (
-                    <a
-                      href={getImageUrl(pdfUrl)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      className="
+                ) : pdfUrl ? (
+                  <a
+                    href={getImageUrl(pdfUrl)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="
                       flex items-center gap-4
                       p-4 rounded-2xl
                       border
@@ -1166,9 +1166,9 @@ export default function LogbookModal({
                       transition
                       group
                     "
-                    >
-                      <div
-                        className="
+                  >
+                    <div
+                      className="
                         w-12 h-12
                         rounded-xl
                         flex items-center justify-center
@@ -1179,31 +1179,35 @@ export default function LogbookModal({
                         group-hover:scale-105
                         transition
                       "
-                      >
-                        <FiFileText className="text-xl" />
-                      </div>
+                    >
+                      <FiFileText className="text-xl" />
+                    </div>
 
-                      <div className="flex-1">
-                        <p className="font-semibold text-amber-800 dark:text-indigo-200">
-                          Dokumen PDF
-                        </p>
-                        <p className="text-xs text-amber-600 dark:text-indigo-400">
-                          Klik untuk melihat file
-                        </p>
-                      </div>
+                    <div className="flex-1">
+                      <p className="font-semibold text-amber-800 dark:text-indigo-200">
+                        Dokumen PDF
+                      </p>
+                      <p className="text-xs text-amber-600 dark:text-indigo-400">
+                        Klik untuk melihat file
+                      </p>
+                    </div>
 
-                      <span
-                        className="
+                    <span
+                      className="
                         text-xs font-semibold
                         px-3 py-1 rounded-full
                         bg-amber-200 text-amber-800
                         dark:bg-indigo-800 dark:text-indigo-200
                       "
-                      >
-                        📄 Lihat PDF
-                      </span>
-                    </a>
-                  )
+                    >
+                      📄 Lihat PDF
+                    </span>
+                  </a>
+                ) : (
+                  <div className="text-center py-8 text-slate-400">
+                    <FiFile className="text-3xl mx-auto mb-2" />
+                    <p>Tidak ada File</p>
+                  </div>
                 )}
               </div>
 
@@ -1510,8 +1514,7 @@ export default function LogbookModal({
                       className="hidden"
                     />
                   </label>
-                ) : (
-                  pdfUrl && (
+                ) : pdfUrl ? (
                     <a
                       href={getImageUrl(pdfUrl)}
                       target="_blank"
@@ -1564,7 +1567,11 @@ export default function LogbookModal({
                         📄 Lihat PDF
                       </span>
                     </a>
-                  )
+                  ) : (
+                    <div className="text-center py-8 text-slate-400">
+                      <FiFile className="text-3xl mx-auto mb-2" />
+                      <p>Tidak ada File</p>
+                    </div>
                 )}
               </div>
             </>

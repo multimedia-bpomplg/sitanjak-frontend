@@ -173,7 +173,12 @@ export default function IsiLogbookPage() {
 
         <Calendar
           filledDates={filledDates}
-          onSelectDate={(date, isFilled, approval, logbookId) => {
+          onSelectDate={(
+            date: string,
+            isFilled: boolean,
+            approval?: "menunggu" | "disetujui" | "ditolak" | "revisi",
+            logbookId?: string
+          ) => {
             console.log("📅 Selected from Calendar:", {
               date,
               isFilled,
@@ -201,7 +206,7 @@ export default function IsiLogbookPage() {
         <LogbookModal
           date={selectedDate}
           mode={modalMode}
-          logbookId={selectedLogbookId}
+          logbookId={selectedLogbookId ?? undefined}
           onClose={() => {
             console.log("🔴 Modal closed");
             setSelectedDate(null);

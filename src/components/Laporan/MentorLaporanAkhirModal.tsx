@@ -53,6 +53,7 @@ export default function MentorLaporanAkhirModal({
   const [loading, setLoading] = useState(true);
   const [mentorNote, setMentorNote] = useState("");
   const [status, setStatus] = useState("Menunggu");
+  const [showConfirm, setShowConfirm] = useState(false);
   const [penilaian, setPenilaian] = useState<Penilaian>({
     kehadiranDisiplin: "",
     sikapPerilaku: "",
@@ -90,7 +91,11 @@ export default function MentorLaporanAkhirModal({
         const data = await res.json();
         setLaporan(data);
         setMentorNote(data.mentorNote || "");
-        setStatus(data.status || "Menunggu");
+        if (data.status === "Menunggu") {
+          setStatus("Disetujui"); // hanya tampilan
+        } else {
+          setStatus(data.status);
+        }
 
         // 🔥 LOAD PENILAIAN JIKA ADA
         if (data.penilaian) {
@@ -131,6 +136,12 @@ export default function MentorLaporanAkhirModal({
   /* ================= UPDATE STATUS & PENILAIAN ================= */
   const handleUpdateStatus = async () => {
     if (!laporan) return;
+
+    // 🔥 VALIDASI KOMENTAR WAJIB
+    if (!mentorNote.trim()) {
+      showToast.error("Komentar mentor wajib diisi");
+      return;
+    }
 
     // 🔥 CEK SUDAH DIREVIEW
     if (isAlreadyReviewed()) {
@@ -294,6 +305,7 @@ export default function MentorLaporanAkhirModal({
   };
 
   const alreadyReviewed = isAlreadyReviewed();
+  const isCommentFilled = mentorNote.trim().length > 0;
 
   return (
     <div
@@ -301,63 +313,54 @@ export default function MentorLaporanAkhirModal({
         fixed inset-0 z-50
         bg-black/40 dark:bg-black/70
         backdrop-blur-md
-        flex items-center justify-center p-3 sm:p-6
+        flex items-center justify-center
+        p-2 sm:p-4
       "
     >
       <div
         className="
-          w-full max-w-5xl
-          bg-white/90 dark:bg-white/5
-          backdrop-blur
-          rounded-3xl
-          border border-slate-200 dark:border-indigo-500/30
+          w-full max-w-4xl
+          bg-white dark:bg-slate-900
+          rounded-2xl sm:rounded-3xl
+          border border-slate-200 dark:border-slate-800
           shadow-2xl
           overflow-hidden
-          max-h-[92vh]
+          max-h-[95vh]
           flex flex-col
         "
       >
         {/* HEADER */}
         <div
           className="
-            px-5 sm:px-6 py-4 sm:py-5
+            px-4 sm:px-6 py-4
             bg-linear-to-r
-            from-[#FCA5A5] via-[#FDE68A] to-[#FFF7ED]
-            dark:from-indigo-800 dark:via-indigo-700 dark:to-indigo-900
-            text-slate-900 dark:text-white
+            from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
+            dark:from-indigo-700 dark:to-violet-600
+            text-white
             flex items-center justify-between
             gap-3
           "
         >
-          <div className="flex items-start sm:items-center gap-3 min-w-0">
+          <div className="flex items-center gap-3 min-w-0">
             <div className="p-2 bg-white/20 rounded-xl shrink-0">
-              <FiFileText className="text-xl" />
+              <FiFileText className="text-lg" />
             </div>
 
             <div className="min-w-0">
-              <h2 className="text-lg sm:text-xl font-bold leading-tight truncate">
-                Laporan Akhir Magang
+              <h2 className="text-base sm:text-lg font-bold truncate">
+                Review Laporan Akhir
               </h2>
-              <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs sm:text-sm opacity-90">
-                <div className="flex items-center gap-1 min-w-0">
-                  <FiUser className="shrink-0" />
-                  <span className="truncate">{peserta.nama}</span>
-                </div>
-                <div className="flex items-center gap-1 min-w-0">
-                  <FiMail className="shrink-0" />
-                  <span className="truncate max-w-55 sm:max-w-none">
-                    {peserta.email}
-                  </span>
-                </div>
-              </div>
+              <p className="text-xs opacity-80 truncate">
+                {peserta.nama} • {peserta.posisi}
+              </p>
             </div>
           </div>
 
           <button
             onClick={onClose}
-            className="p-2 text-red-600 hover:bg-red-100 dark:text-red-400 dark:hover:bg-red-900/30 rounded-lg transition"
+            className="p-2 rounded-full bg-white/30 hover:bg-white/50 transition"
           >
-            <FiX className="text-xl" />
+            <FiX className="text-xl text-red-500" />
           </button>
         </div>
 
@@ -417,22 +420,42 @@ export default function MentorLaporanAkhirModal({
                   ${getStatusColor(laporan.status).border}
                 `}
               >
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div
+                  className="
+                    rounded-2xl
+                    border
+                    px-4 sm:px-6 py-4
+                    bg-white/80 dark:bg-indigo-950/40
+                    backdrop-blur
+                    shadow-md
+                    transition
+                    flex flex-col sm:flex-row
+                    sm:items-center sm:justify-between
+                    gap-4
+                  "
+                >
                   {/* LEFT - STATUS */}
                   <div className="flex items-center gap-3">
                     <div
                       className={`
-                        w-10 h-10 rounded-xl flex items-center justify-center
+                        w-12 h-12
+                        rounded-2xl
+                        flex items-center justify-center
                         shadow-inner
                         ${getStatusColor(laporan.status).bg}
                       `}
                     >
-                      <span className={getStatusColor(laporan.status).icon}>
+                      <span
+                        className={`
+                          text-xl
+                          ${getStatusColor(laporan.status).icon}
+                        `}
+                      >
                         {getStatusIcon(laporan.status)}
                       </span>
                     </div>
                     <div>
-                      <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-indigo-300">
+                      <p className="text-[10px] sm:text-xs uppercase tracking-wider text-slate-500 dark:text-indigo-300">
                         Status Laporan
                       </p>
                       <p
@@ -451,21 +474,31 @@ export default function MentorLaporanAkhirModal({
                   </div>
 
                   {/* RIGHT - FILE INFO */}
-                  <div className="flex flex-col items-end">
-                    <div className="flex items-center gap-2">
-                      <FiFileText className="text-slate-500" />
-                      <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                  <div className="flex flex-col sm:items-end gap-1">
+                    <div
+                      className="
+                        inline-flex items-center gap-2
+                        px-3 py-1.5
+                        rounded-full
+                        bg-slate-100 dark:bg-white/10
+                        text-slate-700 dark:text-slate-200
+                        text-xs sm:text-sm
+                        font-medium
+                      "
+                    >
+                      <FiFileText className="text-sm" />
+                      <span className="truncate max-w-45">
                         {laporan.fileName || "Laporan_Akhir.pdf"}
                       </span>
                     </div>
-                    <div className="flex items-center gap-3 mt-1">
-                      <span className="text-xs text-slate-500">
+
+                    <div className="mt-1 me-2 text-[11px] sm:text-xs text-slate-500 flex items-center gap-2 sm:justify-end">
+                      <span>
                         {laporan.fileSize
                           ? formatFileSize(laporan.fileSize)
                           : "-"}
                       </span>
-                      <span className="text-xs text-slate-500">
-                        •{" "}
+                      <span>
                         {new Date(
                           laporan.submittedAt || laporan.createdAt,
                         ).toLocaleDateString("id-ID")}
@@ -476,43 +509,23 @@ export default function MentorLaporanAkhirModal({
               </div>
 
               {/* ACTION BUTTONS PDF */}
-              <div className="flex flex-wrap gap-3">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   onClick={handleDownloadPdf}
                   className="
-                    inline-flex items-center gap-2
-                    px-4 py-2.5
+                    w-full sm:w-auto
+                    inline-flex items-center justify-center gap-2
+                    px-5 py-2.5
                     rounded-xl
                     text-sm font-semibold
-                    text-emerald-700 dark:text-emerald-300
-                    border border-emerald-400 dark:border-emerald-500
-                    bg-white dark:bg-slate-900
-                    hover:bg-emerald-50 dark:hover:bg-emerald-900/30
-                    shadow-sm hover:shadow-md
-                    transition-all
+                    text-white
+                    bg-emerald-600 hover:bg-emerald-700
+                    shadow hover:shadow-lg
+                    transition
                   "
                 >
                   <FiDownload className="w-4 h-4" />
                   Download PDF
-                </button>
-
-                <button
-                  onClick={handleViewPdf}
-                  className="
-                    inline-flex items-center gap-2
-                    px-4 py-2.5
-                    rounded-xl
-                    text-sm font-semibold
-                    text-indigo-700 dark:text-indigo-300
-                    border border-indigo-400 dark:border-indigo-500
-                    bg-white dark:bg-slate-900
-                    hover:bg-indigo-50 dark:hover:bg-indigo-900/30
-                    shadow-sm hover:shadow-md
-                    transition-all
-                  "
-                >
-                  <FiEye className="w-4 h-4" />
-                  Lihat PDF
                 </button>
               </div>
 
@@ -521,8 +534,9 @@ export default function MentorLaporanAkhirModal({
                 className={`
                   mt-6
                   rounded-2xl
-                  border
-                  p-5 sm:p-6
+                  border border-slate-200 dark:border-slate-700
+                  bg-white dark:bg-slate-800
+                  p-4 sm:p-6
                   shadow-sm
                   ${
                     alreadyReviewed
@@ -536,14 +550,14 @@ export default function MentorLaporanAkhirModal({
                     className={`p-2 rounded-lg ${
                       alreadyReviewed
                         ? "bg-slate-200 dark:bg-slate-700"
-                        : "bg-indigo-100 dark:bg-indigo-500/20"
+                        : "bg-amber-100 dark:bg-indigo-500/20"
                     }`}
                   >
                     <FiStar
                       className={`w-5 h-5 ${
                         alreadyReviewed
                           ? "text-slate-500 dark:text-slate-400"
-                          : "text-indigo-600 dark:text-indigo-300"
+                          : "text-amber-600 dark:text-violet-300"
                       }`}
                     />
                   </div>
@@ -599,10 +613,43 @@ export default function MentorLaporanAkhirModal({
                       ))}
                     </div>
                     {alreadyReviewed && (
-                      <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
-                        ⚠️ Status tidak dapat diubah karena laporan sudah
-                        direview
-                      </p>
+                      <div
+                        className="
+                          mt-3
+                          flex items-start gap-3
+                          rounded-xl
+                          border border-amber-300
+                          bg-amber-50
+                          dark:border-amber-600
+                          dark:bg-amber-900/20
+                          p-3 sm:p-4
+                        "
+                      >
+                        <div
+                          className="
+                            shrink-0
+                            w-8 h-8
+                            rounded-lg
+                            bg-amber-100
+                            dark:bg-amber-800/40
+                            flex items-center justify-center
+                            text-amber-600
+                            dark:text-amber-300
+                            text-sm
+                          "
+                        >
+                          ⚠️
+                        </div>
+
+                        <div className="text-left">
+                          <p className="text-xs sm:text-sm font-semibold text-amber-700 dark:text-amber-300">
+                            Laporan sudah direview
+                          </p>
+                          <p className="text-[11px] sm:text-xs text-amber-600 dark:text-amber-400 mt-0.5">
+                            Status tidak dapat diubah karena laporan sudah disetujui atau ditolak.
+                          </p>
+                        </div>
+                      </div>
                     )}
                   </div>
 
@@ -681,7 +728,7 @@ export default function MentorLaporanAkhirModal({
                                     ? "border-slate-300 dark:border-slate-600 opacity-70 cursor-not-allowed"
                                     : penilaian[key]
                                       ? "border-emerald-400 dark:border-emerald-500 focus:ring-emerald-400"
-                                      : "border-amber-400 dark:border-amber-500 focus:ring-amber-400"
+                                      : "border-amber-400 dark:border-indigo-500 focus:ring-amber-400 dark:focus:ring-indigo-500"
                                 }
                               `}
                             >
@@ -727,7 +774,7 @@ export default function MentorLaporanAkhirModal({
                           : "text-slate-700 dark:text-slate-200"
                       }`}
                     >
-                      Komentar / Catatan
+                      Komentar / Catatan <span className="text-red-500">*</span>
                     </label>
                     <textarea
                       value={mentorNote}
@@ -781,10 +828,11 @@ export default function MentorLaporanAkhirModal({
                       </button>
 
                       <button
-                        onClick={handleUpdateStatus}
+                        onClick={() => setShowConfirm(true)}
                         disabled={
-                          status === "Disetujui" &&
-                          !Object.values(penilaian).every((v) => v !== "")
+                          !isCommentFilled ||
+                          (status === "Disetujui" &&
+                            !Object.values(penilaian).every((v) => v !== ""))
                         }
                         className={`
                           px-8 py-2.5
@@ -793,8 +841,9 @@ export default function MentorLaporanAkhirModal({
                           shadow-md hover:shadow-xl
                           transition-all duration-300
                           ${
-                            status === "Disetujui" &&
-                            !Object.values(penilaian).every((v) => v !== "")
+                            !isCommentFilled ||
+                            (status === "Disetujui" &&
+                              !Object.values(penilaian).every((v) => v !== ""))
                               ? "bg-slate-400 cursor-not-allowed text-white"
                               : status === "Disetujui"
                                 ? "bg-emerald-600 hover:bg-emerald-700 text-white"
@@ -849,6 +898,109 @@ export default function MentorLaporanAkhirModal({
           )}
         </div>
       </div>
+      
+      {showConfirm && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div
+            className="
+              w-full max-w-sm
+              rounded-3xl
+              bg-white dark:bg-slate-900
+              border border-slate-200 dark:border-slate-700
+              shadow-2xl
+              p-6
+              space-y-5
+              text-center
+            "
+          >
+            {/* ICON */}
+            <div
+              className={`
+                mx-auto
+                w-14 h-14
+                rounded-2xl
+                flex items-center justify-center
+                text-white
+                shadow-lg
+                ${
+                  status === "Disetujui"
+                    ? "bg-emerald-500"
+                    : "bg-red-500"
+                }
+              `}
+            >
+              {status === "Disetujui" ? (
+                <FiCheckCircle className="text-2xl" />
+              ) : (
+                <FiXCircle className="text-2xl" />
+              )}
+            </div>
+
+            {/* TITLE */}
+            <div>
+              <h3 className="text-lg font-bold text-slate-800 dark:text-white">
+                Konfirmasi {status === "Disetujui" ? "Persetujuan" : "Penolakan"}
+              </h3>
+              <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">
+                Apakah Anda yakin ingin{" "}
+                <span
+                  className={`font-semibold ${
+                    status === "Disetujui"
+                      ? "text-emerald-600 dark:text-emerald-400"
+                      : "text-red-600 dark:text-red-400"
+                  }`}
+                >
+                  {status === "Disetujui" ? "menyetujui" : "menolak"}
+                </span>{" "}
+                laporan ini?
+              </p>
+            </div>
+
+            {/* ACTIONS */}
+            <div className="flex flex-col sm:flex-row gap-3 pt-2">
+              <button
+                onClick={() => setShowConfirm(false)}
+                className="
+                  w-full
+                  py-2.5
+                  rounded-xl
+                  border
+                  border-slate-300 dark:border-slate-600
+                  text-slate-600 dark:text-slate-300
+                  hover:bg-slate-100 dark:hover:bg-slate-800
+                  font-semibold
+                  transition
+                "
+              >
+                Batal
+              </button>
+
+              <button
+                onClick={() => {
+                  setShowConfirm(false);
+                  handleUpdateStatus();
+                }}
+                className={`
+                  w-full
+                  py-2.5
+                  rounded-xl
+                  text-white
+                  font-semibold
+                  shadow-md hover:shadow-xl
+                  transition
+                  ${
+                    status === "Disetujui"
+                      ? "bg-emerald-600 hover:bg-emerald-700"
+                      : "bg-red-600 hover:bg-red-700"
+                  }
+                `}
+              >
+                Ya, Lanjutkan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

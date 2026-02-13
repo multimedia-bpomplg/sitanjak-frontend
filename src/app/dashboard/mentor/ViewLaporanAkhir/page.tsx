@@ -194,15 +194,19 @@ export default function ViewLaporanAkhirMentor() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "Disetujui":
-        return "bg-emerald-100 text-emerald-700 border-emerald-200";
+        return "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-700";
+
       case "Ditolak":
-        return "bg-red-100 text-red-700 border-red-200";
+        return "bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-900/30 dark:text-rose-300 dark:border-rose-700";
+
       case "Revisi":
-        return "bg-amber-100 text-amber-700 border-amber-200";
+        return "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-700";
+
       case "Menunggu":
-        return "bg-blue-100 text-blue-700 border-blue-200";
+        return "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700";
+
       default:
-        return "bg-slate-100 text-slate-500 border-slate-200";
+        return "bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700";
     }
   };
 
@@ -210,15 +214,15 @@ export default function ViewLaporanAkhirMentor() {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "Disetujui":
-        return <HiCheckCircle className="w-4 h-4" />;
+        return <HiCheckCircle className="w-3.5 h-3.5" />;
       case "Ditolak":
-        return <HiXCircle className="w-4 h-4" />;
+        return <HiXCircle className="w-3.5 h-3.5" />;
       case "Revisi":
-        return <HiExclamationCircle className="w-4 h-4" />;
+        return <HiExclamationCircle className="w-3.5 h-3.5" />;
       case "Menunggu":
-        return <HiClock className="w-4 h-4" />;
+        return <HiClock className="w-3.5 h-3.5" />;
       default:
-        return <HiDocumentReport className="w-4 h-4" />;
+        return <HiDocumentReport className="w-3.5 h-3.5" />;
     }
   };
 
@@ -408,11 +412,10 @@ export default function ViewLaporanAkhirMentor() {
 
                       <td className="py-4 px-6 text-center align-middle">
                         <span className="
-                          inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium
+                          inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold
                           bg-blue-50 text-blue-700
                           dark:bg-indigo-500/20 dark:text-indigo-200
                         ">
-                          <HiBriefcase className="w-3 h-3" />
                           {p.posisi}
                         </span>
                       </td>
@@ -429,7 +432,6 @@ export default function ViewLaporanAkhirMentor() {
                               </span>
                             </div>
                             <div className="text-xs text-slate-500">
-                              {laporan.judul?.substring(0, 60)}...
                               {laporan.approvedAt && (
                                 <div className="mt-1">
                                   Direview:{" "}
