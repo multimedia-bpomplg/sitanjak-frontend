@@ -11,7 +11,9 @@ import {
   FiCalendar,
   FiBookOpen,
   FiFileText,
+  FiFile,
 } from "react-icons/fi";
+import SuratSelesaiUpload from "./SuratSelesaiUpload";
 
 type Props = {
   peserta: any;
@@ -19,6 +21,7 @@ type Props = {
   onViewLogbook: (email: string) => void;
   onViewLaporanBulanan: (email: string) => void;
   onViewLaporanAkhir: (email: string) => void;
+  onSuratSelesaiSuccess?: () => void;
 };
 
 export default function SuperadminPesertaModal({
@@ -29,7 +32,7 @@ export default function SuperadminPesertaModal({
   onViewLaporanAkhir,
 }: Props) {
   const [activeTab, setActiveTab] = useState<
-    "info" | "logbook" | "laporan"
+    "info" | "logbook" | "laporan" | "suratSelesai"
   >("info");
 
   return (
@@ -62,17 +65,13 @@ export default function SuperadminPesertaModal({
                 <FiUser className="text-2xl" />
               </div>
               <div>
-                <h2 className="text-xl font-extrabold">
-                  Detail Peserta
-                </h2>
-                <p className="text-sm opacity-90">
-                  {peserta?.nama}
-                </p>
+                <h2 className="text-xl font-extrabold">Detail Peserta</h2>
+                <p className="text-sm opacity-90">{peserta?.nama}</p>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="p-2 text-red-600 hover:bg-red-100 dark:text-red-400 dark:hover:bg-red-900/30 rounded-lg transition"
+              className="p-2 hover:bg-white/20 rounded-lg transition"
             >
               <FiX className="text-2xl" />
             </button>
@@ -81,7 +80,7 @@ export default function SuperadminPesertaModal({
 
         {/* ================= TABS ================= */}
         <div className="px-6 pt-4">
-          <div className="flex gap-2 bg-slate-100 dark:bg-indigo-950 p-1.5 rounded-2xl w-fit">
+          <div className="flex flex-wrap gap-2 bg-slate-100 dark:bg-indigo-950 p-1.5 rounded-2xl">
             <TabButton
               active={activeTab === "info"}
               onClick={() => setActiveTab("info")}
@@ -100,6 +99,15 @@ export default function SuperadminPesertaModal({
             >
               Laporan
             </TabButton>
+            <TabButton
+              active={activeTab === "suratSelesai"}
+              onClick={() => setActiveTab("suratSelesai")}
+            >
+              <span className="flex items-center gap-2">
+                <FiFile className="text-sm" />
+                Kirim Surat Selesai
+              </span>
+            </TabButton>
           </div>
         </div>
 
@@ -109,11 +117,31 @@ export default function SuperadminPesertaModal({
           {activeTab === "info" && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <InfoCard icon={<FiUser />} label="Nama" value={peserta?.nama} />
-              <InfoCard icon={<FiMail />} label="Email" value={peserta?.email} />
-              <InfoCard icon={<FiPhone />} label="WhatsApp" value={peserta?.wa} />
-              <InfoCard icon={<FiBriefcase />} label="Posisi" value={peserta?.posisi} />
-              <InfoCard icon={<FiBook />} label="Jurusan" value={peserta?.jurusan} />
-              <InfoCard icon={<FiCalendar />} label="Kategori" value={peserta?.kategori} />
+              <InfoCard
+                icon={<FiMail />}
+                label="Email"
+                value={peserta?.email}
+              />
+              <InfoCard
+                icon={<FiPhone />}
+                label="WhatsApp"
+                value={peserta?.wa}
+              />
+              <InfoCard
+                icon={<FiBriefcase />}
+                label="Posisi"
+                value={peserta?.posisi}
+              />
+              <InfoCard
+                icon={<FiBook />}
+                label="Jurusan"
+                value={peserta?.jurusan}
+              />
+              <InfoCard
+                icon={<FiCalendar />}
+                label="Kategori"
+                value={peserta?.kategori}
+              />
 
               <div className="md:col-span-2">
                 <InfoCard
@@ -163,9 +191,7 @@ export default function SuperadminPesertaModal({
               >
                 <FiBookOpen className="text-2xl" />
               </div>
-              <h3 className="text-lg font-bold mb-2">
-                Logbook Peserta
-              </h3>
+              <h3 className="text-lg font-bold mb-2">Logbook Peserta</h3>
               <p className="text-slate-600 dark:text-slate-400 mb-6 max-w-md">
                 Lihat seluruh aktivitas harian peserta selama magang.
               </p>
@@ -206,6 +232,16 @@ export default function SuperadminPesertaModal({
                 label="Lihat Laporan Akhir"
               />
             </div>
+          )}
+
+          {/* ---------- SURAT SELESAI MAGANG ---------- */}
+          {activeTab === "suratSelesai" && (
+            <SuratSelesaiUpload
+              peserta={peserta}
+              onSuccess={() => {
+                // Optional: refresh data atau notifikasi
+              }}
+            />
           )}
         </div>
       </div>
@@ -316,9 +352,7 @@ function ActionCard({
         </div>
         <h3 className="font-bold text-lg">{title}</h3>
       </div>
-      <p className="text-sm text-slate-600 dark:text-slate-400 mb-5">
-        {desc}
-      </p>
+      <p className="text-sm text-slate-600 dark:text-slate-400 mb-5">{desc}</p>
       <button
         onClick={onClick}
         className="

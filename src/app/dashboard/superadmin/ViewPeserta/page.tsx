@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react"; // 🔥 TAMBAH useRef
 import {
   HiUser,
   HiMail,
@@ -9,9 +9,11 @@ import {
   HiAcademicCap,
   HiCalendar,
   HiSearch,
+  HiDocumentText,
 } from "react-icons/hi";
 import SuperadminPesertaModal from "@/components/superadmin/SuperadminPesertaModal";
 
+// ================ TYPES ================
 type Peserta = {
   pendaftaranId: string;
   pesertaId: string;
@@ -21,10 +23,9 @@ type Peserta = {
   posisi: string;
   jurusan: string;
   kategori: string;
-
   statusMagang?:
     | "Menunggu"
-    | "Belum Waktu Magang" // ✅ BARU
+    | "Belum Waktu Magang"
     | "Sedang Magang"
     | "Selesai Magang"
     | "Tidak Magang";
@@ -33,7 +34,6 @@ type Peserta = {
     name: string;
     email: string;
   };
-
   isTerdaftar: boolean;
   tanggalMulaiMagang: string;
   tanggalSelesaiMagang: string;
@@ -41,67 +41,199 @@ type Peserta = {
   createdAt: string;
 };
 
+type SuratSelesaiStatus = {
+  [email: string]: {
+    status: "Sudah Terkirim" | "Belum Ada Surat";
+    file?: string;
+    tanggalKirim?: string;
+  };
+};
+
+// ================ MAIN COMPONENT ================
 export default function ViewPesertaSuperadmin() {
+  // 🔥 ABORT CONTROLLER UNTUK CLEANUP
+  const abortControllerRef = useRef<AbortController | null>(null);
+
   const [pesertaList, setPesertaList] = useState<Peserta[]>([]);
   const [filteredPeserta, setFilteredPeserta] = useState<Peserta[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [selectedPeserta, setSelectedPeserta] = useState<Peserta | null>(null);
+  const [suratSelesaiStatus, setSuratSelesaiStatus] =
+    useState<SuratSelesaiStatus>({});
+  const [loadingSurat, setLoadingSurat] = useState(false);
+  const [error, setError] = useState<string | null>(null); // 🔥 TAMBAH ERROR STATE
 
   // Pagination state
   const [page, setPage] = useState(1);
   const itemsPerPage = 10;
 
-  const loadData = async () => {
-    setLoading(true);
+  // 🔥 AMBIL TOKEN DENGAN SAFE CHECK
+  const getToken = () => {
+    if (typeof window === "undefined") return null;
+    return localStorage.getItem("token");
+  };
+
+  // 🔥 FETCH SEMUA DATA SURAT SELESAI
+  const fetchAllSuratSelesai = useCallback(async (signal?: AbortSignal) => {
     try {
+      const token = getToken();
+      if (!token) {
+        console.warn("Token tidak ditemukan");
+        return {};
+      }
+
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/surat-selesai/all`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          signal, // 🔥 PASANG ABORT SIGNAL
+        },
+      );
+
+      if (!res.ok) {
+        throw new Error(`Gagal fetch surat: ${res.status}`);
+      }
+
+      const data = await res.json();
+
+      // Konversi ke object dengan key email
+      const statusMap: SuratSelesaiStatus = {};
+
+      if (Array.isArray(data)) {
+        data.forEach((surat: any) => {
+          if (surat?.email) {
+            statusMap[surat.email] = {
+              status: "Sudah Terkirim",
+              file: surat.file,
+              tanggalKirim: surat.tanggalKirim,
+            };
+          }
+        });
+      }
+
+      return statusMap;
+    } catch (err: any) {
+      if (err.name === "AbortError") {
+        console.log("Fetch surat dibatalkan");
+        return {};
+      }
+      console.error("Gagal fetch data surat selesai", err);
+      return {};
+    }
+  }, []);
+
+  // 🔥 FETCH DATA PESERTA
+  const fetchPeserta = useCallback(async (signal?: AbortSignal) => {
+    try {
+      const token = getToken();
+      if (!token) {
+        throw new Error("Token tidak ditemukan");
+      }
+
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/superadmin/peserta/disetujui`,
         {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            Authorization: `Bearer ${token}`,
           },
+          signal,
         },
       );
-      const data: Peserta[] = await res.json();
 
-      // 🔥 SORT DARI TERBARU KE TERLAMA
-      const sortedData = [...data].sort(
+      if (!res.ok) {
+        throw new Error(`Gagal fetch peserta: ${res.status}`);
+      }
+
+      const data: Peserta[] = await res.json();
+      return Array.isArray(data) ? data : [];
+    } catch (err: any) {
+      if (err.name === "AbortError") {
+        console.log("Fetch peserta dibatalkan");
+        return [];
+      }
+      throw err;
+    }
+  }, []);
+
+  // 🔥 LOAD DATA UTAMA
+  const loadData = useCallback(async () => {
+    // Cancel previous request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    // Create new abort controller
+    abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
+
+    setLoading(true);
+    setLoadingSurat(true);
+    setError(null);
+
+    try {
+      // 🔥 FETCH PESERTA DAN SURAT SELESAI BERSAMAAN
+      const [pesertaData, suratStatusMap] = await Promise.all([
+        fetchPeserta(signal),
+        fetchAllSuratSelesai(signal),
+      ]);
+
+      // Set surat status
+      setSuratSelesaiStatus(suratStatusMap);
+
+      // SORT DARI TERBARU KE TERLAMA
+      const sortedData = [...pesertaData].sort(
         (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+          new Date(b.createdAt || 0).getTime() -
+          new Date(a.createdAt || 0).getTime(),
       );
 
       setPesertaList(sortedData);
       setFilteredPeserta(sortedData);
       setPage(1);
-    } catch (error) {
-      console.error("Gagal memuat data peserta", error);
+    } catch (error: any) {
+      if (error.name !== "AbortError") {
+        console.error("Gagal memuat data peserta", error);
+        setError(error.message || "Gagal memuat data");
+      }
     } finally {
       setLoading(false);
+      setLoadingSurat(false);
     }
-  };
+  }, [fetchPeserta, fetchAllSuratSelesai]);
 
+  // 🔥 CLEANUP EFFECT
   useEffect(() => {
     loadData();
-  }, []);
 
+    // Cleanup function
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, [loadData]);
+
+  // 🔥 SEARCH EFFECT
   useEffect(() => {
     if (!search.trim()) {
       setFilteredPeserta(pesertaList);
-      setPage(1); // Reset ke halaman pertama saat pencarian diubah
+      setPage(1);
       return;
     }
 
     const query = search.toLowerCase();
     const filtered = pesertaList.filter(
       (p) =>
-        p.nama.toLowerCase().includes(query) ||
-        p.email.toLowerCase().includes(query) ||
-        p.posisi.toLowerCase().includes(query) ||
+        p.nama?.toLowerCase().includes(query) ||
+        p.email?.toLowerCase().includes(query) ||
+        p.posisi?.toLowerCase().includes(query) ||
         p.jurusan?.toLowerCase().includes(query),
     );
     setFilteredPeserta(filtered);
-    setPage(1); // Reset ke halaman pertama saat pencarian diubah
+    setPage(1);
   }, [search, pesertaList]);
 
   // Calculate pagination
@@ -110,6 +242,7 @@ export default function ViewPesertaSuperadmin() {
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = filteredPeserta.slice(indexOfFirstItem, indexOfLastItem);
 
+  // ================ HANDLERS ================
   const handleViewLogbook = (email: string) => {
     window.location.href = `/dashboard/superadmin/ViewLogbook?email=${encodeURIComponent(email)}`;
   };
@@ -122,6 +255,12 @@ export default function ViewPesertaSuperadmin() {
     window.location.href = `/dashboard/superadmin/ViewLaporanAkhir?email=${encodeURIComponent(email)}`;
   };
 
+  // 🔥 HANDLER UNTUK REFRESH DATA
+  const handleSuratSelesaiSuccess = () => {
+    loadData();
+  };
+
+  // ================ RENDER ================
   return (
     <div
       className="
@@ -143,8 +282,21 @@ export default function ViewPesertaSuperadmin() {
         </p>
       </div>
 
+      {/* ERROR STATE */}
+      {error && (
+        <div className="mb-6 p-4 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800">
+          <p className="text-sm">Error: {error}</p>
+          <button
+            onClick={() => loadData()}
+            className="mt-2 text-sm font-semibold underline hover:no-underline"
+          >
+            Coba lagi
+          </button>
+        </div>
+      )}
+
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
         <StatCard
           title="Total Peserta"
           value={pesertaList.length}
@@ -167,7 +319,7 @@ export default function ViewPesertaSuperadmin() {
             pesertaList.filter(
               (p) =>
                 p.statusMagang === "Sedang Magang" ||
-                p.statusMagang === "Belum Waktu Magang", // ✅ BARU
+                p.statusMagang === "Belum Waktu Magang",
             ).length
           }
           icon={<HiCalendar className="w-7 h-7" />}
@@ -184,6 +336,14 @@ export default function ViewPesertaSuperadmin() {
           icon={<HiBriefcase className="w-7 h-7" />}
           note="Magang telah selesai"
           color="slate"
+        />
+
+        <StatCard
+          title="Surat Terkirim"
+          value={Object.keys(suratSelesaiStatus).length}
+          icon={<HiDocumentText className="w-7 h-7" />}
+          note="Surat selesai magang terkirim"
+          color="emerald"
         />
       </div>
 
@@ -212,9 +372,8 @@ export default function ViewPesertaSuperadmin() {
         </div>
       </div>
 
-      {/* ===================== TABLE ===================== */}
+      {/* TABLE */}
       {!loading && currentItems.length === 0 ? (
-        /* ================= EMPTY STATE ================= */
         <div
           className="
             rounded-3xl
@@ -252,7 +411,6 @@ export default function ViewPesertaSuperadmin() {
           </p>
         </div>
       ) : (
-        /* ================= TABLE WRAPPER ================= */
         <div
           className="
             rounded-2xl
@@ -263,230 +421,264 @@ export default function ViewPesertaSuperadmin() {
             overflow-hidden
           "
         >
-          <div className="overflow-x-auto">
-            <table className="min-w-200 w-full text-sm sm:text-base">
-              {/* ================= HEAD ================= */}
-              <thead>
-                <tr
-                  className="
-                    bg-slate-50 dark:bg-indigo-500/10
-                    border-b border-slate-200 dark:border-indigo-500/30
-                  "
-                >
-                  <th className="w-[6%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
-                    No
-                  </th>
-                  <th className="w-[22%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
-                    Peserta
-                  </th>
-                  <th className="w-[24%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
-                    Kontak
-                  </th>
-                  <th className="w-[16%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
-                    Posisi
-                  </th>
-                  <th className="w-[18%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
-                    Mentor
-                  </th>
-                  <th className="w-[18%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
-                    Status Magang
-                  </th>
-                  <th className="w-[14%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
-                    Aksi
-                  </th>
-                </tr>
-              </thead>
-
-              {/* ================= BODY ================= */}
-              <tbody className="divide-y divide-slate-100 dark:divide-indigo-500/20">
-                {currentItems.map((p, index) => (
-                  <tr
-                    key={p.pesertaId}
-                    className="hover:bg-[#FEF3C7]/40 dark:hover:bg-indigo-500/10 transition"
-                  >
-                    {/* NO */}
-                    <td className="py-4 px-6 text-center font-medium text-slate-500 dark:text-slate-300">
-                      {indexOfFirstItem + index + 1}
-                    </td>
-
-                    {/* PESERTA */}
-                    <td className="py-4 px-6">
-                      <div className="flex items-center justify-center gap-3">
-                        <div
-                          className="
-                            w-10 h-10
-                            rounded-full
-                            bg-linear-to-br from-[#7F1D1D] to-[#F59E0B]
-                            dark:from-indigo-600 dark:to-violet-500
-                            flex items-center justify-center
-                            text-white shadow
-                          "
-                        >
-                          <HiUser className="w-5 h-5" />
-                        </div>
-                        <div className="text-left leading-tight">
-                          <p className="font-medium text-slate-800 dark:text-slate-100">
-                            {p.nama}
-                          </p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">
-                            {p.jurusan}
-                          </p>
-                        </div>
-                      </div>
-                    </td>
-
-                    {/* KONTAK */}
-                    <td className="py-4 px-6 text-center">
-                      <div className="space-y-1 text-slate-600 dark:text-slate-300">
-                        <div className="flex justify-center items-center gap-2">
-                          <HiMail className="w-4 h-4" />
-                          <span className="truncate max-w-52">{p.email}</span>
-                        </div>
-                        <div className="flex justify-center items-center gap-2">
-                          <HiPhone className="w-4 h-4" />
-                          <span>{p.wa}</span>
-                        </div>
-                      </div>
-                    </td>
-
-                    {/* POSISI */}
-                    <td className="py-4 px-6 text-center">
-                      <span
-                        className="
-                          inline-flex items-center gap-2
-                          px-3 py-1.5 rounded-full
-                          text-xs font-semibold
-                          bg-blue-50 text-blue-700
-                          dark:bg-indigo-500/20 dark:text-indigo-200
-                        "
-                      >
-                        {p.posisi}
-                      </span>
-                    </td>
-
-                    {/* MENTOR */}
-                    <td className="py-4 px-6 text-center">
-                      {p.mentor ? (
-                        <div className="text-sm">
-                          <p className="font-medium text-slate-800 dark:text-slate-100">
-                            {p.mentor.name}
-                          </p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">
-                            {p.mentor.email}
-                          </p>
-                        </div>
-                      ) : (
-                        <span className="text-slate-400 italic text-sm">
-                          Belum ada mentor
-                        </span>
-                      )}
-                    </td>
-
-                    {/* STATUS MAGANG */}
-                    <td className="py-4 px-6 text-center">
-                      <StatusMagangBadge
-                        status={p.statusMagang || "Menunggu"}
-                      />
-                    </td>
-
-                    {/* AKSI */}
-                    <td className="py-4 px-6 text-center">
-                      <button
-                        onClick={() => setSelectedPeserta(p)}
-                        className="
-                          inline-flex items-center justify-center
-                          px-4 py-2
-                          rounded-xl
-                          text-sm font-semibold
-                          text-white
-                          bg-linear-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
-                          dark:from-indigo-600 dark:to-violet-500
-                          shadow hover:shadow-xl
-                          hover:-translate-y-0.5
-                          transition
-                        "
-                      >
-                        Lihat Detail
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* ================= PAGINATION ================= */}
-          {totalPage > 1 && (
-            <div className="flex flex-wrap items-center justify-center gap-2 py-5">
-              <button
-                disabled={page === 1}
-                onClick={() => setPage((p) => p - 1)}
-                className="
-                  px-4 py-2
-                  rounded-lg
-                  text-sm font-medium
-                  border
-                  border-slate-300 dark:border-indigo-500/30
-                  bg-white dark:bg-indigo-950
-                  text-slate-700 dark:text-indigo-200
-                  hover:bg-[#FFF1F2] dark:hover:bg-indigo-900/40
-                  disabled:opacity-40 disabled:cursor-not-allowed
-                  transition
-                "
-              >
-                Prev
-              </button>
-
-              {Array.from({ length: totalPage }).map((_, i) => {
-                const active = page === i + 1;
-                return (
-                  <button
-                    key={i}
-                    onClick={() => setPage(i + 1)}
-                    className={`
-                      min-w-9.5 h-9.5
-                      rounded-lg
-                      text-sm font-semibold
-                      transition
-                      ${
-                        active
-                          ? `
-                            bg-[#B91C1C] text-white shadow
-                            dark:bg-indigo-600
-                          `
-                          : `
-                            bg-white dark:bg-indigo-950
-                            text-[#7F1D1D] dark:text-indigo-200
-                            border border-slate-300 dark:border-indigo-500/30
-                            hover:bg-[#FFF1F2] dark:hover:bg-indigo-900/40
-                          `
-                      }
-                    `}
-                  >
-                    {i + 1}
-                  </button>
-                );
-              })}
-
-              <button
-                disabled={page === totalPage}
-                onClick={() => setPage((p) => p + 1)}
-                className="
-                  px-4 py-2
-                  rounded-lg
-                  text-sm font-medium
-                  border
-                  border-slate-300 dark:border-indigo-500/30
-                  bg-white dark:bg-indigo-950
-                  text-slate-700 dark:text-indigo-200
-                  hover:bg-[#FFF1F2] dark:hover:bg-indigo-900/40
-                  disabled:opacity-40 disabled:cursor-not-allowed
-                  transition
-                "
-              >
-                Next
-              </button>
+          {/* LOADING OVERLAY */}
+          {loading && (
+            <div className="flex items-center justify-center py-20">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#B91C1C] dark:border-indigo-400"></div>
             </div>
+          )}
+
+          {!loading && (
+            <>
+              <div className="overflow-x-auto">
+                <table className="min-w-200 w-full text-sm sm:text-base">
+                  <thead>
+                    <tr
+                      className="
+                        bg-slate-50 dark:bg-indigo-500/10
+                        border-b border-slate-200 dark:border-indigo-500/30
+                      "
+                    >
+                      <th className="w-[5%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
+                        No
+                      </th>
+                      <th className="w-[18%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
+                        Peserta
+                      </th>
+                      <th className="w-[18%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
+                        Kontak
+                      </th>
+                      <th className="w-[12%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
+                        Posisi
+                      </th>
+                      <th className="w-[14%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
+                        Mentor
+                      </th>
+                      <th className="w-[12%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
+                        Status Magang
+                      </th>
+                      <th className="w-[12%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
+                        Status Surat
+                      </th>
+                      <th className="w-[9%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
+                        Aksi
+                      </th>
+                    </tr>
+                  </thead>
+
+                  <tbody className="divide-y divide-slate-100 dark:divide-indigo-500/20">
+                    {currentItems.map((p, index) => {
+                      const suratStatus =
+                        suratSelesaiStatus[p.email]?.status ||
+                        "Belum Ada Surat";
+
+                      return (
+                        <tr
+                          key={p.pesertaId || index}
+                          className="hover:bg-[#FEF3C7]/40 dark:hover:bg-indigo-500/10 transition"
+                        >
+                          <td className="py-4 px-6 text-center font-medium text-slate-500 dark:text-slate-300">
+                            {indexOfFirstItem + index + 1}
+                          </td>
+
+                          <td className="py-4 px-6">
+                            <div className="flex items-center justify-center gap-3">
+                              <div
+                                className="
+                                  w-10 h-10
+                                  rounded-full
+                                  bg-linear-to-br from-[#7F1D1D] to-[#F59E0B]
+                                  dark:from-indigo-600 dark:to-violet-500
+                                  flex items-center justify-center
+                                  text-white shadow
+                                "
+                              >
+                                <HiUser className="w-5 h-5" />
+                              </div>
+                              <div className="text-left leading-tight">
+                                <p className="font-medium text-slate-800 dark:text-slate-100">
+                                  {p.nama || "-"}
+                                </p>
+                                <p className="text-xs text-slate-500 dark:text-slate-400">
+                                  {p.jurusan || "-"}
+                                </p>
+                              </div>
+                            </div>
+                          </td>
+
+                          <td className="py-4 px-6 text-center">
+                            <div className="space-y-1 text-slate-600 dark:text-slate-300">
+                              <div className="flex justify-center items-center gap-2">
+                                <HiMail className="w-4 h-4" />
+                                <span className="truncate max-w-52">
+                                  {p.email || "-"}
+                                </span>
+                              </div>
+                              <div className="flex justify-center items-center gap-2">
+                                <HiPhone className="w-4 h-4" />
+                                <span>{p.wa || "-"}</span>
+                              </div>
+                            </div>
+                          </td>
+
+                          <td className="py-4 px-6 text-center">
+                            <span
+                              className="
+                                inline-flex items-center gap-2
+                                px-3 py-1.5 rounded-full
+                                text-xs font-semibold
+                                bg-blue-50 text-blue-700
+                                dark:bg-indigo-500/20 dark:text-indigo-200
+                              "
+                            >
+                              {p.posisi || "-"}
+                            </span>
+                          </td>
+
+                          <td className="py-4 px-6 text-center">
+                            {p.mentor ? (
+                              <div className="text-sm">
+                                <p className="font-medium text-slate-800 dark:text-slate-100">
+                                  {p.mentor.name || "-"}
+                                </p>
+                                <p className="text-xs text-slate-500 dark:text-slate-400">
+                                  {p.mentor.email || "-"}
+                                </p>
+                              </div>
+                            ) : (
+                              <span className="text-slate-400 italic text-sm">
+                                Belum ada mentor
+                              </span>
+                            )}
+                          </td>
+
+                          <td className="py-4 px-6 text-center">
+                            <StatusMagangBadge
+                              status={p.statusMagang || "Menunggu"}
+                            />
+                          </td>
+
+                          <td className="py-4 px-6 text-center">
+                            {loadingSurat ? (
+                              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                                <span className="animate-pulse">Memuat...</span>
+                              </span>
+                            ) : (
+                              <SuratSelesaiBadge status={suratStatus} />
+                            )}
+                          </td>
+
+                          <td className="py-4 px-6 text-center">
+                            <button
+                              onClick={() => setSelectedPeserta(p)}
+                              className="
+                                inline-flex items-center justify-center
+                                px-4 py-2
+                                rounded-xl
+                                text-sm font-semibold
+                                text-white
+                                bg-linear-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
+                                dark:from-indigo-600 dark:to-violet-500
+                                shadow hover:shadow-xl
+                                hover:-translate-y-0.5
+                                transition
+                              "
+                            >
+                              Lihat Detail
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* PAGINATION */}
+              {totalPage > 1 && (
+                <div className="flex flex-wrap items-center justify-center gap-2 py-5">
+                  <button
+                    disabled={page === 1}
+                    onClick={() => setPage((p) => p - 1)}
+                    className="
+                      px-4 py-2
+                      rounded-lg
+                      text-sm font-medium
+                      border
+                      border-slate-300 dark:border-indigo-500/30
+                      bg-white dark:bg-indigo-950
+                      text-slate-700 dark:text-indigo-200
+                      hover:bg-[#FFF1F2] dark:hover:bg-indigo-900/40
+                      disabled:opacity-40 disabled:cursor-not-allowed
+                      transition
+                    "
+                  >
+                    Prev
+                  </button>
+
+                  {Array.from({ length: Math.min(totalPage, 5) }).map(
+                    (_, i) => {
+                      let pageNum = i + 1;
+                      if (totalPage > 5) {
+                        if (page > 3) {
+                          pageNum = page - 3 + i;
+                        }
+                      }
+
+                      if (pageNum > totalPage) return null;
+
+                      const active = page === pageNum;
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => setPage(pageNum)}
+                          className={`
+                          min-w-9.5 h-9.5 px-3
+                          rounded-lg
+                          text-sm font-semibold
+                          transition
+                          ${
+                            active
+                              ? `
+                                bg-[#B91C1C] text-white shadow
+                                dark:bg-indigo-600
+                              `
+                              : `
+                                bg-white dark:bg-indigo-950
+                                text-[#7F1D1D] dark:text-indigo-200
+                                border border-slate-300 dark:border-indigo-500/30
+                                hover:bg-[#FFF1F2] dark:hover:bg-indigo-900/40
+                              `
+                          }
+                        `}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    },
+                  )}
+
+                  <button
+                    disabled={page === totalPage}
+                    onClick={() => setPage((p) => p + 1)}
+                    className="
+                      px-4 py-2
+                      rounded-lg
+                      text-sm font-medium
+                      border
+                      border-slate-300 dark:border-indigo-500/30
+                      bg-white dark:bg-indigo-950
+                      text-slate-700 dark:text-indigo-200
+                      hover:bg-[#FFF1F2] dark:hover:bg-indigo-900/40
+                      disabled:opacity-40 disabled:cursor-not-allowed
+                      transition
+                    "
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
@@ -499,12 +691,14 @@ export default function ViewPesertaSuperadmin() {
           onViewLogbook={handleViewLogbook}
           onViewLaporanBulanan={handleViewLaporanBulanan}
           onViewLaporanAkhir={handleViewLaporanAkhir}
+          onSuratSelesaiSuccess={handleSuratSelesaiSuccess}
         />
       )}
     </div>
   );
 }
 
+// ================ STAT CARD COMPONENT ================
 type StatCardColor = "indigo" | "emerald" | "amber" | "slate";
 
 type StatCardProps = {
@@ -544,7 +738,6 @@ function StatCard({ title, value, icon, note, color }: StatCardProps) {
         transition
       "
     >
-      {/* TOP */}
       <div className="flex items-center justify-between">
         <div>
           <p className="text-xs uppercase tracking-wide text-[#7F1D1D] dark:text-indigo-300">
@@ -569,7 +762,6 @@ function StatCard({ title, value, icon, note, color }: StatCardProps) {
         </div>
       </div>
 
-      {/* FOOTER */}
       <div className="mt-4 pt-4 border-t border-[#FCA5A5]/40 dark:border-indigo-500/30">
         <p className="text-xs text-slate-600 dark:text-slate-300">{note}</p>
       </div>
@@ -577,42 +769,57 @@ function StatCard({ title, value, icon, note, color }: StatCardProps) {
   );
 }
 
+// ================ STATUS MAGANG BADGE ================
 function StatusMagangBadge({ status }: { status: string }) {
-  if (status === "Belum Waktu Magang") {
-    return (
-      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-700">
-        Belum Waktu Magang
-      </span>
-    );
+  switch (status) {
+    case "Belum Waktu Magang":
+      return (
+        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
+          Belum Waktu Magang
+        </span>
+      );
+    case "Sedang Magang":
+      return (
+        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+          Sedang Magang
+        </span>
+      );
+    case "Tidak Magang":
+      return (
+        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+          Tidak Magang
+        </span>
+      );
+    case "Selesai Magang":
+      return (
+        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+          Selesai
+        </span>
+      );
+    default:
+      return (
+        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400">
+          Menunggu
+        </span>
+      );
   }
+}
 
-  if (status === "Sedang Magang") {
+// ================ SURAT SELESAI BADGE ================
+function SuratSelesaiBadge({ status }: { status: string }) {
+  if (status === "Sudah Terkirim") {
     return (
-      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
-        Sedang Magang
-      </span>
-    );
-  }
-
-  if (status === "Tidak Magang") {
-    return (
-      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700">
-        Tidak Magang
-      </span>
-    );
-  }
-
-  if (status === "Selesai Magang") {
-    return (
-      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">
-        Selesai
+      <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+        <HiDocumentText className="w-3 h-3" />
+        Surat Terkirim
       </span>
     );
   }
 
   return (
-    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700">
-      Menunggu
+    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+      <HiDocumentText className="w-3 h-3" />
+      Belum Ada Surat
     </span>
   );
 }

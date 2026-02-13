@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react"; // 🔥 TAMBAH useMemo
 import MagangPopup from "@/components/ui/MagangPopup";
 
 /* ================= TYPES ================= */
@@ -25,8 +25,6 @@ type Peserta = {
     email: string;
     posisiMentor: string;
   };
-
-  // fallback mentor (jika backend taruh di peserta)
   mentorNama?: string;
   mentorEmail?: string;
   mentorPosisi?: string;
@@ -45,29 +43,30 @@ type Pendaftaran = {
   suratBalasan?: string;
   jawabanAdmin?: string;
   peserta: Peserta[];
-
-  // kemungkinan mentor di root
   mentor?: Mentor;
   mentorNama?: string;
   mentorEmail?: string;
   mentorPosisi?: string;
 };
 
+type SuratSelesai = {
+  email: string;
+  nama: string;
+  file: string;
+  tanggalKirim: string;
+};
+
 /* ================= UTIL ================= */
 
 function hitungDurasi(mulai?: string, selesai?: string) {
   if (!mulai || !selesai) return null;
-
   const start = new Date(mulai);
   const end = new Date(selesai);
-
   if (isNaN(start.getTime()) || isNaN(end.getTime()) || end < start)
     return null;
-
   const totalHari = Math.ceil(
     (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24),
   );
-
   return {
     bulan: Math.floor(totalHari / 30),
     hari: totalHari % 30,
@@ -82,24 +81,74 @@ const getInitial = (nama = "-") =>
     .slice(0, 3)
     .toUpperCase();
 
+function hitungSisaHari(selesai?: string) {
+  if (!selesai) return null;
+  const todayWIB = new Date(
+    new Date().toLocaleString("en-US", { timeZone: "Asia/Jakarta" }),
+  );
+  const endWIB = new Date(
+    new Date(selesai).toLocaleString("en-US", { timeZone: "Asia/Jakarta" }),
+  );
+  const diff = Math.ceil(
+    (endWIB.getTime() - todayWIB.getTime()) / (1000 * 60 * 60 * 24),
+  );
+  return diff >= 0 ? diff : 0;
+}
+
+function hitungProgressMagang(mulai?: string, selesai?: string): number {
+  if (!mulai || !selesai) return 0;
+  const start = new Date(
+    new Date(mulai).toLocaleString("en-US", { timeZone: "Asia/Jakarta" }),
+  );
+  const end = new Date(
+    new Date(selesai).toLocaleString("en-US", { timeZone: "Asia/Jakarta" }),
+  );
+  const now = new Date(
+    new Date().toLocaleString("en-US", { timeZone: "Asia/Jakarta" }),
+  );
+  if (end <= start) return 0;
+  const totalHari = Math.ceil(
+    (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24),
+  );
+  const sisaHari = Math.max(
+    0,
+    Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)),
+  );
+  return Math.min(100, Math.max(0, ((totalHari - sisaHari) / totalHari) * 100));
+}
+
 /* ================= MAIN ================= */
 
 export default function PesertaDashboard() {
+  // ================ SEMUA HOOKS DI ATAS ================
   const [pendaftaran, setPendaftaran] = useState<Pendaftaran | null>(null);
   const [open, setOpen] = useState(false);
+  const [suratSelesai, setSuratSelesai] = useState<SuratSelesai | null>(null);
+  const [emailLogin, setEmailLogin] = useState<string | null>(null);
 
   const FILE_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
+  // 🔥 AMBIL EMAIL DARI TOKEN
+  useEffect(() => {
+    try {
+      const token = localStorage.getItem("token");
+      if (token) {
+        const payload = JSON.parse(atob(token.split(".")[1]));
+        setEmailLogin(payload.email);
+      }
+    } catch (err) {
+      console.error("Gagal parse token", err);
+    }
+  }, []);
+
+  // 🔥 FETCH DATA PENDAFTARAN
   const fetchData = useCallback(async () => {
     try {
       const token = localStorage.getItem("token");
-      if (!token) return;
-
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      const email = payload.email;
+      if (!token || !emailLogin) return;
 
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/pendaftaran/cek?email=${email}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/pendaftaran/cek?email=${emailLogin}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -116,12 +165,88 @@ export default function PesertaDashboard() {
     } catch (err) {
       console.error("Gagal memuat dashboard peserta", err);
     }
-  }, []);
+  }, [emailLogin]);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    if (emailLogin) {
+      fetchData();
+    }
+  }, [emailLogin, fetchData]);
 
+  // 🔥 FETCH SURAT SELESAI
+  const fetchSuratSelesai = useCallback(async (email: string) => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/surat-selesai/cek?email=${email}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      if (res.ok) {
+        const data = await res.json();
+        setSuratSelesai(data);
+      }
+    } catch (err) {
+      console.log("Surat selesai belum tersedia");
+    }
+  }, []);
+
+  // 🔥 GUNAKAN useMemo UNTUK COMPUTED VALUES (TIDAK BOLEH DI BODY KOMPONEN)
+  const peserta = useMemo(() => {
+    if (!pendaftaran || !emailLogin) return null;
+    return pendaftaran.peserta.find(
+      (p) => p.email.toLowerCase() === emailLogin?.toLowerCase(),
+    );
+  }, [pendaftaran, emailLogin]);
+
+  // 🔥 GUNAKAN useEffect UNTUK FETCH SURAT (DI ATAS, SEBELUM CONDITIONAL RETURN)
+  useEffect(() => {
+    if (peserta?.email) {
+      fetchSuratSelesai(peserta.email);
+    }
+  }, [peserta?.email, fetchSuratSelesai]);
+
+  // 🔥 RESOLVE MENTOR - GUNAKAN useMemo
+  const mentor = useMemo(() => {
+    return {
+      nama: peserta?.mentor?.name || peserta?.mentorNama || "Belum Ditentukan",
+      email: peserta?.mentor?.email || peserta?.mentorEmail || "-",
+      posisi: peserta?.mentor?.posisiMentor || peserta?.mentorPosisi || "-",
+    };
+  }, [peserta]);
+
+  // 🔥 DURASI - GUNAKAN useMemo
+  const durasi = useMemo(() => {
+    return hitungDurasi(
+      peserta?.tanggalMulaiMagang,
+      peserta?.tanggalSelesaiMagang,
+    );
+  }, [peserta?.tanggalMulaiMagang, peserta?.tanggalSelesaiMagang]);
+
+  const durasiText = durasi
+    ? `(${durasi.bulan} bulan${durasi.hari ? ` ${durasi.hari} hari` : ""})`
+    : "";
+
+  // 🔥 SISA HARI - GUNAKAN useMemo
+  const sisaHari = useMemo(() => {
+    return hitungSisaHari(peserta?.tanggalSelesaiMagang);
+  }, [peserta?.tanggalSelesaiMagang]);
+
+  // 🔥 PROGRESS MAGANG - GUNAKAN useMemo
+  const progressMagang = useMemo(() => {
+    return hitungProgressMagang(
+      peserta?.tanggalMulaiMagang,
+      peserta?.tanggalSelesaiMagang,
+    );
+  }, [peserta?.tanggalMulaiMagang, peserta?.tanggalSelesaiMagang]);
+
+  // ================ CONDITIONAL RENDER (SETELAH SEMUA HOOKS) ================
   if (!pendaftaran) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
@@ -131,16 +256,6 @@ export default function PesertaDashboard() {
       </div>
     );
   }
-
-  // ambil email login dari token
-  const token = localStorage.getItem("token");
-  const payload = token ? JSON.parse(atob(token.split(".")[1])) : null;
-  const emailLogin = payload?.email;
-
-  // cari peserta sesuai email login
-  const peserta = pendaftaran.peserta.find(
-    (p) => p.email.toLowerCase() === emailLogin?.toLowerCase(),
-  );
 
   if (!peserta) {
     return (
@@ -152,30 +267,6 @@ export default function PesertaDashboard() {
     );
   }
 
-  /* ================= RESOLVE MENTOR (ANTI GAGAL) ================= */
-
-  const mentor = {
-    nama: peserta?.mentor?.name || "Belum Ditentukan",
-    email: peserta?.mentor?.email || "-",
-    posisi: peserta?.mentor?.posisiMentor || "-",
-  };
-
-  const durasi = hitungDurasi(
-    peserta?.tanggalMulaiMagang,
-    peserta?.tanggalSelesaiMagang,
-  );
-
-  const durasiText = durasi
-    ? `(${durasi.bulan} bulan${durasi.hari ? ` ${durasi.hari} hari` : ""})`
-    : "";
-
-  const sisaHari = hitungSisaHari(peserta?.tanggalSelesaiMagang);
-
-  const progressMagang = hitungProgressMagang(
-    peserta.tanggalMulaiMagang,
-    peserta.tanggalSelesaiMagang,
-  );
-
   /* ================= UI ================= */
   return (
     <>
@@ -186,59 +277,52 @@ export default function PesertaDashboard() {
       />
 
       <div className="space-y-10">
-        {/* ================= HERO ================= */}
+        {/* HERO SECTION */}
         <div
           className="
-              relative overflow-hidden
-              rounded-[2.25rem]
-              bg-linear-to-r
-              from-[#7F1D1D]
-              via-[#991B1B]
-              to-[#D97706]
-              dark:from-indigo-600 dark:via-purple-600 dark:to-fuchsia-600
-              px-10 py-12
-              shadow-[0_24px_60px_-20px_rgba(0,0,0,0.45)]
-              text-white
-            "
+            relative overflow-hidden
+            rounded-[2.25rem]
+            bg-linear-to-r
+            from-[#7F1D1D] via-[#991B1B] to-[#D97706]
+            dark:from-indigo-600 dark:via-purple-600 dark:to-fuchsia-600
+            px-10 py-12
+            shadow-[0_24px_60px_-20px_rgba(0,0,0,0.45)]
+            text-white
+          "
         >
-          {/* decorative glow */}
           <div className="absolute -top-24 -right-24 w-96 h-96 bg-white/20 rounded-full blur-3xl" />
           <div className="absolute -bottom-32 -left-24 w-md h-112 bg-black/10 rounded-full blur-3xl" />
 
           <div className="relative flex flex-col sm:flex-row items-center gap-8">
-            {/* Avatar */}
             <div
               className="
-                  flex h-24 w-24 items-center justify-center
-                  rounded-full
-                  bg-white/25 backdrop-blur
-                  text-3xl font-extrabold
-                  ring-4 ring-white/40
-                  shadow-xl
-                "
+                flex h-24 w-24 items-center justify-center
+                rounded-full
+                bg-white/25 backdrop-blur
+                text-3xl font-extrabold
+                ring-4 ring-white/40
+                shadow-xl
+              "
             >
-              {getInitial(peserta?.nama)}
+              {getInitial(peserta.nama)}
             </div>
 
-            {/* Text */}
             <div className="text-center sm:text-left space-y-2">
               <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">
-                Halo, {peserta?.nama || "Peserta"}{" "}
+                Halo, {peserta.nama}{" "}
                 <span className="inline-block ml-1">👋</span>
               </h1>
-
               <p className="text-white/85 text-base md:text-lg">
-                {peserta?.email || "-"}
+                {peserta.email}
               </p>
-
               <span
                 className="
-                    inline-flex items-center gap-2
-                    mt-3 px-5 py-2
-                    rounded-full
-                    text-sm font-semibold
-                    bg-white/25 backdrop-blur
-                  "
+                  inline-flex items-center gap-2
+                  mt-3 px-5 py-2
+                  rounded-full
+                  text-sm font-semibold
+                  bg-white/25 backdrop-blur
+                "
               >
                 Peserta Magang Aktif
               </span>
@@ -246,10 +330,9 @@ export default function PesertaDashboard() {
           </div>
         </div>
 
-        {/* ================= COUNTDOWN ================= */}
+        {/* COUNTDOWN SECTION */}
         <div className="px-2 sm:px-0">
           <div className="max-w-6xl mx-auto space-y-4">
-            {/* Header */}
             <div className="flex items-start justify-between gap-6">
               <div>
                 <p className="text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400">
@@ -259,7 +342,6 @@ export default function PesertaDashboard() {
                   {sisaHari !== null ? `${sisaHari} Hari` : "-"}
                 </h3>
               </div>
-
               <div className="text-right shrink-0">
                 <p className="text-xs text-slate-500 dark:text-slate-400">
                   Berakhir pada
@@ -270,47 +352,38 @@ export default function PesertaDashboard() {
               </div>
             </div>
 
-            {/* Progress */}
             <div className="space-y-2">
               <div className="h-2 w-full rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
                 <div
                   className="
-                      h-full
-                      bg-linear-to-r
-                      from-[#FEF3C7]
-                      via-[#FACC15]
-                      to-[#B45309]
-                      dark:from-indigo-500 dark:via-purple-500 dark:to-fuchsia-500
-                      transition-all duration-500
-                    "
-                  style={{
-                    width: `${progressMagang}%`,
-                  }}
+                    h-full
+                    bg-linear-to-r
+                    from-[#FEF3C7] via-[#FACC15] to-[#B45309]
+                    dark:from-indigo-500 dark:via-purple-500 dark:to-fuchsia-500
+                    transition-all duration-500
+                  "
+                  style={{ width: `${progressMagang}%` }}
                 />
               </div>
-
               <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400">
                 <span>Mulai</span>
                 <span>Selesai</span>
               </div>
             </div>
-
             <p className="text-sm text-slate-600 dark:text-slate-400">
               Tetap semangat & konsisten 🚀
             </p>
           </div>
         </div>
 
-        {/* ================= STAT CARDS ================= */}
+        {/* STAT CARDS */}
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
           <StatCard
             title="Status Magang"
             value={pendaftaran.status}
             accent="gold"
           />
-
           <StatCard title="Posisi" value={peserta.posisi} accent="maroon" />
-
           <StatCard
             title="Periode"
             value={
@@ -325,7 +398,6 @@ export default function PesertaDashboard() {
             }
             accent="amber"
           />
-
           <StatCard
             title="Mentor"
             value={
@@ -351,7 +423,7 @@ export default function PesertaDashboard() {
           />
         </div>
 
-        {/* ================= DETAIL ACCORDION ================= */}
+        {/* DETAIL ACCORDION */}
         <div
           className="
             overflow-hidden rounded-3xl
@@ -364,11 +436,11 @@ export default function PesertaDashboard() {
           <button
             onClick={() => setOpen((v) => !v)}
             className="
-                w-full flex items-center justify-between
-                px-8 py-6
-                hover:bg-white/40 dark:hover:bg-white/5
-                transition
-              "
+              w-full flex items-center justify-between
+              px-8 py-6
+              hover:bg-white/40 dark:hover:bg-white/5
+              transition
+            "
           >
             <div>
               <h2 className="text-xl font-bold">📂 Detail Informasi Peserta</h2>
@@ -376,11 +448,8 @@ export default function PesertaDashboard() {
                 Data diri, alamat, dokumen, dan catatan admin
               </p>
             </div>
-
             <span
-              className={`text-2xl transition-transform ${
-                open ? "rotate-180" : ""
-              }`}
+              className={`text-2xl transition-transform ${open ? "rotate-180" : ""}`}
             >
               ⌄
             </span>
@@ -412,13 +481,7 @@ export default function PesertaDashboard() {
                   <Item label="Kecamatan" value={peserta.kecamatan} />
                   <Item label="Kelurahan" value={peserta.kelurahan} />
                 </Grid>
-
-                <div
-                  className="
-                    mt-4 rounded-xl p-4
-                    bg-slate-50 dark:bg-slate-800
-                  "
-                >
+                <div className="mt-4 rounded-xl p-4 bg-slate-50 dark:bg-slate-800">
                   <p className="text-xs opacity-60">Alamat Lengkap</p>
                   <p className="font-medium">{peserta.alamatLengkap}</p>
                 </div>
@@ -435,6 +498,12 @@ export default function PesertaDashboard() {
                     label="Surat Balasan"
                     file={pendaftaran.suratBalasan}
                     baseUrl={FILE_BASE_URL}
+                  />
+                  <FileItem
+                    label="Surat Selesai Magang"
+                    file={suratSelesai?.file}
+                    baseUrl={FILE_BASE_URL}
+                    isSuratSelesai={true}
                   />
                 </Grid>
               </Section>
@@ -470,18 +539,19 @@ function StatCard({ title, value, accent }: any) {
   };
 
   return (
-    <div className="
-      relative overflow-hidden
-      rounded-2xl p-6
-      bg-white dark:bg-slate-900
-      border border-slate-200 dark:border-slate-700
-      shadow-lg
-      transition hover:-translate-y-1 hover:shadow-2xl
-    ">
+    <div
+      className="
+        relative overflow-hidden
+        rounded-2xl p-6
+        bg-white dark:bg-slate-900
+        border border-slate-200 dark:border-slate-700
+        shadow-lg
+        transition hover:-translate-y-1 hover:shadow-2xl
+      "
+    >
       <div
         className={`absolute -top-20 -right-20 w-40 h-40 rounded-full blur-3xl opacity-30 ${accentMap[accent]}`}
       />
-
       <div className="relative z-10 space-y-2">
         <p className="text-sm text-slate-500 dark:text-slate-400">{title}</p>
         <div className="text-lg font-bold text-slate-900 dark:text-white">
@@ -495,24 +565,21 @@ function StatCard({ title, value, accent }: any) {
 function Section({ title, children }: any) {
   return (
     <div className="space-y-6">
-      {/* TITLE */}
       <div
         className="
-            flex items-center gap-3
-            px-5 py-3
-            rounded-2xl
-            bg-linear-to-r from-[#FFF7ED] to-[#FDE68A]
-            text-[#7F1D1D]
-            dark:from-indigo-900/40 dark:to-purple-900/30
-            dark:text-indigo-200
-            text-base font-semibold
-            shadow-sm
-          "
+          flex items-center gap-3
+          px-5 py-3
+          rounded-2xl
+          bg-linear-to-r from-[#FFF7ED] to-[#FDE68A]
+          text-[#7F1D1D]
+          dark:from-indigo-900/40 dark:to-purple-900/30
+          dark:text-indigo-200
+          text-base font-semibold
+          shadow-sm
+        "
       >
         {title}
       </div>
-
-      {/* CONTENT */}
       {children}
     </div>
   );
@@ -528,90 +595,60 @@ function Grid({ children }: any) {
 
 function Item({ label, value }: any) {
   return (
-    <div
-      className="
-        rounded-xl p-4
-        bg-slate-50 dark:bg-slate-800
-      "
-    >
+    <div className="rounded-xl p-4 bg-slate-50 dark:bg-slate-800">
       <p className="text-xs opacity-60">{label}</p>
       <p className="font-medium">{value || "-"}</p>
     </div>
   );
 }
 
-function hitungSisaHari(selesai?: string) {
-  if (!selesai) return null;
-
-  // WAKTU WIB
-  const todayWIB = new Date(
-    new Date().toLocaleString("en-US", { timeZone: "Asia/Jakarta" }),
-  );
-
-  const endWIB = new Date(
-    new Date(selesai).toLocaleString("en-US", { timeZone: "Asia/Jakarta" }),
-  );
-
-  const diff = Math.ceil(
-    (endWIB.getTime() - todayWIB.getTime()) / (1000 * 60 * 60 * 24),
-  );
-
-  return diff >= 0 ? diff : 0;
-}
-
-function hitungProgressMagang(mulai?: string, selesai?: string): number {
-  if (!mulai || !selesai) return 0;
-
-  const start = new Date(
-    new Date(mulai).toLocaleString("en-US", { timeZone: "Asia/Jakarta" }),
-  );
-
-  const end = new Date(
-    new Date(selesai).toLocaleString("en-US", { timeZone: "Asia/Jakarta" }),
-  );
-
-  const now = new Date(
-    new Date().toLocaleString("en-US", { timeZone: "Asia/Jakarta" }),
-  );
-
-  if (end <= start) return 0;
-
-  const totalHari = Math.ceil(
-    (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24),
-  );
-
-  const sisaHari = Math.max(
-    0,
-    Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)),
-  );
-
-  return Math.min(100, Math.max(0, ((totalHari - sisaHari) / totalHari) * 100));
-}
-
 function FileItem({
   label,
   file,
   baseUrl,
+  isSuratSelesai = false,
 }: {
   label: string;
   file?: string;
   baseUrl: string;
+  isSuratSelesai?: boolean;
 }) {
   return (
-    <div className="flex items-center justify-between rounded-xl bg-slate-50 p-4 dark:bg-slate-800">
+    <div
+      className={`
+        flex items-center justify-between rounded-xl p-4
+        ${
+          isSuratSelesai
+            ? "bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800"
+            : "bg-slate-50 dark:bg-slate-800"
+        }
+      `}
+    >
       <div>
         <p className="text-xs text-slate-500">{label}</p>
         <p className="max-w-45 truncate text-sm font-medium">
           {file || "Tidak tersedia"}
         </p>
+        {isSuratSelesai && file && (
+          <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">
+            ✓ Surat selesai magang telah diterbitkan
+          </p>
+        )}
       </div>
-
       {file && (
         <a
           href={`${baseUrl}/uploads/${file}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-sm font-semibold text-[#B91C1C] hover:text-[#7F1D1D] hover:underline"
+          className={`
+            text-sm font-semibold
+            ${
+              isSuratSelesai
+                ? "text-emerald-600 hover:text-emerald-700"
+                : "text-[#B91C1C] hover:text-[#7F1D1D]"
+            }
+            hover:underline
+          `}
         >
           Lihat
         </a>
