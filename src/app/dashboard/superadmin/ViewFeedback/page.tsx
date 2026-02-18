@@ -5,18 +5,11 @@ import { useEffect, useState } from "react";
 import {
   HiDocumentText,
   HiUser,
-  HiMail,
   HiCalendar,
   HiCheckCircle,
-  HiXCircle,
-  HiExclamationCircle,
   HiSearch,
-  HiChat,
   HiClock,
-  HiStar,
-  HiUsers,
-  HiChevronDown,
-  HiDownload, // ✅ TAMBAHKAN INI
+  HiDownload, 
 } from "react-icons/hi";
 import { FiMessageCircle } from "react-icons/fi";
 import SuperadminFeedbackDetailModal from "@/components/superadmin/SuperadminFeedbackDetailModal";
@@ -69,10 +62,8 @@ export default function ViewFeedbackSuperadmin() {
     useState<PesertaFeedback | null>(null);
   const [selectedFeedback, setSelectedFeedback] =
     useState<FeedbackDetail | null>(null);
-  const [showMonthModal, setShowMonthModal] = useState(false);
   const [statistics, setStatistics] = useState<any>(null);
-  const [filterStatus, setFilterStatus] = useState<string>("all");
-
+  
   // Pagination state
   const [page, setPage] = useState(1);
   const itemsPerPage = 10;
@@ -134,7 +125,7 @@ export default function ViewFeedbackSuperadmin() {
     );
   };
 
-  const handleViewFeedback = async (peserta: PesertaFeedback) => {
+  const handleViewFeedback = (peserta: PesertaFeedback) => {
     const feedbackDetails = getFeedbackByPeserta(peserta._id).sort((a, b) => {
       const [yearA, monthA] = a.month.split("-").map(Number);
       const [yearB, monthB] = b.month.split("-").map(Number);
@@ -142,13 +133,16 @@ export default function ViewFeedbackSuperadmin() {
       return monthB - monthA;
     });
 
-    setSelectedPeserta(peserta);
-    setShowMonthModal(true);
-  };
+    if (feedbackDetails.length === 0) {
+      showToast.error("Peserta belum memiliki feedback");
+      return;
+    }
 
-  const handleSelectFeedback = (feedback: FeedbackDetail) => {
-    setSelectedFeedback(feedback);
-    setShowMonthModal(false);
+    // Ambil feedback terbaru
+    const latestFeedback = feedbackDetails[0];
+
+    setSelectedPeserta(peserta);
+    setSelectedFeedback(latestFeedback);
   };
 
   // ✅ FUNGSI DOWNLOAD SEMUA FEEDBACK DALAM BENTUK PDF
@@ -228,307 +222,12 @@ export default function ViewFeedbackSuperadmin() {
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = filteredPeserta.slice(indexOfFirstItem, indexOfLastItem);
 
-  const formatMonth = (monthString: string) => {
-    const [year, month] = monthString.split("-");
-    return new Date(parseInt(year), parseInt(month) - 1).toLocaleDateString(
-      "id-ID",
-      {
-        month: "long",
-        year: "numeric",
-      },
-    );
-  };
-
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("id-ID", {
       day: "numeric",
       month: "short",
       year: "numeric",
     });
-  };
-
-  // Modal untuk pilih bulan feedback
-  const MonthSelectionModal = () => {
-    if (!selectedPeserta) return null;
-
-    const feedbackDetails = getFeedbackByPeserta(selectedPeserta._id);
-
-    return (
-      <div
-        className="
-        fixed inset-0 z-50
-        flex items-center justify-center
-        bg-black/40 dark:bg-black/70
-        backdrop-blur-md
-        p-3 sm:p-6
-      "
-      >
-        <div
-          className="
-          w-full max-w-3xl
-          bg-white/90 dark:bg-indigo-950/40
-          backdrop-blur
-          rounded-3xl
-          border border-[#F59E0B]/40
-          dark:border-indigo-500/30
-          shadow-2xl
-          overflow-hidden
-          flex flex-col
-          max-h-[92vh]
-        "
-        >
-          {/* ================= HEADER ================= */}
-          <div
-            className="
-            px-5 sm:px-6 py-4 sm:py-5
-            bg-linear-to-r
-            from-[#F59E0B] via-[#B91C1C] to-[#7F1D1D]
-            dark:from-indigo-600 dark:to-violet-500
-            text-white
-            flex items-center justify-between
-          "
-          >
-            <div className="flex items-center gap-3">
-              <FiMessageCircle className="text-xl" />
-              <div>
-                <h2 className="text-lg sm:text-xl font-bold">
-                  Pilih Periode Feedback
-                </h2>
-                <div className="flex flex-wrap gap-x-4 text-xs sm:text-sm opacity-90">
-                  <div className="flex items-center gap-1">
-                    <HiUser />
-                    <span>{selectedPeserta.name}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <HiMail />
-                    <span>{selectedPeserta.email}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <button
-              onClick={() => {
-                setShowMonthModal(false);
-                setSelectedPeserta(null);
-              }}
-              className="
-                p-2 rounded-full
-                hover:bg-white/20
-                transition
-              "
-            >
-              <HiXCircle className="text-xl" />
-            </button>
-          </div>
-
-          {/* ================= BODY ================= */}
-          <div className="flex-1 overflow-y-auto px-5 sm:px-6 py-5 space-y-6 modal-scroll">
-            {/* SUMMARY */}
-            <div>
-              <h3
-                className="
-                text-sm sm:text-base font-bold
-                text-[#7F1D1D]
-                dark:text-indigo-300
-                mb-2
-              "
-              >
-                Ringkasan Feedback
-              </h3>
-
-              <div className="flex flex-wrap gap-2">
-                <span
-                  className="
-                  inline-flex items-center gap-1
-                  px-3 py-1.5
-                  rounded-full text-xs font-semibold
-                  bg-emerald-100 text-emerald-700
-                  dark:bg-emerald-500/20 dark:text-emerald-200
-                "
-                >
-                  <HiCheckCircle /> {selectedPeserta.responded} Direspon
-                </span>
-
-                <span
-                  className="
-                  inline-flex items-center gap-1
-                  px-3 py-1.5
-                  rounded-full text-xs font-semibold
-                  bg-amber-100 text-amber-700
-                  dark:bg-amber-500/20 dark:text-amber-200
-                "
-                >
-                  <HiClock /> {selectedPeserta.unresponded} Menunggu Respon
-                </span>
-
-                <span
-                  className="
-                  inline-flex items-center gap-1
-                  px-3 py-1.5
-                  rounded-full text-xs font-semibold
-                  bg-blue-100 text-blue-700
-                  dark:bg-blue-500/20 dark:text-blue-200
-                "
-                >
-                  <FiMessageCircle /> {selectedPeserta.sentToMentor} Terkirim ke
-                  Mentor
-                </span>
-
-                <span
-                  className="
-                  inline-flex items-center gap-1
-                  px-3 py-1.5
-                  rounded-full text-xs font-semibold
-                  bg-slate-100 text-slate-700
-                  dark:bg-slate-500/20 dark:text-slate-200
-                "
-                >
-                  <HiDocumentText /> {selectedPeserta.notSentToMentor} Draft
-                </span>
-              </div>
-            </div>
-
-            {/* LIST */}
-            <div className="space-y-3">
-              <h4
-                className="
-                text-sm font-bold
-                text-[#7F1D1D]
-                dark:text-indigo-300
-              "
-              >
-                Pilih Periode Feedback
-              </h4>
-
-              {feedbackDetails.length === 0 ? (
-                <div
-                  className="
-                  text-center py-10
-                  rounded-2xl
-                  bg-white/80 dark:bg-indigo-950/40
-                  border border-slate-200 dark:border-indigo-500/30
-                "
-                >
-                  <FiMessageCircle className="text-4xl text-slate-300 mx-auto mb-3" />
-                  <p className="text-slate-600 dark:text-slate-300">
-                    Belum ada feedback dari peserta ini
-                  </p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {feedbackDetails.map((feedback) => (
-                    <button
-                      key={feedback._id}
-                      onClick={() => handleSelectFeedback(feedback)}
-                      className="
-                        group
-                        p-4
-                        rounded-2xl
-                        text-left
-                        bg-white/80 dark:bg-indigo-950/40
-                        border border-slate-200 dark:border-indigo-500/30
-                        hover:border-[#F59E0B] dark:hover:border-indigo-400
-                        hover:shadow-lg
-                        transition-all
-                      "
-                    >
-                      <div className="flex items-start justify-between mb-2">
-                        <div>
-                          <div className="flex items-center gap-2 mb-1">
-                            <HiCalendar className="w-4 h-4 text-slate-500 dark:text-indigo-300" />
-                            <span className="font-semibold">
-                              {formatMonth(feedback.month)}
-                            </span>
-                          </div>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">
-                            Dibuat: {formatDate(feedback.createdAt)}
-                          </p>
-                        </div>
-                        <div>
-                          {feedback.isFeedbackMentorSent ? (
-                            feedback.mentorResponse ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-700">
-                                <HiCheckCircle /> Direspon
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-700">
-                                <FiMessageCircle /> Ke Mentor
-                              </span>
-                            )
-                          ) : (
-                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-semibold bg-blue-100 text-blue-700">
-                              <HiDocumentText /> Draft
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="mt-2 space-y-1">
-                        <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-2">
-                          <span className="font-semibold">BPOM:</span>{" "}
-                          {feedback.feedbackBPOM}
-                        </p>
-                        <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-2">
-                          <span className="font-semibold">Mentor:</span>{" "}
-                          {feedback.feedbackMentor}
-                        </p>
-                      </div>
-
-                      <div
-                        className="
-                        mt-3 flex items-center gap-2
-                        text-xs text-slate-400
-                        group-hover:text-[#7F1D1D]
-                        dark:group-hover:text-indigo-300
-                        transition
-                      "
-                      >
-                        <span>Klik untuk detail</span>
-                        <HiChevronDown className="w-3 h-3" />
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* ================= FOOTER ================= */}
-          <div
-            className="
-            px-5 sm:px-6 py-4
-            border-t border-[#F59E0B]/30
-            dark:border-indigo-500/30
-            bg-white/60 dark:bg-indigo-950/30
-            backdrop-blur
-          "
-          >
-            <button
-              onClick={() => {
-                setShowMonthModal(false);
-                setSelectedPeserta(null);
-              }}
-              className="
-                w-full
-                px-6 py-2.5
-                rounded-xl
-                bg-linear-to-r
-                from-[#F59E0B] via-[#B91C1C] to-[#7F1D1D]
-                hover:from-amber-400 hover:via-[#DC2626] hover:to-[#991B1B]
-                dark:from-indigo-600 dark:to-violet-500
-                dark:hover:from-indigo-500 dark:hover:to-violet-400
-                text-white font-semibold
-                shadow-md hover:shadow-xl
-                transition-all
-              "
-            >
-              Kembali
-            </button>
-          </div>
-        </div>
-      </div>
-    );
   };
 
   return (
@@ -543,7 +242,7 @@ export default function ViewFeedbackSuperadmin() {
       "
     >
       {/* HEADER */}
-      <div className="mb-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="mb-10">
         <div>
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight mb-3 flex items-center gap-3">
             <FiMessageCircle className="text-[#B91C1C]" />
@@ -553,39 +252,6 @@ export default function ViewFeedbackSuperadmin() {
             Pantau feedback dari peserta untuk BPOM dan mentor
           </p>
         </div>
-
-        {/* ✅ BUTTON DOWNLOAD ALL FEEDBACK */}
-        <button
-          onClick={handleDownloadAllFeedback}
-          disabled={downloading || feedbackList.length === 0}
-          className="
-            inline-flex items-center justify-center gap-2
-            px-6 py-3
-            rounded-xl
-            text-sm font-semibold
-            text-white
-            bg-gradient-to-r from-emerald-500 to-green-600
-            hover:from-emerald-600 hover:to-green-700
-            dark:from-indigo-600 dark:to-violet-500
-            dark:hover:from-indigo-500 dark:hover:to-violet-400
-            shadow-lg hover:shadow-xl
-            transition-all
-            disabled:opacity-50 disabled:cursor-not-allowed
-            min-w-[180px]
-          "
-        >
-          {downloading ? (
-            <>
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-              <span>Menyiapkan...</span>
-            </>
-          ) : (
-            <>
-              <HiDownload className="w-5 h-5" />
-              <span>Download Laporan PDF</span>
-            </>
-          )}
-        </button>
       </div>
 
       {/* Stats */}
@@ -634,7 +300,7 @@ export default function ViewFeedbackSuperadmin() {
       )}
 
       {/* Search Bar */}
-      <div className="mb-8">
+      <div className="mb-1">
         <div className="relative">
           <HiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-[#7F1D1D] dark:text-indigo-400 w-5 h-5 z-10" />
           <input
@@ -659,6 +325,41 @@ export default function ViewFeedbackSuperadmin() {
         <div className="mt-2 text-sm text-slate-500">
           Total {filteredPeserta.length} peserta dengan feedback
         </div>
+      </div>
+
+      {/* ✅ BUTTON DOWNLOAD ALL FEEDBACK */}
+      <div className="flex justify-end mb-4">
+        <button
+          onClick={handleDownloadAllFeedback}
+          disabled={downloading || feedbackList.length === 0}
+          className="
+            inline-flex items-center justify-center gap-2
+            px-6 py-3
+            rounded-xl
+            text-sm font-semibold
+            text-white
+            bg-linear-to-r from-emerald-500 to-green-600
+            hover:from-emerald-600 hover:to-green-700
+            dark:from-indigo-600 dark:to-violet-500
+            dark:hover:from-indigo-500 dark:hover:to-violet-400
+            shadow-lg hover:shadow-xl
+            transition-all
+            disabled:opacity-50 disabled:cursor-not-allowed
+            min-w-45
+          "
+        >
+          {downloading ? (
+            <>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+              <span>Menyiapkan...</span>
+            </>
+          ) : (
+            <>
+              <HiDownload className="w-5 h-5" />
+              <span>Download Laporan PDF</span>
+            </>
+          )}
+        </button>
       </div>
 
       {/* ===================== TABLE ===================== */}
@@ -726,7 +427,7 @@ export default function ViewFeedbackSuperadmin() {
                     Peserta
                   </th>
                   <th className="w-[26%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
-                    Statistik Feedback
+                    Status Feedback
                   </th>
                   <th className="w-[18%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
                     Feedback Terakhir
@@ -774,16 +475,6 @@ export default function ViewFeedbackSuperadmin() {
 
                     <td className="py-4 px-6">
                       <div className="space-y-2 text-sm">
-                        <div className="flex items-center justify-center gap-2">
-                          <FiMessageCircle className="w-4 h-4 text-slate-400" />
-                          <span>
-                            Total:{" "}
-                            <span className="font-semibold text-indigo-600 dark:text-indigo-400">
-                              {peserta.totalFeedback}
-                            </span>
-                          </span>
-                        </div>
-
                         <div className="flex justify-center flex-wrap gap-2">
                           {peserta.responded > 0 && (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-700">
@@ -804,12 +495,6 @@ export default function ViewFeedbackSuperadmin() {
                             </span>
                           )}
                         </div>
-
-                        {peserta.feedbackMonths.length > 0 && (
-                          <p className="text-xs text-slate-500 dark:text-slate-400 text-center">
-                            {peserta.feedbackMonths.length} periode
-                          </p>
-                        )}
                       </div>
                     </td>
 
@@ -933,9 +618,6 @@ export default function ViewFeedbackSuperadmin() {
         )}
       </div>
 
-      {/* Modal Pilih Periode */}
-      {showMonthModal && <MonthSelectionModal />}
-
       {/* Modal Detail Feedback */}
       {selectedFeedback && selectedPeserta && (
         <SuperadminFeedbackDetailModal
@@ -946,6 +628,7 @@ export default function ViewFeedbackSuperadmin() {
           }}
         />
       )}
+
     </div>
   );
 }

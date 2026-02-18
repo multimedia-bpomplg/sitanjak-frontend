@@ -217,7 +217,7 @@ export default function ViewFeedbackMentor() {
                     </td>
 
                     <td className="py-4 px-6 text-center">
-                      <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 dark:bg-indigo-500/20 dark:text-indigo-200">
+                      <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 dark:bg-indigo-500/20 dark:text-indigo-200">
                         {f.month}
                       </span>
                     </td>
@@ -235,7 +235,7 @@ export default function ViewFeedbackMentor() {
 
                     <td className="py-4 px-6 text-center">
                       <span
-                        className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium
+                        className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold
                           ${
                             f.mentorResponse
                               ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200"
@@ -243,7 +243,7 @@ export default function ViewFeedbackMentor() {
                           }
                         `}
                       >
-                        {f.mentorResponse ? "✅ Direspon" : "⏳ Belum Direspon"}
+                        {f.mentorResponse ? "Direspon" : "Belum Direspon"}
                       </span>
                     </td>
 

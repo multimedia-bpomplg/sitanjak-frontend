@@ -383,7 +383,7 @@ export default function PesertaLayout({
                       : ""
                   }`}
               >
-                🗓 {!collapsed && "Feedback"}
+                💭 {!collapsed && "Feedback"}
               </Link>
             </div>
 

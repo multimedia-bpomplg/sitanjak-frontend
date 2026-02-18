@@ -217,10 +217,10 @@ export default function SuperadminFeedbackModal({ feedback, onClose }: Props) {
                 File Pendukung
               </label>
 
-              <div className="p-5 rounded-2xl bg-gradient-to-r from-amber-50/80 to-orange-50/80 dark:from-indigo-900/30 dark:to-indigo-800/30 border border-[#F59E0B]/40 dark:border-indigo-500/40">
+              <div className="p-5 rounded-2xl bg-linear-to-r from-amber-50/80 to-orange-50/80 dark:from-indigo-900/30 dark:to-indigo-800/30 border border-[#F59E0B]/40 dark:border-indigo-500/40">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#F59E0B] to-[#B91C1C] dark:from-indigo-600 dark:to-violet-500 flex items-center justify-center text-white shadow-lg">
+                    <div className="w-12 h-12 rounded-xl bg-linear-to-br from-[#F59E0B] to-[#B91C1C] dark:from-indigo-600 dark:to-violet-500 flex items-center justify-center text-white shadow-lg">
                       <FiFileText className="text-2xl" />
                     </div>
                     <div>
@@ -266,7 +266,7 @@ export default function SuperadminFeedbackModal({ feedback, onClose }: Props) {
                         flex-1 sm:flex-none
                         px-4 py-2.5
                         rounded-xl
-                        bg-gradient-to-r from-[#F59E0B] to-[#B91C1C]
+                        bg-linear-to-r from-[#F59E0B] to-[#B91C1C]
                         dark:from-indigo-600 dark:to-violet-500
                         text-white
                         hover:from-amber-400 hover:to-[#DC2626]
@@ -289,7 +289,7 @@ export default function SuperadminFeedbackModal({ feedback, onClose }: Props) {
                     <div className="rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 border border-[#F59E0B]/30 dark:border-indigo-500/30">
                       <iframe
                         src={`${getFileUrl(feedback.fileUrl)}#toolbar=0&navpanes=0`}
-                        className="w-full h-[400px]"
+                        className="w-full h-100"
                         title="PDF Preview"
                       />
                     </div>

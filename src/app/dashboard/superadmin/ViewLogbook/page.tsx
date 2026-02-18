@@ -584,6 +584,29 @@ export default function ViewLogbookSuperadmin() {
     );
   };
 
+  /* ================= STATISTICS ================= */
+  const totalPeserta = peserta.length;
+
+  const totalLogbook = peserta.reduce(
+    (sum, p) => sum + p.totalLogbooks,
+    0,
+  );
+
+  const totalApproved = peserta.reduce(
+    (sum, p) => sum + p.approvedLogbooks,
+    0,
+  );
+
+  const totalPending = peserta.reduce(
+    (sum, p) => sum + p.pendingLogbooks,
+    0,
+  );
+
+  const totalRejected = peserta.reduce(
+    (sum, p) => sum + p.rejectedLogbooks,
+    0,
+  );
+
   return (
     <div
       className="
@@ -603,6 +626,49 @@ export default function ViewLogbookSuperadmin() {
         <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400">
           Kelola dan review logbook semua peserta magang
         </p>
+      </div>
+
+      {/* STATS */}
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
+        <StatCard
+          title="Total Peserta"
+          value={totalPeserta}
+          icon={<HiUser className="w-7 h-7" />}
+          note="Peserta dengan logbook"
+          color="indigo"
+        />
+
+        <StatCard
+          title="Total Logbook"
+          value={totalLogbook}
+          icon={<HiDocumentText className="w-7 h-7" />}
+          note="Seluruh logbook terkirim"
+          color="blue"
+        />
+
+        <StatCard
+          title="Disetujui"
+          value={totalApproved}
+          icon={<HiCheckCircle className="w-7 h-7" />}
+          note="Logbook disetujui"
+          color="emerald"
+        />
+
+        <StatCard
+          title="Menunggu"
+          value={totalPending}
+          icon={<HiClock className="w-7 h-7" />}
+          note="Menunggu persetujuan"
+          color="amber"
+        />
+
+        <StatCard
+          title="Ditolak"
+          value={totalRejected}
+          icon={<HiXCircle className="w-7 h-7" />}
+          note="Logbook ditolak"
+          color="slate"
+        />
       </div>
 
       {/* Search Bar */}
@@ -1100,6 +1166,80 @@ export default function ViewLogbookSuperadmin() {
           userName="Superadmin"
         />
       )}
+    </div>
+  );
+}
+
+type StatCardColor = "indigo" | "emerald" | "amber" | "slate" | "blue";
+
+type StatCardProps = {
+  title: string;
+  value: number | string;
+  icon: React.ReactNode;
+  note: string;
+  color: StatCardColor;
+};
+
+function StatCard({ title, value, icon, note, color }: StatCardProps) {
+  const iconColorMap: Record<StatCardColor, string> = {
+    indigo: "bg-[#B91C1C]/90 dark:bg-indigo-600",
+    emerald: "bg-emerald-500 dark:bg-emerald-600",
+    amber: "bg-amber-500 dark:bg-violet-500",
+    slate: "bg-slate-500 dark:bg-indigo-700",
+    blue: "bg-blue-500 dark:bg-blue-600",
+  };
+
+  const textColorMap: Record<StatCardColor, string> = {
+    indigo: "text-[#7F1D1D] dark:text-white",
+    emerald: "text-[#7F1D1D] dark:text-white",
+    amber: "text-[#7F1D1D] dark:text-white",
+    slate: "text-[#7F1D1D] dark:text-white",
+    blue: "text-[#7F1D1D] dark:text-white",
+  };
+
+  return (
+    <div
+      className="
+        group relative
+        rounded-2xl
+        border border-[#FCA5A5]/40 dark:border-indigo-500/30
+        bg-linear-to-br
+        from-[#FFFDF8] via-[#FFF4EC] to-white
+        dark:from-indigo-950 dark:via-indigo-900 dark:to-indigo-800
+        p-6
+        shadow-sm hover:shadow-xl
+        transition
+      "
+    >
+      {/* TOP */}
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-wide text-[#7F1D1D] dark:text-indigo-300">
+            {title}
+          </p>
+          <p className={`text-4xl font-extrabold mt-1 ${textColorMap[color]}`}>
+            {value}
+          </p>
+        </div>
+
+        <div
+          className={`
+            w-14 h-14 rounded-2xl
+            text-white
+            flex items-center justify-center
+            shadow
+            group-hover:scale-110 transition
+            ${iconColorMap[color]}
+          `}
+        >
+          {icon}
+        </div>
+      </div>
+
+      {/* FOOTER */}
+      <div className="mt-4 pt-4 border-t border-[#FCA5A5]/40 dark:border-indigo-500/30">
+        <p className="text-xs text-slate-600 dark:text-slate-300">{note}</p>
+      </div>
     </div>
   );
 }

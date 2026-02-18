@@ -316,83 +316,14 @@ export default function ViewLaporanAkhirSuperadmin() {
     >
       {/* HEADER SECTION */}
       <div className="mb-8">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
-          <div>
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight mb-3">
-              📋 Laporan Akhir Peserta
-            </h1>
-            <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400">
-              Kelola dan review laporan akhir semua peserta magang. Pantau
-              status dan berikan feedback.
-            </p>
-          </div>
-
-          {/* ✅ BUTTON DOWNLOAD ALL - PDF & EXCEL */}
-          <div className="flex flex-col sm:flex-row gap-3">
-            <button
-              onClick={handleDownloadAllPDF}
-              disabled={downloading.pdf || laporanList.length === 0}
-              className="
-                inline-flex items-center justify-center gap-2
-                px-5 py-3
-                rounded-xl
-                text-sm font-semibold
-                text-white
-                bg-gradient-to-r from-red-500 to-red-600
-                hover:from-red-600 hover:to-red-700
-                dark:from-red-600 dark:to-red-700
-                dark:hover:from-red-500 dark:hover:to-red-600
-                shadow-lg hover:shadow-xl
-                transition-all
-                disabled:opacity-50 disabled:cursor-not-allowed
-                min-w-[140px]
-              "
-            >
-              {downloading.pdf ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-                  <span>Menyiapkan...</span>
-                </>
-              ) : (
-                <>
-                  <FiFileText className="w-5 h-5" />
-                  <span>Download PDF</span>
-                </>
-              )}
-            </button>
-
-            <button
-              onClick={handleDownloadAllExcel}
-              disabled={downloading.excel || laporanList.length === 0}
-              className="
-                inline-flex items-center justify-center gap-2
-                px-5 py-3
-                rounded-xl
-                text-sm font-semibold
-                text-white
-                bg-gradient-to-r from-emerald-500 to-green-600
-                hover:from-emerald-600 hover:to-green-700
-                dark:from-emerald-600 dark:to-green-700
-                dark:hover:from-emerald-500 dark:hover:to-green-600
-                shadow-lg hover:shadow-xl
-                transition-all
-                disabled:opacity-50 disabled:cursor-not-allowed
-                min-w-[140px]
-              "
-            >
-              {downloading.excel ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-                  <span>Menyiapkan...</span>
-                </>
-              ) : (
-                <>
-                  <FiDownload className="w-5 h-5" />
-                  <span>Download Excel</span>
-                </>
-              )}
-            </button>
-          </div>
+        <div className="mb-6">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight mb-3">
+            📋 Laporan Akhir Peserta
+          </h1>
+          <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400">
+            Kelola dan review laporan akhir semua peserta magang. Pantau
+            status dan berikan feedback.
+          </p>
         </div>
 
         {/* STATS */}
@@ -403,14 +334,6 @@ export default function ViewLaporanAkhirSuperadmin() {
             icon={<HiUser className="w-7 h-7" />}
             note="Peserta dengan laporan"
             color="indigo"
-          />
-
-          <StatCard
-            title="Disetujui"
-            value={laporanList.filter((l) => l.status === "Disetujui").length}
-            icon={<HiCheckCircle className="w-7 h-7" />}
-            note="Laporan approved"
-            color="emerald"
           />
 
           <StatCard
@@ -426,6 +349,14 @@ export default function ViewLaporanAkhirSuperadmin() {
           />
 
           <StatCard
+            title="Disetujui"
+            value={laporanList.filter((l) => l.status === "Disetujui").length}
+            icon={<HiCheckCircle className="w-7 h-7" />}
+            note="Laporan approved"
+            color="emerald"
+          />
+
+          <StatCard
             title="Ditolak"
             value={laporanList.filter((l) => l.status === "Ditolak").length}
             icon={<HiXCircle className="w-7 h-7" />}
@@ -436,7 +367,7 @@ export default function ViewLaporanAkhirSuperadmin() {
       </div>
 
       {/* SEARCH AND FILTERS */}
-      <div className="mb-8">
+      <div className="mb-1">
         <div className="relative">
           <HiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-[#7F1D1D] dark:text-indigo-400 w-5 h-5 z-10" />
           <input
@@ -458,8 +389,74 @@ export default function ViewLaporanAkhirSuperadmin() {
             "
           />
         </div>
-        <div className="mt-2 text-xs text-right text-slate-600 dark:text-slate-300">
+
+        <div className="mt-2 ms-3 text-xs text-slate-600 dark:text-slate-300 font-medium">
           {filteredPeserta.length} peserta ditemukan
+        </div>
+      </div>
+
+      {/* ACTION BUTTONS (KANAN) */}
+      <div className="flex justify-end mb-4">
+        <div className="flex flex-col sm:flex-row gap-3">
+          {/* DOWNLOAD PDF */}
+          <button
+            onClick={handleDownloadAllPDF}
+            disabled={downloading.pdf || laporanList.length === 0}
+            className="
+              inline-flex items-center justify-center gap-2
+              px-5 py-2.5
+              rounded-xl
+              text-sm font-semibold
+              text-white
+              bg-linear-to-r from-red-500 to-red-600
+              hover:from-red-600 hover:to-red-700
+              shadow-md hover:shadow-lg
+              transition-all
+              disabled:opacity-50 disabled:cursor-not-allowed
+            "
+          >
+            {downloading.pdf ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                <span>Menyiapkan...</span>
+              </>
+            ) : (
+              <>
+                <FiFileText className="w-4 h-4" />
+                <span>Download PDF</span>
+              </>
+            )}
+          </button>
+
+          {/* DOWNLOAD EXCEL */}
+          <button
+            onClick={handleDownloadAllExcel}
+            disabled={downloading.excel || laporanList.length === 0}
+            className="
+              inline-flex items-center justify-center gap-2
+              px-5 py-2.5
+              rounded-xl
+              text-sm font-semibold
+              text-white
+              bg-linear-to-r from-emerald-500 to-green-600
+              hover:from-emerald-600 hover:to-green-700
+              shadow-md hover:shadow-lg
+              transition-all
+              disabled:opacity-50 disabled:cursor-not-allowed
+            "
+          >
+            {downloading.excel ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                <span>Menyiapkan...</span>
+              </>
+            ) : (
+              <>
+                <FiDownload className="w-4 h-4" />
+                <span>Download Excel</span>
+              </>
+            )}
+          </button>
         </div>
       </div>
 
@@ -483,22 +480,23 @@ export default function ViewLaporanAkhirSuperadmin() {
             "
           >
             <div className="grid grid-cols-12 px-6 py-4">
-              {[
-                "No",
-                "Peserta",
-                "Judul Laporan",
-                "Status",
-                "Tanggal",
-                "Aksi",
-              ].map((h, i) => (
+              {["No", "Peserta", "Status", "Tanggal", "Aksi"].map((h, i) => (
                 <div
                   key={i}
                   className={`
-                      col-span-${i === 0 ? 1 : i === 5 ? 1 : i === 2 ? 3 : 2}
-                      text-center
-                      text-xs font-semibold uppercase
-                      text-slate-600 dark:text-indigo-200
-                    `}
+                    ${
+                      i === 0
+                        ? "col-span-1"
+                        : i === 1
+                        ? "col-span-5"
+                        : i === 4
+                        ? "col-span-2"
+                        : "col-span-2"
+                    }
+                    text-center
+                    text-xs font-semibold uppercase
+                    text-slate-600 dark:text-indigo-200
+                  `}
                 >
                   {h}
                 </div>
@@ -542,15 +540,15 @@ export default function ViewLaporanAkhirSuperadmin() {
                       transition
                     "
                   >
-                    <div className="grid grid-cols-12 items-center">
+                    <div className="grid grid-cols-12 items-center text-center">
                       {/* NO */}
-                      <div className="col-span-1 text-center font-medium text-slate-500 dark:text-slate-300">
+                      <div className="col-span-1 font-medium text-slate-500 dark:text-slate-300">
                         {indexOfFirstItem + index + 1}
                       </div>
 
                       {/* PESERTA */}
-                      <div className="col-span-3 flex justify-center">
-                        <div className="flex items-center gap-3">
+                      <div className="col-span-5 flex justify-center">
+                        <div className="flex items-center gap-3 justify-center">
                           <div
                             className="
                               w-10 h-10 rounded-full
@@ -562,7 +560,7 @@ export default function ViewLaporanAkhirSuperadmin() {
                           >
                             <HiUser className="w-5 h-5" />
                           </div>
-                          <div className="leading-tight">
+                          <div className="text-center leading-tight">
                             <p className="font-medium text-slate-800 dark:text-slate-100 truncate">
                               {peserta.name}
                             </p>
@@ -573,26 +571,8 @@ export default function ViewLaporanAkhirSuperadmin() {
                         </div>
                       </div>
 
-                      {/* JUDUL */}
-                      <div className="col-span-3 text-center">
-                        {peserta.hasLaporan ? (
-                          <>
-                            <p className="font-medium text-slate-800 dark:text-slate-100 truncate">
-                              {peserta.judul}
-                            </p>
-                            <p className="text-xs text-slate-500 dark:text-slate-400">
-                              ID: {peserta.laporanId?.slice(-8)}
-                            </p>
-                          </>
-                        ) : (
-                          <span className="italic text-slate-400">
-                            Belum mengumpulkan
-                          </span>
-                        )}
-                      </div>
-
                       {/* STATUS */}
-                      <div className="col-span-2 text-center">
+                      <div className="col-span-2 flex justify-center">
                         {peserta.hasLaporan && peserta.status ? (
                           getStatusBadge(peserta.status)
                         ) : (
@@ -615,7 +595,7 @@ export default function ViewLaporanAkhirSuperadmin() {
                       </div>
 
                       {/* AKSI */}
-                      <div className="col-span-1 text-center">
+                      <div className="col-span-2 flex justify-center">
                         <button
                           onClick={() => handleViewLaporan(peserta)}
                           disabled={!peserta.hasLaporan}
@@ -676,21 +656,6 @@ export default function ViewLaporanAkhirSuperadmin() {
                         <span className="text-xs text-slate-400">
                           #{indexOfFirstItem + index + 1}
                         </span>
-                      </div>
-
-                      <div>
-                        <p className="text-xs font-medium text-slate-500 mb-1">
-                          Judul Laporan
-                        </p>
-                        {peserta.hasLaporan ? (
-                          <p className="font-medium text-slate-800 dark:text-slate-100">
-                            {peserta.judul}
-                          </p>
-                        ) : (
-                          <span className="italic text-slate-400">
-                            Belum mengumpulkan
-                          </span>
-                        )}
                       </div>
 
                       <div className="grid grid-cols-2 gap-3">

@@ -632,16 +632,35 @@ export default function ViewLogbookMentor() {
                         </td>
                         <td className="py-4 px-6 text-center">
                           <div className="flex justify-center">
-                            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 dark:bg-indigo-500/20 dark:text-indigo-200">
+                            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 dark:bg-indigo-500/20 dark:text-indigo-200">
                               {p.posisi}
                             </span>
                           </div>
                         </td>
                         <td className="py-4 px-6 text-center">
                           <div className="flex justify-center">
-                            <span className="px-3 py-1.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-100">
-                              {p.kategori}
-                            </span>
+                            {(() => {
+                              const kategori = (p.kategori || "").toLowerCase();
+                              const isBersama = kategori === "bersama";
+
+                              return (
+                                <span
+                                  className={`
+                                    px-3 py-1.5
+                                    rounded-full
+                                    text-xs font-semibold
+                                    border
+                                    ${
+                                      isBersama
+                                        ? "bg-[#7F1D1D]/10 text-[#7F1D1D] border-[#7F1D1D]/20 dark:bg-indigo-500/20 dark:text-indigo-200 dark:border-indigo-500/30"
+                                        : "bg-[#FEF3C7] text-[#92400E] border-[#FDE68A] dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/30"
+                                    }
+                                  `}
+                                >
+                                  {isBersama ? "Bersama" : "Sendiri"}
+                                </span>
+                              );
+                            })()}
                           </div>
                         </td>
                         <td className="py-4 px-4 sm:px-6">

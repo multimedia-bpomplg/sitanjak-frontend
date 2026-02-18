@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo } from "react"; // 🔥 TAMBAH useMemo
 import MagangPopup from "@/components/ui/MagangPopup";
+import { FiFileText, FiEye, FiClock, FiUser, FiMail, FiPhone, FiMapPin, FiCalendar, FiUserCheck, FiHome , FiGlobe, FiMap, FiNavigation, FiUsers } from "react-icons/fi";
 
 /* ================= TYPES ================= */
 
@@ -481,31 +482,57 @@ export default function PesertaDashboard() {
                   <Item label="Kecamatan" value={peserta.kecamatan} />
                   <Item label="Kelurahan" value={peserta.kelurahan} />
                 </Grid>
-                <div className="mt-4 rounded-xl p-4 bg-slate-50 dark:bg-slate-800">
-                  <p className="text-xs opacity-60">Alamat Lengkap</p>
-                  <p className="font-medium">{peserta.alamatLengkap}</p>
+                <div
+                  className="
+                    mt-4
+                    rounded-2xl
+                    border
+                    border-slate-200 dark:border-slate-700
+                    bg-linear-to-br
+                    from-slate-50 to-white
+                    dark:from-slate-900 dark:to-slate-800
+                    p-5
+                    flex items-start gap-4
+                    shadow-sm
+                  "
+                >
+                  {/* Icon */}
+                  <div
+                    className="
+                      w-12 h-12
+                      rounded-xl
+                      flex items-center justify-center
+                      text-xl
+                      bg-linear-to-br
+                      from-[#FEE2E2] to-[#FEF3C7]
+                      text-[#B91C1C]
+                      dark:from-indigo-600/20 dark:to-violet-600/20
+                      dark:text-indigo-300
+                      shrink-0
+                    "
+                  >
+                    <FiMapPin />
+                  </div>
+
+                  {/* Text */}
+                  <div>
+                    <p className="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                      Alamat Lengkap
+                    </p>
+                    <p className="text-sm sm:text-base font-semibold text-slate-800 dark:text-slate-100 leading-relaxed">
+                      {peserta.alamatLengkap || "-"}
+                    </p>
+                  </div>
                 </div>
               </Section>
 
               <Section title="📎 Dokumen">
-                <Grid>
-                  <FileItem
-                    label="Surat Pengantar"
-                    file={pendaftaran.suratPengantar}
-                    baseUrl={FILE_BASE_URL}
-                  />
-                  <FileItem
-                    label="Surat Balasan"
-                    file={pendaftaran.suratBalasan}
-                    baseUrl={FILE_BASE_URL}
-                  />
-                  <FileItem
-                    label="Surat Selesai Magang"
-                    file={suratSelesai?.file}
-                    baseUrl={FILE_BASE_URL}
-                    isSuratSelesai={true}
-                  />
-                </Grid>
+                <DocumentFlow
+                  pengantar={pendaftaran.suratPengantar}
+                  balasan={pendaftaran.suratBalasan}
+                  selesai={suratSelesai?.file}
+                  baseUrl={FILE_BASE_URL}
+                />
               </Section>
 
               <Section title="📝 Catatan Admin">
@@ -594,64 +621,251 @@ function Grid({ children }: any) {
 }
 
 function Item({ label, value }: any) {
+  const iconMap: any = {
+    "Nama Lengkap": <FiUser />,
+    "Jenis Kelamin": <FiUserCheck />,
+    Email: <FiMail />,
+    WhatsApp: <FiPhone />,
+    "Tempat Lahir": <FiMapPin />,
+    "Tanggal Lahir": <FiCalendar />,
+
+    "Kategori Magang": <FiUsers />,
+
+    Provinsi: <FiGlobe />,
+    Kota: <FiMap />,
+    Kecamatan: <FiNavigation />,
+    Kelurahan: <FiHome />,
+  };
+
   return (
-    <div className="rounded-xl p-4 bg-slate-50 dark:bg-slate-800">
-      <p className="text-xs opacity-60">{label}</p>
-      <p className="font-medium">{value || "-"}</p>
+    <div
+      className="
+        group
+        relative
+        rounded-2xl
+        p-4 sm:p-5
+        border
+        bg-white/80 dark:bg-slate-900/60
+        border-slate-200 dark:border-slate-700
+        shadow-sm hover:shadow-lg
+        transition-all
+        flex items-start gap-3
+      "
+    >
+      {/* Icon */}
+      <div
+        className="
+          w-10 h-10
+          rounded-xl
+          flex items-center justify-center
+          text-lg
+          bg-linear-to-br
+          from-[#FEE2E2] to-[#FEF3C7]
+          text-[#B91C1C]
+          dark:from-indigo-600/20 dark:to-violet-600/20
+          dark:text-indigo-300
+          shrink-0
+        "
+      >
+        {iconMap[label] || <FiUser />}
+      </div>
+
+      {/* Text */}
+      <div className="min-w-0">
+        <p className="text-[11px] uppercase tracking-wider text-slate-500 dark:text-slate-400">
+          {label}
+        </p>
+        <p className="text-sm sm:text-base font-semibold text-slate-800 dark:text-slate-100 wrap-break-word">
+          {value || "-"}
+        </p>
+      </div>
     </div>
   );
 }
 
-function FileItem({
+function DocumentFlow({
+  pengantar,
+  balasan,
+  selesai,
+  baseUrl,
+}: {
+  pengantar?: string;
+  balasan?: string;
+  selesai?: string;
+  baseUrl: string;
+}) {
+  const steps = [
+    {
+      label: "Surat Pengantar",
+      file: pengantar,
+      step: 1,
+    },
+    {
+      label: "Surat Balasan",
+      file: balasan,
+      step: 2,
+    },
+    {
+      label: "Surat Selesai Magang",
+      file: selesai,
+      step: 3,
+      isFinal: true,
+    },
+  ];
+
+  return (
+    <div className="relative">
+      {/* Desktop connector line */}
+      <div className="hidden md:block absolute top-16 left-0 right-0 h-0.5 bg-slate-200 dark:bg-slate-700" />
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {steps.map((step, i) => (
+          <div key={i} className="relative">
+            <FlowCard
+              label={step.label}
+              file={step.file}
+              step={step.step}
+              baseUrl={baseUrl}
+              isFinal={step.isFinal}
+            />
+
+            {/* Mobile connector */}
+            {i < steps.length - 1 && (
+              <div className="md:hidden flex justify-center my-2">
+                <div className="w-0.5 h-6 bg-slate-300 dark:bg-slate-700" />
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function FlowCard({
   label,
   file,
+  step,
   baseUrl,
-  isSuratSelesai = false,
+  isFinal = false,
 }: {
   label: string;
   file?: string;
+  step: number;
   baseUrl: string;
-  isSuratSelesai?: boolean;
+  isFinal?: boolean;
 }) {
+  const isAvailable = Boolean(file);
+
   return (
     <div
       className={`
-        flex items-center justify-between rounded-xl p-4
+        relative
+        rounded-2xl
+        p-5
+        border
+        flex flex-col gap-4
+        transition
+        shadow-sm hover:shadow-xl
         ${
-          isSuratSelesai
-            ? "bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800"
-            : "bg-slate-50 dark:bg-slate-800"
+          isAvailable
+            ? isFinal
+              ? "bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-700"
+              : "bg-white border-slate-200 dark:bg-slate-900 dark:border-slate-700"
+            : "bg-slate-50 border-slate-200 dark:bg-slate-800/60 dark:border-slate-700 opacity-80"
         }
       `}
     >
-      <div>
-        <p className="text-xs text-slate-500">{label}</p>
-        <p className="max-w-45 truncate text-sm font-medium">
-          {file || "Tidak tersedia"}
-        </p>
-        {isSuratSelesai && file && (
-          <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">
-            ✓ Surat selesai magang telah diterbitkan
-          </p>
-        )}
+      {/* Step number */}
+      <div className="absolute -top-4 left-1/2 -translate-x-1/2 md:left-6 md:translate-x-0">
+        <div
+          className={`
+            w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shadow
+            ${
+              isAvailable
+                ? "bg-emerald-500 text-white"
+                : "bg-slate-300 text-slate-600 dark:bg-slate-700 dark:text-slate-300"
+            }
+          `}
+        >
+          {isAvailable ? "✓" : step}
+        </div>
       </div>
-      {file && (
+
+      {/* Content */}
+      <div className="flex items-start gap-3 mt-2">
+        <div
+          className={`
+            w-12 h-12 rounded-xl flex items-center justify-center text-xl mt-1
+            ${
+              isAvailable
+                ? isFinal
+                  ? `
+                    bg-emerald-100 text-emerald-600
+                    dark:bg-emerald-500/20 dark:text-emerald-300
+                  `
+                  : `
+                    bg-linear-to-br
+                    from-[#FEE2E2] to-[#FEF3C7]
+                    text-[#B91C1C]
+                    dark:from-indigo-600/20 dark:to-violet-600/20
+                    dark:text-indigo-300
+                  `
+                : `
+                  bg-slate-200 text-slate-400
+                  dark:bg-slate-700 dark:text-slate-500
+                `
+            }
+          `}
+        >
+          {isAvailable ? <FiFileText /> : <FiClock />}
+        </div>
+
+        <div className="flex-1 min-w-0 mt-1">
+          <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+            {label}
+          </p>
+          <p className="text-xs text-slate-500 truncate">
+            {file || "Belum tersedia"}
+          </p>
+        </div>
+      </div>
+
+      {/* Action */}
+      {isAvailable ? (
         <a
           href={`${baseUrl}/uploads/${file}`}
           target="_blank"
           rel="noopener noreferrer"
           className={`
+            mt-2
+            inline-flex items-center justify-center gap-2
+            w-full
+            px-4 py-2.5
+            rounded-xl
             text-sm font-semibold
+            text-white
+            transition
             ${
-              isSuratSelesai
-                ? "text-emerald-600 hover:text-emerald-700"
-                : "text-[#B91C1C] hover:text-[#7F1D1D]"
+              isFinal
+                ? "bg-emerald-600 hover:bg-emerald-700"
+                : `
+                  bg-linear-to-r
+                  from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
+                  hover:from-[#991B1B] hover:via-[#DC2626] hover:to-[#FBBF24]
+                  dark:from-indigo-600 dark:to-violet-500
+                  dark:hover:from-indigo-500 dark:hover:to-violet-400
+                `
             }
-            hover:underline
           `}
         >
-          Lihat
+          <FiEye className="w-4 h-4" />
+          Lihat Dokumen
         </a>
+      ) : (
+        <div className="text-center text-xs text-slate-400 mt-2">
+          Menunggu dokumen
+        </div>
       )}
     </div>
   );
