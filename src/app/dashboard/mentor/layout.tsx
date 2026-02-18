@@ -382,7 +382,7 @@ export default function MentorLayout({
               </Link>
 
               <Link
-                href="/dashboard/mentor/ViewLaporanBulanan"
+                href="/dashboard/mentor/ViewFeedback"
                 className={`
                   flex items-center gap-3
                   py-2.5 rounded-xl
@@ -394,7 +394,7 @@ export default function MentorLayout({
                   ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
                     
                   ${
-                    pathname.includes("ViewLaporanBulanan")
+                    pathname.includes("ViewFeedback")
                       ? `
                           bg-linear-to-r
                           from-[#FDE68A]/60

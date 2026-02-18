@@ -1,3 +1,4 @@
+// D:\Projek BPOM\frontend-bpom\src\app\superadmin\viewfeedback.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -10,69 +11,67 @@ import {
   HiXCircle,
   HiExclamationCircle,
   HiSearch,
-  HiBookOpen,
+  HiChat,
+  HiClock,
+  HiStar,
+  HiUsers,
   HiChevronDown,
+  HiDownload, // ✅ TAMBAHKAN INI
 } from "react-icons/hi";
-import SuperadminLaporanBulananModal from "@/components/superadmin/SuperadminLaporanBulananModal";
+import { FiMessageCircle } from "react-icons/fi";
+import SuperadminFeedbackDetailModal from "@/components/superadmin/SuperadminFeedbackDetailModal";
+import { showToast } from "@/components/ui/toastDashboard";
 
-type LaporanBulanan = {
+type PesertaFeedback = {
+  _id: string;
+  name: string;
+  email: string;
+  totalFeedback: number;
+  sentToMentor: number;
+  notSentToMentor: number;
+  responded: number;
+  unresponded: number;
+  feedbackMonths: string[];
+  lastFeedbackDate: string | null;
+};
+
+type FeedbackDetail = {
   _id: string;
   month: string;
+  feedbackBPOM: string;
+  feedbackMentor: string;
+  isFeedbackMentorSent: boolean;
   status: string;
+  mentorResponse?: string;
   user: {
     _id: string;
     name: string;
     email: string;
   };
-  approvedByMentor?: {
+  mentorRespondedBy?: {
     _id: string;
     name: string;
     email: string;
   };
-  mentorNote?: string;
-  approvedAt?: string;
+  feedbackMentorSentAt?: string;
+  mentorRespondedAt?: string;
   createdAt: string;
 };
 
-type PesertaLaporan = {
-  _id: string;
-  name: string;
-  email: string;
-  totalLaporan: number;
-  disetujui: number;
-  perbaiki: number;
-  ditolak: number;
-  menunggu: number;
-  laporanTerakhir?: string;
-  laporanMonths: string[]; // Tambahkan field untuk menyimpan bulan-bulan laporan
-};
-
-type PesertaLaporanDetail = {
-  _id: string;
-  name: string;
-  email: string;
-  totalLaporan: number;
-  disetujui: number;
-  perbaiki: number;
-  ditolak: number;
-  menunggu: number;
-  laporanTerakhir?: string;
-  laporanMonths: string[];
-  laporanDetails: LaporanBulanan[]; // Tambahkan field untuk detail laporan
-};
-
-export default function ViewLaporanBulananSuperadmin() {
-  const [laporanList, setLaporanList] = useState<LaporanBulanan[]>([]);
-  const [pesertaLaporan, setPesertaLaporan] = useState<PesertaLaporan[]>([]);
-  const [filteredPeserta, setFilteredPeserta] = useState<PesertaLaporan[]>([]);
+export default function ViewFeedbackSuperadmin() {
+  const [feedbackList, setFeedbackList] = useState<FeedbackDetail[]>([]);
+  const [pesertaFeedback, setPesertaFeedback] = useState<PesertaFeedback[]>([]);
+  const [filteredPeserta, setFilteredPeserta] = useState<PesertaFeedback[]>([]);
   const [loading, setLoading] = useState(true);
+  const [downloading, setDownloading] = useState(false);
   const [search, setSearch] = useState("");
   const [selectedPeserta, setSelectedPeserta] =
-    useState<PesertaLaporanDetail | null>(null);
-  const [selectedLaporan, setSelectedLaporan] = useState<LaporanBulanan | null>(
-    null,
-  );
+    useState<PesertaFeedback | null>(null);
+  const [selectedFeedback, setSelectedFeedback] =
+    useState<FeedbackDetail | null>(null);
   const [showMonthModal, setShowMonthModal] = useState(false);
+  const [statistics, setStatistics] = useState<any>(null);
+  const [filterStatus, setFilterStatus] = useState<string>("all");
 
   // Pagination state
   const [page, setPage] = useState(1);
@@ -81,140 +80,125 @@ export default function ViewLaporanBulananSuperadmin() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/superadmin/laporan-bulanan`,
+      const token = localStorage.getItem("token");
+
+      // Load peserta summary
+      const pesertaRes = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/superadmin/feedback/peserta-summary`,
         {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         },
       );
-      const data = await res.json();
-      setLaporanList(data);
 
-      // Group laporan by peserta
-      const pesertaMap = new Map<string, PesertaLaporan>();
-      const pesertaLaporanMap = new Map<string, LaporanBulanan[]>();
+      if (pesertaRes.ok) {
+        const pesertaData = await pesertaRes.json();
+        setPesertaFeedback(pesertaData);
+        setFilteredPeserta(pesertaData);
+      }
 
-      data.forEach((laporan: LaporanBulanan) => {
-        if (!laporan.user || !laporan.user._id) {
-          console.warn("Laporan tanpa user:", laporan);
-          return; // ⛔ skip data rusak
-        }
-
-        const userId = laporan.user._id;
-
-        // Map untuk detail laporan
-        if (!pesertaLaporanMap.has(userId)) {
-          pesertaLaporanMap.set(userId, []);
-        }
-        pesertaLaporanMap.get(userId)!.push(laporan);
-
-        // Map untuk summary
-        if (!pesertaMap.has(userId)) {
-          pesertaMap.set(userId, {
-            _id: userId,
-            name: laporan.user.name,
-            email: laporan.user.email,
-            totalLaporan: 0,
-            disetujui: 0,
-            perbaiki: 0,
-            ditolak: 0,
-            menunggu: 0,
-            laporanTerakhir: "",
-            laporanMonths: [],
-          });
-        }
-
-        const peserta = pesertaMap.get(userId)!;
-        peserta.totalLaporan++;
-
-        switch (laporan.status) {
-          case "Disetujui":
-            peserta.disetujui++;
-            break;
-          case "Perbaiki":
-            peserta.perbaiki++;
-            break;
-          case "Ditolak":
-            peserta.ditolak++;
-            break;
-          default:
-            peserta.menunggu++;
-            break;
-        }
-
-        // Tambahkan bulan ke array
-        if (!peserta.laporanMonths.includes(laporan.month)) {
-          peserta.laporanMonths.push(laporan.month);
-        }
-
-        // Set laporan terakhir
-        if (
-          !peserta.laporanTerakhir ||
-          laporan.createdAt > peserta.laporanTerakhir
-        ) {
-          peserta.laporanTerakhir = laporan.createdAt;
-        }
-      });
-
-      // Sort months untuk setiap peserta
-      pesertaMap.forEach((peserta) => {
-        peserta.laporanMonths.sort((a, b) => {
-          const [yearA, monthA] = a.split("-").map(Number);
-          const [yearB, monthB] = b.split("-").map(Number);
-
-          if (yearA !== yearB) return yearB - yearA; // Tahun lebih baru duluan
-          return monthB - monthA; // Bulan lebih baru duluan
-        });
-      });
-
-      // Convert map to array
-      const pesertaArray = Array.from(pesertaMap.values()).sort(
-        (a, b) =>
-          new Date(b.laporanTerakhir || 0).getTime() -
-          new Date(a.laporanTerakhir || 0).getTime()
+      // Load statistics
+      const statsRes = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/superadmin/feedback/statistics`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
       );
 
-      setPesertaLaporan(pesertaArray);
-      setFilteredPeserta(pesertaArray);
-      setPage(1); // Reset ke halaman pertama saat data baru dimuat
+      if (statsRes.ok) {
+        const statsData = await statsRes.json();
+        setStatistics(statsData);
+      }
+
+      // Load all feedback
+      const feedbackRes = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/superadmin/feedback`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+
+      if (feedbackRes.ok) {
+        const feedbackData = await feedbackRes.json();
+        setFeedbackList(feedbackData);
+      }
     } catch (error) {
-      console.error("Gagal memuat laporan bulanan", error);
+      console.error("Gagal memuat data feedback", error);
     } finally {
       setLoading(false);
     }
   };
 
-  const getLaporanByPeserta = (pesertaId: string) => {
-    return laporanList.filter(
-      (laporan) => laporan.user && laporan.user._id === pesertaId
+  const getFeedbackByPeserta = (pesertaId: string) => {
+    return feedbackList.filter(
+      (feedback) => feedback.user && feedback.user._id === pesertaId,
     );
   };
 
-  const handleViewLaporan = async (peserta: PesertaLaporan) => {
-    // Ambil detail laporan untuk peserta ini
-    const laporanDetails = getLaporanByPeserta(peserta._id);
+  const handleViewFeedback = async (peserta: PesertaFeedback) => {
+    const feedbackDetails = getFeedbackByPeserta(peserta._id).sort((a, b) => {
+      const [yearA, monthA] = a.month.split("-").map(Number);
+      const [yearB, monthB] = b.month.split("-").map(Number);
+      if (yearA !== yearB) return yearB - yearA;
+      return monthB - monthA;
+    });
 
-    const pesertaDetail: PesertaLaporanDetail = {
-      ...peserta,
-      laporanDetails: laporanDetails.sort((a, b) => {
-        // Sort by month descending
-        const [yearA, monthA] = a.month.split("-").map(Number);
-        const [yearB, monthB] = b.month.split("-").map(Number);
-
-        if (yearA !== yearB) return yearB - yearA;
-        return monthB - monthA;
-      }),
-    };
-
-    setSelectedPeserta(pesertaDetail);
+    setSelectedPeserta(peserta);
     setShowMonthModal(true);
   };
 
-  const handleSelectLaporan = (laporan: LaporanBulanan) => {
-    setSelectedLaporan(laporan);
+  const handleSelectFeedback = (feedback: FeedbackDetail) => {
+    setSelectedFeedback(feedback);
     setShowMonthModal(false);
+  };
+
+  // ✅ FUNGSI DOWNLOAD SEMUA FEEDBACK DALAM BENTUK PDF
+  const handleDownloadAllFeedback = async () => {
+    if (feedbackList.length === 0) {
+      showToast.error("Tidak ada data feedback untuk diunduh");
+      return;
+    }
+
+    setDownloading(true);
+    const toastId = showToast.loading("Menyiapkan laporan feedback...");
+
+    try {
+      const token = localStorage.getItem("token");
+
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/superadmin/feedback/download-pdf`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            feedbackList,
+            statistics,
+            date: new Date().toISOString(),
+          }),
+        },
+      );
+
+      if (!res.ok) throw new Error("Gagal mengunduh PDF");
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `laporan-feedback-${new Date().toISOString().split("T")[0]}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
+      showToast.updateSuccess(toastId, "Laporan feedback berhasil diunduh");
+    } catch (error) {
+      console.error("Error downloading feedback PDF:", error);
+      showToast.updateError(toastId, "Gagal mengunduh laporan feedback");
+    } finally {
+      setDownloading(false);
+    }
   };
 
   useEffect(() => {
@@ -223,55 +207,26 @@ export default function ViewLaporanBulananSuperadmin() {
 
   useEffect(() => {
     if (!search.trim()) {
-      setFilteredPeserta(pesertaLaporan);
-      setPage(1); // Reset ke halaman pertama saat pencarian diubah
+      setFilteredPeserta(pesertaFeedback);
+      setPage(1);
       return;
     }
 
     const query = search.toLowerCase();
-    const filtered = pesertaLaporan.filter(
+    const filtered = pesertaFeedback.filter(
       (p) =>
         p.name.toLowerCase().includes(query) ||
         p.email.toLowerCase().includes(query),
     );
     setFilteredPeserta(filtered);
-    setPage(1); // Reset ke halaman pertama saat pencarian diubah
-  }, [search, pesertaLaporan]);
+    setPage(1);
+  }, [search, pesertaFeedback]);
 
   // Calculate pagination
   const totalPage = Math.ceil(filteredPeserta.length / itemsPerPage);
   const indexOfLastItem = page * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = filteredPeserta.slice(indexOfFirstItem, indexOfLastItem);
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "Disetujui":
-        return (
-          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">
-            <HiCheckCircle /> Disetujui
-          </span>
-        );
-      case "Ditolak":
-        return (
-          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700">
-            <HiXCircle /> Ditolak
-          </span>
-        );
-      case "Perbaiki":
-        return (
-          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-700">
-            <HiExclamationCircle /> Perbaiki
-          </span>
-        );
-      default:
-        return (
-          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
-            <HiDocumentText /> Menunggu
-          </span>
-        );
-    }
-  };
 
   const formatMonth = (monthString: string) => {
     const [year, month] = monthString.split("-");
@@ -292,19 +247,24 @@ export default function ViewLaporanBulananSuperadmin() {
     });
   };
 
-  // Modal untuk pilih bulan
+  // Modal untuk pilih bulan feedback
   const MonthSelectionModal = () => {
     if (!selectedPeserta) return null;
 
+    const feedbackDetails = getFeedbackByPeserta(selectedPeserta._id);
+
     return (
-      <div className="
+      <div
+        className="
         fixed inset-0 z-50
         flex items-center justify-center
         bg-black/40 dark:bg-black/70
         backdrop-blur-md
         p-3 sm:p-6
-      ">
-        <div className="
+      "
+      >
+        <div
+          className="
           w-full max-w-3xl
           bg-white/90 dark:bg-indigo-950/40
           backdrop-blur
@@ -315,22 +275,24 @@ export default function ViewLaporanBulananSuperadmin() {
           overflow-hidden
           flex flex-col
           max-h-[92vh]
-        ">
+        "
+        >
           {/* ================= HEADER ================= */}
-          <div className="
+          <div
+            className="
             px-5 sm:px-6 py-4 sm:py-5
             bg-linear-to-r
             from-[#F59E0B] via-[#B91C1C] to-[#7F1D1D]
             dark:from-indigo-600 dark:to-violet-500
             text-white
             flex items-center justify-between
-          ">
-            {/* LEFT */}
+          "
+          >
             <div className="flex items-center gap-3">
-              <HiCalendar className="text-xl" />
+              <FiMessageCircle className="text-xl" />
               <div>
                 <h2 className="text-lg sm:text-xl font-bold">
-                  Pilih Laporan Bulanan
+                  Pilih Periode Feedback
                 </h2>
                 <div className="flex flex-wrap gap-x-4 text-xs sm:text-sm opacity-90">
                   <div className="flex items-center gap-1">
@@ -345,7 +307,6 @@ export default function ViewLaporanBulananSuperadmin() {
               </div>
             </div>
 
-            {/* RIGHT */}
             <button
               onClick={() => {
                 setShowMonthModal(false);
@@ -363,89 +324,103 @@ export default function ViewLaporanBulananSuperadmin() {
 
           {/* ================= BODY ================= */}
           <div className="flex-1 overflow-y-auto px-5 sm:px-6 py-5 space-y-6 modal-scroll">
-
             {/* SUMMARY */}
             <div>
-              <h3 className="
+              <h3
+                className="
                 text-sm sm:text-base font-bold
                 text-[#7F1D1D]
                 dark:text-indigo-300
                 mb-2
-              ">
-                Ringkasan Laporan
+              "
+              >
+                Ringkasan Feedback
               </h3>
 
               <div className="flex flex-wrap gap-2">
-                <span className="
+                <span
+                  className="
                   inline-flex items-center gap-1
                   px-3 py-1.5
                   rounded-full text-xs font-semibold
                   bg-emerald-100 text-emerald-700
                   dark:bg-emerald-500/20 dark:text-emerald-200
-                ">
-                  <HiCheckCircle /> {selectedPeserta.disetujui} Disetujui
+                "
+                >
+                  <HiCheckCircle /> {selectedPeserta.responded} Direspon
                 </span>
 
-                <span className="
+                <span
+                  className="
                   inline-flex items-center gap-1
                   px-3 py-1.5
                   rounded-full text-xs font-semibold
                   bg-amber-100 text-amber-700
                   dark:bg-amber-500/20 dark:text-amber-200
-                ">
-                  <HiExclamationCircle /> {selectedPeserta.perbaiki} Perbaiki
+                "
+                >
+                  <HiClock /> {selectedPeserta.unresponded} Menunggu Respon
                 </span>
 
-                <span className="
-                  inline-flex items-center gap-1
-                  px-3 py-1.5
-                  rounded-full text-xs font-semibold
-                  bg-red-100 text-red-700
-                  dark:bg-red-500/20 dark:text-red-200
-                ">
-                  <HiXCircle /> {selectedPeserta.ditolak} Ditolak
-                </span>
-
-                <span className="
+                <span
+                  className="
                   inline-flex items-center gap-1
                   px-3 py-1.5
                   rounded-full text-xs font-semibold
                   bg-blue-100 text-blue-700
-                  dark:bg-indigo-500/20 dark:text-indigo-200
-                ">
-                  <HiDocumentText /> {selectedPeserta.menunggu} Menunggu
+                  dark:bg-blue-500/20 dark:text-blue-200
+                "
+                >
+                  <FiMessageCircle /> {selectedPeserta.sentToMentor} Terkirim ke
+                  Mentor
+                </span>
+
+                <span
+                  className="
+                  inline-flex items-center gap-1
+                  px-3 py-1.5
+                  rounded-full text-xs font-semibold
+                  bg-slate-100 text-slate-700
+                  dark:bg-slate-500/20 dark:text-slate-200
+                "
+                >
+                  <HiDocumentText /> {selectedPeserta.notSentToMentor} Draft
                 </span>
               </div>
             </div>
 
             {/* LIST */}
             <div className="space-y-3">
-              <h4 className="
+              <h4
+                className="
                 text-sm font-bold
                 text-[#7F1D1D]
                 dark:text-indigo-300
-              ">
-                Pilih Bulan Laporan
+              "
+              >
+                Pilih Periode Feedback
               </h4>
 
-              {selectedPeserta.laporanDetails.length === 0 ? (
-                <div className="
+              {feedbackDetails.length === 0 ? (
+                <div
+                  className="
                   text-center py-10
                   rounded-2xl
                   bg-white/80 dark:bg-indigo-950/40
                   border border-slate-200 dark:border-indigo-500/30
-                ">
-                  <HiDocumentText className="text-4xl text-slate-300 mx-auto mb-3" />
+                "
+                >
+                  <FiMessageCircle className="text-4xl text-slate-300 mx-auto mb-3" />
                   <p className="text-slate-600 dark:text-slate-300">
-                    Belum ada laporan bulanan
+                    Belum ada feedback dari peserta ini
                   </p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {selectedPeserta.laporanDetails.map((laporan) => (
+                  {feedbackDetails.map((feedback) => (
                     <button
-                      key={laporan._id}
-                      onClick={() => handleSelectLaporan(laporan)}
+                      key={feedback._id}
+                      onClick={() => handleSelectFeedback(feedback)}
                       className="
                         group
                         p-4
@@ -463,30 +438,52 @@ export default function ViewLaporanBulananSuperadmin() {
                           <div className="flex items-center gap-2 mb-1">
                             <HiCalendar className="w-4 h-4 text-slate-500 dark:text-indigo-300" />
                             <span className="font-semibold">
-                              {formatMonth(laporan.month)}
+                              {formatMonth(feedback.month)}
                             </span>
                           </div>
                           <p className="text-xs text-slate-500 dark:text-slate-400">
-                            Submit: {formatDate(laporan.createdAt)}
+                            Dibuat: {formatDate(feedback.createdAt)}
                           </p>
                         </div>
-                        <div>{getStatusBadge(laporan.status)}</div>
+                        <div>
+                          {feedback.isFeedbackMentorSent ? (
+                            feedback.mentorResponse ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-700">
+                                <HiCheckCircle /> Direspon
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-700">
+                                <FiMessageCircle /> Ke Mentor
+                              </span>
+                            )
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-semibold bg-blue-100 text-blue-700">
+                              <HiDocumentText /> Draft
+                            </span>
+                          )}
+                        </div>
                       </div>
 
-                      {laporan.mentorNote && (
-                        <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
-                          <span className="font-semibold">Catatan:</span>{" "}
-                          {laporan.mentorNote}
+                      <div className="mt-2 space-y-1">
+                        <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-2">
+                          <span className="font-semibold">BPOM:</span>{" "}
+                          {feedback.feedbackBPOM}
                         </p>
-                      )}
+                        <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-2">
+                          <span className="font-semibold">Mentor:</span>{" "}
+                          {feedback.feedbackMentor}
+                        </p>
+                      </div>
 
-                      <div className="
+                      <div
+                        className="
                         mt-3 flex items-center gap-2
                         text-xs text-slate-400
                         group-hover:text-[#7F1D1D]
                         dark:group-hover:text-indigo-300
                         transition
-                      ">
+                      "
+                      >
                         <span>Klik untuk detail</span>
                         <HiChevronDown className="w-3 h-3" />
                       </div>
@@ -498,13 +495,15 @@ export default function ViewLaporanBulananSuperadmin() {
           </div>
 
           {/* ================= FOOTER ================= */}
-          <div className="
+          <div
+            className="
             px-5 sm:px-6 py-4
             border-t border-[#F59E0B]/30
             dark:border-indigo-500/30
             bg-white/60 dark:bg-indigo-950/30
             backdrop-blur
-          ">
+          "
+          >
             <button
               onClick={() => {
                 setShowMonthModal(false);
@@ -544,49 +543,95 @@ export default function ViewLaporanBulananSuperadmin() {
       "
     >
       {/* HEADER */}
-      <div className="mb-10">
-        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight mb-3">
-          Laporan Bulanan Peserta
-        </h1>
-        <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400">
-          Kelola dan review laporan bulanan semua peserta
-        </p>
+      <div className="mb-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight mb-3 flex items-center gap-3">
+            <FiMessageCircle className="text-[#B91C1C]" />
+            Monitoring Feedback Peserta
+          </h1>
+          <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400">
+            Pantau feedback dari peserta untuk BPOM dan mentor
+          </p>
+        </div>
+
+        {/* ✅ BUTTON DOWNLOAD ALL FEEDBACK */}
+        <button
+          onClick={handleDownloadAllFeedback}
+          disabled={downloading || feedbackList.length === 0}
+          className="
+            inline-flex items-center justify-center gap-2
+            px-6 py-3
+            rounded-xl
+            text-sm font-semibold
+            text-white
+            bg-gradient-to-r from-emerald-500 to-green-600
+            hover:from-emerald-600 hover:to-green-700
+            dark:from-indigo-600 dark:to-violet-500
+            dark:hover:from-indigo-500 dark:hover:to-violet-400
+            shadow-lg hover:shadow-xl
+            transition-all
+            disabled:opacity-50 disabled:cursor-not-allowed
+            min-w-[180px]
+          "
+        >
+          {downloading ? (
+            <>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+              <span>Menyiapkan...</span>
+            </>
+          ) : (
+            <>
+              <HiDownload className="w-5 h-5" />
+              <span>Download Laporan PDF</span>
+            </>
+          )}
+        </button>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <StatCard
-          title="Total Peserta"
-          value={pesertaLaporan.length}
-          icon={<HiUser className="w-7 h-7" />}
-          note="Jumlah seluruh peserta"
-          color="indigo"
-        />
+      {statistics && (
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
+          <StatCard
+            title="Total Feedback"
+            value={statistics.total}
+            icon={<HiDocumentText className="w-7 h-7" />}
+            note="Jumlah seluruh feedback"
+            color="indigo"
+          />
 
-        <StatCard
-          title="Total Laporan"
-          value={laporanList.length}
-          icon={<HiDocumentText className="w-7 h-7" />}
-          note="Jumlah laporan bulanan"
-          color="slate"
-        />
+          <StatCard
+            title="Ke Mentor"
+            value={statistics.sentToMentor}
+            icon={<FiMessageCircle className="w-7 h-7" />}
+            note="Feedback terkirim ke mentor"
+            color="amber"
+          />
 
-        <StatCard
-          title="Disetujui"
-          value={laporanList.filter((l) => l.status === "Disetujui").length}
-          icon={<HiCheckCircle className="w-7 h-7" />}
-          note="Laporan telah disetujui"
-          color="emerald"
-        />
+          <StatCard
+            title="Ke BPOM"
+            value={statistics.notSentToMentor}
+            icon={<HiDocumentText className="w-7 h-7" />}
+            note="Feedback untuk BPOM"
+            color="slate"
+          />
 
-        <StatCard
-          title="Perlu Perbaikan"
-          value={laporanList.filter((l) => l.status === "Perbaiki").length}
-          icon={<HiExclamationCircle className="w-7 h-7" />}
-          note="Laporan perlu revisi"
-          color="amber"
-        />
-      </div>
+          <StatCard
+            title="Direspon"
+            value={statistics.responded}
+            icon={<HiCheckCircle className="w-7 h-7" />}
+            note="Feedback direspon mentor"
+            color="emerald"
+          />
+
+          <StatCard
+            title="Menunggu"
+            value={statistics.unresponded}
+            icon={<HiClock className="w-7 h-7" />}
+            note="Menunggu respon mentor"
+            color="slate"
+          />
+        </div>
+      )}
 
       {/* Search Bar */}
       <div className="mb-8">
@@ -611,11 +656,13 @@ export default function ViewLaporanBulananSuperadmin() {
             "
           />
         </div>
+        <div className="mt-2 text-sm text-slate-500">
+          Total {filteredPeserta.length} peserta dengan feedback
+        </div>
       </div>
 
       {/* ===================== TABLE ===================== */}
       {!loading && currentItems.length === 0 ? (
-        /* ================= EMPTY STATE ================= */
         <div
           className="
             rounded-3xl
@@ -643,17 +690,16 @@ export default function ViewLaporanBulananSuperadmin() {
           </div>
 
           <h3 className="text-lg sm:text-xl font-bold text-[#7F1D1D] dark:text-indigo-300 mb-2">
-            {search ? "Peserta tidak ditemukan" : "Belum ada data peserta"}
+            {search ? "Peserta tidak ditemukan" : "Belum ada data feedback"}
           </h3>
 
           <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 max-w-md mx-auto">
             {search
               ? `Tidak ada peserta yang sesuai dengan pencarian "${search}".`
-              : "Saat ini belum ada data peserta."}
+              : "Saat ini belum ada data feedback dari peserta."}
           </p>
         </div>
       ) : (
-        /* ================= TABLE WRAPPER ================= */
         <div
           className="
             rounded-2xl
@@ -666,7 +712,6 @@ export default function ViewLaporanBulananSuperadmin() {
         >
           <div className="overflow-x-auto">
             <table className="min-w-200 w-full text-sm sm:text-base">
-              {/* ================= HEAD ================= */}
               <thead>
                 <tr
                   className="
@@ -681,10 +726,10 @@ export default function ViewLaporanBulananSuperadmin() {
                     Peserta
                   </th>
                   <th className="w-[26%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
-                    Statistik Laporan
+                    Statistik Feedback
                   </th>
                   <th className="w-[18%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
-                    Laporan Terakhir
+                    Feedback Terakhir
                   </th>
                   <th className="w-[16%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
                     Aksi
@@ -692,19 +737,16 @@ export default function ViewLaporanBulananSuperadmin() {
                 </tr>
               </thead>
 
-              {/* ================= BODY ================= */}
               <tbody className="divide-y divide-slate-100 dark:divide-indigo-500/20">
                 {currentItems.map((peserta, index) => (
                   <tr
                     key={peserta._id}
                     className="hover:bg-[#FEF3C7]/40 dark:hover:bg-indigo-500/10 transition"
                   >
-                    {/* NO */}
                     <td className="py-4 px-6 text-center font-medium text-slate-500 dark:text-slate-300">
                       {indexOfFirstItem + index + 1}
                     </td>
 
-                    {/* PESERTA */}
                     <td className="py-4 px-6">
                       <div className="flex items-center justify-center gap-3">
                         <div
@@ -730,73 +772,64 @@ export default function ViewLaporanBulananSuperadmin() {
                       </div>
                     </td>
 
-                    {/* STATISTIK */}
                     <td className="py-4 px-6">
                       <div className="space-y-2 text-sm">
                         <div className="flex items-center justify-center gap-2">
-                          <HiDocumentText className="w-4 h-4 text-slate-400" />
+                          <FiMessageCircle className="w-4 h-4 text-slate-400" />
                           <span>
                             Total:{" "}
                             <span className="font-semibold text-indigo-600 dark:text-indigo-400">
-                              {peserta.totalLaporan}
+                              {peserta.totalFeedback}
                             </span>
                           </span>
                         </div>
 
                         <div className="flex justify-center flex-wrap gap-2">
-                          {peserta.disetujui > 0 && (
+                          {peserta.responded > 0 && (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-700">
                               <HiCheckCircle className="w-3 h-3" />
-                              {peserta.disetujui}
+                              {peserta.responded} Direspon
                             </span>
                           )}
-                          {peserta.perbaiki > 0 && (
+                          {peserta.unresponded > 0 && (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-700">
-                              <HiExclamationCircle className="w-3 h-3" />
-                              {peserta.perbaiki}
+                              <HiClock className="w-3 h-3" />
+                              {peserta.unresponded} Menunggu
                             </span>
                           )}
-                          {peserta.ditolak > 0 && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-100 text-red-700">
-                              <HiXCircle className="w-3 h-3" />
-                              {peserta.ditolak}
-                            </span>
-                          )}
-                          {peserta.menunggu > 0 && (
+                          {peserta.notSentToMentor > 0 && (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-100 text-blue-700">
                               <HiDocumentText className="w-3 h-3" />
-                              {peserta.menunggu}
+                              {peserta.notSentToMentor} Draft
                             </span>
                           )}
                         </div>
 
-                        {peserta.laporanMonths.length > 0 && (
+                        {peserta.feedbackMonths.length > 0 && (
                           <p className="text-xs text-slate-500 dark:text-slate-400 text-center">
-                            {peserta.laporanMonths.length} bulan laporan
+                            {peserta.feedbackMonths.length} periode
                           </p>
                         )}
                       </div>
                     </td>
 
-                    {/* LAPORAN TERAKHIR */}
                     <td className="py-4 px-6 text-center">
-                      {peserta.laporanTerakhir ? (
+                      {peserta.lastFeedbackDate ? (
                         <div className="flex justify-center items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
                           <HiCalendar className="w-4 h-4" />
-                          {formatDate(peserta.laporanTerakhir)}
+                          {formatDate(peserta.lastFeedbackDate)}
                         </div>
                       ) : (
                         <span className="text-sm text-slate-400 italic">
-                          Belum ada laporan
+                          Belum ada
                         </span>
                       )}
                     </td>
 
-                    {/* AKSI */}
                     <td className="py-4 px-6 text-center">
                       <button
-                        onClick={() => handleViewLaporan(peserta)}
-                        disabled={peserta.totalLaporan === 0}
+                        onClick={() => handleViewFeedback(peserta)}
+                        disabled={peserta.totalFeedback === 0}
                         className="
                           inline-flex items-center gap-2
                           px-4 py-2
@@ -811,8 +844,10 @@ export default function ViewLaporanBulananSuperadmin() {
                           disabled:opacity-50 disabled:cursor-not-allowed
                         "
                       >
-                        <HiBookOpen className="w-4 h-4" />
-                        {peserta.totalLaporan === 0 ? "Belum Ada" : "Lihat Laporan"}
+                        <FiMessageCircle className="w-4 h-4" />
+                        {peserta.totalFeedback === 0
+                          ? "Belum Ada"
+                          : "Lihat Feedback"}
                       </button>
                     </td>
                   </tr>
@@ -821,7 +856,7 @@ export default function ViewLaporanBulananSuperadmin() {
             </table>
           </div>
 
-          {/* ================= PAGINATION ================= */}
+          {/* Pagination */}
           {totalPage > 1 && (
             <div className="flex flex-wrap items-center justify-center gap-2 py-5">
               <button
@@ -898,15 +933,15 @@ export default function ViewLaporanBulananSuperadmin() {
         )}
       </div>
 
-      {/* Modal Pilih Bulan */}
+      {/* Modal Pilih Periode */}
       {showMonthModal && <MonthSelectionModal />}
 
-      {/* Modal Detail Laporan */}
-      {selectedLaporan && selectedPeserta && (
-        <SuperadminLaporanBulananModal
-          laporan={selectedLaporan}
+      {/* Modal Detail Feedback */}
+      {selectedFeedback && selectedPeserta && (
+        <SuperadminFeedbackDetailModal
+          feedback={selectedFeedback}
           onClose={() => {
-            setSelectedLaporan(null);
+            setSelectedFeedback(null);
             setSelectedPeserta(null);
           }}
         />
@@ -915,7 +950,7 @@ export default function ViewLaporanBulananSuperadmin() {
   );
 }
 
-type StatCardColor = "indigo" | "emerald" | "amber" | "slate";
+type StatCardColor = "indigo" | "emerald" | "amber" | "slate" | "blue";
 
 type StatCardProps = {
   title: string;
@@ -925,18 +960,13 @@ type StatCardProps = {
   color: StatCardColor;
 };
 
-function StatCard({
-  title,
-  value,
-  icon,
-  note,
-  color,
-}: StatCardProps) {
+function StatCard({ title, value, icon, note, color }: StatCardProps) {
   const iconColorMap: Record<StatCardColor, string> = {
     indigo: "bg-[#B91C1C]/90 dark:bg-indigo-600",
     emerald: "bg-emerald-500 dark:bg-emerald-600",
     amber: "bg-amber-500 dark:bg-violet-500",
     slate: "bg-slate-500 dark:bg-indigo-700",
+    blue: "bg-blue-500 dark:bg-blue-600",
   };
 
   const textColorMap: Record<StatCardColor, string> = {
@@ -944,6 +974,7 @@ function StatCard({
     emerald: "text-[#7F1D1D] dark:text-white",
     amber: "text-[#7F1D1D] dark:text-white",
     slate: "text-[#7F1D1D] dark:text-white",
+    blue: "text-[#7F1D1D] dark:text-white",
   };
 
   return (
@@ -960,7 +991,6 @@ function StatCard({
         transition
       "
     >
-      {/* TOP */}
       <div className="flex items-center justify-between">
         <div>
           <p className="text-xs uppercase tracking-wide text-[#7F1D1D] dark:text-indigo-300">
@@ -985,11 +1015,8 @@ function StatCard({
         </div>
       </div>
 
-      {/* FOOTER */}
       <div className="mt-4 pt-4 border-t border-[#FCA5A5]/40 dark:border-indigo-500/30">
-        <p className="text-xs text-slate-600 dark:text-slate-300">
-          {note}
-        </p>
+        <p className="text-xs text-slate-600 dark:text-slate-300">{note}</p>
       </div>
     </div>
   );

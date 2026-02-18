@@ -13,6 +13,7 @@ import {
   HiDocumentText,
 } from "react-icons/hi";
 import { FiEye } from "react-icons/fi";
+import SuperadminLogbookModal from "@/components/superadmin/SuperadminLogbookModal";
 
 type Peserta = {
   _id: string;
@@ -62,6 +63,10 @@ export default function ViewLogbookSuperadmin() {
   const [logbookModalData, setLogbookModalData] = useState<any>(null);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+
+  // State untuk modal superadmin
+  const [showSuperadminModal, setShowSuperadminModal] = useState(false);
+  const [selectedLogbook, setSelectedLogbook] = useState<any>(null);
 
   // Pagination state
   const [page, setPage] = useState(1);
@@ -186,6 +191,41 @@ export default function ViewLogbookSuperadmin() {
     setShowCalendarModal(true);
   };
 
+  /* ================= HANDLE SUPERADMIN ACTION ================= */
+  const handleSuperadminAction = async (
+    id: string,
+    status: string,
+    note: string,
+  ) => {
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/superadmin/logbook/${id}/approve`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+          body: JSON.stringify({
+            approvalStatus: status,
+            mentorNote: note,
+          }),
+        },
+      );
+
+      if (!res.ok) throw new Error("Gagal memproses logbook");
+
+      // Refresh data
+      await loadData();
+      setShowSuperadminModal(false);
+      setSelectedLogbook(null);
+      setSelectedDate(null);
+    } catch (error) {
+      console.error("Gagal memproses logbook:", error);
+      alert("Gagal memproses logbook");
+    }
+  };
+
   /* ================= DOWNLOAD PDF (ADMIN/SUPERADMIN) ================= */
   const handleDownloadPDF = async (userId: string, name: string) => {
     try {
@@ -251,7 +291,10 @@ export default function ViewLogbookSuperadmin() {
       if (!res.ok) throw new Error("Gagal mengambil logbook");
 
       const data = await res.json();
-      setLogbookModalData(data);
+
+      // ✅ SET DATA UNTUK MODAL SUPERADMIN
+      setSelectedLogbook(data);
+      setShowSuperadminModal(true);
     } catch (error) {
       console.error("Gagal mengambil detail logbook", error);
       // Fallback: coba ambil dari data yang sudah dimuat
@@ -262,7 +305,8 @@ export default function ViewLogbookSuperadmin() {
           logbook.date === date,
       );
       if (fallbackLogbook) {
-        setLogbookModalData(fallbackLogbook);
+        setSelectedLogbook(fallbackLogbook);
+        setShowSuperadminModal(true);
       } else {
         setLogbookModalData(null);
       }
@@ -540,468 +584,6 @@ export default function ViewLogbookSuperadmin() {
     );
   };
 
-  // Logbook Modal Component
-  const LogbookModal = () => {
-    if (!selectedDate || !selectedPeserta) return null;
-
-    const formatDate = (dateString: string) => {
-      const dateObj = new Date(dateString);
-      return dateObj.toLocaleDateString("id-ID", {
-        weekday: "long",
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-      });
-    };
-
-    const getImageUrl = (path: string) => {
-      if (!path) return "";
-      if (path.startsWith("http://") || path.startsWith("https://")) {
-        return path;
-      }
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "";
-      return `${baseUrl.replace(/\/$/, "")}/${path}`;
-    };
-
-    if (isLoadingDetail) {
-      return (
-        <div
-          className="
-          fixed inset-0 z-50
-          flex items-center justify-center
-          bg-black/40 dark:bg-black/70
-          backdrop-blur-md
-          p-4
-        "
-        >
-          <div
-            className="
-            rounded-3xl
-            px-8 py-7
-            bg-white/90 dark:bg-indigo-950/50
-            backdrop-blur
-            border border-[#F59E0B]/40 dark:border-indigo-500/30
-            shadow-2xl
-            flex flex-col items-center gap-4
-          "
-          >
-            {/* Spinner */}
-            <div
-              className="
-              w-12 h-12
-              rounded-full
-              border-4
-              border-[#F59E0B]
-              border-t-[#7F1D1D]
-              dark:border-indigo-400
-              dark:border-t-indigo-600
-              animate-spin
-            "
-            />
-
-            {/* Text */}
-            <p
-              className="
-              text-sm font-medium
-              text-[#7F1D1D]
-              dark:text-indigo-200
-            "
-            >
-              Memuat logbook...
-            </p>
-          </div>
-        </div>
-      );
-    }
-
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 dark:bg-black/70 backdrop-blur-md p-3 sm:p-6">
-        <div
-          className="
-          w-full max-w-2xl
-          bg-white/90 dark:bg-indigo-950/40
-          backdrop-blur
-          rounded-3xl
-          border border-slate-200 dark:border-indigo-500/30
-          shadow-2xl
-          flex flex-col
-          max-h-[92vh]
-          overflow-hidden
-        "
-        >
-          {/* Header */}
-          <div
-            className="
-            px-5 sm:px-6 py-4 sm:py-5
-            bg-linear-to-r
-            from-[#F59E0B] via-[#B91C1C] to-[#7F1D1D]
-            dark:from-indigo-600 dark:to-violet-500
-            text-white
-            flex items-center justify-between
-          "
-          >
-            {/* LEFT */}
-            <div className="flex items-center gap-3">
-              <HiCalendar className="text-xl" />
-              <div>
-                <h2 className="text-lg font-bold">
-                  {logbookModalData ? "Detail Logbook" : "Logbook Kosong"}
-                </h2>
-                <p className="text-sm opacity-90">
-                  {selectedPeserta.name} • {formatDate(selectedDate)}
-                </p>
-              </div>
-            </div>
-
-            {/* RIGHT */}
-            <button
-              onClick={() => {
-                setSelectedDate(null);
-                setLogbookModalData(null);
-              }}
-              className="
-                p-2
-                rounded-full
-                hover:bg-white/20
-                transition
-              "
-            >
-              <HiX className="text-xl" />
-            </button>
-          </div>
-
-          {/* Content */}
-          <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
-            {logbookModalData ? (
-              <>
-                {/* Status Approval */}
-                <div className="mb-4">
-                  {getApprovalBadge(logbookModalData.approvalStatus)}
-                </div>
-
-                {/* Status Kehadiran */}
-                <div className="space-y-3">
-                  <label
-                    className="
-                    text-md font-bold tracking-wide
-                    text-[#7F1D1D]
-                    dark:text-indigo-300
-                  "
-                  >
-                    Status Kehadiran
-                  </label>
-                  <div
-                    className="
-                    ml-3
-                    inline-flex items-center gap-2
-                    px-4 py-2.5
-                    rounded-xl
-                    border
-                    border-[#F59E0B]/60
-                    dark:border-indigo-500/40
-                    text-black
-                    dark:text-white
-                  "
-                  >
-                    <span className="font-semibold">
-                      {logbookModalData.status === "hadir"
-                        ? "✅ Hadir"
-                        : logbookModalData.status === "tidak_hadir_keterangan"
-                          ? "ℹ Tidak Hadir (Dengan Keterangan)"
-                          : "❌ Tidak Hadir (Tanpa Keterangan)"}
-                    </span>
-                  </div>
-                </div>
-
-                {logbookModalData.status === "hadir" && (
-                  <>
-                    {/* Uraian Aktivitas */}
-                    <div className="space-y-3">
-                      <label
-                        className="
-                        text-md font-bold tracking-wide
-                        text-[#7F1D1D]
-                        dark:text-indigo-300
-                      "
-                      >
-                        Uraian Aktivitas
-                      </label>
-                      <div
-                        className="
-                        mt-2
-                        p-4
-                        rounded-2xl
-                        bg-white/80 dark:bg-indigo-950/40
-                        border border-slate-200 dark:border-indigo-500/30
-                        whitespace-pre-line
-                        text-slate-700 dark:text-slate-100
-                      "
-                      >
-                        {logbookModalData.judul || "-"}
-                      </div>
-                    </div>
-
-                    {/* Pembelajaran */}
-                    <div className="space-y-3">
-                      <label
-                        className="
-                        text-md font-bold tracking-wide
-                        text-[#7F1D1D]
-                        dark:text-indigo-300
-                      "
-                      >
-                        Pembelajaran
-                      </label>
-                      <div
-                        className="
-                        mt-2
-                        p-4
-                        rounded-2xl
-                        bg-white/80 dark:bg-indigo-950/40
-                        border border-slate-200 dark:border-indigo-500/30
-                        whitespace-pre-line
-                        text-slate-700 dark:text-slate-100
-                      "
-                      >
-                        {logbookModalData.pengalaman || "-"}
-                      </div>
-                    </div>
-
-                    {/* Kendala */}
-                    <div className="space-y-3">
-                      <label
-                        className="
-                        text-md font-bold tracking-wide
-                        text-[#7F1D1D]
-                        dark:text-indigo-300
-                      "
-                      >
-                        Kendala
-                      </label>
-                      <div
-                        className="
-                        mt-2
-                        p-4
-                        rounded-2xl
-                        bg-white/80 dark:bg-indigo-950/40
-                        border border-slate-200 dark:border-indigo-500/30
-                        whitespace-pre-line
-                        text-slate-700 dark:text-slate-100
-                      "
-                      >
-                        {logbookModalData.kendala || "-"}
-                      </div>
-                    </div>
-
-                    {/* Dokumentasi */}
-                    {logbookModalData.files &&
-                      logbookModalData.files.length > 0 && (
-                        <div className="space-y-3">
-                          <label
-                            className="
-                            text-md font-bold tracking-wide
-                            text-[#7F1D1D]
-                            dark:text-indigo-300
-                          "
-                          >
-                            Dokumentasi
-                          </label>
-                          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                            {logbookModalData.files.map(
-                              (file: string, i: number) => (
-                                <div key={i} className="relative group">
-                                  <img
-                                    src={getImageUrl(file)}
-                                    className="mt-3 w-full h-32 object-cover rounded-lg border border-slate-200"
-                                    alt={`Dokumentasi ${i + 1}`}
-                                    onError={(e) => {
-                                      e.currentTarget.src = `https://via.placeholder.com/300x200?text=Gambar+Tidak+Tersedia`;
-                                    }}
-                                  />
-                                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition rounded-lg flex items-center justify-center">
-                                    <FiEye className="text-white opacity-0 group-hover:opacity-100 transition" />
-                                  </div>
-                                </div>
-                              ),
-                            )}
-                          </div>
-                        </div>
-                      )}
-                  </>
-                )}
-
-                {logbookModalData.status !== "hadir" && (
-                  <div className="space-y-3">
-                    <label
-                      className="
-                      text-md font-bold tracking-wide
-                      text-[#7F1D1D]
-                      dark:text-indigo-300
-                    "
-                    >
-                      Alasan Tidak Hadir
-                    </label>
-                    <div
-                      className="
-                      mt-2
-                      p-4
-                      rounded-2xl
-                      bg-white/80 dark:bg-indigo-950/40
-                      border border-slate-200 dark:border-indigo-500/30
-                      whitespace-pre-line
-                      text-slate-700 dark:text-slate-100
-                    "
-                    >
-                      {logbookModalData.keterangan || "-"}
-                    </div>
-                  </div>
-                )}
-
-                {/* Catatan Mentor */}
-                {logbookModalData.mentorNote && (
-                  <div className="space-y-3">
-                    <label
-                      className="
-                      text-md font-bold tracking-wide
-                      text-[#7F1D1D]
-                      dark:text-indigo-300
-                    "
-                    >
-                      Catatan Mentor
-                    </label>
-                    <div
-                      className="
-                      mt-2
-                      p-4
-                      rounded-2xl
-                      bg-amber-50/80
-                      dark:bg-indigo-900/40
-                      border border-amber-300/60
-                      dark:border-indigo-500/40
-                    "
-                    >
-                      <p className="text-amber-800 dark:text-indigo-200 whitespace-pre-line">
-                        {logbookModalData.mentorNote}
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Approved By */}
-                {logbookModalData.approvedBy && (
-                  <div className="space-y-3">
-                    <label
-                      className="
-                        text-md font-bold tracking-wide
-                        text-[#7F1D1D]
-                        dark:text-indigo-300
-                      "
-                    >
-                      Disetujui Oleh
-                    </label>
-
-                    <div
-                      className="
-                        mt-2
-                        flex items-center gap-3
-                        p-3
-                        rounded-xl
-                        bg-white/80
-                        dark:bg-indigo-950/40
-                        border border-[#F59E0B]/40
-                        dark:border-indigo-500/30
-                        backdrop-blur
-                      "
-                    >
-                      {/* ICON */}
-                      <div
-                        className="
-                          w-10 h-10
-                          rounded-full
-                          flex items-center justify-center
-                          bg-linear-to-br from-[#F59E0B] to-[#7F1D1D]
-                          dark:bg-linear-to-br dark:from-indigo-600 dark:to-violet-500
-                          text-white
-                          shadow
-                        "
-                      >
-                        <HiUser className="w-5 h-5" />
-                      </div>
-
-                      {/* TEXT */}
-                      <div className="leading-tight">
-                        <p className="font-medium text-slate-800 dark:text-slate-100">
-                          {logbookModalData.approvedBy.name}
-                        </p>
-                        <p className="text-sm text-slate-500 dark:text-indigo-300">
-                          {logbookModalData.approvedBy.email}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Created At */}
-                {logbookModalData.createdAt && (
-                  <div className="text-sm text-slate-500 dark:text-slate-300 text-right">
-                    Dibuat:{" "}
-                    {new Date(logbookModalData.createdAt).toLocaleDateString(
-                      "id-ID",
-                    )}
-                  </div>
-                )}
-              </>
-            ) : (
-              <div className="text-center py-10">
-                <HiDocumentText className="text-5xl text-slate-300 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-slate-600 mb-2">
-                  Logbook Belum Diisi
-                </h3>
-                <p className="text-slate-500">
-                  Peserta belum mengisi logbook untuk tanggal ini
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* Footer */}
-          <div
-            className="
-            px-6 py-4
-            border-t
-            border-slate-200
-            dark:border-indigo-500/30
-            bg-slate-50/80
-            dark:bg-indigo-950/40
-            backdrop-blur
-          "
-          >
-            <button
-              onClick={() => {
-                setSelectedDate(null);
-                setLogbookModalData(null);
-              }}
-              className="
-                w-full
-                px-6 py-2.5
-                rounded-xl
-                bg-linear-to-r from-[#F59E0B] via-[#B91C1C] to-[#7F1D1D]
-                hover:from-amber-400 hover:via-[#DC2626] hover:to-[#991B1B]
-                dark:bg-linear-to-r dark:from-indigo-600 dark:to-violet-500
-                dark:hover:from-indigo-500 dark:hover:to-violet-400
-                text-white font-semibold
-                shadow-md hover:shadow-xl
-                transition-all
-              "
-            >
-              Tutup
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   return (
     <div
       className="
@@ -1195,7 +777,6 @@ export default function ViewLogbookSuperadmin() {
                     </td>
 
                     {/* AKSI */}
-                    {/* AKSI */}
                     <td className="py-4 px-6 text-center">
                       <div className="flex justify-center gap-2 flex-wrap">
                         {/* LIHAT */}
@@ -1203,18 +784,18 @@ export default function ViewLogbookSuperadmin() {
                           onClick={() => handleViewCalendar(p)}
                           disabled={p.totalLogbooks === 0}
                           className="
-        inline-flex items-center gap-2
-        px-3 py-2
-        rounded-lg
-        text-sm font-semibold
-        text-white
-        bg-linear-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
-        dark:from-indigo-600 dark:to-violet-500
-        shadow
-        hover:shadow-xl
-        transition
-        disabled:opacity-50
-      "
+                            inline-flex items-center gap-2
+                            px-3 py-2
+                            rounded-lg
+                            text-sm font-semibold
+                            text-white
+                            bg-linear-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
+                            dark:from-indigo-600 dark:to-violet-500
+                            shadow
+                            hover:shadow-xl
+                            transition
+                            disabled:opacity-50
+                          "
                         >
                           <FiEye />
                           Lihat
@@ -1227,16 +808,16 @@ export default function ViewLogbookSuperadmin() {
                             p.totalLogbooks === 0 || downloadingId === p._id
                           }
                           className="
-        inline-flex items-center gap-2
-        px-3 py-2
-        rounded-lg
-        text-sm font-semibold
-        text-white
-        bg-emerald-600 hover:bg-emerald-700
-        shadow
-        transition
-        disabled:opacity-50
-      "
+                            inline-flex items-center gap-2
+                            px-3 py-2
+                            rounded-lg
+                            text-sm font-semibold
+                            text-white
+                            bg-emerald-600 hover:bg-emerald-700
+                            shadow
+                            transition
+                            disabled:opacity-50
+                          "
                         >
                           {downloadingId === p._id ? "..." : "PDF"}
                         </button>
@@ -1505,8 +1086,20 @@ export default function ViewLogbookSuperadmin() {
         </div>
       )}
 
-      {/* Logbook Detail Modal */}
-      {selectedDate && <LogbookModal />}
+      {/* Superadmin Logbook Detail Modal */}
+      {showSuperadminModal && selectedLogbook && (
+        <SuperadminLogbookModal
+          logbook={selectedLogbook}
+          onClose={() => {
+            setShowSuperadminModal(false);
+            setSelectedLogbook(null);
+            setSelectedDate(null);
+          }}
+          onAction={handleSuperadminAction}
+          userRole="superadmin"
+          userName="Superadmin"
+        />
+      )}
     </div>
   );
 }

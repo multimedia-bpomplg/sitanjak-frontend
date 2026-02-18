@@ -356,7 +356,7 @@ export default function PesertaLayout({
               </Link>
 
               <Link
-                href="/dashboard/peserta/laporan-bulanan"
+                href="/dashboard/peserta/feedback"
                 className={`
                   flex items-center gap-3
                   py-2.5 rounded-xl
@@ -368,7 +368,7 @@ export default function PesertaLayout({
                   ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
                   
                   ${
-                    pathname.startsWith("/dashboard/peserta/laporan-bulanan")
+                    pathname.startsWith("/dashboard/peserta/feedback")
                       ? `
                           bg-linear-to-r
                           from-[#FDE68A]/60

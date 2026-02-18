@@ -54,6 +54,7 @@ export default function MentorLaporanAkhirModal({
   const [mentorNote, setMentorNote] = useState("");
   const [status, setStatus] = useState("Menunggu");
   const [showConfirm, setShowConfirm] = useState(false);
+  const [showPdf, setShowPdf] = useState(false); // ✅ TAMBAH STATE UNTUK PREVIEW PDF
   const [penilaian, setPenilaian] = useState<Penilaian>({
     kehadiranDisiplin: "",
     sikapPerilaku: "",
@@ -292,6 +293,13 @@ export default function MentorLaporanAkhirModal({
     }
   };
 
+  /* ================= GET FILE URL ================= */
+  const getFileUrl = (filePath: string) => {
+    if (!filePath) return "";
+    if (filePath.startsWith("http")) return filePath;
+    return `${process.env.NEXT_PUBLIC_API_URL || window.location.origin}/${filePath}`;
+  };
+
   /* ================= LABEL PENILAIAN ================= */
   const penilaianLabels: Record<keyof Penilaian, string> = {
     kehadiranDisiplin: "Kehadiran dan Disiplin",
@@ -422,13 +430,6 @@ export default function MentorLaporanAkhirModal({
               >
                 <div
                   className="
-                    rounded-2xl
-                    border
-                    px-4 sm:px-6 py-4
-                    bg-white/80 dark:bg-indigo-950/40
-                    backdrop-blur
-                    shadow-md
-                    transition
                     flex flex-col sm:flex-row
                     sm:items-center sm:justify-between
                     gap-4
@@ -508,31 +509,69 @@ export default function MentorLaporanAkhirModal({
                 </div>
               </div>
 
-              {/* ACTION BUTTONS PDF */}
-              <div className="flex flex-col sm:flex-row gap-3">
-                <button
-                  onClick={handleDownloadPdf}
-                  className="
-                    w-full sm:w-auto
-                    inline-flex items-center justify-center gap-2
-                    px-5 py-2.5
-                    rounded-xl
-                    text-sm font-semibold
-                    text-white
-                    bg-emerald-600 hover:bg-emerald-700
-                    shadow hover:shadow-lg
-                    transition
-                  "
-                >
-                  <FiDownload className="w-4 h-4" />
-                  Download PDF
-                </button>
-              </div>
+              {/* ✅ PDF VIEWER - SAMA SEPERTI DI SUPERADMIN */}
+              {laporan?.filePdf && (
+                <div className="space-y-4">
+                  {/* ACTION BUTTONS PDF */}
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <button
+                      onClick={handleDownloadPdf}
+                      className="
+                        flex-1 sm:flex-none
+                        inline-flex items-center justify-center gap-2
+                        px-5 py-3
+                        rounded-xl
+                        text-sm font-semibold
+                        text-white
+                        bg-emerald-600 hover:bg-emerald-700
+                        shadow-lg hover:shadow-xl
+                        transition-all
+                        transform hover:scale-105
+                      "
+                    >
+                      <FiDownload className="w-5 h-5" />
+                      <span>Download PDF</span>
+                    </button>
+
+                    <button
+                      onClick={() => setShowPdf(!showPdf)}
+                      className="
+                        flex-1 sm:flex-none
+                        inline-flex items-center justify-center gap-2
+                        px-5 py-3
+                        rounded-xl
+                        text-sm font-semibold
+                        text-white
+                        bg-purple-600 hover:bg-purple-700
+                        shadow-lg hover:shadow-xl
+                        transition-all
+                        transform hover:scale-105
+                      "
+                    >
+                      <FiEye className="w-5 h-5" />
+                      <span>{showPdf ? "Sembunyikan" : "Preview"}</span>
+                    </button>
+                  </div>
+
+                  {/* PDF PREVIEW - SAMA SEPERTI DI SUPERADMIN */}
+                  {showPdf && (
+                    <div className="rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 border-2 border-emerald-200 dark:border-indigo-500/30 shadow-inner">
+                      <iframe
+                        src={`${getFileUrl(laporan.filePdf)}#toolbar=0&navpanes=0`}
+                        className="w-full h-[500px] sm:h-[600px]"
+                        title="PDF Preview"
+                      />
+                      <div className="p-3 text-center text-xs text-slate-500 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700">
+                        * Gunakan tombol Download untuk menyimpan file
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* FORM REVIEW MENTOR + PENILAIAN */}
               <div
                 className={`
-                  mt-6
                   rounded-2xl
                   border border-slate-200 dark:border-slate-700
                   bg-white dark:bg-slate-800
@@ -646,7 +685,8 @@ export default function MentorLaporanAkhirModal({
                             Laporan sudah direview
                           </p>
                           <p className="text-[11px] sm:text-xs text-amber-600 dark:text-amber-400 mt-0.5">
-                            Status tidak dapat diubah karena laporan sudah disetujui atau ditolak.
+                            Status tidak dapat diubah karena laporan sudah
+                            disetujui atau ditolak.
                           </p>
                         </div>
                       </div>
@@ -898,9 +938,10 @@ export default function MentorLaporanAkhirModal({
           )}
         </div>
       </div>
-      
+
+      {/* CONFIRMATION MODAL */}
       {showConfirm && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div
             className="
               w-full max-w-sm
@@ -922,11 +963,7 @@ export default function MentorLaporanAkhirModal({
                 flex items-center justify-center
                 text-white
                 shadow-lg
-                ${
-                  status === "Disetujui"
-                    ? "bg-emerald-500"
-                    : "bg-red-500"
-                }
+                ${status === "Disetujui" ? "bg-emerald-500" : "bg-red-500"}
               `}
             >
               {status === "Disetujui" ? (
@@ -939,7 +976,8 @@ export default function MentorLaporanAkhirModal({
             {/* TITLE */}
             <div>
               <h3 className="text-lg font-bold text-slate-800 dark:text-white">
-                Konfirmasi {status === "Disetujui" ? "Persetujuan" : "Penolakan"}
+                Konfirmasi{" "}
+                {status === "Disetujui" ? "Persetujuan" : "Penolakan"}
               </h3>
               <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">
                 Apakah Anda yakin ingin{" "}
