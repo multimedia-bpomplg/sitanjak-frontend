@@ -304,7 +304,7 @@ export default function SuperadminLaporanAkhirModal({
             >
               Detail Laporan
             </button>
-            <button
+            {/* <button
               onClick={() => setActiveTab("review")}
               className={`
                 py-3 font-semibold border-b-2 transition relative
@@ -316,7 +316,7 @@ export default function SuperadminLaporanAkhirModal({
               `}
             >
               Review & Status
-            </button>
+            </button> */}
           </div>
         </div>
 

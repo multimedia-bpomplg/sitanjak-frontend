@@ -134,7 +134,6 @@ export default function ViewLogbookMentor() {
       // Format data untuk Calendar component
       const map: Record<string, FilledDateType> = {};
 
-
       data.forEach((l: any) => {
         map[l.date] = {
           _id: l._id, // WAJIB
@@ -292,13 +291,13 @@ export default function ViewLogbookMentor() {
   return (
     <div
       className="
-        min-h-screen p-4 sm:p-6 lg:p-10
-        bg-linear-to-br
-        from-slate-50 via-white to-indigo-100
-        dark:from-[#0B0614] dark:via-[#120A24] dark:to-[#1E0F3D]
-        text-slate-800 dark:text-slate-100
-        transition-colors
-      "
+          min-h-screen p-4 sm:p-6 lg:p-10
+          bg-linear-to-br
+          from-slate-50 via-white to-indigo-100
+          dark:from-[#0B0614] dark:via-[#120A24] dark:to-[#1E0F3D]
+          text-slate-800 dark:text-slate-100
+          transition-colors
+        "
     >
       {/* HEADER */}
       <div className="mb-10">
@@ -317,18 +316,18 @@ export default function ViewLogbookMentor() {
             {/* ===== CARD 1 ===== */}
             <div
               className="
-                group
-                relative
-                rounded-2xl
-                border border-[#FCA5A5]/40 dark:border-indigo-500/30
-                bg-linear-to-br
-                from-[#FFFDF8] via-[#FFF4EC] to-white
-                dark:from-indigo-950 dark:via-indigo-900 dark:to-indigo-800
-                p-6
-                shadow-sm
-                hover:shadow-xl
-                transition
-              "
+                  group
+                  relative
+                  rounded-2xl
+                  border border-[#FCA5A5]/40 dark:border-indigo-500/30
+                  bg-linear-to-br
+                  from-[#FFFDF8] via-[#FFF4EC] to-white
+                  dark:from-indigo-950 dark:via-indigo-900 dark:to-indigo-800
+                  p-6
+                  shadow-sm
+                  hover:shadow-xl
+                  transition
+                "
             >
               <div className="flex items-center justify-between">
                 <div>
@@ -341,14 +340,14 @@ export default function ViewLogbookMentor() {
                 </div>
                 <div
                   className="
-                    w-14 h-14
-                    rounded-2xl
-                    bg-[#B91C1C]/90 dark:bg-indigo-600
-                    text-white
-                    flex items-center justify-center
-                    shadow
-                    group-hover:scale-110 transition
-                  "
+                      w-14 h-14
+                      rounded-2xl
+                      bg-[#B91C1C]/90 dark:bg-indigo-600
+                      text-white
+                      flex items-center justify-center
+                      shadow
+                      group-hover:scale-110 transition
+                    "
                 >
                   <HiUsers className="w-7 h-7" />
                 </div>
@@ -363,18 +362,18 @@ export default function ViewLogbookMentor() {
             {/* ===== CARD 2 ===== */}
             <div
               className="
-                group
-                relative
-                rounded-2xl
-                border border-[#FCA5A5]/40 dark:border-indigo-500/30
-                bg-linear-to-br
-                from-[#FFFDF8] via-[#FFF4EC] to-white
-                dark:from-indigo-950 dark:via-indigo-900 dark:to-indigo-800
-                p-6
-                shadow-sm
-                hover:shadow-xl
-                transition
-              "
+                  group
+                  relative
+                  rounded-2xl
+                  border border-[#FCA5A5]/40 dark:border-indigo-500/30
+                  bg-linear-to-br
+                  from-[#FFFDF8] via-[#FFF4EC] to-white
+                  dark:from-indigo-950 dark:via-indigo-900 dark:to-indigo-800
+                  p-6
+                  shadow-sm
+                  hover:shadow-xl
+                  transition
+                "
             >
               <div className="flex items-center justify-between">
                 <div>
@@ -387,14 +386,14 @@ export default function ViewLogbookMentor() {
                 </div>
                 <div
                   className="
-                    w-14 h-14
-                    rounded-2xl
-                    bg-amber-500 dark:bg-violet-500
-                    text-white
-                    flex items-center justify-center
-                    shadow
-                    group-hover:scale-110 transition
-                  "
+                      w-14 h-14
+                      rounded-2xl
+                      bg-amber-500 dark:bg-violet-500
+                      text-white
+                      flex items-center justify-center
+                      shadow
+                      group-hover:scale-110 transition
+                    "
                 >
                   <HiUser className="w-7 h-7" />
                 </div>
@@ -409,18 +408,18 @@ export default function ViewLogbookMentor() {
             {/* ===== CARD 3 ===== */}
             <div
               className="
-                group
-                relative
-                rounded-2xl
-                border border-[#FCA5A5]/40 dark:border-indigo-500/30
-                bg-linear-to-br
-                from-[#FFFDF8] via-[#FFF4EC] to-white
-                dark:from-indigo-950 dark:via-indigo-900 dark:to-indigo-800
-                p-6
-                shadow-sm
-                hover:shadow-xl
-                transition
-              "
+                  group
+                  relative
+                  rounded-2xl
+                  border border-[#FCA5A5]/40 dark:border-indigo-500/30
+                  bg-linear-to-br
+                  from-[#FFFDF8] via-[#FFF4EC] to-white
+                  dark:from-indigo-950 dark:via-indigo-900 dark:to-indigo-800
+                  p-6
+                  shadow-sm
+                  hover:shadow-xl
+                  transition
+                "
             >
               <div className="flex items-center justify-between">
                 <div>
@@ -433,14 +432,14 @@ export default function ViewLogbookMentor() {
                 </div>
                 <div
                   className="
-                    w-14 h-14
-                    rounded-2xl
-                    bg-[#F97316] dark:bg-indigo-700
-                    text-white
-                    flex items-center justify-center
-                    shadow
-                    group-hover:scale-110 transition
-                  "
+                      w-14 h-14
+                      rounded-2xl
+                      bg-[#F97316] dark:bg-indigo-700
+                      text-white
+                      flex items-center justify-center
+                      shadow
+                      group-hover:scale-110 transition
+                    "
                 >
                   <HiBriefcase className="w-7 h-7" />
                 </div>
@@ -463,17 +462,17 @@ export default function ViewLogbookMentor() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="
-                  w-full pl-11 pr-10 py-3
-                  rounded-2xl
-                  bg-white/90 dark:bg-white/5
-                  backdrop-blur
-                  border border-[#F59E0B]/40 dark:border-indigo-500/40
-                  text-slate-700 dark:text-slate-100
-                  placeholder:text-slate-400
-                  focus:outline-none focus:ring-2
-                  focus:ring-[#B91C1C]/60 dark:focus:ring-indigo-500/60
-                  transition
-                "
+                    w-full pl-11 pr-10 py-3
+                    rounded-2xl
+                    bg-white/90 dark:bg-white/5
+                    backdrop-blur
+                    border border-[#F59E0B]/40 dark:border-indigo-500/40
+                    text-slate-700 dark:text-slate-100
+                    placeholder:text-slate-400
+                    focus:outline-none focus:ring-2
+                    focus:ring-[#B91C1C]/60 dark:focus:ring-indigo-500/60
+                    transition
+                  "
               />
             </div>
             <div className="mt-2 flex flex-wrap justify-between text-sm text-slate-500">
@@ -485,10 +484,10 @@ export default function ViewLogbookMentor() {
                 <button
                   onClick={() => setSearchQuery("")}
                   className="
-                    text-[#7F1D1D] dark:text-indigo-300
-                    hover:underline
-                    font-semibold
-                  "
+                      text-[#7F1D1D] dark:text-indigo-300
+                      hover:underline
+                      font-semibold
+                    "
                 >
                   Reset pencarian
                 </button>
@@ -500,26 +499,26 @@ export default function ViewLogbookMentor() {
           {filteredPeserta.length === 0 ? (
             <div
               className="
-                rounded-3xl
-                bg-white/80 dark:bg-white/5
-                backdrop-blur
-                border border-[#F59E0B]/30 dark:border-indigo-500/30
-                shadow-xl
-                p-12 text-center
-              "
+                  rounded-3xl
+                  bg-white/80 dark:bg-white/5
+                  backdrop-blur
+                  border border-[#F59E0B]/30 dark:border-indigo-500/30
+                  shadow-xl
+                  p-12 text-center
+                "
             >
               <div
                 className="
-                  w-16 h-16 sm:w-20 sm:h-20
-                  mx-auto mb-5
-                  rounded-full
-                  bg-linear-to-br
-                  from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
-                  dark:from-indigo-600 dark:to-violet-500
-                  flex items-center justify-center
-                  shadow-lg
-                  animate-pulse
-                "
+                    w-16 h-16 sm:w-20 sm:h-20
+                    mx-auto mb-5
+                    rounded-full
+                    bg-linear-to-br
+                    from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
+                    dark:from-indigo-600 dark:to-violet-500
+                    flex items-center justify-center
+                    shadow-lg
+                    animate-pulse
+                  "
               >
                 <HiUser className="w-7 h-7 sm:w-10 sm:h-10 text-white" />
               </div>
@@ -537,16 +536,16 @@ export default function ViewLogbookMentor() {
                 <button
                   onClick={() => setSearchQuery("")}
                   className="
-                    inline-flex items-center justify-center
-                    px-5 sm:px-6 py-2.5 sm:py-3
-                    rounded-xl
-                    text-sm font-semibold
-                    text-white
-                    bg-linear-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
-                    dark:from-indigo-600 dark:to-violet-500
-                    shadow hover:shadow-lg hover:-translate-y-0.5
-                    transition
-                  "
+                      inline-flex items-center justify-center
+                      px-5 sm:px-6 py-2.5 sm:py-3
+                      rounded-xl
+                      text-sm font-semibold
+                      text-white
+                      bg-linear-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
+                      dark:from-indigo-600 dark:to-violet-500
+                      shadow hover:shadow-lg hover:-translate-y-0.5
+                      transition
+                    "
                 >
                   Tampilkan Semua Peserta
                 </button>
@@ -555,13 +554,13 @@ export default function ViewLogbookMentor() {
           ) : (
             <div
               className="
-                rounded-2xl
-                bg-white/90 dark:bg-white/5
-                backdrop-blur
-                border border-slate-200 dark:border-indigo-500/30
-                shadow-lg
-                overflow-hidden
-              "
+                  rounded-2xl
+                  bg-white/90 dark:bg-white/5
+                  backdrop-blur
+                  border border-slate-200 dark:border-indigo-500/30
+                  shadow-lg
+                  overflow-hidden
+                "
             >
               <div className="overflow-x-auto">
                 <table className="min-w-225 w-full text-sm sm:text-base">
@@ -603,14 +602,14 @@ export default function ViewLogbookMentor() {
                           <div className="flex justify-center items-center gap-3">
                             <div
                               className="
-                                shrink-0 w-10 h-10 min-w-10 min-h-10
-                                rounded-full
-                                bg-linear-to-br from-[#7F1D1D] to-[#F59E0B]
-                                dark:from-indigo-600 dark:to-violet-500
-                                flex items-center justify-center
-                                text-white shadow
-                                group-hover:scale-110 transition
-                              "
+                                  shrink-0 w-10 h-10 min-w-10 min-h-10
+                                  rounded-full
+                                  bg-linear-to-br from-[#7F1D1D] to-[#F59E0B]
+                                  dark:from-indigo-600 dark:to-violet-500
+                                  flex items-center justify-center
+                                  text-white shadow
+                                  group-hover:scale-110 transition
+                                "
                             >
                               <HiUser className="w-5 h-5" />
                             </div>
@@ -632,67 +631,48 @@ export default function ViewLogbookMentor() {
                         </td>
                         <td className="py-4 px-6 text-center">
                           <div className="flex justify-center">
-                            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 dark:bg-indigo-500/20 dark:text-indigo-200">
+                            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 dark:bg-indigo-500/20 dark:text-indigo-200">
                               {p.posisi}
                             </span>
                           </div>
                         </td>
                         <td className="py-4 px-6 text-center">
                           <div className="flex justify-center">
-                            {(() => {
-                              const kategori = (p.kategori || "").toLowerCase();
-                              const isBersama = kategori === "bersama";
-
-                              return (
-                                <span
-                                  className={`
-                                    px-3 py-1.5
-                                    rounded-full
-                                    text-xs font-semibold
-                                    border
-                                    ${
-                                      isBersama
-                                        ? "bg-[#7F1D1D]/10 text-[#7F1D1D] border-[#7F1D1D]/20 dark:bg-indigo-500/20 dark:text-indigo-200 dark:border-indigo-500/30"
-                                        : "bg-[#FEF3C7] text-[#92400E] border-[#FDE68A] dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/30"
-                                    }
-                                  `}
-                                >
-                                  {isBersama ? "Bersama" : "Sendiri"}
-                                </span>
-                              );
-                            })()}
+                            <span className="px-3 py-1.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-100">
+                              {p.kategori}
+                            </span>
                           </div>
                         </td>
                         <td className="py-4 px-4 sm:px-6">
                           <div
                             className="
-                              flex flex-col sm:flex-row
-                              items-stretch sm:items-center
-                              justify-center
-                              gap-2 sm:gap-3
-                            "
+                                flex flex-col sm:flex-row
+                                items-stretch sm:items-center
+                                justify-center
+                                gap-2 sm:gap-3
+                              "
                           >
                             {/* LIHAT */}
                             <button
                               onClick={() => handleViewLogbook(p)}
                               className="
-                                w-full sm:w-auto
-                                group
-                                inline-flex items-center justify-center gap-2
-                                px-4 sm:px-5 py-2.5
-                                rounded-xl
-                                text-xs sm:text-sm font-semibold
-                                text-white
+                                  w-full sm:w-auto
+                                  group
+                                  inline-flex items-center justify-center gap-2
+                                  px-4 sm:px-5 py-2.5
+                                  rounded-xl
+                                  text-xs sm:text-sm font-semibold
+                                  text-white
 
-                                bg-linear-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
-                                hover:from-[#991B1B] hover:via-[#DC2626] hover:to-[#FBBF24]
+                                  bg-linear-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
+                                  hover:from-[#991B1B] hover:via-[#DC2626] hover:to-[#FBBF24]
 
-                                dark:from-indigo-600 dark:to-violet-500
-                                dark:hover:from-indigo-500 dark:hover:to-violet-400
+                                  dark:from-indigo-600 dark:to-violet-500
+                                  dark:hover:from-indigo-500 dark:hover:to-violet-400
 
-                                shadow-md hover:shadow-xl
-                                transition
-                              "
+                                  shadow-md hover:shadow-xl
+                                  transition
+                                "
                             >
                               <HiCalendar className="w-4 h-4" />
                               Lihat
@@ -703,22 +683,23 @@ export default function ViewLogbookMentor() {
                               onClick={() => handleDownloadLogbook(p)}
                               disabled={downloadingId === p._id}
                               className="
-                                w-full sm:w-auto
-                                group
-                                inline-flex items-center justify-center gap-2
-                                px-4 sm:px-5 py-2.5
-                                rounded-xl
-                                text-xs sm:text-sm font-semibold
-                                text-white
+                                  w-full sm:w-auto
+                                  group
+                                  inline-flex items-center justify-center gap-2
+                                  px-4 sm:px-5 py-2.5
+                                  rounded-xl
+                                  text-xs sm:text-sm font-semibold
+                                  text-white
 
-                                bg-emerald-600 hover:bg-emerald-700
-                                disabled:opacity-50
+                                  bg-emerald-600 hover:bg-emerald-700
+                                  disabled:opacity-50
 
-                                shadow-md hover:shadow-xl
-                                transition
-                              "
+                                  shadow-md hover:shadow-xl
+                                  transition
+                                "
                             >
-                              📄 {downloadingId === p._id ? "Loading..." : "PDF"}
+                              📄{" "}
+                              {downloadingId === p._id ? "Loading..." : "PDF"}
                             </button>
                           </div>
                         </td>
@@ -741,15 +722,15 @@ export default function ViewLogbookMentor() {
                 setFilledDates({});
               }}
               className="
-                inline-flex items-center gap-2
-                px-4 py-2 text-sm font-semibold
-                rounded-xl
-                bg-[#FFF1F2] text-[#7F1D1D]
-                hover:bg-[#FEE2E2]
-                dark:bg-indigo-500/20 dark:text-indigo-300
-                dark:hover:bg-indigo-500/30
-                transition
-              "
+                  inline-flex items-center gap-2
+                  px-4 py-2 text-sm font-semibold
+                  rounded-xl
+                  bg-[#FFF1F2] text-[#7F1D1D]
+                  hover:bg-[#FEE2E2]
+                  dark:bg-indigo-500/20 dark:text-indigo-300
+                  dark:hover:bg-indigo-500/30
+                  transition
+                "
             >
               <HiArrowLeft className="w-4 h-4" />
               Kembali
@@ -758,25 +739,25 @@ export default function ViewLogbookMentor() {
 
           <div
             className="
-              relative
-              rounded-3xl
-              border border-[#FCA5A5]/40 dark:border-indigo-500/30
-              bg-linear-to-br
-              from-[#FFFDF8] via-[#FFF1E8] to-white
-              dark:from-indigo-950 dark:via-indigo-900 dark:to-indigo-800
-              p-4 sm:p-6 lg:p-8
-              shadow-md hover:shadow-xl
-              transition
-              mb-8
-            "
+                relative
+                rounded-3xl
+                border border-[#FCA5A5]/40 dark:border-indigo-500/30
+                bg-linear-to-br
+                from-[#FFFDF8] via-[#FFF1E8] to-white
+                dark:from-indigo-950 dark:via-indigo-900 dark:to-indigo-800
+                p-4 sm:p-6 lg:p-8
+                shadow-md hover:shadow-xl
+                transition
+                mb-8
+              "
           >
             {/* ===== HEADER ===== */}
             <div
               className="
-                flex flex-col gap-4
-                sm:flex-row sm:items-center sm:justify-between
-                mb-6
-              "
+                  flex flex-col gap-4
+                  sm:flex-row sm:items-center sm:justify-between
+                  mb-6
+                "
             >
               {/* LEFT */}
               <div>
@@ -801,25 +782,25 @@ export default function ViewLogbookMentor() {
               {/* RIGHT COUNTER */}
               <div
                 className="
-                  flex items-center gap-3
-                  px-4 py-3
-                  rounded-2xl
-                  bg-[#FFF1F2]
-                  dark:bg-indigo-500/20
-                  border border-[#FCA5A5]/40 dark:border-indigo-500/30
-                "
+                    flex items-center gap-3
+                    px-4 py-3
+                    rounded-2xl
+                    bg-[#FFF1F2]
+                    dark:bg-indigo-500/20
+                    border border-[#FCA5A5]/40 dark:border-indigo-500/30
+                  "
               >
                 <div
                   className="
-                    w-10 h-10
-                    rounded-xl
-                    bg-linear-to-br from-[#7F1D1D] to-[#F59E0B]
-                    dark:from-indigo-600 dark:to-violet-500
-                    text-white
-                    flex items-center justify-center
-                    font-bold
-                    shadow
-                  "
+                      w-10 h-10
+                      rounded-xl
+                      bg-linear-to-br from-[#7F1D1D] to-[#F59E0B]
+                      dark:from-indigo-600 dark:to-violet-500
+                      text-white
+                      flex items-center justify-center
+                      font-bold
+                      shadow
+                    "
                 >
                   {Object.keys(filledDates).length}
                 </div>
@@ -837,12 +818,12 @@ export default function ViewLogbookMentor() {
             {/* ===== CALENDAR WRAPPER ===== */}
             <div
               className="
-                rounded-2xl
-                bg-white/80 dark:bg-white/5
-                backdrop-blur
-                border border-[#FCA5A5]/30 dark:border-indigo-500/30
-                p-3 sm:p-4
-              "
+                  rounded-2xl
+                  bg-white/80 dark:bg-white/5
+                  backdrop-blur
+                  border border-[#FCA5A5]/30 dark:border-indigo-500/30
+                  p-3 sm:p-4
+                "
             >
               <Calendar
                 filledDates={filledDates}

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   HiMail,
   HiSearch,
@@ -18,7 +18,11 @@ export default function RiwayatPendaftaran() {
   const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
-  const FILE_BASE_URL = "http://localhost:5000/api/uploads";
+  // ✅ AMAN: Menggunakan environment variable dari .env.local
+  const API_URL =
+    process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+  const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:5000";
+  const FILE_BASE_URL = `${BASE_URL}/api/uploads`;
 
   const [popup, setPopup] = useState<{
     show: boolean;
@@ -29,6 +33,64 @@ export default function RiwayatPendaftaran() {
     type: "success",
     message: "",
   });
+
+  // 🔒 Proteksi dari DevTools inspection (opsional)
+  useEffect(() => {
+    // Deteksi DevTools
+    const devToolsDetector = () => {
+      const start = performance.now();
+      debugger;
+      const end = performance.now();
+
+      if (end - start > 100) {
+        console.clear();
+        // Bisa redirect atau tampilkan pesan
+        // window.location.href = '/unauthorized';
+      }
+    };
+
+    const interval = setInterval(devToolsDetector, 2000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // 🔒 Proteksi right-click
+  useEffect(() => {
+    const handleContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
+      setPopup({
+        show: true,
+        type: "warning",
+        message: "Inspect element tidak diizinkan",
+      });
+    };
+
+    document.addEventListener("contextmenu", handleContextMenu);
+    return () => document.removeEventListener("contextmenu", handleContextMenu);
+  }, []);
+
+  // 🔒 Proteksi keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Cegah F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U
+      if (
+        e.key === "F12" ||
+        (e.ctrlKey &&
+          e.shiftKey &&
+          (e.key === "I" || e.key === "J" || e.key === "C")) ||
+        (e.ctrlKey && e.key === "U")
+      ) {
+        e.preventDefault();
+        setPopup({
+          show: true,
+          type: "warning",
+          message: "Developer tools tidak diizinkan",
+        });
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   const handleSearch = async () => {
     if (!email) {
@@ -54,8 +116,19 @@ export default function RiwayatPendaftaran() {
     setLoading(true);
 
     try {
+      // ✅ AMAN: Menggunakan environment variable dengan headers tambahan
       const res = await fetch(
-        `http://localhost:5000/api/pendaftaran/cek?email=${email}`,
+        `${API_URL}/pendaftaran/cek?email=${encodeURIComponent(email)}`,
+        {
+          headers: {
+            "X-Requested-With": "XMLHttpRequest",
+            Accept: "application/json",
+            // Tambahkan timestamp untuk mencegah caching
+            "X-Timestamp": Date.now().toString(),
+          },
+          // Tambahkan cache control
+          cache: "no-store",
+        },
       );
 
       const data = await res.json();
@@ -75,15 +148,16 @@ export default function RiwayatPendaftaran() {
           message: data.message || "Data tidak ditemukan",
         });
       }
-    } catch {
+    } catch (error) {
+      console.error("Search error:", error); // Untuk debugging internal
       setPopup({
         show: true,
         type: "error",
         message: "Terjadi kesalahan saat mencari data",
       });
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   const getStatusColor = (status: string) => {
@@ -282,14 +356,16 @@ export default function RiwayatPendaftaran() {
 
             <button
               onClick={handleSearch}
-              className="
+              disabled={loading}
+              className={`
                 flex items-center justify-center gap-2
                 px-6 py-3 rounded-xl
                 bg-linear-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
                 text-white font-semibold
                 hover:brightness-110
                 transition
-              "
+                ${loading ? "opacity-70 cursor-not-allowed" : ""}
+              `}
             >
               <HiSearch className="text-lg" />
               {loading ? "Mencari..." : "Cari Data"}
@@ -330,6 +406,7 @@ export default function RiwayatPendaftaran() {
                   <a
                     href={`${FILE_BASE_URL}/${result.suratPengantar}`}
                     target="_blank"
+                    rel="noopener noreferrer"
                     className="
                       inline-flex items-center gap-2
                       px-5 py-2.5 rounded-xl
@@ -346,6 +423,7 @@ export default function RiwayatPendaftaran() {
                   <a
                     href={`${FILE_BASE_URL}/${result.suratBalasan}`}
                     target="_blank"
+                    rel="noopener noreferrer"
                     className="
                       inline-flex items-center gap-2
                       px-5 py-2.5 rounded-xl

@@ -8,19 +8,10 @@ export function middleware(req: NextRequest) {
   }
 
   try {
-    // ✅ DECODE TOKEN UNTUK DAPATKAN SEMUA INFORMASI
     const payload = JSON.parse(atob(token.split(".")[1]));
     const roles = payload.roles || [];
-    const isSuperAccess = payload.isSuperAccess || false;
 
     const path = req.nextUrl.pathname;
-
-    console.log("🔍 Middleware Check:", {
-      path,
-      roles,
-      isSuperAccess,
-      userEmail: payload.email,
-    });
 
     // ✅ SUPERADMIN ROUTES
     if (path.startsWith("/dashboard/superadmin")) {
@@ -29,21 +20,12 @@ export function middleware(req: NextRequest) {
       }
     }
 
-    // ✅ ADMIN ROUTES - PERBAIKAN DI SINI!
+    // ✅ ADMIN ROUTES
     if (path.startsWith("/dashboard/admin")) {
-      // Admin biasa: boleh akses semua halaman admin
-      if (roles.includes("admin")) {
-        console.log("✅ Admin access granted");
+      if (roles.includes("admin") || roles.includes("superadmin")) {
         return NextResponse.next();
       }
 
-      // Superadmin juga boleh akses admin routes
-      if (roles.includes("superadmin")) {
-        console.log("✅ Superadmin access to admin routes");
-        return NextResponse.next();
-      }
-
-      // Jika bukan admin atau superadmin
       return NextResponse.redirect(new URL("/403", req.url));
     }
 
@@ -58,8 +40,7 @@ export function middleware(req: NextRequest) {
     }
 
     return NextResponse.next();
-  } catch (error) {
-    console.error("Middleware error:", error);
+  } catch {
     return NextResponse.redirect(new URL("/auth/login", req.url));
   }
 }

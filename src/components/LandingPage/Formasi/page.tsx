@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import {
-  HiOutlineOfficeBuilding ,
+  HiOutlineOfficeBuilding,
   HiUsers,
   HiAcademicCap,
   HiCheckCircle,
@@ -254,13 +254,6 @@ export default function Formasi() {
                       ></div>
                     </div>
                   </div>
-
-                  <p className="flex items-start gap-2">
-                    <HiAcademicCap className="text-[#7F1D1D] shrink-0 mt-1" />
-                    <span>
-                      <b>Jurusan:</b> {formatJurusan(item.jurusan)}
-                    </span>
-                  </p>
 
                   {/* INFO PESERTA */}
                   <div className="flex items-center gap-2 text-blue-600 bg-blue-50 p-2 rounded-lg">
