@@ -1,5 +1,6 @@
 "use client";
 
+import type { Peserta } from "@/types/peserta";
 import {
   HiX,
   HiUser,
@@ -9,29 +10,6 @@ import {
   HiCalendar,
   HiBriefcase,
 } from "react-icons/hi";
-
-type Peserta = {
-  nama: string;
-  email: string;
-  wa: string;
-  posisi: string;
-  jurusan?: string;
-  jenisKelamin: string;
-  tempatLahir: string;
-  tanggalLahir: string;
-  tanggalMulaiMagang: string;
-  tanggalSelesaiMagang: string;
-  provinsi: string;
-  kota: string;
-  kecamatan: string;
-  kelurahan: string;
-  alamatLengkap: string;
-  mentor?: {
-    name: string;
-    email: string;
-    posisiMentor: string;
-  };
-};
 
 export default function PesertaDetailModal({
   open,

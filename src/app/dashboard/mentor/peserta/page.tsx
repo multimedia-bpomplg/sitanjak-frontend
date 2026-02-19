@@ -12,18 +12,7 @@ import {
 } from "react-icons/hi";
 import { MdEmail } from "react-icons/md";
 import PesertaDetailModal from "@/components/peserta/PesertaDetailModal";
-
-/* ================= TYPE ================= */
-type Peserta = {
-  nama: string;
-  email: string;
-  posisi: string;
-  mentor?: {
-    name: string;
-    email: string;
-  };
-  kategori?: string;
-};
+import type { Peserta } from "@/types/peserta";
 
 export default function ViewPendaftaranUI() {
   const [data, setData] = useState<Peserta[]>([]);
@@ -118,7 +107,9 @@ export default function ViewPendaftaranUI() {
     >
       {/* ================= HEADER ================= */}
       <div className="mb-10">
-        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight">Data Pendaftaran</h1>
+        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight">
+          Data Pendaftaran
+        </h1>
         <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400">
           Kelola data peserta yang terdaftar dalam program magang
         </p>
@@ -367,9 +358,7 @@ export default function ViewPendaftaranUI() {
                     <td className="py-4 px-6 text-center">
                       <div className="flex justify-center items-center gap-2 text-slate-600 dark:text-slate-300">
                         <MdEmail className="w-4 h-4" />
-                        <span className="truncate max-w-50">
-                          {p.email}
-                        </span>
+                        <span className="truncate max-w-50">{p.email}</span>
                       </div>
                     </td>
 
