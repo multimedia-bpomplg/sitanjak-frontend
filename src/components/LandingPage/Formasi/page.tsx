@@ -194,135 +194,157 @@ export default function Formasi() {
               return (
                 <div
                   key={item._id}
-                  style={{ transitionDelay: `${i * 120}ms` }}
                   className={`
-                    group relative
-                    bg-white/45 backdrop-blur-lg
-                    border ${isFull ? "border-red-200" : "border-white/60"}
-                    rounded-3xl p-6
-                    shadow-md
-                    transition-all duration-700 ease-out
-                    ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}
-                    ${isFull ? "" : "hover:shadow-xl hover:-translate-y-1 cursor-pointer"}
+                    relative group
+                    rounded-3xl
+                    overflow-hidden
+                    shadow-lg
+                    transition-all duration-500
+                    hover:-translate-y-3
+                    hover:shadow-2xl
+                    ${
+                      isFull
+                        ? "bg-linear-to-br from-red-100 via-white to-red-50"
+                        : item.sisaKuota <= 2
+                        ? "bg-linear-to-br from-yellow-100 via-white to-orange-50"
+                        : "bg-linear-to-br from-green-100 via-white to-emerald-50"
+                    }
                   `}
                 >
-                  {/* LINK KE HALAMAN DETAIL - Seluruh card bisa diklik */}
-                  <Link
-                    href={`/Detail-Formasi/${slug}`}
-                    className="absolute inset-0 z-10"
-                    aria-label={`Lihat detail ${item.title}`}
-                    onClick={(e) => {
-                      if (isFull) {
-                        e.preventDefault();
-                      }
-                    }}
-                  />
+                  {/* Soft Gradient Glow */}
+                  <div className="absolute inset-0 bg-linear-to-br from-red-200/20 to-transparent opacity-0 group-hover:opacity-100 transition duration-500" />
 
-                  {/* LABEL PENUH */}
-                  {isFull && (
-                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-20">
-                      <span className="bg-red-500 text-white text-xs font-bold px-4 py-1 rounded-full shadow-lg">
-                        KUOTA PENUH
+                  <div className="relative p-6">
+
+                    {/* ================= HEADER ================= */}
+                    <div className="flex justify-between items-start mb-4">
+                      <h3 className="text-lg font-bold text-[#7F1D1D]">
+                        {item.title}
+                      </h3>
+
+                      <span
+                        className={`text-xs px-3 py-1 rounded-full backdrop-blur-md font-semibold
+                        ${
+                          isFull
+                            ? "bg-red-500/80 text-white"
+                            : item.sisaKuota <= 2
+                            ? "bg-yellow-400/80 text-black"
+                            : "bg-green-500/80 text-white"
+                        }`}
+                      >
+                        {isFull
+                          ? "Penuh"
+                          : item.sisaKuota <= 2
+                          ? "Hampir Penuh"
+                          : "Tersedia"}
                       </span>
                     </div>
-                  )}
 
-                  {/* HOVER EFFECT INDICATOR */}
-                  {!isFull && (
-                    <div className="absolute top-3 right-3 z-20 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <HiInformationCircle className="text-[#FACC15] text-xl" />
-                    </div>
-                  )}
-
-                  <h3 className="text-xl font-bold text-[#7F1D1D] mb-3 pr-8">
-                    {item.title}
-                  </h3>
-
-                  <div className="space-y-3 text-gray-700 text-sm">
-                    <p className="flex items-center gap-2">
-                      <HiOutlineOfficeBuilding className="text-[#B91C1C] shrink-0" />
-                      <span>
-                        <b>Balai Besar POM di Palembang</b>
-                      </span>
+                    {/* Lokasi */}
+                    <p className="flex items-center gap-2 text-sm text-gray-600 mb-4">
+                      <HiOutlineOfficeBuilding className="text-red-500" />
+                      Balai Besar POM Palembang
                     </p>
 
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <HiUsers className="text-[#FACC15] shrink-0" />
-                        <span>
-                          <b>Kuota:</b> {item.kuota} orang
-                        </span>
-                      </div>
-                      <div
-                        className={`flex items-center gap-2 ${isFull ? "text-red-600" : "text-green-600"}`}
-                      >
-                        <FaUserCheck />
-                        <span className="font-semibold">
-                          {isFull ? "Penuh" : `${item.sisaKuota} tersedia`}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* PROGRESS BAR */}
-                    <div className="pt-1">
-                      <div className="flex justify-between text-xs mb-1">
-                        <span>Pendaftar: {item.jumlahPendaftar} orang</span>
-                        <span>
-                          {Math.round(
-                            (item.jumlahPendaftar / item.kuota) * 100,
-                          )}
-                          % terisi
-                        </span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div
-                          className={`h-2 rounded-full ${isFull ? "bg-red-500" : "bg-green-500"}`}
-                          style={{
-                            width: `${Math.min(100, (item.jumlahPendaftar / item.kuota) * 100)}%`,
-                          }}
-                        ></div>
-                      </div>
-                    </div>
-
-                    {/* INFO PESERTA */}
-                    <div className="flex items-center gap-2 text-blue-600 bg-blue-50 p-2 rounded-lg">
-                      <HiCheckCircle />
-                      <span className="text-sm">
-                        <b>{item.jumlahPendaftar} orang</b> telah mendaftar
-                      </span>
-                    </div>
-
-                    {/* JURUSAN YANG DITERIMA */}
-                    <div className="mt-2">
-                      <p className="text-xs text-gray-500 mb-1">
-                        Jurusan yang diterima:
+                    {/* Jurusan */}
+                    {/* <div className="mb-6">
+                      <p className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                        <HiAcademicCap className="text-blue-500" />
+                        Jurusan yang diterima
                       </p>
-                      <div className="flex flex-wrap gap-1">
-                        {item.jurusan.slice(0, 3).map((jur, idx) => (
+
+                      <div className="flex flex-wrap gap-2">
+                        {item.jurusan.map((jur, idx) => (
                           <span
                             key={idx}
-                            className="text-xs bg-gray-100 px-2 py-1 rounded-full"
+                            className="text-xs bg-white/60 backdrop-blur px-3 py-1 rounded-full shadow-sm"
                           >
                             {jur}
                           </span>
                         ))}
-                        {item.jurusan.length > 3 && (
-                          <span className="text-xs bg-gray-100 px-2 py-1 rounded-full">
-                            +{item.jurusan.length - 3}
-                          </span>
-                        )}
+                      </div>
+                    </div> */}
+
+                    {/* ================= SISA KUOTA ================= */}
+                    <div className="text-center py-6 bg-white/30 rounded-2xl mb-6">
+                      <p className="text-xs text-gray-600 mb-2 tracking-wide">
+                        SISA KUOTA
+                      </p>
+
+                      <p
+                        className={`text-5xl font-extrabold ${
+                          isFull
+                            ? "text-red-500"
+                            : item.sisaKuota <= 2
+                            ? "text-yellow-500"
+                            : "text-green-500"
+                        }`}
+                      >
+                        {item.sisaKuota}
+                      </p>
+
+                      <p className="text-sm text-gray-600">orang</p>
+                    </div>
+
+                    {/* ================= INFO ================= */}
+                    <div className="text-sm text-gray-700 space-y-3 mb-4">
+                      <div className="flex justify-between">
+                        <span className="flex items-center gap-1">
+                          <HiUsers className="text-yellow-500" />
+                          Total Kuota
+                        </span>
+                        <span className="font-semibold">{item.kuota}</span>
+                      </div>
+
+                      <div className="flex justify-between">
+                        <span className="flex items-center gap-1">
+                          <FaUserCheck className="text-blue-500" />
+                          Sudah Mendaftar
+                        </span>
+                        <span className="font-semibold">{item.jumlahPendaftar}</span>
                       </div>
                     </div>
-                  </div>
 
-                  {/* VIEW DETAILS BUTTON (tetap ada untuk UX yang lebih baik) */}
-                  {!isFull && (
-                    <div className="mt-4 text-center relative z-20 pointer-events-none">
-                      <span className="inline-block text-sm text-[#7F1D1D] font-semibold group-hover:underline">
-                        Lihat Detail Formasi →
-                      </span>
+                    {/* Progress */}
+                    <div className="w-full bg-gray-200 rounded-full h-2 mb-6">
+                      <div
+                        className={`h-2 rounded-full ${
+                          isFull
+                            ? "bg-red-500"
+                            : item.sisaKuota <= 2
+                            ? "bg-yellow-500"
+                            : "bg-green-500"
+                        }`}
+                        style={{
+                          width: `${Math.min(
+                            100,
+                            (item.jumlahPendaftar / item.kuota) * 100
+                          )}%`,
+                        }}
+                      />
                     </div>
-                  )}
+
+                    {/* ================= CTA ================= */}
+                    <Link
+                      href={`/Detail-Formasi/${slug}`}
+                      className={`
+                        block text-center py-3 rounded-xl font-bold
+                        transition-all duration-300
+                        shadow-lg
+                        hover:scale-[1.04]
+                        hover:shadow-xl
+                        ${
+                          isFull
+                            ? "bg-linear-to-r from-red-500 via-pink-500 to-red-600 text-white hover:shadow-[0_10px_25px_rgba(239,68,68,0.4)]"
+                            : item.sisaKuota <= 2
+                            ? "bg-linear-to-r from-yellow-400 via-orange-400 to-yellow-500 text-white hover:shadow-[0_10px_25px_rgba(234,179,8,0.4)]"
+                            : "bg-linear-to-r from-emerald-500 via-green-500 to-teal-500 text-white hover:shadow-[0_10px_25px_rgba(16,185,129,0.4)]"
+                        }
+                      `}
+                    >
+                      Lihat Detail Formasi
+                    </Link>
+                  </div>
                 </div>
               );
             })}

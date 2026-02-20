@@ -409,7 +409,7 @@ export default function MentorLayout({
                       : ""
                   }`}
               >
-                📊 {!collapsed && "Feedback Dari Peserta"}
+                💭 {!collapsed && "Feedback Dari Peserta"}
               </Link>
             </div>
 

@@ -201,10 +201,10 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-slate-50 via-white to-indigo-50 dark:from-[#0B0614] dark:via-[#120A24] dark:to-[#1E0F3D] text-slate-800 dark:text-slate-100 transition-colors">
+    <div className="min-h-screen p-4 sm:p-6 lg:p-8 bg-linear-to-br from-slate-50 via-white to-indigo-50 dark:from-[#0B0614] dark:via-[#120A24] dark:to-[#1E0F3D] text-slate-800 dark:text-slate-100 transition-colors">
       {/* HEADER */}
       <div className="mb-8">
-        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B] dark:from-indigo-400 dark:via-violet-400 dark:to-purple-400">
+        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight bg-clip-text text-transparent bg-linear-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B] dark:from-indigo-400 dark:via-violet-400 dark:to-purple-400">
           Dashboard Admin 🛠️
         </h1>
         <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 mt-2">
@@ -220,7 +220,7 @@ export default function AdminDashboard() {
             className="group relative rounded-2xl bg-white/80 dark:bg-white/5 backdrop-blur border border-slate-200 dark:border-slate-700 shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
           >
             <div
-              className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${s.color} opacity-0 group-hover:opacity-10 transition-opacity duration-300`}
+              className={`absolute inset-0 rounded-2xl bg-linear-to-br ${s.color} opacity-0 group-hover:opacity-10 transition-opacity duration-300`}
             />
             <div className="relative p-5 flex items-center justify-between">
               <div>
@@ -232,7 +232,7 @@ export default function AdminDashboard() {
                 </h2>
               </div>
               <div
-                className={`w-12 h-12 rounded-xl bg-gradient-to-br ${s.color} text-white flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}
+                className={`w-12 h-12 rounded-xl bg-linear-to-br ${s.color} text-white flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}
               >
                 <span className="text-xl">{s.icon}</span>
               </div>
@@ -243,7 +243,7 @@ export default function AdminDashboard() {
 
       {/* NOTIFIKASI PENTING */}
       {menungguVerifikasi > 0 && (
-        <div className="mt-6 mb-6 p-4 rounded-xl bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 border border-amber-200 dark:border-amber-700/30">
+        <div className="mt-6 mb-6 p-4 rounded-xl bg-linear-to-r from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 border border-amber-200 dark:border-amber-700/30">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
@@ -272,14 +272,40 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* PENDAFTARAN TERBARU */}
         <div className="lg:col-span-2">
-          <div className="rounded-2xl bg-white/80 dark:bg-white/5 backdrop-blur border border-slate-200 dark:border-slate-700 shadow-lg p-6 h-full">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-bold flex items-center gap-2">
+          <div className="rounded-2xl bg-white/80 dark:bg-white/5 backdrop-blur border border-slate-200 dark:border-slate-700 shadow-lg p-4 sm:p-6 h-full">
+            
+            {/* HEADER */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+              <h3 className="text-base sm:text-lg font-bold flex items-center gap-2">
                 📋 Pendaftaran Terbaru
               </h3>
               <a
                 href="/dashboard/admin/ViewPendaftaran"
-                className="text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:underline"
+                className="
+                  w-full sm:w-auto
+                  text-center
+                  inline-flex items-center justify-center gap-2
+                  px-4 py-2
+                  rounded-xl
+                  text-sm font-semibold
+                  transition-all duration-300
+                  shadow-sm hover:shadow-md
+                  active:scale-95
+
+                  bg-[#FFF4EC] 
+                  text-[#7F1D1D]
+                  border border-[#FDE68A]
+                  hover:bg-linear-to-r hover:from-[#B91C1C] hover:to-[#F59E0B]
+                  hover:text-white
+
+                  dark:bg-indigo-900/30
+                  dark:text-indigo-300
+                  dark:border-indigo-700/40
+                  dark:hover:bg-linear-to-r
+                  dark:hover:from-indigo-600
+                  dark:hover:to-violet-500
+                  dark:hover:text-white
+                "
               >
                 Lihat Semua →
               </a>
@@ -299,14 +325,16 @@ export default function AdminDashboard() {
                 {pendaftaranTerbaru.map((pendaftaran) => (
                   <div
                     key={pendaftaran._id}
-                    className="group rounded-xl border border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-white/5 hover:bg-white dark:hover:bg-white/10 p-4 transition-all duration-300 hover:shadow-md hover:-translate-y-1"
+                    className="group rounded-xl border border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-white/5 hover:bg-white dark:hover:bg-white/10 p-4 transition-all duration-300 hover:shadow-md"
                   >
-                    <div className="flex items-start justify-between mb-3">
+                    {/* TOP INFO */}
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-3">
+                      
                       <div>
-                        <p className="font-semibold text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400">
-                          {pendaftaran.peserta[0]?.nama ||
-                            "Nama tidak tersedia"}
+                        <p className="font-semibold text-slate-900 dark:text-white text-sm sm:text-base">
+                          {pendaftaran.peserta[0]?.nama || "Nama tidak tersedia"}
                         </p>
+
                         <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                           {pendaftaran.kategori === "bersama"
                             ? "Pendaftaran Bersama"
@@ -314,36 +342,70 @@ export default function AdminDashboard() {
                           • {pendaftaran.peserta.length} peserta
                         </p>
                       </div>
+                      
                       <span
-                        className={`text-xs font-medium px-3 py-1 rounded-full ${getStatusColor(pendaftaran.status)}`}
+                        className={`self-start sm:self-auto text-xs font-medium px-3 py-1 rounded-full ${getStatusColor(
+                          pendaftaran.status
+                        )}`}
                       >
                         {pendaftaran.status}
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2 text-sm">
+                    {/* EMAIL & WA */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm mb-3">
                       <div className="flex items-center gap-2">
-                        <HiMail className="w-4 h-4 text-slate-400" />
+                        <HiMail className="w-4 h-4 text-slate-400 shrink-0" />
                         <span className="truncate">
                           {pendaftaran.peserta[0]?.email || "-"}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <HiPhone className="w-4 h-4 text-slate-400" />
+                        <HiPhone className="w-4 h-4 text-slate-400 shrink-0" />
                         <span>{pendaftaran.peserta[0]?.wa || "-"}</span>
                       </div>
                     </div>
 
-                    <div className="mt-3 flex items-center justify-between">
+                    {/* FOOTER */}
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                      
                       <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
                         <HiCalendar className="w-3 h-3" />
                         <span>{formatTanggal(pendaftaran.createdAt)}</span>
-                        <span className="text-slate-400">•</span>
+                        <span>•</span>
                         <span>{hitungHariLalu(pendaftaran.createdAt)}</span>
                       </div>
+
                       <a
                         href={`/dashboard/admin/ViewPendaftaran#${pendaftaran._id}`}
-                        className="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="
+                          w-full sm:w-auto
+                          text-center
+                          inline-flex items-center justify-center gap-1
+                          px-3 py-2
+                          rounded-lg
+                          text-xs font-semibold
+                          transition-all duration-300
+
+                          bg-linear-to-r from-[#B91C1C] to-[#F59E0B]
+                          text-white
+                          border border-transparent
+
+                          hover:bg-none
+                          hover:bg-[#FEF3C7]
+                          hover:text-[#7F1D1D]
+                          hover:border-[#FDE68A]
+
+                          dark:bg-linear-to-r
+                          dark:from-indigo-600
+                          dark:to-violet-500
+                          dark:text-white
+
+                          dark:hover:bg-none
+                          dark:hover:bg-indigo-900/30
+                          dark:hover:text-indigo-300
+                          dark:hover:border-indigo-700/40
+                        "
                       >
                         Detail →
                       </a>
@@ -368,7 +430,7 @@ export default function AdminDashboard() {
                   key={i}
                   className="flex items-center gap-4 p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-white/5 transition-all duration-300"
                 >
-                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#7F1D1D] to-[#F59E0B] dark:from-indigo-600 dark:to-violet-500 text-white flex items-center justify-center shadow">
+                  <div className="w-10 h-10 rounded-lg bg-linear-to-br from-[#7F1D1D] to-[#F59E0B] dark:from-indigo-600 dark:to-violet-500 text-white flex items-center justify-center shadow">
                     {task.icon}
                   </div>
                   <div className="flex-1">

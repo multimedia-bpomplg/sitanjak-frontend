@@ -415,7 +415,7 @@ export default function SuperadminLayout({
                     }
                   `}
               >
-                📑 {!collapsed && "View Feedback"}
+                💭 {!collapsed && "View Feedback"}
               </Link>
             </div>
 

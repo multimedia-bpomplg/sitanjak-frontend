@@ -292,37 +292,6 @@ export default function SuperadminLayout({
               </Link>
 
               <Link
-                href="/dashboard/admin/ViewLogbook"
-                className={`
-                  flex items-center gap-3
-                  py-2.5 rounded-xl
-                  text-sm
-                  text-gray-700 dark:text-gray-300
-                  hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm
-                  dark:hover:bg-slate-800
-                  transition
-                  ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
-
-                  ${
-                    pathname.includes("/ViewLogbook")
-                      ? `
-                          bg-linear-to-r
-                          from-[#FDE68A]/60
-                          to-[#FACC15]/40
-                          text-[#7F1D1D]
-                          dark:from-indigo-500/30
-                          dark:via-purple-500/25
-                          dark:to-fuchsia-500/30
-                          dark:text-indigo-200
-                          shadow-inner
-                        `
-                      : ""
-                  }`}
-              >
-                📘 {!collapsed && "View Logbook"}
-              </Link>
-
-              <Link
                 href="/dashboard/admin/ViewPeserta"
                 className={`
                   flex items-center gap-3
@@ -354,7 +323,7 @@ export default function SuperadminLayout({
               </Link>
 
               <Link
-                href="/dashboard/admin/ViewFeedback"
+                href="/dashboard/admin/ViewLogbook"
                 className={`
                   flex items-center gap-3
                   py-2.5 rounded-xl
@@ -366,7 +335,7 @@ export default function SuperadminLayout({
                   ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
 
                   ${
-                    pathname.includes("/ViewFeedback")
+                    pathname.includes("/ViewLogbook")
                       ? `
                           bg-linear-to-r
                           from-[#FDE68A]/60
@@ -379,11 +348,11 @@ export default function SuperadminLayout({
                           shadow-inner
                         `
                       : ""
-                  }
-                `}
+                  }`}
               >
-                📑 {!collapsed && "View FeedBack"}
+                📘 {!collapsed && "View Logbook"}
               </Link>
+
               <Link
                 href="/dashboard/admin/ViewLaporanAkhir"
                 className={`
@@ -414,6 +383,38 @@ export default function SuperadminLayout({
                 `}
               >
                 📑 {!collapsed && "View Laporan Akhir"}
+              </Link>
+
+              <Link
+                href="/dashboard/admin/ViewFeedback"
+                className={`
+                  flex items-center gap-3
+                  py-2.5 rounded-xl
+                  text-sm
+                  text-gray-700 dark:text-gray-300
+                  hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm
+                  dark:hover:bg-slate-800
+                  transition
+                  ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
+
+                  ${
+                    pathname.includes("/ViewFeedback")
+                      ? `
+                          bg-linear-to-r
+                          from-[#FDE68A]/60
+                          to-[#FACC15]/40
+                          text-[#7F1D1D]
+                          dark:from-indigo-500/30
+                          dark:via-purple-500/25
+                          dark:to-fuchsia-500/30
+                          dark:text-indigo-200
+                          shadow-inner
+                        `
+                      : ""
+                  }
+                `}
+              >
+                💭 {!collapsed && "View FeedBack"}
               </Link>
             </div>
 

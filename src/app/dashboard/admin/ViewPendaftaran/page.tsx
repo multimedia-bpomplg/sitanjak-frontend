@@ -150,6 +150,9 @@ export default function ViewPendaftaranPage() {
     setSuratBalasan(null);
     setEditPosisiIndex(null);
     setMentorModal(false);
+
+    // hapus hash dari URL
+    window.history.replaceState(null, "", window.location.pathname);
   };
 
   const isAktif = selected?.status === "Disetujui";
@@ -236,6 +239,19 @@ export default function ViewPendaftaranPage() {
     loadData();
     fetchAkunPeserta();
   }, []);
+
+  useEffect(() => {
+    if (!data.length) return;
+
+    const hash = window.location.hash.replace("#", "");
+    if (!hash) return;
+
+    const found = data.find((item) => item._id === hash);
+
+    if (found) {
+      setSelected(found);
+    }
+  }, [data]);
 
   useEffect(() => {
     if (mentorModal) {
