@@ -2,18 +2,24 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export async function http<T>(
   url: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
 ): Promise<T> {
   const token =
     typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
-  const headers: HeadersInit = {
+  // 🔥 PAKAI OBJECT BIASA (BIAR TYPESCRIPT AMAN)
+  const headers: Record<string, string> = {
     "Content-Type": "application/json",
-    ...(options.headers || {}),
   };
 
+  // Gabungkan headers dari options kalau ada
+  if (options.headers) {
+    Object.assign(headers, options.headers);
+  }
+
+  // Tambahkan Authorization jika token ada
   if (token) {
-    headers.Authorization = `Bearer ${token}`;
+    headers["Authorization"] = `Bearer ${token}`;
   }
 
   const res = await fetch(`${BASE_URL}${url}`, {

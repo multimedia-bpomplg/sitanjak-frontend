@@ -573,24 +573,36 @@ export default function LogbookModal({
   };
 
   const renderActionButtons = () => {
+    // 🔥 HANDLE REVISI DI AWAL (BIAR TS TIDAK SALAH NARROWING)
+    if (approvalStatus === "revisi") {
+      return (
+        <div className="text-center py-2 w-full">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-800 rounded-full">
+            <FiRefreshCw className="animate-spin" />
+            <span className="font-semibold">Menunggu Revisi Peserta</span>
+          </div>
+        </div>
+      );
+    }
+
     if (mode === "create") {
       return (
         <button
           disabled={submitDisabled}
           onClick={handleSubmit}
           className={`
-            w-full sm:w-auto justify-center
-            px-8 py-3
-            rounded-full
-            font-semibold
-            flex items-center gap-2
-            transition-all
-            ${
-              submitDisabled
-                ? "bg-slate-300 text-slate-500 cursor-not-allowed"
-                : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg hover:shadow-xl active:scale-[0.98]"
-            }
-          `}
+          w-full sm:w-auto justify-center
+          px-8 py-3
+          rounded-full
+          font-semibold
+          flex items-center gap-2
+          transition-all
+          ${
+            submitDisabled
+              ? "bg-slate-300 text-slate-500 cursor-not-allowed"
+              : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg hover:shadow-xl active:scale-[0.98]"
+          }
+        `}
         >
           <FiCheck />
           Simpan Logbook
@@ -598,24 +610,24 @@ export default function LogbookModal({
       );
     }
 
-    if (mode === "edit" || approvalStatus === "revisi") {
+    if (mode === "edit") {
       return (
         <button
           disabled={submitDisabled}
           onClick={handleUpdateLogbook}
           className={`
-            w-full sm:w-auto justify-center
-            px-8 py-3
-            rounded-full
-            font-semibold
-            flex items-center gap-2
-            transition-all
-            ${
-              submitDisabled
-                ? "bg-slate-300 text-slate-500 cursor-not-allowed"
-                : "bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl active:scale-[0.98]"
-            }
-          `}
+          w-full sm:w-auto justify-center
+          px-8 py-3
+          rounded-full
+          font-semibold
+          flex items-center gap-2
+          transition-all
+          ${
+            submitDisabled
+              ? "bg-slate-300 text-slate-500 cursor-not-allowed"
+              : "bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl active:scale-[0.98]"
+          }
+        `}
         >
           <FiRefreshCw />
           Kirim Revisi
@@ -623,81 +635,70 @@ export default function LogbookModal({
       );
     }
 
-    if (role === "mentor" && mode === "view") {
-      if (approvalStatus === "menunggu") {
-        return (
-          <>
-            <button
-              onClick={() => setShowRevisionModal(true)}
-              className={`
-                w-full sm:w-auto justify-center
-                px-6 py-3 rounded-full
-                font-semibold
-                flex items-center gap-2
-                transition-all
-                ${
-                  !mentorNote.trim()
-                    ? "bg-slate-300 text-slate-500 cursor-not-allowed"
-                    : "bg-blue-600 hover:bg-blue-700 text-white shadow-lg"
-                }
-              `}
-              disabled={!mentorNote.trim()}
-            >
-              <FiRefreshCw />
-              Minta Revisi
-            </button>
+    if (role === "mentor" && mode === "view" && approvalStatus === "menunggu") {
+      return (
+        <>
+          <button
+            onClick={() => setShowRevisionModal(true)}
+            disabled={!mentorNote.trim()}
+            className={`
+            w-full sm:w-auto justify-center
+            px-6 py-3 rounded-full
+            font-semibold
+            flex items-center gap-2
+            transition-all
+            ${
+              !mentorNote.trim()
+                ? "bg-slate-300 text-slate-500 cursor-not-allowed"
+                : "bg-blue-600 hover:bg-blue-700 text-white shadow-lg"
+            }
+          `}
+          >
+            <FiRefreshCw />
+            Minta Revisi
+          </button>
 
-            <button
-              onClick={() => handleApprove(false)}
-              disabled={!mentorNote.trim()}
-              className={`
-                w-full sm:w-auto justify-center
-                px-6 py-3 rounded-full
-                font-semibold
-                flex items-center gap-2
-                transition-all
-                ${
-                  !mentorNote.trim()
-                    ? "bg-slate-300 text-slate-500 cursor-not-allowed"
-                    : "bg-red-600 hover:bg-red-700 text-white shadow-lg"
-                }
-              `}
-            >
-              <FiX />
-              Tolak
-            </button>
+          <button
+            onClick={() => handleApprove(false)}
+            disabled={!mentorNote.trim()}
+            className={`
+            w-full sm:w-auto justify-center
+            px-6 py-3 rounded-full
+            font-semibold
+            flex items-center gap-2
+            transition-all
+            ${
+              !mentorNote.trim()
+                ? "bg-slate-300 text-slate-500 cursor-not-allowed"
+                : "bg-red-600 hover:bg-red-700 text-white shadow-lg"
+            }
+          `}
+          >
+            <FiX />
+            Tolak
+          </button>
 
-            <button
-              onClick={() => handleApprove(true)}
-              disabled={!mentorNote.trim()}
-              className={`
-                w-full sm:w-auto justify-center
-                px-6 py-3 rounded-full
-                font-semibold
-                flex items-center gap-2
-                transition-all
-                ${
-                  !mentorNote.trim()
-                    ? "bg-slate-300 text-slate-500 cursor-not-allowed"
-                    : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg"
-                }
-              `}
-            >
-              <FiCheck />
-              Setujui
-            </button>
-          </>
-        );
-      } else if (approvalStatus === "revisi") {
-        return (
-          <div className="text-center py-2 w-full">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-800 rounded-full">
-              <FiRefreshCw className="animate-spin" />
-              <span className="font-semibold">Menunggu Revisi Peserta</span>
-            </div>
-          </div>
-        );
-      }
+          <button
+            onClick={() => handleApprove(true)}
+            disabled={!mentorNote.trim()}
+            className={`
+            w-full sm:w-auto justify-center
+            px-6 py-3 rounded-full
+            font-semibold
+            flex items-center gap-2
+            transition-all
+            ${
+              !mentorNote.trim()
+                ? "bg-slate-300 text-slate-500 cursor-not-allowed"
+                : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg"
+            }
+          `}
+          >
+            <FiCheck />
+            Setujui
+          </button>
+        </>
+      );
     }
 
     return null;
@@ -1515,12 +1516,12 @@ export default function LogbookModal({
                     />
                   </label>
                 ) : pdfUrl ? (
-                    <a
-                      href={getImageUrl(pdfUrl)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      className="
+                  <a
+                    href={getImageUrl(pdfUrl)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="
                       flex items-center gap-4
                       p-4 rounded-2xl
                       border
@@ -1530,9 +1531,9 @@ export default function LogbookModal({
                       transition
                       group
                     "
-                    >
-                      <div
-                        className="
+                  >
+                    <div
+                      className="
                         w-12 h-12
                         rounded-xl
                         flex items-center justify-center
@@ -1543,35 +1544,35 @@ export default function LogbookModal({
                         group-hover:scale-105
                         transition
                       "
-                      >
-                        <FiFileText className="text-xl" />
-                      </div>
+                    >
+                      <FiFileText className="text-xl" />
+                    </div>
 
-                      <div className="flex-1">
-                        <p className="font-semibold text-amber-800 dark:text-indigo-200">
-                          Dokumen PDF
-                        </p>
-                        <p className="text-xs text-amber-600 dark:text-indigo-400">
-                          Klik untuk melihat file
-                        </p>
-                      </div>
+                    <div className="flex-1">
+                      <p className="font-semibold text-amber-800 dark:text-indigo-200">
+                        Dokumen PDF
+                      </p>
+                      <p className="text-xs text-amber-600 dark:text-indigo-400">
+                        Klik untuk melihat file
+                      </p>
+                    </div>
 
-                      <span
-                        className="
+                    <span
+                      className="
                         text-xs font-semibold
                         px-3 py-1 rounded-full
                         bg-amber-200 text-amber-800
                         dark:bg-indigo-800 dark:text-indigo-200
                       "
-                      >
-                        📄 Lihat PDF
-                      </span>
-                    </a>
-                  ) : (
-                    <div className="text-center py-8 text-slate-400">
-                      <FiFile className="text-3xl mx-auto mb-2" />
-                      <p>Tidak ada File</p>
-                    </div>
+                    >
+                      📄 Lihat PDF
+                    </span>
+                  </a>
+                ) : (
+                  <div className="text-center py-8 text-slate-400">
+                    <FiFile className="text-3xl mx-auto mb-2" />
+                    <p>Tidak ada File</p>
+                  </div>
                 )}
               </div>
             </>

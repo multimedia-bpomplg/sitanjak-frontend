@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   FiUpload,
   FiFile,
@@ -101,7 +101,7 @@ export default function SuratSelesaiUpload({ peserta, onSuccess }: Props) {
   const [isAlreadySent, setIsAlreadySent] = useState(false);
   const [existingFile, setExistingFile] = useState<string | null>(null);
 
-  useState(() => {
+  useEffect(() => {
     const checkExistingSurat = async () => {
       try {
         const token = localStorage.getItem("token");

@@ -19,7 +19,6 @@ type Props = {
   peserta: any;
   onClose: () => void;
   onViewLogbook: (email: string) => void;
-  onViewLaporanBulanan: (email: string) => void;
   onViewLaporanAkhir: (email: string) => void;
   onSuratSelesaiSuccess?: () => void;
 };
@@ -28,7 +27,6 @@ export default function SuperadminPesertaModal({
   peserta,
   onClose,
   onViewLogbook,
-  onViewLaporanBulanan,
   onViewLaporanAkhir,
 }: Props) {
   const [activeTab, setActiveTab] = useState<

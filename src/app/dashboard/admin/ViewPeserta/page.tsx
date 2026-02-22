@@ -247,10 +247,6 @@ export default function ViewPesertaSuperadmin() {
     window.location.href = `/dashboard/superadmin/ViewLogbook?email=${encodeURIComponent(email)}`;
   };
 
-  const handleViewLaporanBulanan = (email: string) => {
-    window.location.href = `/dashboard/superadmin/ViewLaporanBulanan?email=${encodeURIComponent(email)}`;
-  };
-
   const handleViewLaporanAkhir = (email: string) => {
     window.location.href = `/dashboard/superadmin/ViewLaporanAkhir?email=${encodeURIComponent(email)}`;
   };
@@ -689,7 +685,6 @@ export default function ViewPesertaSuperadmin() {
           peserta={selectedPeserta}
           onClose={() => setSelectedPeserta(null)}
           onViewLogbook={handleViewLogbook}
-          onViewLaporanBulanan={handleViewLaporanBulanan}
           onViewLaporanAkhir={handleViewLaporanAkhir}
           onSuratSelesaiSuccess={handleSuratSelesaiSuccess}
         />
