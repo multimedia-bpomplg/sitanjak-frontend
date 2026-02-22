@@ -86,6 +86,13 @@ type AkunPeserta = {
   status: string;
 };
 
+type ConfirmAction = {
+  show: boolean;
+  type: "setuju" | "tolak";
+  title: string;
+  message: string;
+};
+
 const POSISI_MAGANG = [
   "Fungsi Penindakan",
   "Fungsi Pengujian",
@@ -132,6 +139,14 @@ export default function ViewPendaftaranPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const LIMIT = 10;
+
+  // State untuk konfirmasi action
+  const [confirmAction, setConfirmAction] = useState<ConfirmAction>({
+    show: false,
+    type: "setuju",
+    title: "",
+    message: "",
+  });
 
   const showAlert = (
     type: "success" | "error" | "warning" | "info",
@@ -1160,23 +1175,162 @@ export default function ViewPendaftaranPage() {
               </div>
             </div>
 
-            {/* ACTION BUTTON */}
+            {/* ACTION BUTTON DENGAN KONFIRMASI */}
             {!isAktif && (
               <div className="sticky bottom-0 px-6 py-4 bg-white/90 dark:bg-[#0B0614]/95 backdrop-blur border-t border-blue-200 dark:border-indigo-800 flex flex-col sm:flex-row justify-end gap-3">
+                {/* Tombol Tolak dengan Konfirmasi */}
                 <button
-                  onClick={() => updateStatus("Ditolak")}
+                  onClick={() => {
+                    const pesertaNames = selected.peserta.map((p) => p.nama);
+                    const isMoreThanOne = pesertaNames.length > 1;
+                    const namaDisplay = isMoreThanOne
+                      ? `${pesertaNames.length} orang peserta`
+                      : pesertaNames[0];
+
+                    setConfirmAction({
+                      show: true,
+                      type: "tolak",
+                      title: "Konfirmasi Penolakan",
+                      message: `Apakah anda yakin menolak Calon Peserta Magang ${namaDisplay}?`,
+                    });
+                  }}
                   className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-linear-to-r from-rose-500 to-red-600 text-white font-semibold hover:opacity-90"
                 >
                   <HiXCircle /> Tolak
                 </button>
+
+                {/* Tombol Setuju dengan Konfirmasi */}
                 <button
-                  onClick={() => updateStatus("Disetujui")}
+                  onClick={() => {
+                    const pesertaNames = selected.peserta.map((p) => p.nama);
+                    const isMoreThanOne = pesertaNames.length > 1;
+                    const namaDisplay = isMoreThanOne
+                      ? `${pesertaNames.length} orang peserta`
+                      : pesertaNames[0];
+
+                    // Hitung durasi magang dari peserta pertama
+                    const durasi = hitungDurasiMagang(
+                      selected.peserta[0]?.tanggalMulaiMagang,
+                      selected.peserta[0]?.tanggalSelesaiMagang,
+                    );
+
+                    let durasiText = "";
+                    if (durasi) {
+                      durasiText = `${durasi.bulan} bulan`;
+                      if (durasi.sisaHari > 0) {
+                        durasiText += ` ${durasi.sisaHari} hari`;
+                      }
+                    } else {
+                      durasiText = "Durasi tidak tersedia";
+                    }
+
+                    setConfirmAction({
+                      show: true,
+                      type: "setuju",
+                      title: "Konfirmasi Persetujuan",
+                      message: `Apakah anda yakin untuk menyetujui Peserta magang ${namaDisplay} dengan Masa magang ${durasiText} di BBPOM Kota Palembang?`,
+                    });
+                  }}
                   className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-linear-to-r from-emerald-500 to-green-600 text-white font-semibold hover:opacity-90"
                 >
                   <HiCheckCircle /> Setujui
                 </button>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* MODAL KONFIRMASI */}
+      {confirmAction.show && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={() => setConfirmAction({ ...confirmAction, show: false })}
+          />
+          <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl p-6 w-full max-w-md animate-scaleIn">
+            <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-2">
+              {confirmAction.title}
+            </h3>
+
+            {/* Pesan dengan Nama Bold dan Durasi */}
+            <div className="text-sm text-gray-600 dark:text-gray-300 mb-6">
+              {confirmAction.type === "setuju" ? (
+                <>
+                  <p className="mb-1">
+                    Apakah anda yakin untuk menyetujui Peserta magang{" "}
+                    <span className="font-bold text-gray-900 dark:text-white">
+                      {selected && selected.peserta.length > 1
+                        ? `${selected.peserta.length} orang peserta`
+                        : selected?.peserta[0]?.nama}
+                    </span>
+                    ?
+                  </p>
+                  {selected && (
+                    <p className="mt-2">
+                      Masa magang:{" "}
+                      <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                        {(() => {
+                          const durasi = hitungDurasiMagang(
+                            selected.peserta[0]?.tanggalMulaiMagang,
+                            selected.peserta[0]?.tanggalSelesaiMagang,
+                          );
+                          if (durasi) {
+                            return `${durasi.bulan} Bulan`;
+                          }
+                          return "Durasi tidak tersedia";
+                        })()}
+                      </span>
+                    </p>
+                  )}
+                  <p className="text-gray-500 dark:text-gray-400 mt-3 text-xs">
+                    di BBPOM Kota Palembang
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="mb-1">
+                    Apakah anda yakin menolak Calon Peserta Magang{" "}
+                    <span className="font-bold text-gray-900 dark:text-white">
+                      {selected && selected.peserta.length > 1
+                        ? `${selected.peserta.length} orang peserta`
+                        : selected?.peserta[0]?.nama}
+                    </span>
+                    ?
+                  </p>
+                </>
+              )}
+
+              <p className="text-gray-500 dark:text-gray-400 mt-4 text-xs">
+                Data tidak dapat diubah setelah diproses.
+              </p>
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() =>
+                  setConfirmAction({ ...confirmAction, show: false })
+                }
+                className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 transition"
+              >
+                Batal
+              </button>
+              <button
+                onClick={() => {
+                  setConfirmAction({ ...confirmAction, show: false });
+                  updateStatus(
+                    confirmAction.type === "setuju" ? "Disetujui" : "Ditolak",
+                  );
+                }}
+                className={`px-5 py-2 rounded-lg font-semibold text-white transition ${
+                  confirmAction.type === "setuju"
+                    ? "bg-emerald-600 hover:bg-emerald-700"
+                    : "bg-rose-600 hover:bg-rose-700"
+                }`}
+              >
+                Ya, {confirmAction.type === "setuju" ? "Setujui" : "Tolak"}
+              </button>
+            </div>
           </div>
         </div>
       )}

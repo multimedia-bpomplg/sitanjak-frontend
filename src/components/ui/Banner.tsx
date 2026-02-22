@@ -3,41 +3,53 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 
-type PopupPromoProps = {
-  image: string;
+type Announcement = {
+  _id: string;
   title: string;
-  description: string;
-  delay?: number;
+  subtitle?: string;
+  content: string;
+  image?: string;
 };
 
 const ONE_DAY = 24 * 60 * 60 * 1000; // 1 hari (ms)
 
-export default function PopupPromo({
-  image,
-  title,
-  description,
-  delay = 1500,
-}: PopupPromoProps) {
+export default function PopupPromo() {
   const [open, setOpen] = useState(false);
+  const [data, setData] = useState<Announcement | null>(null);
 
   useEffect(() => {
-    const lastHidden = localStorage.getItem("popupHideUntil");
+    const initPopup = async () => {
+      // cek localStorage dulu
+      const lastHidden = localStorage.getItem("popupHideUntil");
 
-    if (lastHidden && Date.now() < Number(lastHidden)) {
-      return; // masih dalam periode sembunyi
-    }
+      if (lastHidden && Date.now() < Number(lastHidden)) {
+        return; // ❗ STOP, jangan fetch, jangan buka
+      }
 
-    const timer = setTimeout(() => {
-      setOpen(true);
-    }, delay);
+      try {
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/announcements/type/landing`, // Perbaiki endpoint
+        );
 
-    return () => clearTimeout(timer);
-  }, [delay]);
+        if (!res.ok) throw new Error("Gagal fetch");
 
-  // ❌ Close biasa (tidak simpan apa-apa)
-  const closePopup = () => {
-    setOpen(false);
-  };
+        const result = await res.json();
+
+        if (result.length > 0) {
+          setData(result[0]);
+
+          // delay popup
+          setTimeout(() => {
+            setOpen(true);
+          }, 1500);
+        }
+      } catch (err) {
+        console.log("Gagal load banner");
+      }
+    };
+
+    initPopup();
+  }, []);
 
   // 🚫 Jangan tampilkan hari ini
   const hideForToday = () => {
@@ -46,7 +58,15 @@ export default function PopupPromo({
     setOpen(false);
   };
 
-  if (!open) return null;
+  const closePopup = () => {
+    setOpen(false);
+  };
+
+  if (!open || !data) return null;
+
+  const imageUrl = data.image
+    ? `${process.env.NEXT_PUBLIC_API_URL}/uploads/announcements/${data.image}`
+    : "/images/cards/popup_sitanjak.png"; // fallback image
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
@@ -54,7 +74,7 @@ export default function PopupPromo({
       <div
         className="
           relative
-          w-full max-w-md
+          w-full max-w-[520px]
           mx-4 sm:mx-6
           rounded-3xl
           overflow-hidden
@@ -76,26 +96,33 @@ export default function PopupPromo({
             hover:scale-110
             transition
           "
+          aria-label="Tutup"
         >
           ✕
         </button>
 
         {/* IMAGE HEADER */}
-        <div className="relative h-52">
+        <div className="relative w-full aspect-video bg-black">
           <Image
-            src="/images/cards/popup_sitanjak.png"
-            alt="Popup Promo"
+            src={imageUrl}
+            alt={data.title}
             fill
+            sizes="(max-width: 520px) 100vw, 520px"
+            className="object-contain"
             priority
-            className="object-cover"
+            onError={(e) => {
+              // Fallback jika gambar gagal load
+              (e.target as HTMLImageElement).src =
+                "/images/cards/popup_sitanjak.png";
+            }}
           />
 
-          {/* GRADIENT OVERLAY */}
+          {/* GRADIENT */}
           <div
             className="
               absolute inset-0
               bg-linear-to-t
-              from-black/25 via-black/10 to-transparent
+              from-black/30 via-black/10 to-transparent
             "
           />
 
@@ -111,18 +138,18 @@ export default function PopupPromo({
               shadow-lg
             "
           >
-            🎉 INFO PENTING
+            🎉 {data.subtitle || "INFO PENTING"}
           </div>
         </div>
 
         {/* CONTENT */}
-        <div className="px-6 py-7 text-center">
+        <div className="px-6 py-7 text-center mx-auto max-w-[460px]">
           <h3 className="text-2xl font-extrabold text-[#7F1D1D] mb-3">
-            {title}
+            {data.title}
           </h3>
 
           <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed mb-6">
-            {description}
+            {data.content}
           </p>
 
           {/* CTA */}

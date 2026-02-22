@@ -574,7 +574,7 @@ export default function SuperadminLayout({
               }`}
             >
               <Link
-                href="/dashboard/superadmin/manajemenTampilan/LayoutUtama"
+                href="/dashboard/superadmin/manajemenTampilan/WhatappEdit"
                 className={`
     flex items-center gap-3
     py-2.5 rounded-xl
@@ -601,11 +601,11 @@ export default function SuperadminLayout({
         : ""
     }`}
               >
-                🖼️ {!collapsed && "Manajemen Tampilan"}
+                🖼️ {!collapsed && "Manajemen Whatapp"}
               </Link>
 
               <Link
-                href="/dashboard/superadmin/layout/banner"
+                href="/dashboard/superadmin/manajemenTampilan/BannerEdit"
                 className={`
                     flex items-center gap-3
                     py-2.5 rounded-xl
@@ -617,7 +617,7 @@ export default function SuperadminLayout({
                     ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
 
                     ${
-                      pathname.includes("/layout/banner")
+                      pathname.includes("/manajemenTampilan/BannerEdit")
                         ? `
                             bg-linear-to-r
                             from-[#FDE68A]/60

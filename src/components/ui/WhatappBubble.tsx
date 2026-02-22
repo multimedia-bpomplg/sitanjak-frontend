@@ -3,13 +3,20 @@
 import { useEffect, useState } from "react";
 import { FaWhatsapp } from "react-icons/fa";
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL;
+
 export default function WhatsAppBubble() {
-  const phone = "6288274133623";
+  const [phone, setPhone] = useState("6288274133623"); // default
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState(
-    "Halo, saya ingin bertanya tentang pendaftaran magang."
+    "Halo, saya ingin bertanya tentang pendaftaran magang.",
   );
   const [animate, setAnimate] = useState(true);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchActiveWhatsapp();
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -18,15 +25,60 @@ export default function WhatsAppBubble() {
     return () => clearTimeout(timer);
   }, []);
 
+  const fetchActiveWhatsapp = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/whatsapp/active`);
+
+      if (!res.ok) throw new Error("Gagal fetch");
+
+      const result = await res.json();
+
+      if (result.success && result.data) {
+        setPhone(result.data.phoneNumber);
+      }
+    } catch (error) {
+      console.error("Gagal mengambil nomor WhatsApp:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const sendMessage = () => {
+    if (!phone) return;
+
     const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
     window.open(url, "_blank");
     setOpen(false);
   };
 
+  const formatPhoneDisplay = (num: string) => {
+    return num.replace(/^62/, "0");
+  };
+
+  if (loading) {
+    return (
+      <button
+        className="
+          fixed bottom-6 right-6 z-40
+          w-16 h-16  
+          flex items-center justify-center
+          bg-green-500/50
+          text-white
+          rounded-full
+          shadow-xl
+          cursor-wait
+        "
+        disabled
+        aria-label="Loading WhatsApp"
+      >
+        <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+      </button>
+    );
+  }
+
   return (
     <>
-      {/* ===== POPUP CHAT ===== */}
+      {/* POPUP CHAT */}
       {open && (
         <div
           className="
@@ -50,13 +102,19 @@ export default function WhatsAppBubble() {
               <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white">
                 <FaWhatsapp />
               </div>
-              <p className="text-sm font-semibold text-slate-800 dark:text-white">
-                Admin Magang
-              </p>
+              <div>
+                <p className="text-sm font-semibold text-slate-800 dark:text-white">
+                  Admin Magang
+                </p>
+                <p className="text-xs text-slate-500">
+                  {formatPhoneDisplay(phone)}
+                </p>
+              </div>
             </div>
             <button
               onClick={() => setOpen(false)}
-              className="text-slate-400 hover:text-red-500"
+              className="text-slate-400 hover:text-red-500 transition"
+              aria-label="Tutup"
             >
               ✕
             </button>
@@ -81,6 +139,7 @@ export default function WhatsAppBubble() {
               placeholder-slate-400
               resize-none
             "
+            placeholder="Ketik pesan Anda..."
           />
 
           {/* Send Button */}
@@ -96,8 +155,13 @@ export default function WhatsAppBubble() {
               text-sm
               font-semibold
               shadow-md
-              transition
+              transition-all
+              hover:shadow-lg
+              active:scale-95
+              disabled:opacity-50
+              disabled:cursor-not-allowed
             "
+            disabled={!phone}
           >
             <FaWhatsapp className="text-lg" />
             Kirim ke WhatsApp
@@ -105,7 +169,7 @@ export default function WhatsAppBubble() {
         </div>
       )}
 
-      {/* ===== FLOATING BUBBLE (ICON ONLY) ===== */}
+      {/* FLOATING BUBBLE */}
       <button
         onClick={() => setOpen((p) => !p)}
         className={`
@@ -116,17 +180,20 @@ export default function WhatsAppBubble() {
           text-white
           rounded-full
           shadow-xl
-          transition
-          ${animate ? "scale-110 animate-pulse" : "scale-100"}
+          transition-all
+          hover:shadow-2xl
+          hover:scale-110
+          active:scale-95
+          ${animate ? "animate-pulse" : ""}
         `}
+        aria-label={open ? "Tutup chat" : "Buka chat WhatsApp"}
       >
         <FaWhatsapp className="text-4xl" />
       </button>
 
-      {/* ===== ANIMATION ===== */}
       <style jsx>{`
         .animate-fadeIn {
-          animation: fadeIn 0.25s ease-out;
+          animation: fadeIn 0.25s ease-out forwards;
         }
 
         @keyframes fadeIn {

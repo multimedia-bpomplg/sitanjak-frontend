@@ -2,11 +2,28 @@
 
 import { useEffect, useState, useCallback, useMemo } from "react"; // 🔥 TAMBAH useMemo
 import MagangPopup from "@/components/ui/MagangPopup";
-import { FiFileText, FiEye, FiClock, FiUser, FiMail, FiPhone, FiMapPin, FiCalendar, FiUserCheck, FiHome , FiGlobe, FiMap, FiNavigation, FiUsers } from "react-icons/fi";
+import {
+  FiFileText,
+  FiEye,
+  FiClock,
+  FiUser,
+  FiMail,
+  FiPhone,
+  FiMapPin,
+  FiCalendar,
+  FiUserCheck,
+  FiHome,
+  FiGlobe,
+  FiMap,
+  FiNavigation,
+  FiUsers,
+} from "react-icons/fi";
+import AnnouncementBox from "@/components/AnnouncementBox";
 
 /* ================= TYPES ================= */
 
 type Peserta = {
+  idPeserta?: string; // 🔥 FIELD BARU (OPSIONAL)
   nama: string;
   email: string;
   wa: string;
@@ -278,6 +295,8 @@ export default function PesertaDashboard() {
       />
 
       <div className="space-y-10">
+        <AnnouncementBox type="peserta" />
+
         {/* HERO SECTION */}
         <div
           className="

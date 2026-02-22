@@ -18,6 +18,19 @@ import {
 } from "@/services/formasiService";
 import { FaUserCheck } from "react-icons/fa";
 
+// Fungsi untuk membuat slug yang konsisten (lowercase)
+const createSlug = (title: string): string => {
+  const slugMap: { [key: string]: string } = {
+    "Fungsi Penindakan": "penindakan",
+    "Fungsi Pengujian": "pengujian",
+    "Fungsi Pemeriksaan (Inspeksi dan Sertifikasi)": "pemeriksaan",
+    "Fungsi Informasi dan Komunikasi": "infokom",
+    "Bagian Tata Usaha": "tata-usaha",
+  };
+
+  return slugMap[title] || title.toLowerCase().replace(/\s+/g, "-");
+};
+
 export default function Formasi() {
   const sectionRef = useRef<HTMLDivElement | null>(null);
   const [visible, setVisible] = useState(false);
@@ -47,41 +60,6 @@ export default function Formasi() {
       minute: "2-digit",
       second: "2-digit",
     });
-  };
-
-  // Fungsi untuk mendapatkan jurusan yang dibutuhkan
-  const getRequiredJurusan = (title: string): string[] => {
-    const jurusanMap: { [key: string]: string[] } = {
-      "Fungsi Penindakan": ["Farmasi", "Kimia", "Biologi", "Analis Kesehatan"],
-      "Fungsi Pengujian": [
-        "Farmasi",
-        "Kimia",
-        "Analis Kimia",
-        "Biologi",
-        "Teknologi Pangan",
-      ],
-      "Fungsi Pemeriksaan (Inspeksi dan Sertifikasi)": [
-        "Farmasi",
-        "Kesehatan Masyarakat",
-        "Biologi",
-        "Teknologi Pangan",
-        "Ilmu Gizi",
-      ],
-      "Fungsi Informasi dan Komunikasi": [
-        "Ilmu Komunikasi",
-        "Sistem Informasi",
-        "Teknik Informatika",
-        "Hubungan Masyarakat",
-      ],
-      "Bagian Tata Usaha": [
-        "Administrasi Negara",
-        "Manajemen",
-        "Akuntansi",
-        "Ekonomi",
-      ],
-    };
-
-    return jurusanMap[title] || ["Semua Jurusan"];
   };
 
   // Fungsi untuk memuat data
@@ -255,8 +233,8 @@ export default function Formasi() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
               {formasiList.map((item, i) => {
+                const slug = createSlug(item.title);
                 const isFull = item.sisaKuota === 0;
-                const requiredJurusan = getRequiredJurusan(item.title);
 
                 return (
                   <div
@@ -311,24 +289,6 @@ export default function Formasi() {
                         <HiOutlineOfficeBuilding className="text-red-500" />
                         Balai Besar POM Palembang
                       </p>
-
-                      {/* ================= JURUSAN YANG DIBUTUHKAN ================= */}
-                      <div className="mb-4">
-                        <p className="text-xs font-semibold text-gray-500 mb-2 flex items-center gap-1">
-                          <HiAcademicCap className="text-blue-500" />
-                          JURUSAN YANG DIBUTUHKAN:
-                        </p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {requiredJurusan.map((jurusan, idx) => (
-                            <span
-                              key={idx}
-                              className="text-[10px] px-2 py-1 bg-white/80 rounded-full border border-gray-200 text-gray-700"
-                            >
-                              {jurusan}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
 
                       {/* ================= SISA KUOTA ================= */}
                       <div className="text-center py-6 bg-white/30 rounded-2xl mb-6">
@@ -421,7 +381,7 @@ export default function Formasi() {
 
                       {/* ================= CTA ================= */}
                       <Link
-                        href={`/Detail-Formasi?id=${item._id}`}
+                        href={`/Detail-Formasi/${slug}`}
                         className={`
                           block text-center py-3 rounded-xl font-bold
                           transition-all duration-300

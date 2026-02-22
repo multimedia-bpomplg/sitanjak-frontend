@@ -14,11 +14,7 @@ export default function HomePage() {
   return (
     <>
       {/* POPUP PROMO */}
-      <LandingPopup
-        image="/popup-magang.jpg"
-        title="Pendaftaran Magang Dibuka 🎉"
-        description="Bergabunglah bersama mentor profesional dan dapatkan pengalaman kerja nyata."
-      />
+      <LandingPopup />
 
       {/* WHATSAPP FLOAT */}
       <WhatsAppBubble />

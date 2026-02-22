@@ -133,6 +133,19 @@ export default function ViewPendaftaranPage() {
   const [page, setPage] = useState(1);
   const LIMIT = 10;
 
+  // ✅ State konfirmasi action
+  const [confirmAction, setConfirmAction] = useState<{
+    show: boolean;
+    type: "setuju" | "tolak";
+    title: string;
+    message: string;
+  }>({
+    show: false,
+    type: "setuju",
+    title: "",
+    message: "",
+  });
+
   const showAlert = (
     type: "success" | "error" | "warning" | "info",
     message: string,
@@ -1180,23 +1193,109 @@ export default function ViewPendaftaranPage() {
               </div>
             </div>
 
-            {/* ACTION BUTTON */}
+            {/* ACTION BUTTON DENGAN KONFIRMASI */}
             {!isAktif && (
               <div className="sticky bottom-0 px-6 py-4 bg-white/90 dark:bg-[#0B0614]/95 backdrop-blur border-t border-blue-200 dark:border-indigo-800 flex flex-col sm:flex-row justify-end gap-3">
+                {/* Tolak */}
                 <button
-                  onClick={() => updateStatus("Ditolak")}
+                  onClick={() => {
+                    const nama = selected?.peserta[0]?.nama;
+
+                    setConfirmAction({
+                      show: true,
+                      type: "tolak",
+                      title: "Konfirmasi Penolakan",
+                      message: `Apakah anda yakin menolak ${nama}?`,
+                    });
+                  }}
                   className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-linear-to-r from-rose-500 to-red-600 text-white font-semibold hover:opacity-90"
                 >
                   <HiXCircle /> Tolak
                 </button>
+
+                {/* Setuju */}
                 <button
-                  onClick={() => updateStatus("Disetujui")}
+                  onClick={() => {
+                    const jumlah =
+                      selected?.jumlahPeserta || selected?.peserta.length || 0;
+
+                    // Hitung durasi dari peserta pertama (asumsi sama semua)
+                    const durasi = hitungDurasiMagang(
+                      selected?.peserta[0]?.tanggalMulaiMagang || "",
+                      selected?.peserta[0]?.tanggalSelesaiMagang || "",
+                    );
+
+                    const bulan = durasi ? durasi.bulan : 0;
+
+                    const message = `
+                      Apakah anda yakin untuk menyetujui Peserta magang ${jumlah} orang peserta?
+
+                      Masa magang: ${bulan} Bulan
+
+                      di BBPOM Kota Palembang
+
+                      Data tidak dapat diubah setelah diproses.
+                          `;
+
+                    setConfirmAction({
+                      show: true,
+                      type: "setuju",
+                      title: "Konfirmasi Persetujuan",
+                      message,
+                    });
+                  }}
                   className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-linear-to-r from-emerald-500 to-green-600 text-white font-semibold hover:opacity-90"
                 >
                   <HiCheckCircle /> Setujui
                 </button>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* MODAL KONFIRMASI */}
+      {confirmAction.show && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={() => setConfirmAction({ ...confirmAction, show: false })}
+          />
+
+          <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl p-6 w-full max-w-md">
+            <h3 className="text-lg font-bold mb-2">{confirmAction.title}</h3>
+
+            <p className="text-sm text-gray-600 dark:text-gray-300 mb-6">
+              {confirmAction.message}
+            </p>
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() =>
+                  setConfirmAction({ ...confirmAction, show: false })
+                }
+                className="px-4 py-2 rounded-lg border"
+              >
+                Batal
+              </button>
+
+              <button
+                onClick={() => {
+                  setConfirmAction({ ...confirmAction, show: false });
+
+                  updateStatus(
+                    confirmAction.type === "setuju" ? "Disetujui" : "Ditolak",
+                  );
+                }}
+                className={`px-5 py-2 rounded-lg text-white font-semibold ${
+                  confirmAction.type === "setuju"
+                    ? "bg-emerald-600 hover:bg-emerald-700"
+                    : "bg-rose-600 hover:bg-rose-700"
+                }`}
+              >
+                Ya, {confirmAction.type === "setuju" ? "Setujui" : "Tolak"}
+              </button>
+            </div>
           </div>
         </div>
       )}

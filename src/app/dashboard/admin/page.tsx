@@ -11,6 +11,7 @@ import {
   HiMail,
   HiPhone,
 } from "react-icons/hi";
+import AnnouncementBox from "@/components/AnnouncementBox";
 
 /* ================= TYPE ================= */
 type Peserta = {
@@ -202,6 +203,8 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen p-4 sm:p-6 lg:p-8 bg-linear-to-br from-slate-50 via-white to-indigo-50 dark:from-[#0B0614] dark:via-[#120A24] dark:to-[#1E0F3D] text-slate-800 dark:text-slate-100 transition-colors">
+      <AnnouncementBox type="admin" />
+
       {/* HEADER */}
       <div className="mb-8">
         <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight bg-clip-text text-transparent bg-linear-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B] dark:from-indigo-400 dark:via-violet-400 dark:to-purple-400">
@@ -273,7 +276,6 @@ export default function AdminDashboard() {
         {/* PENDAFTARAN TERBARU */}
         <div className="lg:col-span-2">
           <div className="rounded-2xl bg-white/80 dark:bg-white/5 backdrop-blur border border-slate-200 dark:border-slate-700 shadow-lg p-4 sm:p-6 h-full">
-            
             {/* HEADER */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
               <h3 className="text-base sm:text-lg font-bold flex items-center gap-2">
@@ -329,10 +331,10 @@ export default function AdminDashboard() {
                   >
                     {/* TOP INFO */}
                     <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-3">
-                      
                       <div>
                         <p className="font-semibold text-slate-900 dark:text-white text-sm sm:text-base">
-                          {pendaftaran.peserta[0]?.nama || "Nama tidak tersedia"}
+                          {pendaftaran.peserta[0]?.nama ||
+                            "Nama tidak tersedia"}
                         </p>
 
                         <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
@@ -342,10 +344,10 @@ export default function AdminDashboard() {
                           • {pendaftaran.peserta.length} peserta
                         </p>
                       </div>
-                      
+
                       <span
                         className={`self-start sm:self-auto text-xs font-medium px-3 py-1 rounded-full ${getStatusColor(
-                          pendaftaran.status
+                          pendaftaran.status,
                         )}`}
                       >
                         {pendaftaran.status}
@@ -368,7 +370,6 @@ export default function AdminDashboard() {
 
                     {/* FOOTER */}
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                      
                       <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
                         <HiCalendar className="w-3 h-3" />
                         <span>{formatTanggal(pendaftaran.createdAt)}</span>

@@ -8,6 +8,7 @@ import {
   HiDocumentText,
   HiAcademicCap,
 } from "react-icons/hi";
+import AnnouncementBox from "@/components/AnnouncementBox";
 
 /* ================= TYPE ================= */
 type Peserta = {
@@ -132,6 +133,8 @@ export default function MentorDashboard() {
         transition-colors
       "
     >
+      <AnnouncementBox type="mentor" />
+
       {/* HEADER */}
       <div className="mb-10">
         <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight">
