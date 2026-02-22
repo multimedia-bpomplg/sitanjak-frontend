@@ -11,8 +11,8 @@ import {
   HiCalendar,
   HiClipboardList,
   HiBeaker,
-  HiFlask,
-  HiMicroscope,
+  // HiFlask,
+  // HiMicroscope,
   HiClipboard,
 } from "react-icons/hi";
 import { Metadata } from "next";

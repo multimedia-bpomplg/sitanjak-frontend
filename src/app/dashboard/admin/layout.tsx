@@ -776,7 +776,7 @@ export default function SuperadminLayout({
 
           {/* ===================== CONTENT ===================== */}
           <main className="flex-1 p-4 lg:p-6">
-            <SuperadminGuard role={user?.roles?.[0]}>
+            <SuperadminGuard>
               <div className="rounded-2xl bg-white/80 dark:bg-slate-900/80 p-6">
                 {children}
               </div>

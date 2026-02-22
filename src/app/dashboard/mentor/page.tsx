@@ -16,6 +16,7 @@ type Peserta = {
   email: string;
   posisi: string;
   kategori: string;
+  jurusan?: string;
 };
 
 export default function MentorDashboard() {
@@ -179,9 +180,7 @@ export default function MentorDashboard() {
                   shadow-lg
                 "
               >
-                <span className="text-xl sm:text-2xl">
-                  {s.icon}
-                </span>
+                <span className="text-xl sm:text-2xl">{s.icon}</span>
               </div>
 
               {/* TEXT */}
@@ -245,8 +244,12 @@ export default function MentorDashboard() {
                 </div>
 
                 <div className="leading-tight">
-                  <p className="font-semibold text-sm sm:text-base">{t.title}</p>
-                  <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">{t.desc}</p>
+                  <p className="font-semibold text-sm sm:text-base">
+                    {t.title}
+                  </p>
+                  <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+                    {t.desc}
+                  </p>
                 </div>
               </div>
             ))}
@@ -325,7 +328,9 @@ export default function MentorDashboard() {
                     "
                   >
                     Lihat Detail
-                    <span className="ml-1 group-hover:translate-x-1 transition">→</span>
+                    <span className="ml-1 group-hover:translate-x-1 transition">
+                      →
+                    </span>
                   </Link>
                 </div>
               ))}

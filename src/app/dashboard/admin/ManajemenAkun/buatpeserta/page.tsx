@@ -4,7 +4,7 @@ import ProcessPopup from "@/components/ui/ProcessPopup";
 import { useState, useEffect } from "react";
 import { showToast } from "@/components/ui/toastDashboard";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { HiUser, HiUsers, HiCheck, HiX, HiSearch } from "react-icons/hi";
 
 /* ================= TYPE ================= */
@@ -128,11 +128,32 @@ export default function BuatAkunPesertaPage() {
 
       setOpen(false);
       setForm({ name: "", email: "", password: "" });
-      fetchPeserta();
+
+      // Cek apakah ada parameter returnTo
+      const returnTo = searchParams.get("returnTo");
+      if (returnTo) {
+        // Redirect kembali ke halaman viewpendaftaran
+        router.push(returnTo);
+      } else {
+        // Jika tidak ada, refresh data
+        fetchPeserta();
+      }
     } catch (error: any) {
       showToast.error(error.message || "Terjadi kesalahan server");
     } finally {
       setLoadingPopup(false);
+    }
+  };
+
+  /* ================= HANDLE CANCEL ================= */
+  const handleCancel = () => {
+    setOpen(false);
+    setForm({ name: "", email: "", password: "" });
+
+    // Cek apakah ada parameter returnTo
+    const returnTo = searchParams.get("returnTo");
+    if (returnTo) {
+      router.push(returnTo);
     }
   };
 
@@ -234,6 +255,7 @@ export default function BuatAkunPesertaPage() {
   const pesertaNonaktif = data.filter((p) => p.status === "Nonaktif").length;
 
   const searchParams = useSearchParams();
+  const router = useRouter(); // Tambahkan ini
 
   useEffect(() => {
     const email = searchParams.get("email");

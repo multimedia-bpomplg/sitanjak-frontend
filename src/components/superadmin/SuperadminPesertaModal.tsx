@@ -97,7 +97,7 @@ export default function SuperadminPesertaModal({
               active={activeTab === "laporan"}
               onClick={() => setActiveTab("laporan")}
             >
-              Laporan
+              Laporan Akhir
             </TabButton>
             <TabButton
               active={activeTab === "suratSelesai"}
@@ -181,56 +181,73 @@ export default function SuperadminPesertaModal({
             <div className="flex flex-col items-center justify-center text-center py-12">
               <div
                 className="
-                  w-16 h-16 rounded-full
+                  w-20 h-20 rounded-full
                   bg-linear-to-br from-[#7F1D1D] to-[#F59E0B]
                   dark:from-indigo-600 dark:to-violet-500
                   flex items-center justify-center
-                  text-white mb-4
+                  text-white mb-5
                   shadow-lg
                 "
               >
-                <FiBookOpen className="text-2xl" />
+                <FiBookOpen className="text-3xl" />
               </div>
-              <h3 className="text-lg font-bold mb-2">Logbook Peserta</h3>
-              <p className="text-slate-600 dark:text-slate-400 mb-6 max-w-md">
-                Lihat seluruh aktivitas harian peserta selama magang.
+              <h3 className="text-xl font-bold mb-2">Logbook Peserta</h3>
+              <p className="text-slate-600 dark:text-slate-400 mb-8 max-w-md">
+                Lihat seluruh aktivitas harian peserta selama menjalani magang.
               </p>
               <button
                 onClick={() => onViewLogbook(peserta?.email)}
                 className="
-                  px-6 py-3 rounded-xl
+                  px-8 py-4 rounded-xl
                   bg-linear-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
                   dark:from-indigo-600 dark:to-violet-500
                   text-white font-semibold
-                  shadow hover:shadow-xl
-                  transition hover:-translate-y-0.5
+                  shadow-md hover:shadow-xl
+                  transition-all hover:-translate-y-1
+                  flex items-center gap-3
                 "
               >
+                <FiBookOpen className="text-lg" />
                 Buka Logbook
               </button>
             </div>
           )}
 
-          {/* ---------- LAPORAN ---------- */}
+          {/* ---------- LAPORAN AKHIR ---------- */}
           {activeTab === "laporan" && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <ActionCard
-                title="Laporan Bulanan"
-                desc="Monitoring perkembangan bulanan peserta."
-                icon={<FiFileText />}
-                color="amber"
-                onClick={() => onViewLaporanBulanan(peserta?.email)}
-                label="Lihat Laporan Bulanan"
-              />
-
-              <ActionCard
-                title="Laporan Akhir"
-                desc="Ringkasan akhir hasil magang peserta."
-                icon={<FiBookOpen />}
-                color="emerald"
+            <div className="flex flex-col items-center justify-center text-center py-12">
+              <div
+                className="
+                  w-20 h-20 rounded-full
+                  bg-linear-to-br from-[#7F1D1D] to-[#F59E0B]
+                  dark:from-indigo-600 dark:to-violet-500
+                  flex items-center justify-center
+                  text-white mb-5
+                  shadow-lg
+                "
+              >
+                <FiFileText className="text-3xl" />
+              </div>
+              <h3 className="text-xl font-bold mb-2">Laporan Akhir Magang</h3>
+              <p className="text-slate-600 dark:text-slate-400 mb-8 max-w-md">
+                Lihat laporan akhir yang telah dibuat peserta sebagai hasil dari
+                program magang.
+              </p>
+              <button
                 onClick={() => onViewLaporanAkhir(peserta?.email)}
-                label="Lihat Laporan Akhir"
-              />
+                className="
+                  px-8 py-4 rounded-xl
+                  bg-linear-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
+                  dark:from-indigo-600 dark:to-violet-500
+                  text-white font-semibold
+                  shadow-md hover:shadow-xl
+                  transition-all hover:-translate-y-1
+                  flex items-center gap-3
+                "
+              >
+                <FiFileText className="text-lg" />
+                Lihat Laporan Akhir
+              </button>
             </div>
           )}
 
@@ -264,7 +281,7 @@ function TabButton({
     <button
       onClick={onClick}
       className={`
-        px-4 py-2 rounded-xl text-sm font-semibold transition
+        px-5 py-2.5 rounded-xl text-sm font-semibold transition
         ${
           active
             ? `

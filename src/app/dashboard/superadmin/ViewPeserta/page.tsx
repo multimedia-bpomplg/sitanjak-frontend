@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react"; // 🔥 TAMBAH useRef
+import { useEffect, useState, useCallback, useRef } from "react";
 import {
   HiUser,
   HiMail,
@@ -51,7 +51,6 @@ type SuratSelesaiStatus = {
 
 // ================ MAIN COMPONENT ================
 export default function ViewPesertaSuperadmin() {
-  // 🔥 ABORT CONTROLLER UNTUK CLEANUP
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const [pesertaList, setPesertaList] = useState<Peserta[]>([]);
@@ -62,19 +61,30 @@ export default function ViewPesertaSuperadmin() {
   const [suratSelesaiStatus, setSuratSelesaiStatus] =
     useState<SuratSelesaiStatus>({});
   const [loadingSurat, setLoadingSurat] = useState(false);
-  const [error, setError] = useState<string | null>(null); // 🔥 TAMBAH ERROR STATE
+  const [error, setError] = useState<string | null>(null);
 
   // Pagination state
   const [page, setPage] = useState(1);
   const itemsPerPage = 10;
 
-  // 🔥 AMBIL TOKEN DENGAN SAFE CHECK
+  // Fungsi untuk memformat tanggal
+  const formatTanggal = (tanggal: string) => {
+    if (!tanggal) return "-";
+    const date = new Date(tanggal);
+    return date.toLocaleDateString("id-ID", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
+  // Ambil token dengan safe check
   const getToken = () => {
     if (typeof window === "undefined") return null;
     return localStorage.getItem("token");
   };
 
-  // 🔥 FETCH SEMUA DATA SURAT SELESAI
+  // Fetch semua data surat selesai
   const fetchAllSuratSelesai = useCallback(async (signal?: AbortSignal) => {
     try {
       const token = getToken();
@@ -89,7 +99,7 @@ export default function ViewPesertaSuperadmin() {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-          signal, // 🔥 PASANG ABORT SIGNAL
+          signal,
         },
       );
 
@@ -125,7 +135,7 @@ export default function ViewPesertaSuperadmin() {
     }
   }, []);
 
-  // 🔥 FETCH DATA PESERTA
+  // Fetch data peserta
   const fetchPeserta = useCallback(async (signal?: AbortSignal) => {
     try {
       const token = getToken();
@@ -158,7 +168,7 @@ export default function ViewPesertaSuperadmin() {
     }
   }, []);
 
-  // 🔥 LOAD DATA UTAMA
+  // Load data utama
   const loadData = useCallback(async () => {
     // Cancel previous request
     if (abortControllerRef.current) {
@@ -174,7 +184,7 @@ export default function ViewPesertaSuperadmin() {
     setError(null);
 
     try {
-      // 🔥 FETCH PESERTA DAN SURAT SELESAI BERSAMAAN
+      // Fetch peserta dan surat selesai bersamaaan
       const [pesertaData, suratStatusMap] = await Promise.all([
         fetchPeserta(signal),
         fetchAllSuratSelesai(signal),
@@ -183,7 +193,7 @@ export default function ViewPesertaSuperadmin() {
       // Set surat status
       setSuratSelesaiStatus(suratStatusMap);
 
-      // SORT DARI TERBARU KE TERLAMA
+      // Sort dari terbaru ke terlama
       const sortedData = [...pesertaData].sort(
         (a, b) =>
           new Date(b.createdAt || 0).getTime() -
@@ -204,7 +214,7 @@ export default function ViewPesertaSuperadmin() {
     }
   }, [fetchPeserta, fetchAllSuratSelesai]);
 
-  // 🔥 CLEANUP EFFECT
+  // Cleanup effect
   useEffect(() => {
     loadData();
 
@@ -216,7 +226,7 @@ export default function ViewPesertaSuperadmin() {
     };
   }, [loadData]);
 
-  // 🔥 SEARCH EFFECT
+  // Search effect
   useEffect(() => {
     if (!search.trim()) {
       setFilteredPeserta(pesertaList);
@@ -247,15 +257,11 @@ export default function ViewPesertaSuperadmin() {
     window.location.href = `/dashboard/superadmin/ViewLogbook?email=${encodeURIComponent(email)}`;
   };
 
-  const handleViewLaporanBulanan = (email: string) => {
-    window.location.href = `/dashboard/superadmin/ViewLaporanBulanan?email=${encodeURIComponent(email)}`;
-  };
-
   const handleViewLaporanAkhir = (email: string) => {
     window.location.href = `/dashboard/superadmin/ViewLaporanAkhir?email=${encodeURIComponent(email)}`;
   };
 
-  // 🔥 HANDLER UNTUK REFRESH DATA
+  // Handler untuk refresh data
   const handleSuratSelesaiSuccess = () => {
     loadData();
   };
@@ -264,13 +270,13 @@ export default function ViewPesertaSuperadmin() {
   return (
     <div
       className="
-        min-h-screen p-4 sm:p-6 lg:p-10
-        bg-linear-to-br
-        from-slate-50 via-white to-indigo-100
-        dark:from-[#0B0614] dark:via-[#120A24] dark:to-[#1E0F3D]
-        text-slate-800 dark:text-slate-100
-        transition-colors
-      "
+          min-h-screen p-4 sm:p-6 lg:p-10
+          bg-linear-to-br
+          from-slate-50 via-white to-indigo-100
+          dark:from-[#0B0614] dark:via-[#120A24] dark:to-[#1E0F3D]
+          text-slate-800 dark:text-slate-100
+          transition-colors
+        "
     >
       {/* HEADER */}
       <div className="mb-10">
@@ -357,17 +363,17 @@ export default function ViewPesertaSuperadmin() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="
-              w-full pl-11 pr-10 py-3
-              rounded-2xl
-              bg-white/90 dark:bg-white/5
-              backdrop-blur
-              border border-[#F59E0B]/40 dark:border-indigo-500/40
-              text-slate-700 dark:text-slate-100
-              placeholder:text-slate-400
-              focus:outline-none focus:ring-2
-              focus:ring-[#B91C1C]/60 dark:focus:ring-indigo-500/60
-              transition
-            "
+                w-full pl-11 pr-10 py-3
+                rounded-2xl
+                bg-white/90 dark:bg-white/5
+                backdrop-blur
+                border border-[#F59E0B]/40 dark:border-indigo-500/40
+                text-slate-700 dark:text-slate-100
+                placeholder:text-slate-400
+                focus:outline-none focus:ring-2
+                focus:ring-[#B91C1C]/60 dark:focus:ring-indigo-500/60
+                transition
+              "
           />
         </div>
       </div>
@@ -376,26 +382,26 @@ export default function ViewPesertaSuperadmin() {
       {!loading && currentItems.length === 0 ? (
         <div
           className="
-            rounded-3xl
-            bg-white/80 dark:bg-white/5
-            backdrop-blur
-            border border-[#F59E0B]/30 dark:border-indigo-500/30
-            shadow-xl
-            p-12 text-center
-          "
+              rounded-3xl
+              bg-white/80 dark:bg-white/5
+              backdrop-blur
+              border border-[#F59E0B]/30 dark:border-indigo-500/30
+              shadow-xl
+              p-12 text-center
+            "
         >
           <div
             className="
-              w-16 h-16 sm:w-20 sm:h-20
-              mx-auto mb-5
-              rounded-full
-              bg-linear-to-br
-              from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
-              dark:from-indigo-600 dark:to-violet-500
-              flex items-center justify-center
-              shadow-lg
-              animate-pulse
-            "
+                w-16 h-16 sm:w-20 sm:h-20
+                mx-auto mb-5
+                rounded-full
+                bg-linear-to-br
+                from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
+                dark:from-indigo-600 dark:to-violet-500
+                flex items-center justify-center
+                shadow-lg
+                animate-pulse
+              "
           >
             <HiUser className="w-7 h-7 sm:w-10 sm:h-10 text-white" />
           </div>
@@ -413,13 +419,13 @@ export default function ViewPesertaSuperadmin() {
       ) : (
         <div
           className="
-            rounded-2xl
-            bg-white/90 dark:bg-white/5
-            backdrop-blur
-            border border-slate-200 dark:border-indigo-500/30
-            shadow-lg
-            overflow-hidden
-          "
+              rounded-2xl
+              bg-white/90 dark:bg-white/5
+              backdrop-blur
+              border border-slate-200 dark:border-indigo-500/30
+              shadow-lg
+              overflow-hidden
+            "
         >
           {/* LOADING OVERLAY */}
           {loading && (
@@ -435,33 +441,36 @@ export default function ViewPesertaSuperadmin() {
                   <thead>
                     <tr
                       className="
-                        bg-slate-50 dark:bg-indigo-500/10
-                        border-b border-slate-200 dark:border-indigo-500/30
-                      "
+                          bg-slate-50 dark:bg-indigo-500/10
+                          border-b border-slate-200 dark:border-indigo-500/30
+                        "
                     >
-                      <th className="w-[5%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
+                      <th className="w-[5%] py-4 px-3 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
                         No
                       </th>
-                      <th className="w-[18%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
+                      <th className="w-[14%] py-4 px-3 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
                         Peserta
                       </th>
-                      <th className="w-[18%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
+                      <th className="w-[14%] py-4 px-3 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
                         Kontak
                       </th>
-                      <th className="w-[12%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
+                      <th className="w-[10%] py-4 px-3 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
                         Posisi
                       </th>
-                      <th className="w-[14%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
+                      <th className="w-[10%] py-4 px-3 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
                         Mentor
                       </th>
-                      <th className="w-[12%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
+                      <th className="w-[8%] py-4 px-3 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
+                        Tgl Mulai
+                      </th>
+                      <th className="w-[8%] py-4 px-3 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
+                        Tgl Selesai
+                      </th>
+                      <th className="w-[10%] py-4 px-3 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
                         Status Magang
                       </th>
-                      <th className="w-[12%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
+                      <th className="w-[10%] py-4 px-3 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
                         Status Surat
-                      </th>
-                      <th className="w-[9%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
-                        Aksi
                       </th>
                     </tr>
                   </thead>
@@ -475,117 +484,112 @@ export default function ViewPesertaSuperadmin() {
                       return (
                         <tr
                           key={p.pesertaId || index}
-                          className="hover:bg-[#FEF3C7]/40 dark:hover:bg-indigo-500/10 transition"
+                          className="hover:bg-[#FEF3C7]/40 dark:hover:bg-indigo-500/10 transition cursor-pointer"
+                          onClick={() => setSelectedPeserta(p)}
                         >
-                          <td className="py-4 px-6 text-center font-medium text-slate-500 dark:text-slate-300">
+                          <td className="py-4 px-3 text-center font-medium text-slate-500 dark:text-slate-300">
                             {indexOfFirstItem + index + 1}
                           </td>
 
-                          <td className="py-4 px-6">
-                            <div className="flex items-center justify-center gap-3">
+                          <td className="py-4 px-3">
+                            <div className="flex items-center justify-center gap-2">
                               <div
                                 className="
-                                  w-10 h-10
-                                  rounded-full
-                                  bg-linear-to-br from-[#7F1D1D] to-[#F59E0B]
-                                  dark:from-indigo-600 dark:to-violet-500
-                                  flex items-center justify-center
-                                  text-white shadow
-                                "
+                                    w-8 h-8
+                                    rounded-full
+                                    bg-linear-to-br from-[#7F1D1D] to-[#F59E0B]
+                                    dark:from-indigo-600 dark:to-violet-500
+                                    flex items-center justify-center
+                                    text-white shadow shrink-0
+                                  "
                               >
-                                <HiUser className="w-5 h-5" />
+                                <HiUser className="w-4 h-4" />
                               </div>
                               <div className="text-left leading-tight">
-                                <p className="font-medium text-slate-800 dark:text-slate-100">
+                                <p className="font-medium text-[#7F1D1D] dark:text-indigo-300 hover:underline truncate max-w-[120px]">
                                   {p.nama || "-"}
                                 </p>
-                                <p className="text-xs text-slate-500 dark:text-slate-400">
+                                <p className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-[120px]">
                                   {p.jurusan || "-"}
                                 </p>
                               </div>
                             </div>
                           </td>
 
-                          <td className="py-4 px-6 text-center">
-                            <div className="space-y-1 text-slate-600 dark:text-slate-300">
-                              <div className="flex justify-center items-center gap-2">
-                                <HiMail className="w-4 h-4" />
-                                <span className="truncate max-w-52">
+                          <td className="py-4 px-3 text-center">
+                            <div className="space-y-1 text-slate-600 dark:text-slate-300 text-xs">
+                              <div className="flex justify-center items-center gap-1">
+                                <HiMail className="w-3 h-3 shrink-0" />
+                                <span className="truncate max-w-[100px]">
                                   {p.email || "-"}
                                 </span>
                               </div>
-                              <div className="flex justify-center items-center gap-2">
-                                <HiPhone className="w-4 h-4" />
-                                <span>{p.wa || "-"}</span>
+                              <div className="flex justify-center items-center gap-1">
+                                <HiPhone className="w-3 h-3 shrink-0" />
+                                <span className="truncate max-w-[100px]">
+                                  {p.wa || "-"}
+                                </span>
                               </div>
                             </div>
                           </td>
 
-                          <td className="py-4 px-6 text-center">
+                          <td className="py-4 px-3 text-center">
                             <span
                               className="
-                                inline-flex items-center gap-2
-                                px-3 py-1.5 rounded-full
-                                text-xs font-semibold
-                                bg-blue-50 text-blue-700
-                                dark:bg-indigo-500/20 dark:text-indigo-200
-                              "
+                                  inline-flex items-center px-2 py-1 rounded-full
+                                  text-xs font-semibold
+                                  bg-blue-50 text-blue-700
+                                  dark:bg-indigo-500/20 dark:text-indigo-200
+                                  truncate max-w-[100px]
+                                "
                             >
                               {p.posisi || "-"}
                             </span>
                           </td>
 
-                          <td className="py-4 px-6 text-center">
+                          <td className="py-4 px-3 text-center">
                             {p.mentor ? (
-                              <div className="text-sm">
-                                <p className="font-medium text-slate-800 dark:text-slate-100">
+                              <div className="text-xs">
+                                <p className="font-medium text-slate-800 dark:text-slate-100 truncate max-w-[100px]">
                                   {p.mentor.name || "-"}
                                 </p>
-                                <p className="text-xs text-slate-500 dark:text-slate-400">
+                                <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate max-w-[100px]">
                                   {p.mentor.email || "-"}
                                 </p>
                               </div>
                             ) : (
-                              <span className="text-slate-400 italic text-sm">
-                                Belum ada mentor
+                              <span className="text-slate-400 italic text-xs">
+                                -
                               </span>
                             )}
                           </td>
 
-                          <td className="py-4 px-6 text-center">
+                          <td className="py-4 px-3 text-center">
+                            <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                              {formatTanggal(p.tanggalMulaiMagang)}
+                            </span>
+                          </td>
+
+                          <td className="py-4 px-3 text-center">
+                            <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                              {formatTanggal(p.tanggalSelesaiMagang)}
+                            </span>
+                          </td>
+
+                          <td className="py-4 px-3 text-center">
                             <StatusMagangBadge
                               status={p.statusMagang || "Menunggu"}
                             />
                           </td>
 
-                          <td className="py-4 px-6 text-center">
+                          <td className="py-4 px-3 text-center">
                             {loadingSurat ? (
-                              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">
                                 <span className="animate-pulse">Memuat...</span>
                               </span>
                             ) : (
                               <SuratSelesaiBadge status={suratStatus} />
                             )}
-                          </td>
-
-                          <td className="py-4 px-6 text-center">
-                            <button
-                              onClick={() => setSelectedPeserta(p)}
-                              className="
-                                inline-flex items-center justify-center
-                                px-4 py-2
-                                rounded-xl
-                                text-sm font-semibold
-                                text-white
-                                bg-linear-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
-                                dark:from-indigo-600 dark:to-violet-500
-                                shadow hover:shadow-xl
-                                hover:-translate-y-0.5
-                                transition
-                              "
-                            >
-                              Lihat Detail
-                            </button>
                           </td>
                         </tr>
                       );
@@ -601,17 +605,17 @@ export default function ViewPesertaSuperadmin() {
                     disabled={page === 1}
                     onClick={() => setPage((p) => p - 1)}
                     className="
-                      px-4 py-2
-                      rounded-lg
-                      text-sm font-medium
-                      border
-                      border-slate-300 dark:border-indigo-500/30
-                      bg-white dark:bg-indigo-950
-                      text-slate-700 dark:text-indigo-200
-                      hover:bg-[#FFF1F2] dark:hover:bg-indigo-900/40
-                      disabled:opacity-40 disabled:cursor-not-allowed
-                      transition
-                    "
+                        px-4 py-2
+                        rounded-lg
+                        text-sm font-medium
+                        border
+                        border-slate-300 dark:border-indigo-500/30
+                        bg-white dark:bg-indigo-950
+                        text-slate-700 dark:text-indigo-200
+                        hover:bg-[#FFF1F2] dark:hover:bg-indigo-900/40
+                        disabled:opacity-40 disabled:cursor-not-allowed
+                        transition
+                      "
                   >
                     Prev
                   </button>
@@ -633,24 +637,24 @@ export default function ViewPesertaSuperadmin() {
                           key={pageNum}
                           onClick={() => setPage(pageNum)}
                           className={`
-                          min-w-9.5 h-9.5 px-3
-                          rounded-lg
-                          text-sm font-semibold
-                          transition
-                          ${
-                            active
-                              ? `
-                                bg-[#B91C1C] text-white shadow
-                                dark:bg-indigo-600
-                              `
-                              : `
-                                bg-white dark:bg-indigo-950
-                                text-[#7F1D1D] dark:text-indigo-200
-                                border border-slate-300 dark:border-indigo-500/30
-                                hover:bg-[#FFF1F2] dark:hover:bg-indigo-900/40
-                              `
-                          }
-                        `}
+                            min-w-9.5 h-9.5 px-3
+                            rounded-lg
+                            text-sm font-semibold
+                            transition
+                            ${
+                              active
+                                ? `
+                                  bg-[#B91C1C] text-white shadow
+                                  dark:bg-indigo-600
+                                `
+                                : `
+                                  bg-white dark:bg-indigo-950
+                                  text-[#7F1D1D] dark:text-indigo-200
+                                  border border-slate-300 dark:border-indigo-500/30
+                                  hover:bg-[#FFF1F2] dark:hover:bg-indigo-900/40
+                                `
+                            }
+                          `}
                         >
                           {pageNum}
                         </button>
@@ -662,17 +666,17 @@ export default function ViewPesertaSuperadmin() {
                     disabled={page === totalPage}
                     onClick={() => setPage((p) => p + 1)}
                     className="
-                      px-4 py-2
-                      rounded-lg
-                      text-sm font-medium
-                      border
-                      border-slate-300 dark:border-indigo-500/30
-                      bg-white dark:bg-indigo-950
-                      text-slate-700 dark:text-indigo-200
-                      hover:bg-[#FFF1F2] dark:hover:bg-indigo-900/40
-                      disabled:opacity-40 disabled:cursor-not-allowed
-                      transition
-                    "
+                        px-4 py-2
+                        rounded-lg
+                        text-sm font-medium
+                        border
+                        border-slate-300 dark:border-indigo-500/30
+                        bg-white dark:bg-indigo-950
+                        text-slate-700 dark:text-indigo-200
+                        hover:bg-[#FFF1F2] dark:hover:bg-indigo-900/40
+                        disabled:opacity-40 disabled:cursor-not-allowed
+                        transition
+                      "
                   >
                     Next
                   </button>
@@ -689,7 +693,6 @@ export default function ViewPesertaSuperadmin() {
           peserta={selectedPeserta}
           onClose={() => setSelectedPeserta(null)}
           onViewLogbook={handleViewLogbook}
-          onViewLaporanBulanan={handleViewLaporanBulanan}
           onViewLaporanAkhir={handleViewLaporanAkhir}
           onSuratSelesaiSuccess={handleSuratSelesaiSuccess}
         />
@@ -727,16 +730,16 @@ function StatCard({ title, value, icon, note, color }: StatCardProps) {
   return (
     <div
       className="
-        group relative
-        rounded-2xl
-        border border-[#FCA5A5]/40 dark:border-indigo-500/30
-        bg-linear-to-br
-        from-[#FFFDF8] via-[#FFF4EC] to-white
-        dark:from-indigo-950 dark:via-indigo-900 dark:to-indigo-800
-        p-6
-        shadow-sm hover:shadow-xl
-        transition
-      "
+          group relative
+          rounded-2xl
+          border border-[#FCA5A5]/40 dark:border-indigo-500/30
+          bg-linear-to-br
+          from-[#FFFDF8] via-[#FFF4EC] to-white
+          dark:from-indigo-950 dark:via-indigo-900 dark:to-indigo-800
+          p-6
+          shadow-sm hover:shadow-xl
+          transition
+        "
     >
       <div className="flex items-center justify-between">
         <div>
@@ -750,13 +753,13 @@ function StatCard({ title, value, icon, note, color }: StatCardProps) {
 
         <div
           className={`
-            w-14 h-14 rounded-2xl
-            text-white
-            flex items-center justify-center
-            shadow
-            group-hover:scale-110 transition
-            ${iconColorMap[color]}
-          `}
+              w-14 h-14 rounded-2xl
+              text-white
+              flex items-center justify-center
+              shadow
+              group-hover:scale-110 transition
+              ${iconColorMap[color]}
+            `}
         >
           {icon}
         </div>
@@ -774,31 +777,31 @@ function StatusMagangBadge({ status }: { status: string }) {
   switch (status) {
     case "Belum Waktu Magang":
       return (
-        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
+        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
           Belum Waktu Magang
         </span>
       );
     case "Sedang Magang":
       return (
-        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
           Sedang Magang
         </span>
       );
     case "Tidak Magang":
       return (
-        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
-          Tidak Magang
+        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+          Tidak
         </span>
       );
     case "Selesai Magang":
       return (
-        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
           Selesai
         </span>
       );
     default:
       return (
-        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400">
+        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400">
           Menunggu
         </span>
       );
@@ -809,17 +812,17 @@ function StatusMagangBadge({ status }: { status: string }) {
 function SuratSelesaiBadge({ status }: { status: string }) {
   if (status === "Sudah Terkirim") {
     return (
-      <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
         <HiDocumentText className="w-3 h-3" />
-        Surat Terkirim
+        Terkirim
       </span>
     );
   }
 
   return (
-    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
       <HiDocumentText className="w-3 h-3" />
-      Belum Ada Surat
+      Belum
     </span>
   );
 }
