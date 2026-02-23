@@ -275,7 +275,7 @@ export default function ViewFeedbackSuperadmin() {
 
           <StatCard
             title="Ke BPOM"
-            value={statistics.notSentToMentor}
+            value={statistics.sentToMentor}
             icon={<HiDocumentText className="w-7 h-7" />}
             note="Feedback untuk BPOM"
             color="slate"

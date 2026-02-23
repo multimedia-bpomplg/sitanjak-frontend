@@ -541,33 +541,6 @@ export default function SuperadminLayout({
                 layoutOpen ? "max-h-40" : "max-h-0"
               }`}
             >
-              {/* WhatsApp */}
-              <Link
-                href="/dashboard/admin/manajemenTampilan/WhatappEdit"
-                className={`
-      flex items-center gap-3
-      py-2.5 rounded-xl
-      text-sm
-      text-gray-700 dark:text-gray-300
-      hover:bg-[#FACC15]/30 hover:text-[#7F1D1D]
-      transition
-      ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
-
-      ${
-        pathname.includes("/manajemenTampilan/WhatappEdit")
-          ? `
-              bg-linear-to-r
-              from-[#FDE68A]/60
-              to-[#FACC15]/40
-              text-[#7F1D1D]
-              shadow-inner
-            `
-          : ""
-      }
-    `}
-              >
-                🖼️ {!collapsed && "Manajemen WhatsApp"}
-              </Link>
 
               {/* Banner */}
               <Link

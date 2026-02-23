@@ -69,18 +69,16 @@ export default function PopupPromo() {
     : "/images/cards/popup_sitanjak.png"; // fallback image
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md">
       {/* CARD */}
       <div
         className="
-          relative
-          w-full max-w-[520px]
-          mx-4 sm:mx-6
-          rounded-3xl
-          overflow-hidden
-          bg-white dark:bg-slate-900
-          shadow-[0_30px_80px_-20px_rgba(0,0,0,0.45)]
-          animate-[scaleIn_0.35s_ease-out]
+          relative w-full max-w-md mx-4
+          rounded-3xl overflow-hidden
+          bg-white/90 dark:bg-slate-900/90
+          backdrop-blur-xl
+          shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)]
+          animate-[scaleIn_0.4s_ease-out]
         "
       >
         {/* CLOSE */}
@@ -102,13 +100,13 @@ export default function PopupPromo() {
         </button>
 
         {/* IMAGE HEADER */}
-        <div className="relative w-full aspect-video bg-black">
+        <div className="relative h-52">
           <Image
             src={imageUrl}
             alt={data.title}
             fill
             sizes="(max-width: 520px) 100vw, 520px"
-            className="object-contain"
+            className="object-cover"
             priority
             onError={(e) => {
               // Fallback jika gambar gagal load
@@ -143,7 +141,7 @@ export default function PopupPromo() {
         </div>
 
         {/* CONTENT */}
-        <div className="px-6 py-7 text-center mx-auto max-w-[460px]">
+        <div className="px-6 py-7 text-center">
           <h3 className="text-2xl font-extrabold text-[#7F1D1D] mb-3">
             {data.title}
           </h3>

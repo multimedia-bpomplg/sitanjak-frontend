@@ -30,6 +30,7 @@ export default function Footer() {
               alt="Logo Website"
               width={130}
               height={130}
+              priority
             />
 
             <p className="text-md font-bold mt-3">Sistem Informasi Tahapan dan Jangkauan Magang Akademik</p>
@@ -54,26 +55,38 @@ export default function Footer() {
 
             <ul className="space-y-2 text-white/90 text-base">
               {[
-                { label: "Home", href: "/", icon: HiHome },
-                { label: "Profil", href: "/profil", icon: HiUser },
-                { label: "Formasi", href: "/formasi", icon: HiClipboardList },
-                { label: "Manfaat", href: "/manfaat", icon: HiGift },
-                { label: "Peraturan", href: "/peraturan", icon: HiDocumentText },
-                { label: "Panduan Pendaftaran", href: "/panduan", icon: HiInformationCircle },
+                { label: "Home", href: "/#home", icon: HiHome },
+                { label: "Profil", href: "/#profil", icon: HiUser },
+                { label: "Formasi", href: "/#formasi", icon: HiClipboardList },
+                { label: "Manfaat", href: "/#manfaat", icon: HiGift },
+                { label: "Peraturan", href: "/#peraturan", icon: HiDocumentText },
+                { 
+                  label: "Panduan Pendaftaran", 
+                  href: "https://docs.google.com/document/d/1d43jgfTZYD1oT6ePshn8NyMfkXxPQ7aGAePx3qDJ-9I/edit?usp=sharing", 
+                  icon: HiInformationCircle,
+                  external: true 
+                },
               ].map((menu, i) => (
                 <li key={i}>
-                  <Link
-                    href={menu.href}
-                    className="
-                      flex items-center gap-2 
-                      hover:text-[#FACC15]
-                      hover:pl-1 
-                      transition font-medium
-                    "
-                  >
-                    <menu.icon size={18} className="hover:bg-[#FACC15]/30" />
-                    {menu.label}
-                  </Link>
+                  {menu.external ? (
+                    <a
+                      href={menu.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 hover:text-[#FACC15] hover:pl-1 transition font-medium"
+                    >
+                      <menu.icon size={18} />
+                      {menu.label}
+                    </a>
+                  ) : (
+                    <Link
+                      href={menu.href}
+                      className="flex items-center gap-2 hover:text-[#FACC15] hover:pl-1 transition font-medium"
+                    >
+                      <menu.icon size={18} />
+                      {menu.label}
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>
@@ -86,7 +99,7 @@ export default function Footer() {
               alt="Logo Instansi"
               width={100}
               height={100}
-              className="drop-shadow-[0_6px_14px_rgba(0,0,0,0.45)]"
+              className="h-auto w-auto drop-shadow-[0_6px_14px_rgba(0,0,0,0.45)]"
             />
 
             <h3 className="text-xl font-bold mt-3">Balai Besar POM Palembang</h3>
@@ -135,8 +148,20 @@ export default function Footer() {
         <div className="w-full h-px bg-white/30 my-8"></div>
 
         {/* BOTTOM SECTION */}
-        <div className="text-center text-white/80 text-sm">
-          © {new Date().getFullYear()} SIMAGGO – Semua Hak Dilindungi.
+        <div className="text-center text-white/80 text-sm space-y-2">
+          <p>
+            © {new Date().getFullYear()} SITANJAK – Semua Hak Dilindungi.
+          </p>
+
+          <p className="text-white/60">
+            Developed with ❤️ by{" "}
+            <Link
+              href="/developer"
+              className="underline hover:text-[#FACC15] transition"
+            >
+              Tim Pengembang
+            </Link>
+          </p>
         </div>
       </div>
     </footer>

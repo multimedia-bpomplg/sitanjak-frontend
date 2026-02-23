@@ -106,7 +106,7 @@ export default function Navbar() {
             alt="Sitanjak Logo"
             width={70}
             height={70}
-            className="rounded-full"
+            className="rounded-full object-contain"
           />
         </div>
 

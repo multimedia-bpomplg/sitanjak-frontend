@@ -31,6 +31,37 @@ const createSlug = (title: string): string => {
   return slugMap[title] || title.toLowerCase().replace(/\s+/g, "-");
 };
 
+const JURUSAN_BY_TITLE: Record<string, string[]> = {
+  "Fungsi Penindakan": [
+    "Ilmu Hukum",
+    "Hukum Pidana",
+    "Kriminologi",
+    "Hukum Administrasi Negara",
+  ],
+  "Fungsi Pengujian": [
+    "Kimia",
+    "Farmasi",
+    "Biologi",
+  ],
+  "Fungsi Pemeriksaan (Inspeksi dan sertifikasi)": [
+    "Farmasi",
+    "Teknik Informatika",
+    "Hukum",
+    "Kesehatan Masyarakat",
+  ],
+  "Fungsi Informasi dan Komunikasi": [
+    "Kesehatan Masyarakat",
+    "Hukum",
+    "Sistem Informasi",
+  ],
+  "Bagian Tata Usaha": [
+    "Administrasi",
+    "Akuntansi",
+    "Teknik Informatika",
+    "Perkantoran"
+  ],
+};
+
 export default function Formasi() {
   const sectionRef = useRef<HTMLDivElement | null>(null);
   const [visible, setVisible] = useState(false);
@@ -236,6 +267,8 @@ export default function Formasi() {
                 const slug = createSlug(item.title);
                 const isFull = item.sisaKuota === 0;
 
+                const jurusanList = JURUSAN_BY_TITLE[item.title] || [];
+
                 return (
                   <div
                     key={item._id}
@@ -289,6 +322,52 @@ export default function Formasi() {
                         <HiOutlineOfficeBuilding className="text-red-500" />
                         Balai Besar POM Palembang
                       </p>
+
+                      {/* ================= JURUSAN ================= */}
+                      <div className="mb-5">
+                        <p className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                          <HiAcademicCap className="text-[#7F1D1D]" />
+                          Jurusan yang Diterima
+                        </p>
+
+                        {jurusanList.length > 0 ? (
+                          <div className="flex flex-wrap gap-2">
+                            {jurusanList.map((jur, idx) => (
+                              <span
+                                key={idx}
+                                className="
+                                  text-xs
+                                  px-3 py-1
+                                  rounded-full
+                                  bg-blue-30
+                                  text-blue-700
+                                  border border-blue-400
+                                  hover:bg-blue-200
+                                  transition
+                                "
+                              >
+                                {jur}
+                              </span>
+                            ))}
+
+                            <span
+                              className="
+                                text-xs
+                                px-3 py-1
+                                rounded-full
+                                bg-blue-400
+                                text-white
+                              "
+                            >
+                              Lainnya
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-gray-400 italic">
+                            Semua jurusan diperbolehkan
+                          </span>
+                        )}
+                      </div>
 
                       {/* ================= SISA KUOTA ================= */}
                       <div className="text-center py-6 bg-white/30 rounded-2xl mb-6">
@@ -378,27 +457,6 @@ export default function Formasi() {
                           }}
                         />
                       </div>
-
-                      {/* ================= CTA ================= */}
-                      <Link
-                        href={`/Detail-Formasi/${slug}`}
-                        className={`
-                          block text-center py-3 rounded-xl font-bold
-                          transition-all duration-300
-                          shadow-lg
-                          hover:scale-[1.04]
-                          hover:shadow-xl
-                          ${
-                            isFull
-                              ? "bg-linear-to-r from-red-500 via-pink-500 to-red-600 text-white hover:shadow-[0_10px_25px_rgba(239,68,68,0.4)]"
-                              : item.sisaKuota <= 2
-                                ? "bg-linear-to-r from-yellow-400 via-orange-400 to-yellow-500 text-white hover:shadow-[0_10px_25px_rgba(234,179,8,0.4)]"
-                                : "bg-linear-to-r from-emerald-500 via-green-500 to-teal-500 text-white hover:shadow-[0_10px_25px_rgba(16,185,129,0.4)]"
-                          }
-                        `}
-                      >
-                        Lihat Detail Formasi
-                      </Link>
                     </div>
                   </div>
                 );
