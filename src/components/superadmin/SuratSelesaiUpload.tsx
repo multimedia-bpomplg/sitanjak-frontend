@@ -20,6 +20,9 @@ export default function SuratSelesaiUpload({ peserta, onSuccess }: Props) {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [checking, setChecking] = useState(true);
+
+  const hasCheckedRef = useRef(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -102,9 +105,14 @@ export default function SuratSelesaiUpload({ peserta, onSuccess }: Props) {
   const [existingFile, setExistingFile] = useState<string | null>(null);
 
   useEffect(() => {
+    if (hasCheckedRef.current) return;
+
     const checkExistingSurat = async () => {
+      setChecking(true);
+
       try {
         const token = localStorage.getItem("token");
+
         const res = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/surat-selesai/cek?email=${peserta.email}`,
           {
@@ -114,18 +122,45 @@ export default function SuratSelesaiUpload({ peserta, onSuccess }: Props) {
           },
         );
 
-        if (res.ok) {
-          const data = await res.json();
+        if (res.status === 404) {
+          setIsAlreadySent(false);
+          return;
+        }
+
+        if (!res.ok) {
+          setIsAlreadySent(false);
+          return;
+        }
+
+        const data = await res.json();
+
+        if (data?.file) {
           setIsAlreadySent(true);
           setExistingFile(data.file);
+        } else {
+          setIsAlreadySent(false);
         }
-      } catch (err) {
-        // Surat belum ada
+
+        hasCheckedRef.current = true; // 🔥 kunci supaya tidak cek ulang
+      } catch {
+        setIsAlreadySent(false);
+      } finally {
+        setChecking(false);
       }
     };
 
     checkExistingSurat();
-  }, []);
+  }, [peserta.email]);
+
+  if (checking) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <span className="text-slate-500 dark:text-slate-400 animate-pulse">
+          Memeriksa status surat...
+        </span>
+      </div>
+    );
+  }
 
   if (isAlreadySent) {
     return (
