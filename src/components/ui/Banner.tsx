@@ -28,7 +28,7 @@ export default function PopupPromo() {
 
       try {
         const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/announcements/type/landing`, // Perbaiki endpoint
+          `${process.env.NEXT_PUBLIC_API_URL}/announcements/landing`,
         );
 
         if (!res.ok) throw new Error("Gagal fetch");

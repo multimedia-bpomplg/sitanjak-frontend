@@ -1243,7 +1243,7 @@ export default function ViewPendaftaranPage() {
 
       {/* MODAL KONFIRMASI */}
       {confirmAction.show && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center">
+        <div className="fixed inset-0 z-100flex items-center justify-center">
           <div
             className="absolute inset-0 bg-black/40 backdrop-blur-sm"
             onClick={() => setConfirmAction({ ...confirmAction, show: false })}

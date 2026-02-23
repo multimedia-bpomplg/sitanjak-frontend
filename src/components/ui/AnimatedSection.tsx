@@ -10,9 +10,19 @@ export default function AnimatedSection({
   children: React.ReactNode;
 }) {
   const ref = useRef<HTMLDivElement | null>(null);
+
+  const [mounted, setMounted] = useState(false);
   const [visible, setVisible] = useState(false);
 
+  // Pastikan hanya jalan di client
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Observer hanya setelah mounted
+  useEffect(() => {
+    if (!mounted) return;
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -20,12 +30,22 @@ export default function AnimatedSection({
           observer.disconnect();
         }
       },
-      { threshold: 0.2 }
+      { threshold: 0.2 },
     );
 
     if (ref.current) observer.observe(ref.current);
+
     return () => observer.disconnect();
-  }, []);
+  }, [mounted]);
+
+  // SSR-safe render (server & client sama)
+  if (!mounted) {
+    return (
+      <section id={id} ref={ref}>
+        {children}
+      </section>
+    );
+  }
 
   return (
     <section
