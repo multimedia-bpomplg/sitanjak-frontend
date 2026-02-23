@@ -208,7 +208,12 @@ export default function PesertaDashboard() {
 
       if (res.ok) {
         const data = await res.json();
-        setSuratSelesai(data);
+
+        if (data) {
+          setSuratSelesai(data);
+        } else {
+          setSuratSelesai(null);
+        }
       }
     } catch (err) {
       console.log("Surat selesai belum tersedia");
@@ -300,15 +305,15 @@ export default function PesertaDashboard() {
         {/* HERO SECTION */}
         <div
           className="
-            relative overflow-hidden
-            rounded-[2.25rem]
-            bg-linear-to-r
-            from-[#7F1D1D] via-[#991B1B] to-[#D97706]
-            dark:from-indigo-600 dark:via-purple-600 dark:to-fuchsia-600
-            px-10 py-12
-            shadow-[0_24px_60px_-20px_rgba(0,0,0,0.45)]
-            text-white
-          "
+              relative overflow-hidden
+              rounded-[2.25rem]
+              bg-linear-to-r
+              from-[#7F1D1D] via-[#991B1B] to-[#D97706]
+              dark:from-indigo-600 dark:via-purple-600 dark:to-fuchsia-600
+              px-10 py-12
+              shadow-[0_24px_60px_-20px_rgba(0,0,0,0.45)]
+              text-white
+            "
         >
           <div className="absolute -top-24 -right-24 w-96 h-96 bg-white/20 rounded-full blur-3xl" />
           <div className="absolute -bottom-32 -left-24 w-md h-112 bg-black/10 rounded-full blur-3xl" />
@@ -316,13 +321,13 @@ export default function PesertaDashboard() {
           <div className="relative flex flex-col sm:flex-row items-center gap-8">
             <div
               className="
-                flex h-24 w-24 items-center justify-center
-                rounded-full
-                bg-white/25 backdrop-blur
-                text-3xl font-extrabold
-                ring-4 ring-white/40
-                shadow-xl
-              "
+                  flex h-24 w-24 items-center justify-center
+                  rounded-full
+                  bg-white/25 backdrop-blur
+                  text-3xl font-extrabold
+                  ring-4 ring-white/40
+                  shadow-xl
+                "
             >
               {getInitial(peserta.nama)}
             </div>
@@ -337,12 +342,12 @@ export default function PesertaDashboard() {
               </p>
               <span
                 className="
-                  inline-flex items-center gap-2
-                  mt-3 px-5 py-2
-                  rounded-full
-                  text-sm font-semibold
-                  bg-white/25 backdrop-blur
-                "
+                    inline-flex items-center gap-2
+                    mt-3 px-5 py-2
+                    rounded-full
+                    text-sm font-semibold
+                    bg-white/25 backdrop-blur
+                  "
               >
                 Peserta Magang Aktif
               </span>
@@ -376,12 +381,12 @@ export default function PesertaDashboard() {
               <div className="h-2 w-full rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
                 <div
                   className="
-                    h-full
-                    bg-linear-to-r
-                    from-[#FEF3C7] via-[#FACC15] to-[#B45309]
-                    dark:from-indigo-500 dark:via-purple-500 dark:to-fuchsia-500
-                    transition-all duration-500
-                  "
+                      h-full
+                      bg-linear-to-r
+                      from-[#FEF3C7] via-[#FACC15] to-[#B45309]
+                      dark:from-indigo-500 dark:via-purple-500 dark:to-fuchsia-500
+                      transition-all duration-500
+                    "
                   style={{ width: `${progressMagang}%` }}
                 />
               </div>
@@ -424,12 +429,12 @@ export default function PesertaDashboard() {
               <div className="flex gap-3">
                 <div
                   className="
-                    flex h-9 w-9 items-center justify-center
-                    rounded-full
-                    bg-[#FDE68A] text-[#7F1D1D]
-                    dark:bg-indigo-900/60 dark:text-indigo-200
-                    font-bold text-xs
-                  "
+                      flex h-9 w-9 items-center justify-center
+                      rounded-full
+                      bg-[#FDE68A] text-[#7F1D1D]
+                      dark:bg-indigo-900/60 dark:text-indigo-200
+                      font-bold text-xs
+                    "
                 >
                   {getInitial(mentor.nama)}
                 </div>
@@ -446,21 +451,21 @@ export default function PesertaDashboard() {
         {/* DETAIL ACCORDION */}
         <div
           className="
-            overflow-hidden rounded-3xl
-            border border-white/40
-            bg-white/70 dark:bg-slate-900/70
-            backdrop-blur-xl
-            shadow-2xl
-          "
+              overflow-hidden rounded-3xl
+              border border-white/40
+              bg-white/70 dark:bg-slate-900/70
+              backdrop-blur-xl
+              shadow-2xl
+            "
         >
           <button
             onClick={() => setOpen((v) => !v)}
             className="
-              w-full flex items-center justify-between
-              px-8 py-6
-              hover:bg-white/40 dark:hover:bg-white/5
-              transition
-            "
+                w-full flex items-center justify-between
+                px-8 py-6
+                hover:bg-white/40 dark:hover:bg-white/5
+                transition
+              "
           >
             <div>
               <h2 className="text-xl font-bold">📂 Detail Informasi Peserta</h2>
@@ -503,32 +508,32 @@ export default function PesertaDashboard() {
                 </Grid>
                 <div
                   className="
-                    mt-4
-                    rounded-2xl
-                    border
-                    border-slate-200 dark:border-slate-700
-                    bg-linear-to-br
-                    from-slate-50 to-white
-                    dark:from-slate-900 dark:to-slate-800
-                    p-5
-                    flex items-start gap-4
-                    shadow-sm
-                  "
+                      mt-4
+                      rounded-2xl
+                      border
+                      border-slate-200 dark:border-slate-700
+                      bg-linear-to-br
+                      from-slate-50 to-white
+                      dark:from-slate-900 dark:to-slate-800
+                      p-5
+                      flex items-start gap-4
+                      shadow-sm
+                    "
                 >
                   {/* Icon */}
                   <div
                     className="
-                      w-12 h-12
-                      rounded-xl
-                      flex items-center justify-center
-                      text-xl
-                      bg-linear-to-br
-                      from-[#FEE2E2] to-[#FEF3C7]
-                      text-[#B91C1C]
-                      dark:from-indigo-600/20 dark:to-violet-600/20
-                      dark:text-indigo-300
-                      shrink-0
-                    "
+                        w-12 h-12
+                        rounded-xl
+                        flex items-center justify-center
+                        text-xl
+                        bg-linear-to-br
+                        from-[#FEE2E2] to-[#FEF3C7]
+                        text-[#B91C1C]
+                        dark:from-indigo-600/20 dark:to-violet-600/20
+                        dark:text-indigo-300
+                        shrink-0
+                      "
                   >
                     <FiMapPin />
                   </div>
@@ -557,11 +562,11 @@ export default function PesertaDashboard() {
               <Section title="📝 Catatan Admin">
                 <div
                   className="
-                    rounded-xl p-5
-                    bg-yellow-50 text-yellow-800
-                    dark:bg-yellow-900/30 dark:text-yellow-200
-                    border-l-4 border-yellow-400
-                  "
+                      rounded-xl p-5
+                      bg-yellow-50 text-yellow-800
+                      dark:bg-yellow-900/30 dark:text-yellow-200
+                      border-l-4 border-yellow-400
+                    "
                 >
                   {pendaftaran.jawabanAdmin || "Belum ada catatan dari admin"}
                 </div>
@@ -587,13 +592,13 @@ function StatCard({ title, value, accent }: any) {
   return (
     <div
       className="
-        relative overflow-hidden
-        rounded-2xl p-6
-        bg-white dark:bg-slate-900
-        border border-slate-200 dark:border-slate-700
-        shadow-lg
-        transition hover:-translate-y-1 hover:shadow-2xl
-      "
+          relative overflow-hidden
+          rounded-2xl p-6
+          bg-white dark:bg-slate-900
+          border border-slate-200 dark:border-slate-700
+          shadow-lg
+          transition hover:-translate-y-1 hover:shadow-2xl
+        "
     >
       <div
         className={`absolute -top-20 -right-20 w-40 h-40 rounded-full blur-3xl opacity-30 ${accentMap[accent]}`}
@@ -613,16 +618,16 @@ function Section({ title, children }: any) {
     <div className="space-y-6">
       <div
         className="
-          flex items-center gap-3
-          px-5 py-3
-          rounded-2xl
-          bg-linear-to-r from-[#FFF7ED] to-[#FDE68A]
-          text-[#7F1D1D]
-          dark:from-indigo-900/40 dark:to-purple-900/30
-          dark:text-indigo-200
-          text-base font-semibold
-          shadow-sm
-        "
+            flex items-center gap-3
+            px-5 py-3
+            rounded-2xl
+            bg-linear-to-r from-[#FFF7ED] to-[#FDE68A]
+            text-[#7F1D1D]
+            dark:from-indigo-900/40 dark:to-purple-900/30
+            dark:text-indigo-200
+            text-base font-semibold
+            shadow-sm
+          "
       >
         {title}
       </div>
@@ -659,32 +664,32 @@ function Item({ label, value }: any) {
   return (
     <div
       className="
-        group
-        relative
-        rounded-2xl
-        p-4 sm:p-5
-        border
-        bg-white/80 dark:bg-slate-900/60
-        border-slate-200 dark:border-slate-700
-        shadow-sm hover:shadow-lg
-        transition-all
-        flex items-start gap-3
-      "
+          group
+          relative
+          rounded-2xl
+          p-4 sm:p-5
+          border
+          bg-white/80 dark:bg-slate-900/60
+          border-slate-200 dark:border-slate-700
+          shadow-sm hover:shadow-lg
+          transition-all
+          flex items-start gap-3
+        "
     >
       {/* Icon */}
       <div
         className="
-          w-10 h-10
-          rounded-xl
-          flex items-center justify-center
-          text-lg
-          bg-linear-to-br
-          from-[#FEE2E2] to-[#FEF3C7]
-          text-[#B91C1C]
-          dark:from-indigo-600/20 dark:to-violet-600/20
-          dark:text-indigo-300
-          shrink-0
-        "
+            w-10 h-10
+            rounded-xl
+            flex items-center justify-center
+            text-lg
+            bg-linear-to-br
+            from-[#FEE2E2] to-[#FEF3C7]
+            text-[#B91C1C]
+            dark:from-indigo-600/20 dark:to-violet-600/20
+            dark:text-indigo-300
+            shrink-0
+          "
       >
         {iconMap[label] || <FiUser />}
       </div>
@@ -779,33 +784,33 @@ function FlowCard({
   return (
     <div
       className={`
-        relative
-        rounded-2xl
-        p-5
-        border
-        flex flex-col gap-4
-        transition
-        shadow-sm hover:shadow-xl
-        ${
-          isAvailable
-            ? isFinal
-              ? "bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-700"
-              : "bg-white border-slate-200 dark:bg-slate-900 dark:border-slate-700"
-            : "bg-slate-50 border-slate-200 dark:bg-slate-800/60 dark:border-slate-700 opacity-80"
-        }
-      `}
+          relative
+          rounded-2xl
+          p-5
+          border
+          flex flex-col gap-4
+          transition
+          shadow-sm hover:shadow-xl
+          ${
+            isAvailable
+              ? isFinal
+                ? "bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-700"
+                : "bg-white border-slate-200 dark:bg-slate-900 dark:border-slate-700"
+              : "bg-slate-50 border-slate-200 dark:bg-slate-800/60 dark:border-slate-700 opacity-80"
+          }
+        `}
     >
       {/* Step number */}
       <div className="absolute -top-4 left-1/2 -translate-x-1/2 md:left-6 md:translate-x-0">
         <div
           className={`
-            w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shadow
-            ${
-              isAvailable
-                ? "bg-emerald-500 text-white"
-                : "bg-slate-300 text-slate-600 dark:bg-slate-700 dark:text-slate-300"
-            }
-          `}
+              w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shadow
+              ${
+                isAvailable
+                  ? "bg-emerald-500 text-white"
+                  : "bg-slate-300 text-slate-600 dark:bg-slate-700 dark:text-slate-300"
+              }
+            `}
         >
           {isAvailable ? "✓" : step}
         </div>
@@ -815,27 +820,27 @@ function FlowCard({
       <div className="flex items-start gap-3 mt-2">
         <div
           className={`
-            w-12 h-12 rounded-xl flex items-center justify-center text-xl mt-1
-            ${
-              isAvailable
-                ? isFinal
-                  ? `
-                    bg-emerald-100 text-emerald-600
-                    dark:bg-emerald-500/20 dark:text-emerald-300
-                  `
+              w-12 h-12 rounded-xl flex items-center justify-center text-xl mt-1
+              ${
+                isAvailable
+                  ? isFinal
+                    ? `
+                      bg-emerald-100 text-emerald-600
+                      dark:bg-emerald-500/20 dark:text-emerald-300
+                    `
+                    : `
+                      bg-linear-to-br
+                      from-[#FEE2E2] to-[#FEF3C7]
+                      text-[#B91C1C]
+                      dark:from-indigo-600/20 dark:to-violet-600/20
+                      dark:text-indigo-300
+                    `
                   : `
-                    bg-linear-to-br
-                    from-[#FEE2E2] to-[#FEF3C7]
-                    text-[#B91C1C]
-                    dark:from-indigo-600/20 dark:to-violet-600/20
-                    dark:text-indigo-300
+                    bg-slate-200 text-slate-400
+                    dark:bg-slate-700 dark:text-slate-500
                   `
-                : `
-                  bg-slate-200 text-slate-400
-                  dark:bg-slate-700 dark:text-slate-500
-                `
-            }
-          `}
+              }
+            `}
         >
           {isAvailable ? <FiFileText /> : <FiClock />}
         </div>
@@ -857,26 +862,26 @@ function FlowCard({
           target="_blank"
           rel="noopener noreferrer"
           className={`
-            mt-2
-            inline-flex items-center justify-center gap-2
-            w-full
-            px-4 py-2.5
-            rounded-xl
-            text-sm font-semibold
-            text-white
-            transition
-            ${
-              isFinal
-                ? "bg-emerald-600 hover:bg-emerald-700"
-                : `
-                  bg-linear-to-r
-                  from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
-                  hover:from-[#991B1B] hover:via-[#DC2626] hover:to-[#FBBF24]
-                  dark:from-indigo-600 dark:to-violet-500
-                  dark:hover:from-indigo-500 dark:hover:to-violet-400
-                `
-            }
-          `}
+              mt-2
+              inline-flex items-center justify-center gap-2
+              w-full
+              px-4 py-2.5
+              rounded-xl
+              text-sm font-semibold
+              text-white
+              transition
+              ${
+                isFinal
+                  ? "bg-emerald-600 hover:bg-emerald-700"
+                  : `
+                    bg-linear-to-r
+                    from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
+                    hover:from-[#991B1B] hover:via-[#DC2626] hover:to-[#FBBF24]
+                    dark:from-indigo-600 dark:to-violet-500
+                    dark:hover:from-indigo-500 dark:hover:to-violet-400
+                  `
+              }
+            `}
         >
           <FiEye className="w-4 h-4" />
           Lihat Dokumen

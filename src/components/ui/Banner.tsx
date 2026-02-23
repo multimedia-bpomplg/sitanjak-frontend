@@ -11,7 +11,7 @@ type Announcement = {
   image?: string;
 };
 
-const ONE_DAY = 24 * 60 * 60 * 1000; // 1 hari (ms)
+const ONE_DAY = 24 * 60 * 60 * 1000;
 
 export default function PopupPromo() {
   const [open, setOpen] = useState(false);

@@ -8,6 +8,7 @@ type Announcement = {
   subtitle?: string;
   content: string;
   image?: string;
+  isActive: boolean;
 };
 
 export default function AnnouncementBox({
@@ -26,7 +27,9 @@ export default function AnnouncementBox({
 
         const result = await res.json();
 
-        setAnnouncements(result); // simpan semua
+        const activeOnly = result.filter((item: any) => item.isActive === true);
+
+        setAnnouncements(activeOnly);
       } catch (err) {
         console.error("Gagal load pengumuman", err);
       }
