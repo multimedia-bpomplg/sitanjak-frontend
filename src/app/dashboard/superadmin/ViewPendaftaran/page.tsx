@@ -86,13 +86,6 @@ type AkunPeserta = {
   status: string;
 };
 
-type ConfirmAction = {
-  show: boolean;
-  type: "setuju" | "tolak";
-  title: string;
-  message: string;
-};
-
 const POSISI_MAGANG = [
   "Fungsi Penindakan",
   "Fungsi Pengujian",
@@ -140,8 +133,13 @@ export default function ViewPendaftaranPage() {
   const [page, setPage] = useState(1);
   const LIMIT = 10;
 
-  // State untuk konfirmasi action
-  const [confirmAction, setConfirmAction] = useState<ConfirmAction>({
+  // ✅ State konfirmasi action
+  const [confirmAction, setConfirmAction] = useState<{
+    show: boolean;
+    type: "setuju" | "tolak";
+    title: string;
+    message: string;
+  }>({
     show: false,
     type: "setuju",
     title: "",
@@ -165,6 +163,9 @@ export default function ViewPendaftaranPage() {
     setSuratBalasan(null);
     setEditPosisiIndex(null);
     setMentorModal(false);
+
+    // hapus hash dari URL
+    window.history.replaceState(null, "", window.location.pathname);
   };
 
   const isAktif = selected?.status === "Disetujui";
@@ -251,6 +252,19 @@ export default function ViewPendaftaranPage() {
     loadData();
     fetchAkunPeserta();
   }, []);
+
+  useEffect(() => {
+    if (!data.length) return;
+
+    const hash = window.location.hash.replace("#", "");
+    if (!hash) return;
+
+    const found = data.find((item) => item._id === hash);
+
+    if (found) {
+      setSelected(found);
+    }
+  }, [data]);
 
   useEffect(() => {
     if (mentorModal) {
@@ -539,8 +553,8 @@ export default function ViewPendaftaranPage() {
   return (
     <div className="min-h-screen p-4 sm:p-6 bg-linear-to-br from-slate-50 via-white to-indigo-50 dark:from-[#020617] dark:via-[#020617] dark:to-[#1E1B4B] text-slate-800 dark:text-slate-100 transition-colors">
       <h1 className="flex items-center gap-3 tracking-tight mb-10">
-          <span
-            className="
+        <span
+          className="
               text-2xl sm:text-3xl lg:text-4xl
               font-extrabold leading-tight
               bg-clip-text text-transparent
@@ -548,7 +562,7 @@ export default function ViewPendaftaranPage() {
               from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
               dark:from-indigo-400 dark:via-violet-400 dark:to-purple-400
             "
-          >
+        >
           Data Pendaftaran
         </span>
       </h1>
@@ -1052,7 +1066,11 @@ export default function ViewPendaftaranPage() {
                       {!isAkunTerdaftar(p.email) && (
                         <button
                           onClick={() => {
-                            window.location.href = `/dashboard/superadmin/ManajemenAkun/buatpeserta?email=${encodeURIComponent(p.email)}&name=${encodeURIComponent(p.nama)}`;
+                            // Simpan URL saat ini sebagai returnTo
+                            const returnUrl = encodeURIComponent(
+                              window.location.pathname + window.location.hash,
+                            );
+                            window.location.href = `/dashboard/admin/ManajemenAkun/buatpeserta?email=${encodeURIComponent(p.email)}&name=${encodeURIComponent(p.nama)}&returnTo=${returnUrl}`;
                           }}
                           className="text-xs px-3 py-1.5 rounded-lg font-medium transition bg-blue-600 hover:bg-blue-700 text-white dark:bg-indigo-600 dark:hover:bg-indigo-700"
                         >
@@ -1189,20 +1207,16 @@ export default function ViewPendaftaranPage() {
             {/* ACTION BUTTON DENGAN KONFIRMASI */}
             {!isAktif && (
               <div className="sticky bottom-0 px-6 py-4 bg-white/90 dark:bg-[#0B0614]/95 backdrop-blur border-t border-blue-200 dark:border-indigo-800 flex flex-col sm:flex-row justify-end gap-3">
-                {/* Tombol Tolak dengan Konfirmasi */}
+                {/* Tolak */}
                 <button
                   onClick={() => {
-                    const pesertaNames = selected.peserta.map((p) => p.nama);
-                    const isMoreThanOne = pesertaNames.length > 1;
-                    const namaDisplay = isMoreThanOne
-                      ? `${pesertaNames.length} orang peserta`
-                      : pesertaNames[0];
+                    const nama = selected?.peserta[0]?.nama;
 
                     setConfirmAction({
                       show: true,
                       type: "tolak",
                       title: "Konfirmasi Penolakan",
-                      message: `Apakah anda yakin menolak Calon Peserta Magang ${namaDisplay}?`,
+                      message: `Apakah anda yakin menolak ${nama}?`,
                     });
                   }}
                   className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-linear-to-r from-rose-500 to-red-600 text-white font-semibold hover:opacity-90"
@@ -1210,36 +1224,35 @@ export default function ViewPendaftaranPage() {
                   <HiXCircle /> Tolak
                 </button>
 
-                {/* Tombol Setuju dengan Konfirmasi */}
+                {/* Setuju */}
                 <button
                   onClick={() => {
-                    const pesertaNames = selected.peserta.map((p) => p.nama);
-                    const isMoreThanOne = pesertaNames.length > 1;
-                    const namaDisplay = isMoreThanOne
-                      ? `${pesertaNames.length} orang peserta`
-                      : pesertaNames[0];
+                    const jumlah =
+                      selected?.jumlahPeserta || selected?.peserta.length || 0;
 
-                    // Hitung durasi magang dari peserta pertama
+                    // Hitung durasi dari peserta pertama (asumsi sama semua)
                     const durasi = hitungDurasiMagang(
-                      selected.peserta[0]?.tanggalMulaiMagang,
-                      selected.peserta[0]?.tanggalSelesaiMagang,
+                      selected?.peserta[0]?.tanggalMulaiMagang || "",
+                      selected?.peserta[0]?.tanggalSelesaiMagang || "",
                     );
 
-                    let durasiText = "";
-                    if (durasi) {
-                      durasiText = `${durasi.bulan} bulan`;
-                      if (durasi.sisaHari > 0) {
-                        durasiText += ` ${durasi.sisaHari} hari`;
-                      }
-                    } else {
-                      durasiText = "Durasi tidak tersedia";
-                    }
+                    const bulan = durasi ? durasi.bulan : 0;
+
+                    const message = `
+                      Apakah anda yakin untuk menyetujui Peserta magang ${jumlah} orang peserta?
+
+                      Masa magang: ${bulan} Bulan
+
+                      di BBPOM Kota Palembang
+
+                      Data tidak dapat diubah setelah diproses.
+                          `;
 
                     setConfirmAction({
                       show: true,
                       type: "setuju",
                       title: "Konfirmasi Persetujuan",
-                      message: `Apakah anda yakin untuk menyetujui Peserta magang ${namaDisplay} dengan Masa magang ${durasiText} di BBPOM Kota Palembang?`,
+                      message,
                     });
                   }}
                   className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-linear-to-r from-emerald-500 to-green-600 text-white font-semibold hover:opacity-90"
@@ -1254,86 +1267,38 @@ export default function ViewPendaftaranPage() {
 
       {/* MODAL KONFIRMASI */}
       {confirmAction.show && (
-        <div className="fixed inset-0 z-100flex items-center justify-center">
+        <div className="fixed inset-0 z-100 flex items-center justify-center">
           <div
             className="absolute inset-0 bg-black/40 backdrop-blur-sm"
             onClick={() => setConfirmAction({ ...confirmAction, show: false })}
           />
-          <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl p-6 w-full max-w-md animate-scaleIn">
-            <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-2">
-              {confirmAction.title}
-            </h3>
 
-            {/* Pesan dengan Nama Bold dan Durasi */}
-            <div className="text-sm text-gray-600 dark:text-gray-300 mb-6">
-              {confirmAction.type === "setuju" ? (
-                <>
-                  <p className="mb-1">
-                    Apakah anda yakin untuk menyetujui Peserta magang{" "}
-                    <span className="font-bold text-gray-900 dark:text-white">
-                      {selected && selected.peserta.length > 1
-                        ? `${selected.peserta.length} orang peserta`
-                        : selected?.peserta[0]?.nama}
-                    </span>
-                    ?
-                  </p>
-                  {selected && (
-                    <p className="mt-2">
-                      Masa magang:{" "}
-                      <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-                        {(() => {
-                          const durasi = hitungDurasiMagang(
-                            selected.peserta[0]?.tanggalMulaiMagang,
-                            selected.peserta[0]?.tanggalSelesaiMagang,
-                          );
-                          if (durasi) {
-                            return `${durasi.bulan} Bulan`;
-                          }
-                          return "Durasi tidak tersedia";
-                        })()}
-                      </span>
-                    </p>
-                  )}
-                  <p className="text-gray-500 dark:text-gray-400 mt-3 text-xs">
-                    di BBPOM Kota Palembang
-                  </p>
-                </>
-              ) : (
-                <>
-                  <p className="mb-1">
-                    Apakah anda yakin menolak Calon Peserta Magang{" "}
-                    <span className="font-bold text-gray-900 dark:text-white">
-                      {selected && selected.peserta.length > 1
-                        ? `${selected.peserta.length} orang peserta`
-                        : selected?.peserta[0]?.nama}
-                    </span>
-                    ?
-                  </p>
-                </>
-              )}
+          <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl p-6 w-full max-w-md">
+            <h3 className="text-lg font-bold mb-2">{confirmAction.title}</h3>
 
-              <p className="text-gray-500 dark:text-gray-400 mt-4 text-xs">
-                Data tidak dapat diubah setelah diproses.
-              </p>
-            </div>
+            <p className="text-sm text-gray-600 dark:text-gray-300 mb-6">
+              {confirmAction.message}
+            </p>
 
             <div className="flex justify-end gap-3">
               <button
                 onClick={() =>
                   setConfirmAction({ ...confirmAction, show: false })
                 }
-                className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 transition"
+                className="px-4 py-2 rounded-lg border"
               >
                 Batal
               </button>
+
               <button
                 onClick={() => {
                   setConfirmAction({ ...confirmAction, show: false });
+
                   updateStatus(
                     confirmAction.type === "setuju" ? "Disetujui" : "Ditolak",
                   );
                 }}
-                className={`px-5 py-2 rounded-lg font-semibold text-white transition ${
+                className={`px-5 py-2 rounded-lg text-white font-semibold ${
                   confirmAction.type === "setuju"
                     ? "bg-emerald-600 hover:bg-emerald-700"
                     : "bg-rose-600 hover:bg-rose-700"

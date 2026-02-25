@@ -9,6 +9,7 @@ import Peraturan from "@/components/LandingPage/Peraturan/page";
 import AnimatedSection from "@/components/ui/AnimatedSection";
 import LandingPopup from "@/components/ui/Banner";
 import WhatsAppBubble from "@/components/ui/WhatappBubble";
+import InformasiFungsi from "@/components/LandingPage/InformasiFungsi/page";
 
 export default function HomePage() {
   return (
@@ -44,6 +45,10 @@ export default function HomePage() {
         </AnimatedSection>
 
         <Datastatistik />
+
+        <AnimatedSection id="informasi">
+          <InformasiFungsi />
+        </AnimatedSection>
 
         <AnimatedSection id="manfaat">
           <Manfaat />
