@@ -84,7 +84,7 @@ const ConfirmPopup = ({
       <div
         className="
           mx-auto mb-4 w-16 h-16 sm:w-20 sm:h-20 rounded-full
-          bg-gradient-to-br from-rose-500 to-pink-500
+          bg-linear-to-br from-rose-500 to-pink-500
           flex items-center justify-center
           text-white text-3xl sm:text-4xl shadow-lg
         "
@@ -114,7 +114,7 @@ const ConfirmPopup = ({
           onClick={onConfirm}
           className="
             px-5 py-2 rounded-xl
-            bg-gradient-to-r from-rose-600 to-pink-600
+            bg-linear-to-r from-rose-600 to-pink-600
             text-white font-semibold
             shadow-lg hover:opacity-90
           "

@@ -299,10 +299,18 @@ export default function BuatAkunMentorPage() {
       {/* HEADER */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">
+          <h1 className="
+            text-3xl lg:text-4xl 
+            font-extrabold 
+            leading-tight
+            bg-clip-text text-transparent 
+            bg-linear-to-r 
+            from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
+            dark:from-indigo-400 dark:via-violet-400 dark:to-purple-400
+          ">
             Manajemen Akun Mentor
           </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
             Kelola akun mentor magang
           </p>
         </div>
@@ -502,7 +510,7 @@ export default function BuatAkunMentorPage() {
                         className="
                           inline-flex items-center
                           px-3 py-1.5 rounded-full
-                          text-xs font-medium
+                          text-xs font-semibold
                           bg-blue-50 text-blue-700
                           dark:bg-indigo-500/20 dark:text-indigo-200
                         "

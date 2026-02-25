@@ -10,6 +10,7 @@ import {
   LogOut,
   X,
 } from "lucide-react";
+import { FaWhatsapp } from "react-icons/fa";
 
 import { useRouter, usePathname } from "next/navigation";
 import { ToastContainer } from "react-toastify";
@@ -477,7 +478,7 @@ export default function SuperadminLayout({
                         : ""
                     }`}
               >
-                🛠 {!collapsed && "Buat Akun Admin"}
+                🧑‍💼 {!collapsed && "Buat Akun Admin"}
               </Link>
 
               <Link
@@ -539,7 +540,7 @@ export default function SuperadminLayout({
                         : ""
                     }`}
               >
-                📋 {!collapsed && "Buat Akun Peserta"}
+                🧑‍💻 {!collapsed && "Buat Akun Peserta"}
               </Link>
             </div>
 
@@ -555,7 +556,7 @@ export default function SuperadminLayout({
                   }`}
             >
               <div className="flex items-center gap-3">
-                🧱 {!collapsed && <span>Manajemen Tampilan</span>}
+                🖥️ {!collapsed && <span>Manajemen Tampilan</span>}
               </div>
               {!collapsed && (
                 <span
@@ -574,34 +575,66 @@ export default function SuperadminLayout({
               }`}
             >
               <Link
+                href=""
+                className={`
+                    flex items-center gap-3
+                    py-2.5 rounded-xl
+                    text-sm
+                    text-gray-700 dark:text-gray-300
+                    hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm
+                    dark:hover:bg-slate-800
+                    transition
+                    ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
+
+                    ${
+                      pathname.includes("")
+                        ? `
+                            bg-linear-to-r
+                            from-[#FDE68A]/60
+                            to-[#FACC15]/40
+                            text-[#7F1D1D]
+                            dark:from-indigo-500/30
+                            dark:via-purple-500/25
+                            dark:to-fuchsia-500/30
+                            dark:text-indigo-200
+                            shadow-inner
+                          `
+                        : ""
+                    }`}
+              >
+                🗃️ {!collapsed && "Informasi Fungsi"}
+              </Link>
+
+              <Link
                 href="/dashboard/superadmin/manajemenTampilan/WhatappEdit"
                 className={`
-    flex items-center gap-3
-    py-2.5 rounded-xl
-    text-sm
-    text-gray-700 dark:text-gray-300
-    hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm
-    dark:hover:bg-slate-800
-    transition
-    ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
+                  flex items-center gap-3
+                  py-2.5 rounded-xl
+                  text-sm
+                  text-gray-700 dark:text-gray-300
+                  hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm
+                  dark:hover:bg-slate-800
+                  transition
+                  ${collapsed ? "justify-center px-3" : "pl-12 pr-3"}
 
-    ${
-      pathname.includes("/manajemenTampilan")
-        ? `
-            bg-linear-to-r
-            from-[#FDE68A]/60
-            to-[#FACC15]/40
-            text-[#7F1D1D]
-            dark:from-indigo-500/30
-            dark:via-purple-500/25
-            dark:to-fuchsia-500/30
-            dark:text-indigo-200
-            shadow-inner
-          `
-        : ""
-    }`}
+
+                ${
+                  pathname.includes("/manajemenTampilan/WhatappEdit")
+                    ? `
+                        bg-linear-to-r
+                        from-[#FDE68A]/60
+                        to-[#FACC15]/40
+                        text-[#7F1D1D]
+                        dark:from-indigo-500/30
+                        dark:via-purple-500/25
+                        dark:to-fuchsia-500/30
+                        dark:text-indigo-200
+                        shadow-inner
+                      `
+                    : ""
+                }`}
               >
-                🖼️ {!collapsed && "Manajemen Whatapp"}
+                <FaWhatsapp className="text-green-500" /> {!collapsed && "Manajemen Whatsapp"}
               </Link>
 
               <Link
@@ -635,6 +668,24 @@ export default function SuperadminLayout({
                 📢 {!collapsed && "Banner & Pengumuman"}
               </Link>
             </div>
+
+            {/* Panduan Website */}
+            <a
+              href="https://docs.google.com/document/d/1-VulRQpzbMAbXDg101vkVsDBp02WChH5TQN3DXmzkZ4/edit?usp=sharing"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`
+                flex items-center gap-3
+                py-2 rounded-xl
+                hover:bg-[#FACC15]/30 hover:text-[#7F1D1D] hover:shadow-sm
+                dark:hover:bg-[#312E81]/40 dark:hover:text-white
+                transition w-full
+                ${collapsed ? "justify-center px-3" : "pl-5 pr-3"}
+                text-gray-700 dark:text-gray-300
+              `}
+            >
+              📖 {!collapsed && "Panduan Website"}
+            </a>
           </nav>
         </aside>
 

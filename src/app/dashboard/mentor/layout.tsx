@@ -254,7 +254,7 @@ export default function MentorLayout({
                   }
                 `}
               >
-                🖥 {!collapsed && "View Sistem"}
+                📈 {!collapsed && "View Sistem"}
               </Link>
 
               <Link

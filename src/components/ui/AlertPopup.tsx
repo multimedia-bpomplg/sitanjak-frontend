@@ -56,7 +56,7 @@ export default function AlertPopup({
   const style = styleMap[type];
 
   return (
-    <div className="fixed inset-0 z-[999] flex items-center justify-center px-4">
+    <div className="fixed inset-0 z-999 flex items-center justify-center px-4">
       {/* OVERLAY */}
       <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
@@ -84,7 +84,7 @@ export default function AlertPopup({
               rounded-2xl
               flex items-center justify-center
               text-white text-4xl
-              bg-gradient-to-br ${style.gradient}
+              bg-linear-to-br ${style.gradient}
               shadow-[0_25px_60px_rgba(0,0,0,0.35)]
               ring-8 ring-white dark:ring-slate-900
             `}

@@ -20,7 +20,7 @@ import {
 } from "react-icons/fa";
 import { HiPhone, HiCheckCircle, HiXCircle } from "react-icons/hi";
 import { motion, AnimatePresence } from "framer-motion";
-import AlertPopup from "@/components/ui/AlertPopup";
+import { showToast } from "@/components/ui/toastDashboard";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import Modal from "@/components/ui/Modal";
 import moment from "moment";
@@ -40,13 +40,6 @@ interface WhatsAppData {
   updatedAt: string;
 }
 
-interface NotificationType {
-  show: boolean;
-  type: "success" | "error" | "warning" | "info";
-  message: string;
-  title?: string;
-}
-
 export default function ManajemenWhatsappPage() {
   const [whatsapps, setWhatsapps] = useState<WhatsAppData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -58,19 +51,9 @@ export default function ManajemenWhatsappPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [phoneNumber, setPhoneNumber] = useState("");
 
-  // Notification
-  const [notification, setNotification] = useState<NotificationType>({
-    show: false,
-    type: "info",
-    message: "",
-  });
-
   // Delete confirmation
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-
-  // Copy notification
-  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     fetchWhatsapps();
@@ -92,24 +75,13 @@ export default function ManajemenWhatsappPage() {
       if (result.success) {
         setWhatsapps(result.data);
       } else {
-        showNotification("error", result.message || "Gagal mengambil data");
+        showToast.error(result.message || "Gagal mengambil data");
       }
     } catch (error) {
-      showNotification("error", "Terjadi kesalahan saat mengambil data");
+      showToast.error("Terjadi kesalahan saat mengambil data");
     } finally {
       setLoading(false);
     }
-  };
-
-  const showNotification = (
-    type: "success" | "error" | "warning" | "info",
-    message: string,
-    title?: string,
-  ) => {
-    setNotification({ show: true, type, message, title });
-    setTimeout(() => {
-      setNotification((prev) => ({ ...prev, show: false }));
-    }, 3000);
   };
 
   const handleOpenModal = (mode: "add" | "edit", data?: WhatsAppData) => {
@@ -130,17 +102,16 @@ export default function ManajemenWhatsappPage() {
 
   const handleSubmit = async () => {
     if (!phoneNumber.trim()) {
-      showNotification("warning", "Nomor WhatsApp wajib diisi");
+      showToast.error("Nomor WhatsApp wajib diisi");
       return;
     }
 
     if (!validatePhoneNumber(phoneNumber)) {
-      showNotification(
-        "warning",
-        "Format nomor harus diawali 08 dan minimal 10 digit",
-      );
+      showToast.error("Format nomor harus diawali 08 dan minimal 10 digit");
       return;
     }
+
+    const toastId = showToast.loading("Menyimpan nomor WhatsApp...");
 
     try {
       setSubmitting(true);
@@ -161,15 +132,15 @@ export default function ManajemenWhatsappPage() {
         throw new Error(result.message || "Gagal menyimpan nomor");
       }
 
-      showNotification(
-        "success",
-        "Nomor WhatsApp berhasil diperbarui",
-        "Berhasil",
-      );
+      showToast.updateSuccess(toastId, "Nomor WhatsApp berhasil diperbarui");
+
       setIsModalOpen(false);
       fetchWhatsapps();
     } catch (err: any) {
-      showNotification("error", err.message || "Terjadi kesalahan");
+      showToast.updateError(
+        toastId,
+        err.message || "Terjadi kesalahan"
+      );
     } finally {
       setSubmitting(false);
     }
@@ -182,6 +153,8 @@ export default function ManajemenWhatsappPage() {
 
   const handleDeleteConfirm = async () => {
     if (!deleteId) return;
+
+    const toastId = showToast.loading("Menghapus nomor WhatsApp...");
 
     try {
       setSubmitting(true);
@@ -200,15 +173,14 @@ export default function ManajemenWhatsappPage() {
         throw new Error(result.message || "Gagal menghapus nomor");
       }
 
-      showNotification(
-        "success",
-        "Nomor WhatsApp berhasil dihapus",
-        "Berhasil",
-      );
+      showToast.updateSuccess(toastId, "Nomor WhatsApp berhasil dihapus");
       setShowDeleteConfirm(false);
       fetchWhatsapps();
     } catch (err: any) {
-      showNotification("error", err.message || "Terjadi kesalahan");
+      showToast.updateError(
+        toastId,
+        err.message || "Terjadi kesalahan"
+      );
     } finally {
       setSubmitting(false);
       setDeleteId(null);
@@ -231,9 +203,7 @@ export default function ManajemenWhatsappPage() {
 
   const handleCopyNumber = (num: string) => {
     navigator.clipboard.writeText(formatPhoneNumber(num));
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-    showNotification("success", "Nomor berhasil disalin", "Tersalin!");
+    showToast.success("Nomor berhasil disalin");
   };
 
   const activeWhatsapp = whatsapps.find((w) => w.isActive);
@@ -249,65 +219,6 @@ export default function ManajemenWhatsappPage() {
 
   return (
     <div className="min-h-screen bg-linear-to-br from-slate-50 via-white to-indigo-50 dark:from-[#020617] dark:via-[#0B1120] dark:to-[#1E1B4B] p-4 sm:p-6 lg:p-8">
-      {/* Notification */}
-      <AnimatePresence>
-        {notification.show && (
-          <motion.div
-            initial={{ opacity: 0, y: -50, x: "-50%" }}
-            animate={{ opacity: 1, y: 0, x: "-50%" }}
-            exit={{ opacity: 0, y: -50, x: "-50%" }}
-            className={`fixed top-4 left-1/2 z-50 flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl border ${
-              notification.type === "success"
-                ? "bg-emerald-50 border-emerald-200 text-emerald-800"
-                : notification.type === "error"
-                  ? "bg-red-50 border-red-200 text-red-800"
-                  : notification.type === "warning"
-                    ? "bg-yellow-50 border-yellow-200 text-yellow-800"
-                    : "bg-blue-50 border-blue-200 text-blue-800"
-            }`}
-          >
-            {notification.type === "success" ? (
-              <FaCheckCircle className="text-emerald-500 text-xl" />
-            ) : notification.type === "error" ? (
-              <FaExclamationTriangle className="text-red-500 text-xl" />
-            ) : notification.type === "warning" ? (
-              <FaExclamationTriangle className="text-yellow-500 text-xl" />
-            ) : (
-              <FaWhatsapp className="text-blue-500 text-xl" />
-            )}
-            <div>
-              {notification.title && (
-                <p className="font-bold">{notification.title}</p>
-              )}
-              <p className="text-sm">{notification.message}</p>
-            </div>
-            <button
-              onClick={() =>
-                setNotification((prev) => ({ ...prev, show: false }))
-              }
-              className="ml-4 text-gray-400 hover:text-gray-600"
-            >
-              <HiXCircle className="text-xl" />
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Copy notification */}
-      <AnimatePresence>
-        {copied && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            className="fixed bottom-4 right-4 bg-slate-800 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2 z-50"
-          >
-            <FaCheckDouble className="text-emerald-400" />
-            <span>Tersalin!</span>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
         <motion.div
@@ -317,11 +228,19 @@ export default function ManajemenWhatsappPage() {
         >
           <div>
             <div className="flex items-center gap-3 mb-2">
-              <div className="w-12 h-12 rounded-2xl bg-green-500/20 flex items-center justify-center">
-                <FaWhatsapp className="text-3xl text-green-600" />
+              <div className="w-15 h-15 rounded-2xl bg-green-500/20 flex items-center justify-center">
+                <FaWhatsapp className="text-4xl text-green-600" />
               </div>
               <div>
-                <h1 className="text-3xl lg:text-4xl font-extrabold bg-clip-text text-transparent bg-linear-to-r from-green-600 to-emerald-600">
+                <h1 className="
+                  text-3xl lg:text-4xl 
+                  font-extrabold 
+                  leading-tight
+                  bg-clip-text text-transparent 
+                  bg-linear-to-r 
+                  from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
+                  dark:from-indigo-400 dark:via-violet-400 dark:to-purple-400
+                ">
                   Manajemen WhatsApp
                 </h1>
                 <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
@@ -335,7 +254,12 @@ export default function ManajemenWhatsappPage() {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => handleOpenModal("add")}
-            className="flex items-center justify-center gap-2 px-6 py-3 bg-linear-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all"
+            className="flex items-center justify-center gap-2 px-6 py-3
+              bg-linear-to-r 
+              from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
+              dark:from-indigo-600 dark:to-violet-500
+              text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all
+            "
           >
             <FaPlus />
             Tambah Nomor Baru
@@ -349,7 +273,7 @@ export default function ManajemenWhatsappPage() {
           transition={{ delay: 0.1 }}
           className="grid grid-cols-1 md:grid-cols-3 gap-6"
         >
-          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-lg p-6 border border-green-100 dark:border-green-900/30">
+          <div className="bg-white/90 dark:bg-white/5 rounded-2xl shadow-lg p-6 border border-[#FCA5A5]/40 dark:border-indigo-500/30">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-500 dark:text-slate-400">
@@ -365,7 +289,7 @@ export default function ManajemenWhatsappPage() {
             </div>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-lg p-6 border border-emerald-100 dark:border-emerald-900/30">
+          <div className="bg-white/90 dark:bg-white/5 rounded-2xl shadow-lg p-6 border border-[#FCA5A5]/40 dark:border-indigo-500/30">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-500 dark:text-slate-400">
@@ -381,7 +305,7 @@ export default function ManajemenWhatsappPage() {
             </div>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-lg p-6 border border-blue-100 dark:border-blue-900/30">
+          <div className="bg-white/90 dark:bg-white/5 rounded-2xl shadow-lg p-6 border border-[#FCA5A5]/40 dark:border-indigo-500/30">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-500 dark:text-slate-400">
@@ -405,34 +329,57 @@ export default function ManajemenWhatsappPage() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="relative overflow-hidden rounded-2xl bg-linear-to-r from-green-500 to-emerald-600 shadow-2xl"
+              className="
+                relative overflow-hidden rounded-2xl
+                bg-linear-to-r from-green-500 to-emerald-600
+                shadow-2xl
+              "
             >
-              {/* Background Pattern */}
+              {/* Background Glow */}
               <div className="absolute inset-0 opacity-10">
                 <div className="absolute -right-20 -top-20 w-64 h-64 bg-white rounded-full blur-3xl" />
                 <div className="absolute -left-20 -bottom-20 w-64 h-64 bg-white rounded-full blur-3xl" />
               </div>
 
-              <div className="relative p-8">
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-                  <div className="flex items-start gap-4">
-                    <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center">
-                      <FaWhatsapp className="text-4xl text-white" />
+              <div className="relative p-5 sm:p-8">
+                <div className="
+                  flex flex-col
+                  lg:flex-row
+                  lg:items-center
+                  lg:justify-between
+                  gap-6
+                ">
+                  {/* LEFT SIDE */}
+                  <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+                    <div className="
+                      w-14 h-14 sm:w-16 sm:h-16
+                      rounded-2xl bg-white/20 backdrop-blur
+                      flex items-center justify-center
+                    ">
+                      <FaWhatsapp className="text-3xl sm:text-4xl text-white" />
                     </div>
+
                     <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="px-3 py-1 bg-white/20 backdrop-blur rounded-full text-xs font-semibold text-white">
+                      <div className="flex flex-wrap items-center gap-2 mb-3">
+                        <span className="px-3 py-1 bg-white/20 rounded-full text-xs font-semibold text-white">
                           AKTIF
                         </span>
-                        <span className="px-3 py-1 bg-white/20 backdrop-blur rounded-full text-xs font-semibold text-white flex items-center gap-1">
+                        <span className="px-3 py-1 bg-white/20 rounded-full text-xs font-semibold text-white flex items-center gap-1">
                           <FaShieldAlt className="text-xs" />
                           PRIMARY
                         </span>
                       </div>
-                      <h2 className="text-3xl font-bold text-white mb-2">
+
+                      <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-3 break-all">
                         {formatDisplayNumber(activeWhatsapp.phoneNumber)}
                       </h2>
-                      <div className="flex items-center gap-4 text-white/80 text-sm">
+
+                      <div className="
+                        flex flex-col sm:flex-row
+                        sm:items-center
+                        gap-2 sm:gap-6
+                        text-white/80 text-xs sm:text-sm
+                      ">
                         <span className="flex items-center gap-1">
                           <FaUserCheck />
                           {activeWhatsapp.updatedBy?.name || "Unknown"}
@@ -447,7 +394,15 @@ export default function ManajemenWhatsappPage() {
 
                   <button
                     onClick={() => handleCopyNumber(activeWhatsapp.phoneNumber)}
-                    className="flex items-center gap-2 px-6 py-3 bg-white text-green-600 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all hover:scale-105"
+                    className="
+                      w-full lg:w-auto
+                      flex items-center justify-center gap-2
+                      px-5 py-3
+                      bg-white text-green-600
+                      rounded-xl font-semibold
+                      shadow-lg hover:shadow-xl
+                      transition-all hover:scale-[1.02]
+                    "
                   >
                     <FaCopy />
                     Salin Nomor
@@ -516,7 +471,7 @@ export default function ManajemenWhatsappPage() {
                         </p>
                         <button
                           onClick={() => handleOpenModal("add")}
-                          className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition"
+                          className="flex items-center gap-2 px-4 py-2 bg-linear-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B] dark:from-indigo-600 dark:to-violet-500 text-white rounded-lg font-medium transition"
                         >
                           <FaPlus />
                           Tambah Nomor
@@ -789,7 +744,6 @@ export default function ManajemenWhatsappPage() {
                 <>
                   <HiCheckCircle />
                   Simpan
-                  <FaArrowRight className="text-xs" />
                 </>
               )}
             </button>

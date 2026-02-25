@@ -552,8 +552,19 @@ export default function ViewPendaftaranPage() {
 
   return (
     <div className="min-h-screen p-4 sm:p-6 bg-linear-to-br from-slate-50 via-white to-indigo-50 dark:from-[#020617] dark:via-[#020617] dark:to-[#1E1B4B] text-slate-800 dark:text-slate-100 transition-colors">
-      <h1 className="text-3xl font-bold tracking-tight mb-8">
-        Data Pendaftaran
+      <h1 className="flex items-center gap-3 tracking-tight mb-10">
+          <span
+            className="
+              text-2xl sm:text-3xl lg:text-4xl
+              font-extrabold leading-tight
+              bg-clip-text text-transparent
+              bg-linear-to-r
+              from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
+              dark:from-indigo-400 dark:via-violet-400 dark:to-purple-400
+            "
+          >
+            Data Pendaftaran
+          </span>
       </h1>
 
       {/* SUMMARY CARD */}
@@ -1256,7 +1267,7 @@ export default function ViewPendaftaranPage() {
 
       {/* MODAL KONFIRMASI */}
       {confirmAction.show && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center">
+        <div className="fixed inset-0 z-100 flex items-center justify-center">
           <div
             className="absolute inset-0 bg-black/40 backdrop-blur-sm"
             onClick={() => setConfirmAction({ ...confirmAction, show: false })}

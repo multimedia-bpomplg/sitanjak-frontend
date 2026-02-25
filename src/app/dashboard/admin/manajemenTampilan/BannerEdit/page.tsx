@@ -18,6 +18,7 @@ import {
   FaChevronRight,
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
+import { showToast } from "@/components/ui/toastDashboard";
 
 /* ========================
    TYPE
@@ -54,11 +55,6 @@ export default function PengumumanPage() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
-  const [notification, setNotification] = useState<NotificationType>({
-    show: false,
-    type: "info",
-    message: "",
-  });
   const [selectedType, setSelectedType] = useState<AnnouncementType | "all">(
     "all",
   );
@@ -76,20 +72,18 @@ export default function PengumumanPage() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
 
+  const [confirmModal, setConfirmModal] = useState<{
+    show: boolean;
+    id: string | null;
+  }>({
+    show: false,
+    id: null,
+  });
+
   // Fetch data
   useEffect(() => {
     fetchData();
   }, []);
-
-  const showNotification = (
-    type: "success" | "error" | "info",
-    message: string,
-  ) => {
-    setNotification({ show: true, type, message });
-    setTimeout(() => {
-      setNotification((prev) => ({ ...prev, show: false }));
-    }, 3000);
-  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -107,7 +101,7 @@ export default function PengumumanPage() {
       setAnnouncements(data);
     } catch (err) {
       console.error(err);
-      showNotification("error", "Gagal memuat data pengumuman");
+      showToast.error("Gagal memuat data pengumuman");
     } finally {
       setLoading(false);
     }
@@ -151,13 +145,13 @@ export default function PengumumanPage() {
 
     // Validasi ukuran file (max 2MB)
     if (file.size > 2 * 1024 * 1024) {
-      showNotification("error", "Ukuran gambar maksimal 2MB");
+      showToast.error("Ukuran gambar maksimal 2MB");
       return;
     }
 
     // Validasi tipe file
     if (!file.type.startsWith("image/")) {
-      showNotification("error", "File harus berupa gambar");
+      showToast.error("File harus berupa gambar");
       return;
     }
 
@@ -180,17 +174,21 @@ export default function PengumumanPage() {
   const handleSave = async () => {
     // Validasi
     if (!title.trim()) {
-      showNotification("error", "Judul wajib diisi");
+      showToast.error("Judul wajib diisi");
       return;
     }
     if (!content.trim()) {
-      showNotification("error", "Konten wajib diisi");
+      showToast.error("Konten wajib diisi");
       return;
     }
     if (type === "landing" && !subtitle.trim()) {
-      showNotification("error", "Sub judul landing page wajib diisi");
+      showToast.error("Sub judul landing page wajib diisi");
       return;
     }
+
+    const toastId = showToast.loading(
+      editId ? "Memperbarui pengumuman..." : "Menyimpan pengumuman..."
+    );
 
     try {
       const token = localStorage.getItem("token");
@@ -209,68 +207,71 @@ export default function PengumumanPage() {
         formData.append("image", imageFile);
       }
 
-      let res;
-      if (editId) {
-        // Update
-        res = await fetch(`${API_BASE}/announcements/${editId}`, {
-          method: "PUT",
+      const res = await fetch(
+        editId
+          ? `${API_BASE}/announcements/${editId}`
+          : `${API_BASE}/announcements`,
+        {
+          method: editId ? "PUT" : "POST",
           headers: {
             Authorization: `Bearer ${token}`,
           },
           body: formData,
-        });
-      } else {
-        // Create
-        res = await fetch(`${API_BASE}/announcements`, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          body: formData,
-        });
-      }
-
-      if (!res.ok) throw new Error("Gagal menyimpan");
-
-      showNotification(
-        "success",
+        }
+      );
+      
+      if (!res.ok) throw new Error();
+      
+      showToast.updateSuccess(
+        toastId,
         editId
           ? "Pengumuman berhasil diperbarui"
-          : "Pengumuman berhasil ditambahkan",
+          : "Pengumuman berhasil ditambahkan"
       );
-
+      
       resetForm();
       setShowForm(false);
       fetchData();
     } catch (err) {
-      console.error(err);
-      showNotification("error", "Gagal menyimpan pengumuman");
+      showToast.updateError(toastId, "Gagal menyimpan pengumuman");
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Apakah Anda yakin ingin menghapus pengumuman ini?")) return;
+  const handleDelete = (id: string) => {
+    setConfirmModal({ show: true, id });
+  };
+
+  const confirmDelete = async () => {
+    if (!confirmModal.id) return;
+
+    const toastId = showToast.loading("Menghapus pengumuman...");
 
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`${API_BASE}/announcements/${id}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const res = await fetch(
+        `${API_BASE}/announcements/${confirmModal.id}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
-      if (!res.ok) throw new Error("Gagal menghapus");
+      if (!res.ok) throw new Error();
 
-      showNotification("success", "Pengumuman berhasil dihapus");
+      showToast.updateSuccess(toastId, "Pengumuman berhasil dihapus");
       fetchData();
     } catch (err) {
-      console.error(err);
-      showNotification("error", "Gagal menghapus pengumuman");
+      showToast.updateError(toastId, "Gagal menghapus pengumuman");
+    } finally {
+      setConfirmModal({ show: false, id: null });
     }
   };
 
   const handleToggleActive = async (id: string, currentActive: boolean) => {
+    const toastId = showToast.loading("Memperbarui status...");
+
     try {
       const token = localStorage.getItem("token");
       const res = await fetch(`${API_BASE}/announcements/${id}/toggle`, {
@@ -280,16 +281,16 @@ export default function PengumumanPage() {
         },
       });
 
-      if (!res.ok) throw new Error("Gagal mengubah status");
+      if (!res.ok) throw new Error();
 
-      showNotification(
-        "success",
-        `Pengumuman ${currentActive ? "dinonaktifkan" : "diaktifkan"}`,
+      showToast.updateSuccess(
+        toastId,
+        `Pengumuman ${currentActive ? "dinonaktifkan" : "diaktifkan"}`
       );
+
       fetchData();
     } catch (err) {
-      console.error(err);
-      showNotification("error", "Gagal mengubah status pengumuman");
+      showToast.updateError(toastId, "Gagal mengubah status pengumuman");
     }
   };
 
@@ -335,41 +336,6 @@ export default function PengumumanPage() {
 
   return (
     <div className="min-h-screen bg-linear-to-br from-slate-50 via-white to-slate-100 dark:from-[#0B0614] dark:via-[#120A24] dark:to-[#1E0F3D] p-4 sm:p-6 lg:p-8">
-      {/* Notification */}
-      <AnimatePresence>
-        {notification.show && (
-          <motion.div
-            initial={{ opacity: 0, y: -50, x: "-50%" }}
-            animate={{ opacity: 1, y: 0, x: "-50%" }}
-            exit={{ opacity: 0, y: -50, x: "-50%" }}
-            className={`fixed top-4 left-1/2 z-50 flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl border ${
-              notification.type === "success"
-                ? "bg-emerald-50 border-emerald-200 text-emerald-800"
-                : notification.type === "error"
-                  ? "bg-red-50 border-red-200 text-red-800"
-                  : "bg-blue-50 border-blue-200 text-blue-800"
-            }`}
-          >
-            {notification.type === "success" ? (
-              <FaCheckCircle className="text-emerald-500 text-xl" />
-            ) : notification.type === "error" ? (
-              <FaExclamationCircle className="text-red-500 text-xl" />
-            ) : (
-              <FaBullhorn className="text-blue-500 text-xl" />
-            )}
-            <span className="font-medium">{notification.message}</span>
-            <button
-              onClick={() =>
-                setNotification((prev) => ({ ...prev, show: false }))
-              }
-              className="ml-4 text-gray-400 hover:text-gray-600"
-            >
-              <FaTimes />
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <motion.div
@@ -378,7 +344,15 @@ export default function PengumumanPage() {
           className="flex flex-col md:flex-row md:items-center md:justify-between gap-4"
         >
           <div>
-            <h1 className="text-3xl lg:text-4xl font-extrabold bg-clip-text text-transparent bg-linear-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]">
+            <h1 className="
+              text-3xl lg:text-4xl 
+              font-extrabold 
+              leading-tight
+              bg-clip-text text-transparent 
+              bg-linear-to-r 
+              from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
+              dark:from-indigo-400 dark:via-violet-400 dark:to-purple-400
+            ">
               Manajemen Pengumuman
             </h1>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
@@ -393,7 +367,12 @@ export default function PengumumanPage() {
               resetForm();
               setShowForm(true);
             }}
-            className="flex items-center gap-2 bg-linear-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B] hover:from-[#991B1B] hover:via-[#DC2626] hover:to-[#FBBF24] text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all"
+            className="flex items-center justify-center gap-2 px-6 py-3
+              bg-linear-to-r 
+              from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
+              dark:from-indigo-600 dark:to-violet-500
+              text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all
+            "
           >
             <FaPlus />
             Tambah Pengumuman
@@ -414,7 +393,19 @@ export default function PengumumanPage() {
                 placeholder="Cari pengumuman..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-[#B91C1C] focus:border-transparent transition"
+                className="
+                  w-full px-4 py-2 rounded-xl border transition-all
+
+                  bg-white/80 border-[#FACC15]/50
+                  focus:ring-2 focus:ring-[#B91C1C]
+                  focus:border-transparent
+
+                  dark:bg-indigo-900/40
+                  dark:border-indigo-700
+                  dark:text-white
+                  dark:placeholder-indigo-300
+                  dark:focus:ring-indigo-400
+                "
               />
             </div>
             <div className="flex gap-2 flex-wrap">
@@ -422,11 +413,31 @@ export default function PengumumanPage() {
                 <button
                   key={t}
                   onClick={() => setSelectedType(t as any)}
-                  className={`px-4 py-2 rounded-xl font-medium text-sm transition-all ${
-                    selectedType === t
-                      ? "bg-[#B91C1C] text-white shadow-md"
-                      : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
-                  }`}
+                  className={`px-4 py-2 rounded-xl font-medium text-sm transition-all 
+                    ${
+                      selectedType === t
+                        ? `
+                            bg-linear-to-r
+                            from-[#7F1D1D]
+                            to-[#B91C1C]
+                            text-white
+                            shadow-md
+                            dark:from-indigo-500
+                            dark:to-purple-500
+                          `
+                        : `
+                            bg-white/60
+                            text-[#7F1D1D]
+                            border border-[#FACC15]/40
+                            hover:bg-[#FDE68A]/60
+
+                            dark:bg-indigo-900/40
+                            dark:text-indigo-200
+                            dark:border-indigo-700
+                            dark:hover:bg-indigo-800/50
+                          `
+                    }
+                  `}
                 >
                   {t === "all" ? "Semua" : getTypeLabel(t as AnnouncementType)}
                 </button>
@@ -442,20 +453,36 @@ export default function PengumumanPage() {
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-800 overflow-hidden"
+              className="
+                w-full
+                max-w-4xl
+                mx-auto
+                rounded-2xl shadow-xl overflow-hidden border transition-all
+
+                bg-white dark:bg-slate-900
+                border-gray-200 dark:border-gray-800
+              "
             >
-              <div className="bg-linear-to-r from-[#7F1D1D] to-[#B91C1C] px-6 py-4">
+              <div className="
+                px-4 sm:px-6 py-4
+                bg-linear-to-r
+                from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
+
+                dark:from-indigo-600
+                dark:via-indigo-500
+                dark:to-purple-500
+              ">
                 <h3 className="text-xl font-bold text-white flex items-center gap-2">
                   {editId ? <FaEdit /> : <FaPlus />}
                   {editId ? "Edit Pengumuman" : "Tambah Pengumuman Baru"}
                 </h3>
               </div>
 
-              <div className="p-6 space-y-6">
+              <div className="px-4 sm:px-6 lg:px-8 py-6 space-y-8">
                 {/* Image Upload */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Gambar Banner
+                  <label className="block text-sm font-medium text-[#7F1D1D] dark:text-indigo-200 mb-2">
+                    Gambar Banner <b>(OPSIONAL)</b>
                   </label>
                   <div className="relative">
                     <input
@@ -467,7 +494,15 @@ export default function PengumumanPage() {
                     />
                     <label
                       htmlFor="image-upload"
-                      className="relative flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl cursor-pointer hover:border-[#B91C1C] dark:hover:border-[#F59E0B] transition-colors group overflow-hidden"
+                      className="
+                        relative flex flex-col items-center justify-center
+                        w-full
+                        h-40 sm:h-48 md:h-56
+                        rounded-xl cursor-pointer transition-colors overflow-hidden
+                        border-2 border-dashed
+                        border-[#FACC15]/60 hover:border-[#B91C1C]
+                        dark:border-indigo-700 dark:hover:border-indigo-400
+                      "
                     >
                       {imagePreview ? (
                         <>
@@ -480,7 +515,13 @@ export default function PengumumanPage() {
                             <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                               <div className="w-32 h-2 bg-white/30 rounded-full overflow-hidden">
                                 <div
-                                  className="h-full bg-linear-to-r from-[#B91C1C] to-[#F59E0B] transition-all"
+                                  className="
+                                    h-full
+                                    bg-linear-to-r
+                                    from-[#B91C1C] to-[#F59E0B]
+                                    dark:from-indigo-400 dark:to-purple-400
+                                    transition-all
+                                  "
                                   style={{ width: `${uploadProgress}%` }}
                                 />
                               </div>
@@ -489,11 +530,11 @@ export default function PengumumanPage() {
                         </>
                       ) : (
                         <div className="text-center">
-                          <FaImage className="mx-auto text-4xl text-gray-400 group-hover:text-[#B91C1C] transition-colors mb-2" />
-                          <p className="text-sm text-gray-500 group-hover:text-[#B91C1C]">
+                          <FaImage className="mx-auto text-4xl text-gray-400 dark:text-indigo-300 mb-2" />
+                          <p className="text-sm text-gray-600 dark:text-indigo-200">
                             Klik untuk upload gambar
                           </p>
-                          <p className="text-xs text-gray-400 mt-1">
+                          <p className="text-xs text-gray-400 dark:text-indigo-300 mt-1">
                             PNG, JPG, GIF max 2MB
                           </p>
                         </div>
@@ -504,21 +545,33 @@ export default function PengumumanPage() {
 
                 {/* Title */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-[#7F1D1D] dark:text-indigo-200 mb-2">
                     Judul Pengumuman
                   </label>
                   <input
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder="Contoh: Pembukaan Magang Gelombang 2"
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-[#B91C1C] focus:border-transparent transition"
+                    className="
+                      w-full px-4 py-3 rounded-xl border transition-all
+
+                      bg-white/80 border-[#FACC15]/50
+                      focus:ring-2 focus:ring-[#B91C1C]
+                      focus:border-transparent
+
+                      dark:bg-indigo-900/40
+                      dark:border-indigo-700
+                      dark:text-white
+                      dark:placeholder-indigo-300
+                      dark:focus:ring-indigo-400
+                    "
                   />
                 </div>
 
                 {/* Type and Status */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-[#7F1D1D] dark:text-indigo-200 mb-2">
                       Target Pengguna
                     </label>
                     <select
@@ -526,7 +579,17 @@ export default function PengumumanPage() {
                       onChange={(e) =>
                         setType(e.target.value as AnnouncementType)
                       }
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-[#B91C1C] focus:border-transparent transition"
+                      className="
+                        w-full px-4 py-3 rounded-xl border transition-all
+
+                        bg-white/80 border-[#FACC15]/50
+                        focus:ring-2 focus:ring-[#B91C1C]
+
+                        dark:bg-indigo-900/40
+                        dark:border-indigo-700
+                        dark:text-white
+                        dark:focus:ring-indigo-400
+                      "
                     >
                       <option value="landing">Landing Page</option>
                       <option value="peserta">Peserta</option>
@@ -536,18 +599,18 @@ export default function PengumumanPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-[#7F1D1D] dark:text-indigo-200 mb-2">
                       Status
                     </label>
-                    <div className="flex items-center gap-4 h-full">
+                    <div className="flex items-center gap-6 mt-3">
                       <label className="flex items-center gap-2 cursor-pointer">
                         <input
                           type="radio"
                           checked={isActive}
                           onChange={() => setIsActive(true)}
-                          className="w-4 h-4 text-[#B91C1C]"
+                          className="w-4 h-4 text-[#B91C1C] dark:text-indigo-400"
                         />
-                        <span className="text-sm text-gray-700 dark:text-gray-300">
+                        <span className="text-sm text-gray-700 dark:text-indigo-200">
                           Aktif
                         </span>
                       </label>
@@ -556,9 +619,9 @@ export default function PengumumanPage() {
                           type="radio"
                           checked={!isActive}
                           onChange={() => setIsActive(false)}
-                          className="w-4 h-4 text-[#B91C1C]"
+                          className="w-4 h-4 text-[#B91C1C] dark:text-indigo-400"
                         />
-                        <span className="text-sm text-gray-700 dark:text-gray-300">
+                        <span className="text-sm text-gray-700 dark:text-indigo-200">
                           Nonaktif
                         </span>
                       </label>
@@ -586,7 +649,7 @@ export default function PengumumanPage() {
 
                 {/* Content */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-[#7F1D1D] dark:text-indigo-200 mb-2">
                     Isi Pengumuman
                   </label>
                   <textarea
@@ -594,24 +657,66 @@ export default function PengumumanPage() {
                     value={content}
                     onChange={(e) => setContent(e.target.value)}
                     placeholder="Tulis isi pengumuman di sini..."
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-[#B91C1C] focus:border-transparent transition resize-none"
+                    className="
+                      w-full px-4 py-3 rounded-xl border transition-all resize-none
+
+                      bg-white/80 border-[#FACC15]/50
+                      focus:ring-2 focus:ring-[#B91C1C]
+
+                      dark:bg-indigo-900/40
+                      dark:border-indigo-700
+                      dark:text-white
+                      dark:placeholder-indigo-300
+                      dark:focus:ring-indigo-400
+                    "
                   />
                 </div>
 
                 {/* Form Actions */}
-                <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-800">
+                <div className="
+                  flex flex-col sm:flex-row
+                  justify-end
+                  gap-3
+                  pt-6
+                  border-t border-gray-200 dark:border-gray-800
+                ">
                   <button
                     onClick={() => {
                       resetForm();
                       setShowForm(false);
                     }}
-                    className="px-6 py-3 rounded-xl border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+                    className="
+                      w-full sm:w-auto
+                      px-6 py-3 rounded-xl border transition-all
+
+                      border-gray-300 dark:border-gray-700
+                      text-gray-700 dark:text-gray-300
+                      hover:bg-gray-100 dark:hover:bg-gray-800
+                    "
                   >
                     Batal
                   </button>
                   <button
                     onClick={handleSave}
-                    className="flex items-center gap-2 bg-linear-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B] hover:from-[#991B1B] hover:via-[#DC2626] hover:to-[#FBBF24] text-white px-8 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all"
+                    className="
+                      w-full sm:w-auto
+                      flex items-center justify-center gap-2
+                      px-8 py-3 rounded-xl font-semibold text-white shadow-lg
+                      transition-all
+
+                      bg-linear-to-r
+                      from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
+                      hover:from-[#991B1B]
+                      hover:via-[#DC2626]
+                      hover:to-[#FBBF24]
+
+                      dark:from-indigo-600
+                      dark:via-indigo-500
+                      dark:to-purple-500
+                      dark:hover:from-indigo-500
+                      dark:hover:via-purple-500
+                      dark:hover:to-fuchsia-500
+                    "
                   >
                     <FaSave />
                     {editId ? "Update" : "Simpan"}
@@ -651,8 +756,20 @@ export default function PengumumanPage() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.05 }}
-                    className="group bg-white dark:bg-slate-900 rounded-2xl shadow-lg hover:shadow-2xl border border-gray-200 dark:border-gray-800 overflow-hidden transition-all duration-300 hover:-translate-y-1"
+                    className="group relative bg-white dark:bg-slate-900 rounded-2xl shadow-lg hover:shadow-2xl border border-gray-200 dark:border-gray-800 overflow-hidden transition-all duration-300 hover:-translate-y-1"
                   >
+                    {/* Status Badge */}
+                    <div
+                      className={`absolute top-4 right-4 z-20 flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold shadow-md backdrop-blur-sm ${
+                        a.isActive
+                          ? "bg-emerald-500/90 text-white"
+                          : "bg-gray-500/90 text-white"
+                      }`}
+                    >
+                      <span className="w-2 h-2 rounded-full bg-white animate-pulse"></span>
+                      {a.isActive ? "Aktif" : "Nonaktif"}
+                    </div>
+
                     {/* Image */}
                     {a.image && (
                       <div className="relative h-48 overflow-hidden">
@@ -665,16 +782,6 @@ export default function PengumumanPage() {
                               "/images/placeholder.jpg";
                           }}
                         />
-                        {/* Status Badge */}
-                        <div
-                          className={`absolute top-4 right-4 px-3 py-1 rounded-full text-xs font-semibold ${
-                            a.isActive
-                              ? "bg-emerald-500 text-white"
-                              : "bg-gray-500 text-white"
-                          }`}
-                        >
-                          {a.isActive ? "Aktif" : "Nonaktif"}
-                        </div>
                       </div>
                     )}
 
@@ -783,6 +890,104 @@ export default function PengumumanPage() {
           </>
         )}
       </div>
+
+      {/* ================= CONFIRM DELETE MODAL ================= */}
+      <AnimatePresence>
+        {confirmModal.show && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center px-4"
+          >
+            {/* BACKDROP */}
+            <div
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+              onClick={() => setConfirmModal({ show: false, id: null })}
+            />
+
+            {/* MODAL CARD */}
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 200 }}
+              className="
+                relative w-full max-w-md rounded-2xl shadow-2xl border
+                bg-white border-[#FACC15]/40
+                dark:bg-slate-900 dark:border-indigo-700
+                p-6 sm:p-8
+              "
+            >
+              {/* ICON */}
+              <div className="
+                mx-auto mb-4
+                w-16 h-16 rounded-full flex items-center justify-center
+                bg-linear-to-br from-[#7F1D1D] to-[#F59E0B]
+                dark:from-indigo-500 dark:to-purple-500
+                text-white text-2xl
+              ">
+                <FaExclamationCircle />
+              </div>
+
+              {/* TEXT */}
+              <h3 className="text-lg sm:text-xl font-bold text-center text-gray-900 dark:text-white mb-2">
+                Hapus Pengumuman?
+              </h3>
+
+              <p className="text-sm text-center text-gray-600 dark:text-indigo-200 mb-6">
+                Tindakan ini tidak dapat dibatalkan.  
+                Apakah Anda yakin ingin menghapus pengumuman ini?
+              </p>
+
+              {/* BUTTONS */}
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  onClick={() =>
+                    setConfirmModal({ show: false, id: null })
+                  }
+                  className="
+                    w-full
+                    px-4 py-3 rounded-xl border font-medium transition-all
+
+                    border-gray-300 text-gray-700
+                    hover:bg-gray-100
+
+                    dark:border-indigo-700
+                    dark:text-indigo-200
+                    dark:hover:bg-indigo-800/40
+                  "
+                >
+                  Batal
+                </button>
+
+                <button
+                  onClick={confirmDelete}
+                  className="
+                    w-full
+                    px-4 py-3 rounded-xl font-semibold text-white transition-all shadow-lg
+
+                    bg-linear-to-r
+                    from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
+                    hover:from-[#991B1B]
+                    hover:via-[#DC2626]
+                    hover:to-[#FBBF24]
+
+                    dark:from-indigo-600
+                    dark:via-indigo-500
+                    dark:to-purple-500
+                    dark:hover:from-indigo-500
+                    dark:hover:via-purple-500
+                    dark:hover:to-fuchsia-500
+                  "
+                >
+                  Ya, Hapus
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

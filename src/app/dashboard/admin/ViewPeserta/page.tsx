@@ -280,8 +280,19 @@ export default function ViewPesertaSuperadmin() {
     >
       {/* HEADER */}
       <div className="mb-10">
-        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight mb-3">
-          Data Peserta Disetujui
+        <h1 className="flex items-center gap-3 tracking-tight mb-2">
+          <span
+            className="
+              text-2xl sm:text-3xl lg:text-4xl
+              font-extrabold leading-tight
+              bg-clip-text text-transparent
+              bg-linear-to-r
+              from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
+              dark:from-indigo-400 dark:via-violet-400 dark:to-purple-400
+            "
+          >
+            Data Peserta Disetujui
+          </span>
         </h1>
         <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400">
           Kelola semua peserta yang sudah disetujui
@@ -484,34 +495,40 @@ export default function ViewPesertaSuperadmin() {
                       return (
                         <tr
                           key={p.pesertaId || index}
-                          className="hover:bg-[#FEF3C7]/40 dark:hover:bg-indigo-500/10 transition cursor-pointer"
-                          onClick={() => setSelectedPeserta(p)}
+                          className="hover:bg-[#FEF3C7]/40 dark:hover:bg-indigo-500/10 transition"
                         >
-                          <td className="py-4 px-3 text-center font-medium text-slate-500 dark:text-slate-300">
+                          <td className="py-4 px-6 text-center font-medium text-slate-500 dark:text-slate-400">
                             {indexOfFirstItem + index + 1}
                           </td>
 
-                          <td className="py-4 px-3">
-                            <div className="flex items-center justify-center gap-2">
+                          <td className="py-4 px-6 text-center">
+                            <div className="flex justify-center">
                               <div
-                                className="
-                                    w-8 h-8
+                                onClick={() => setSelectedPeserta(p)}
+                                className="flex items-center gap-3 cursor-pointer group"
+                              >
+                                <div
+                                  className="
+                                    shrink-0 w-10 h-10 min-w-10 min-h-10
                                     rounded-full
                                     bg-linear-to-br from-[#7F1D1D] to-[#F59E0B]
                                     dark:from-indigo-600 dark:to-violet-500
                                     flex items-center justify-center
-                                    text-white shadow shrink-0
+                                    text-white shadow
+                                    group-hover:scale-110 transition
                                   "
-                              >
-                                <HiUser className="w-4 h-4" />
-                              </div>
-                              <div className="text-left leading-tight">
-                                <p className="font-medium text-[#7F1D1D] dark:text-indigo-300 hover:underline truncate max-w-[120px]">
-                                  {p.nama || "-"}
-                                </p>
-                                <p className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-[120px]">
-                                  {p.jurusan || "-"}
-                                </p>
+                                >
+                                  <HiUser className="w-5 h-5" />
+                                </div>
+
+                                <div className="text-left leading-tight">
+                                  <p className="font-medium text-slate-800 dark:text-slate-100">
+                                    {p.nama || "-"}
+                                  </p>
+                                  <p className="text-xs text-[#7F1D1D]">
+                                    Klik untuk lihat detail
+                                  </p>
+                                </div>
                               </div>
                             </div>
                           </td>
@@ -520,29 +537,21 @@ export default function ViewPesertaSuperadmin() {
                             <div className="space-y-1 text-slate-600 dark:text-slate-300 text-xs">
                               <div className="flex justify-center items-center gap-1">
                                 <HiMail className="w-3 h-3 shrink-0" />
-                                <span className="truncate max-w-[100px]">
+                                <span className="truncate max-w-25">
                                   {p.email || "-"}
                                 </span>
                               </div>
                               <div className="flex justify-center items-center gap-1">
                                 <HiPhone className="w-3 h-3 shrink-0" />
-                                <span className="truncate max-w-[100px]">
+                                <span className="truncate max-w-25">
                                   {p.wa || "-"}
                                 </span>
                               </div>
                             </div>
                           </td>
 
-                          <td className="py-4 px-3 text-center">
-                            <span
-                              className="
-                                  inline-flex items-center px-2 py-1 rounded-full
-                                  text-xs font-semibold
-                                  bg-blue-50 text-blue-700
-                                  dark:bg-indigo-500/20 dark:text-indigo-200
-                                  truncate max-w-[100px]
-                                "
-                            >
+                          <td className="py-4 px-6 text-center">
+                            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 dark:bg-indigo-500/20 dark:text-indigo-200">
                               {p.posisi || "-"}
                             </span>
                           </td>
@@ -550,10 +559,10 @@ export default function ViewPesertaSuperadmin() {
                           <td className="py-4 px-3 text-center">
                             {p.mentor ? (
                               <div className="text-xs">
-                                <p className="font-medium text-slate-800 dark:text-slate-100 truncate max-w-[100px]">
+                                <p className="font-medium text-slate-800 dark:text-slate-100 truncate max-w-25">
                                   {p.mentor.name || "-"}
                                 </p>
-                                <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate max-w-[100px]">
+                                <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate max-w-25">
                                   {p.mentor.email || "-"}
                                 </p>
                               </div>

@@ -136,8 +136,19 @@ export default function LaporanAkhirPage() {
     <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* ================= HEADER ================= */}
       <div className="space-y-3">
-        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 dark:text-white">
-          Laporan Akhir Magang
+        <h1 className="flex items-center gap-3 tracking-tight mb-2">
+          <span
+            className="
+              text-2xl sm:text-3xl lg:text-4xl
+              font-extrabold leading-tight
+              bg-clip-text text-transparent
+              bg-linear-to-r
+              from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
+              dark:from-indigo-400 dark:via-violet-400 dark:to-purple-400
+            "
+          >
+            Laporan Akhir Magang
+          </span>
         </h1>
         <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 max-w-2xl">
           Upload laporan akhir dalam format PDF (maksimal 5MB). Laporan hanya

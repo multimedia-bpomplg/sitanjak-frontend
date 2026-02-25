@@ -287,10 +287,18 @@ export default function BuatAkunAdminPage() {
       {/* HEADER */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">
+          <h1 className="
+            text-3xl lg:text-4xl 
+            font-extrabold 
+            leading-tight
+            bg-clip-text text-transparent 
+            bg-linear-to-r 
+            from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
+            dark:from-indigo-400 dark:via-violet-400 dark:to-purple-400
+          ">
             Manajemen Akun Admin
           </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
             Kelola akun admin sistem secara aman
           </p>
         </div>

@@ -133,17 +133,30 @@ export default function MentorDashboard() {
         transition-colors
       "
     >
-      <AnnouncementBox type="mentor" />
 
       {/* HEADER */}
       <div className="mb-10">
-        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight">
-          Dashboard Mentor 👋
+        <h1 className="flex items-center gap-3 tracking-tight mb-1">
+          <span
+            className="
+              text-2xl sm:text-3xl lg:text-4xl
+              font-extrabold leading-tight
+              bg-clip-text text-transparent
+              bg-linear-to-r
+              from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
+              dark:from-indigo-400 dark:via-violet-400 dark:to-purple-400
+            "
+          >
+            Dashboard Mentor
+          </span>
+          <p className="text-3xl">👋</p>
         </h1>
         <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400">
           Ringkasan & monitoring peserta magang Anda
         </p>
       </div>
+
+      <AnnouncementBox type="mentor" />
 
       {/* SUMMARY */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5 mb-12">

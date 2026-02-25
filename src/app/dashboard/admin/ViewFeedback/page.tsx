@@ -1,4 +1,3 @@
-// D:\Projek BPOM\frontend-bpom\src\app\superadmin\viewfeedback.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -244,9 +243,21 @@ export default function ViewFeedbackSuperadmin() {
       {/* HEADER */}
       <div className="mb-10">
         <div>
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight mb-3 flex items-center gap-3">
-            <FiMessageCircle className="text-[#B91C1C]" />
-            Monitoring Feedback Peserta
+          <h1 className="flex items-center gap-3 tracking-tight mb-2">
+            <FiMessageCircle className="text-[#B91C1C] dark:text-indigo-500 text-4xl" />
+
+            <span
+              className="
+                text-2xl sm:text-3xl lg:text-4xl
+                font-extrabold leading-tight
+                bg-clip-text text-transparent
+                bg-linear-to-r
+                from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
+                dark:from-indigo-400 dark:via-violet-400 dark:to-purple-400
+              "
+            >
+              Monitoring Feedback Peserta
+            </span>
           </h1>
           <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400">
             Pantau feedback dari peserta untuk BPOM dan mentor
@@ -275,7 +286,7 @@ export default function ViewFeedbackSuperadmin() {
 
           <StatCard
             title="Ke BPOM"
-            value={statistics.notSentToMentor}
+            value={statistics.sentToMentor}
             icon={<HiDocumentText className="w-7 h-7" />}
             note="Feedback untuk BPOM"
             color="slate"

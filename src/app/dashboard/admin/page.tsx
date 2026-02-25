@@ -203,17 +203,29 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen p-4 sm:p-6 lg:p-8 bg-linear-to-br from-slate-50 via-white to-indigo-50 dark:from-[#0B0614] dark:via-[#120A24] dark:to-[#1E0F3D] text-slate-800 dark:text-slate-100 transition-colors">
-      <AnnouncementBox type="admin" />
-
       {/* HEADER */}
       <div className="mb-8">
-        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight bg-clip-text text-transparent bg-linear-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B] dark:from-indigo-400 dark:via-violet-400 dark:to-purple-400">
-          Dashboard Admin 🛠️
+        <h1 className="flex items-center gap-3 tracking-tight mb-2">
+            <p className="text-3xl">📊</p>
+            <span
+              className="
+                text-2xl sm:text-3xl lg:text-4xl
+                font-extrabold leading-tight
+                bg-clip-text text-transparent
+                bg-linear-to-r
+                from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
+                dark:from-indigo-400 dark:via-violet-400 dark:to-purple-400
+              "
+            >
+              Dashboard Admin 
+            </span>
         </h1>
         <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 mt-2">
           Selamat datang! Kelola semua aktivitas magang dari sini.
         </p>
       </div>
+
+      <AnnouncementBox type="admin" />
 
       {/* SUMMARY CARDS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">

@@ -317,8 +317,20 @@ export default function ViewLaporanAkhirSuperadmin() {
       {/* HEADER SECTION */}
       <div className="mb-8">
         <div className="mb-6">
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight mb-3">
-            📋 Laporan Akhir Peserta
+          <h1 className="flex items-center gap-3 tracking-tight mb-2">
+            <p className="text-3xl">📋</p>
+            <span
+              className="
+                text-2xl sm:text-3xl lg:text-4xl
+                font-extrabold leading-tight
+                bg-clip-text text-transparent
+                bg-linear-to-r
+                from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
+                dark:from-indigo-400 dark:via-violet-400 dark:to-purple-400
+              "
+            >
+              Laporan Akhir Peserta
+            </span>
           </h1>
           <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400">
             Kelola dan review laporan akhir semua peserta magang. Pantau

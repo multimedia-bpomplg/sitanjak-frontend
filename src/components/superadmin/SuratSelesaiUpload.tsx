@@ -21,6 +21,8 @@ export default function SuratSelesaiUpload({ peserta, onSuccess }: Props) {
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [checking, setChecking] = useState(true);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const hasCheckedRef = useRef(false);
 
@@ -47,6 +49,7 @@ export default function SuratSelesaiUpload({ peserta, onSuccess }: Props) {
     }
 
     setFile(selectedFile);
+    setPreviewUrl(URL.createObjectURL(selectedFile));
     setError(null);
   };
 
@@ -73,7 +76,7 @@ export default function SuratSelesaiUpload({ peserta, onSuccess }: Props) {
             Authorization: `Bearer ${token}`,
           },
           body: formData,
-        },
+        }
       );
 
       const data = await res.json();
@@ -82,17 +85,16 @@ export default function SuratSelesaiUpload({ peserta, onSuccess }: Props) {
         throw new Error(data.message || "Gagal mengirim surat");
       }
 
-      setSuccess(true);
+      // 🔥 LANGSUNG PINDAH KE TAMPILAN SUKSES
       setFile(null);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-      onSuccess?.();
+      setPreviewUrl(null);
+      setIsAlreadySent(true);
 
-      // Reset success message setelah 5 detik
-      setTimeout(() => {
-        setSuccess(false);
-      }, 5000);
+      if (data?.file) {
+        setExistingFile(data.file);
+      }
+
+      onSuccess?.();
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -155,7 +157,7 @@ export default function SuratSelesaiUpload({ peserta, onSuccess }: Props) {
   if (checking) {
     return (
       <div className="flex justify-center items-center py-12">
-        <span className="text-slate-500 dark:text-slate-400 animate-pulse">
+        <span className="text-[#92400E] dark:text-indigo-300 animate-pulse">
           Memeriksa status surat...
         </span>
       </div>
@@ -164,18 +166,19 @@ export default function SuratSelesaiUpload({ peserta, onSuccess }: Props) {
 
   if (isAlreadySent) {
     return (
-      <div className="flex flex-col items-center justify-center py-8">
-        <div className="w-20 h-20 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center mb-4">
-          <FiCheckCircle className="text-4xl text-emerald-600 dark:text-emerald-400" />
+      <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
+        <div className="w-20 h-20 rounded-full bg-emerald-100 dark:bg-indigo-900/40 flex items-center justify-center mb-4 shadow">
+          <FiCheckCircle className="text-4xl text-emerald-600 dark:text-indigo-300" />
         </div>
 
-        <h3 className="text-xl font-bold mb-2 text-center">
+        <h3 className="text-2xl font-bold text-[#7F1D1D] dark:text-indigo-300 mb-3">
           Surat Selesai Magang Sudah Dikirim
         </h3>
 
-        <p className="text-slate-600 dark:text-slate-400 text-center max-w-md mb-6">
-          Surat selesai magang untuk {peserta.nama} sudah pernah dikirimkan.
-          Tidak dapat mengirim ulang surat.
+        <p className="text-amber-800 dark:text-indigo-200/80 max-w-lg mb-6">
+          Surat selesai magang untuk{" "}
+          <span className="font-semibold">{peserta.nama}</span> sudah pernah
+          dikirim.
         </p>
 
         {existingFile && (
@@ -183,18 +186,12 @@ export default function SuratSelesaiUpload({ peserta, onSuccess }: Props) {
             href={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${existingFile}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="
-              inline-flex items-center gap-2
-              px-6 py-3 rounded-xl
-              bg-slate-100 dark:bg-indigo-950
-              text-slate-700 dark:text-indigo-200
-              font-semibold
-              border border-slate-300 dark:border-indigo-500/30
-              hover:bg-slate-200 dark:hover:bg-indigo-900/40
-              transition
-            "
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl
+            bg-linear-to-r from-[#7F1D1D] to-[#F59E0B]
+            dark:from-indigo-600 dark:to-violet-500
+            text-white font-semibold hover:shadow-lg transition"
           >
-            <FiDownload className="text-lg" />
+            <FiDownload />
             Download Surat
           </a>
         )}
@@ -203,15 +200,21 @@ export default function SuratSelesaiUpload({ peserta, onSuccess }: Props) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      {/* HEADER */}
       <div className="text-center">
-        <div className="w-20 h-20 mx-auto rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mb-4">
-          <FiFile className="text-4xl text-amber-600 dark:text-amber-400" />
+        <div className="w-20 h-20 mx-auto rounded-full 
+        bg-linear-to-br from-[#7F1D1D] to-[#F59E0B]
+        dark:from-indigo-600 dark:to-violet-500
+        flex items-center justify-center mb-4 shadow-lg">
+          <FiFile className="text-3xl text-white" />
         </div>
 
-        <h3 className="text-xl font-bold mb-2">Kirim Surat Selesai Magang</h3>
+        <h3 className="text-2xl font-bold text-[#7F1D1D] dark:text-indigo-300 mb-2">
+          Kirim Surat Selesai Magang
+        </h3>
 
-        <p className="text-slate-600 dark:text-slate-400 max-w-md mx-auto">
+       <p className="text-amber-800 dark:text-indigo-200/80 max-w-xl mx-auto">
           Upload surat keterangan selesai magang untuk{" "}
           <span className="font-semibold">{peserta.nama}</span>. Surat hanya
           dapat dikirim 1x dan akan langsung diterima oleh peserta.
@@ -219,42 +222,39 @@ export default function SuratSelesaiUpload({ peserta, onSuccess }: Props) {
       </div>
 
       {/* Informasi Peserta */}
-      <div className="bg-slate-50 dark:bg-indigo-950/50 rounded-2xl p-5">
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <p className="text-xs text-slate-500 dark:text-slate-400">Nama</p>
-            <p className="font-medium">{peserta.nama}</p>
-          </div>
-          <div>
-            <p className="text-xs text-slate-500 dark:text-slate-400">Email</p>
-            <p className="font-medium">{peserta.email}</p>
-          </div>
-          <div>
-            <p className="text-xs text-slate-500 dark:text-slate-400">Posisi</p>
-            <p className="font-medium">{peserta.posisi}</p>
-          </div>
-          <div>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Periode
-            </p>
-            <p className="font-medium text-sm">
-              {peserta.tanggalMulaiMagang} - {peserta.tanggalSelesaiMagang}
-            </p>
-          </div>
+      <div className="
+      border border-amber-700 dark:border-indigo-500/20 
+      rounded-2xl p-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {[
+            { label: "Nama", value: peserta.nama },
+            { label: "Email", value: peserta.email },
+            { label: "Posisi", value: peserta.posisi },
+            {
+              label: "Periode",
+              value: `${peserta.tanggalMulaiMagang} - ${peserta.tanggalSelesaiMagang}`,
+            },
+          ].map((item, i) => (
+            <div key={i}>
+              <p className="text-xs text-amber-700 dark:text-indigo-300/70">
+                {item.label}
+              </p>
+              <p className="font-semibold text-[#7F1D1D] dark:text-indigo-200">
+                {item.value}
+              </p>
+            </div>
+          ))}
         </div>
       </div>
 
       {/* Upload Area */}
       <div
-        className={`
-          border-2 border-dashed rounded-2xl p-8
-          transition-all
-          ${
+        className={`border-2 border-dashed rounded-2xl p-8 text-center transition
+        ${
             file
-              ? "border-emerald-400 bg-emerald-50/50 dark:bg-emerald-900/10"
-              : "border-slate-300 dark:border-indigo-500/30 hover:border-[#F59E0B] dark:hover:border-indigo-400"
-          }
-        `}
+              ? "border-emerald-400 dark:bg-indigo-900/30"
+              : "border-amber-300 bg-amber-50/40 dark:border-indigo-500/30 dark:bg-indigo-950/30 hover:border-[#F59E0B] dark:hover:border-indigo-400"
+        }`}
       >
         <input
           ref={fileInputRef}
@@ -270,40 +270,82 @@ export default function SuratSelesaiUpload({ peserta, onSuccess }: Props) {
             htmlFor="suratSelesaiUpload"
             className="flex flex-col items-center cursor-pointer"
           >
-            <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-indigo-900/40 flex items-center justify-center mb-3">
-              <FiUpload className="text-2xl text-slate-500 dark:text-indigo-300" />
+            <div className="w-16 h-16 rounded-full bg-linear-to-br from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B] dark:from-indigo-600 dark:to-violet-500 flex items-center justify-center mb-3">
+              <FiUpload className="text-2xl text-white" />
             </div>
-            <p className="font-medium mb-1">Klik untuk upload file PDF</p>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Maksimal 5MB, hanya PDF
+            <p className="font-medium text-[#7F1D1D] dark:text-indigo-200">
+              Klik untuk upload file PDF
+            </p>
+            <p className="text-xs text-amber-700 dark:text-indigo-300/70">
+              Maksimal 5MB
             </p>
           </label>
         ) : (
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-[#B91C1C]/10 flex items-center justify-center">
-                <FiFile className="text-lg text-[#B91C1C]" />
+          <div className="space-y-6">
+
+            {/* FILE CARD */}
+            <div className="
+              flex flex-col sm:flex-row
+              sm:items-center
+              justify-between
+              gap-4
+              bg-amber-50 dark:bg-indigo-950/40
+              border border-amber-200 dark:border-indigo-500/20
+              rounded-xl
+              p-4
+            ">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="
+                  w-10 h-10 shrink-0 rounded-lg
+                  bg-[#7F1D1D]/10 dark:bg-indigo-600/20
+                  flex items-center justify-center
+                ">
+                  <FiFile className="text-lg text-[#7F1D1D] dark:text-indigo-300" />
+                </div>
+
+                <div className="min-w-0">
+                  <p className="font-medium text-sm text-[#7F1D1D] dark:text-indigo-200 truncate">
+                    {file.name}
+                  </p>
+                  <p className="text-xs text-amber-700 dark:text-indigo-300/70">
+                    {(file.size / 1024 / 1024).toFixed(2)} MB
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="font-medium text-sm truncate max-w-xs">
-                  {file.name}
-                </p>
-                <p className="text-xs text-slate-500">
-                  {(file.size / 1024 / 1024).toFixed(2)} MB
-                </p>
-              </div>
+
+              <button
+                onClick={() => {
+                  setFile(null);
+                  setPreviewUrl(null);
+                  if (fileInputRef.current) {
+                    fileInputRef.current.value = "";
+                  }
+                }}
+                className="text-sm font-semibold
+                  text-red-600 hover:text-red-700
+                  dark:text-red-400 dark:hover:text-red-300"
+              >
+                Hapus
+              </button>
             </div>
-            <button
-              onClick={() => {
-                setFile(null);
-                if (fileInputRef.current) {
-                  fileInputRef.current.value = "";
-                }
-              }}
-              className="text-sm text-red-600 hover:text-red-700 font-medium"
-            >
-              Hapus
-            </button>
+
+            {/* PREVIEW PDF */}
+            {previewUrl && (
+              <div>
+                <p className="text-sm font-semibold mb-2 text-[#7F1D1D] dark:text-indigo-300">
+                  Preview PDF
+                </p>
+
+                <div className="w-full h-75 sm:h-100 lg:h-125
+                  border border-amber-200 dark:border-indigo-500/30
+                  rounded-xl overflow-hidden">
+                  <iframe
+                    src={previewUrl}
+                    className="w-full h-full"
+                  />
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -311,7 +353,7 @@ export default function SuratSelesaiUpload({ peserta, onSuccess }: Props) {
       {/* Error Message */}
       {error && (
         <div className="flex items-center gap-2 p-4 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300">
-          <FiAlertCircle className="text-lg flex-shrink-0" />
+          <FiAlertCircle className="text-lg shrink-0" />
           <p className="text-sm">{error}</p>
         </div>
       )}
@@ -319,7 +361,7 @@ export default function SuratSelesaiUpload({ peserta, onSuccess }: Props) {
       {/* Success Message */}
       {success && (
         <div className="flex items-center gap-2 p-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300">
-          <FiCheckCircle className="text-lg flex-shrink-0" />
+          <FiCheckCircle className="text-lg shrink-0" />
           <p className="text-sm">
             ✅ Surat selesai magang berhasil dikirim ke peserta!
           </p>
@@ -329,16 +371,13 @@ export default function SuratSelesaiUpload({ peserta, onSuccess }: Props) {
       {/* Action Buttons */}
       <div className="flex gap-3 pt-4">
         <button
-          onClick={handleUpload}
+          onClick={() => setShowConfirm(true)}
           disabled={!file || uploading}
-          className={`
-            flex-1 py-3 px-6 rounded-xl
-            font-semibold
-            transition
+          className={`w-full py-3 rounded-xl font-semibold transition
             ${
               !file || uploading
                 ? "bg-slate-300 dark:bg-slate-700 text-slate-500 cursor-not-allowed"
-                : "bg-linear-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B] text-white hover:shadow-lg hover:-translate-y-0.5"
+                : "bg-linear-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B] dark:from-indigo-600 dark:via-indigo-500 dark:to-violet-500 text-white hover:shadow-lg"
             }
           `}
         >
@@ -357,6 +396,50 @@ export default function SuratSelesaiUpload({ peserta, onSuccess }: Props) {
         ⚠️ Perhatian: Surat selesai magang hanya dapat dikirim SATU KALI.
         Pastikan file yang diupload sudah benar.
       </p>
+
+      {showConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+          <div className="
+            w-full max-w-md
+            bg-white dark:bg-indigo-950
+            rounded-2xl shadow-xl p-6 space-y-4
+          ">
+            <h3 className="text-lg font-bold text-[#7F1D1D] dark:text-indigo-300">
+              Konfirmasi Pengiriman
+            </h3>
+
+            <p className="text-sm text-slate-600 dark:text-indigo-200/80">
+              Surat selesai magang hanya dapat dikirim SATU KALI.
+              Apakah Anda yakin ingin mengirim surat ini?
+            </p>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => setShowConfirm(false)}
+                className="flex-1 py-2 rounded-xl border
+                  border-red-600
+                  text-[#7F1D1D] dark:text-indigo-300
+                  hover:bg-red-800 hover:text-white transition"
+              >
+                Batal
+              </button>
+
+              <button
+                onClick={() => {
+                  setShowConfirm(false);
+                  handleUpload();
+                }}
+                className="flex-1 py-2 rounded-xl font-semibold
+                  bg-linear-to-r from-[#7F1D1D] to-[#F59E0B]
+                  dark:from-indigo-600 dark:to-violet-500
+                  text-white hover:shadow-lg transition"
+              >
+                Ya, Kirim
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

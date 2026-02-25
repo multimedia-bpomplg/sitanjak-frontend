@@ -101,9 +101,21 @@ export default function ViewFeedbackMentor() {
     <div className="min-h-screen p-4 sm:p-6 lg:p-10 bg-slate-50 dark:bg-[#0B0614] text-slate-800 dark:text-slate-100">
       {/* HEADER */}
       <div className="mb-10">
-        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight flex items-center gap-3">
-          <HiChat className="text-[#B91C1C]" />
-          Feedback dari Peserta
+        <h1 className="flex items-center gap-3 tracking-tight mb-2">
+            <HiChat className="text-[#B91C1C] dark:text-indigo-500 text-4xl" />
+        
+            <span
+              className="
+                text-2xl sm:text-3xl lg:text-4xl
+                font-extrabold leading-tight
+                bg-clip-text text-transparent
+                bg-linear-to-r
+                from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
+                dark:from-indigo-400 dark:via-violet-400 dark:to-purple-400
+              "
+            >
+            Feedback dari Peserta
+          </span>
         </h1>
         <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400">
           Lihat dan berikan response untuk feedback dari peserta bimbingan Anda

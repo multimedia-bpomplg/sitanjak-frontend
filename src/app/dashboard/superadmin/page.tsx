@@ -1033,8 +1033,19 @@ export default function OversistemDashboard() {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-extrabold tracking-tight text-[#7F1D1D] dark:text-indigo-300">
-                Oversistem Dashboard
+              <h1 className="flex items-center gap-3 tracking-tight mb-1">
+                <span
+                  className="
+                    text-2xl sm:text-3xl lg:text-4xl
+                    font-extrabold leading-tight
+                    bg-clip-text text-transparent
+                    bg-linear-to-r
+                    from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
+                    dark:from-indigo-400 dark:via-violet-400 dark:to-purple-400
+                  "
+                >
+                  Oversistem Dashboard
+                </span>
               </h1>
               <div
                 className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${
@@ -1063,7 +1074,7 @@ export default function OversistemDashboard() {
                 )}
               </div>
             </div>
-            <p className="text-gray-600 dark:text-gray-400 mt-1">
+            <p className="text-gray-600 dark:text-gray-400">
               Dashboard monitoring real-time sistem magang
               {lastUpdated && (
                 <span className="ml-2 text-sm text-gray-500">
@@ -1117,7 +1128,7 @@ export default function OversistemDashboard() {
         </div>
 
         {/* Stats Cards - REAL TIME */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-8 mt-10">
           {/* Peserta Aktif */}
           <div
             className={`rounded-2xl p-5 bg-white/90 dark:bg-indigo-950/40 border border-amber-200 dark:border-indigo-500/30 shadow-sm hover:shadow-xl transition ${
