@@ -19,6 +19,8 @@ import {
   HiX,
 } from "react-icons/hi";
 import { motion, AnimatePresence } from "framer-motion";
+import { useConfirm } from "@/components/ui/ConfirmProvider";
+import { showToast } from "@/components/ui/toastDashboard";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 
@@ -30,11 +32,10 @@ export default function InformasiFungsiAdmin() {
     desc: "",
     jurusan: [],
     iconName: "HiOfficeBuilding",
-    gradientFrom: "from-amber-500",
-    gradientTo: "to-orange-500",
+    gradient: "from-amber-500 to-orange-500",
     lightBg: "bg-amber-50",
     border: "border-amber-200",
-    textColor: "text-amber-700",
+    text: "text-amber-700",
   });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
@@ -42,6 +43,7 @@ export default function InformasiFungsiAdmin() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [jurusanInput, setJurusanInput] = useState("");
   const [jurusanList, setJurusanList] = useState<string[]>([]);
+  const [descError, setDescError] = useState("");
 
   const token =
     typeof window !== "undefined" ? localStorage.getItem("token") : "";
@@ -56,13 +58,24 @@ export default function InformasiFungsiAdmin() {
     HiAcademicCap: <HiAcademicCap />,
   };
 
+  const confirm = useConfirm();
+
   /* ========== FUNGSI JURUSAN ========== */
   const addJurusan = () => {
-    if (!jurusanInput.trim()) return;
-    if (jurusanList.includes(jurusanInput.trim())) return;
+    if (!jurusanInput.trim()) {
+      showToast.error("Jurusan tidak boleh kosong");
+      return;
+    }
+
+    if (jurusanList.includes(jurusanInput.trim())) {
+      showToast.error("Jurusan sudah ada");
+      return;
+    }
 
     setJurusanList([...jurusanList, jurusanInput.trim()]);
     setJurusanInput("");
+
+    showToast.success("Jurusan ditambahkan");
   };
 
   const removeJurusan = (index: number) => {
@@ -70,18 +83,33 @@ export default function InformasiFungsiAdmin() {
   };
 
   /* LOAD DATA */
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchData = async (showLoading = false) => {
+    let toastId: any;
+
     try {
+      if (showLoading) {
+        toastId = showToast.loading("Memuat data...");
+      }
+
+      setLoading(true);
+
       const res = await fetch(`${API}/informasi-fungsi`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
+
+      if (!res.ok) throw new Error("Gagal memuat data");
+
       const json = await res.json();
       setData(json.data || json);
+
+      if (showLoading) {
+        showToast.updateSuccess(toastId, "Data berhasil dimuat");
+      }
     } catch (error) {
-      console.error("Gagal memuat data:", error);
+      console.error(error);
+      showToast.error("Gagal memuat data");
     } finally {
       setLoading(false);
     }
@@ -95,78 +123,114 @@ export default function InformasiFungsiAdmin() {
   const handleSubmit = async (e: any) => {
     e.preventDefault();
 
+    if (form.desc.trim().length < 20) {
+      setDescError("Deskripsi minimal 20 karakter");
+
+      showToast.error(
+        "Deskripsi terlalu pendek. Minimal 20 karakter agar lebih informatif."
+      );
+
+      return;
+    }
+
     const payload = {
       ...form,
       jurusan: jurusanList,
     };
 
-    if (editingId) {
-      // UPDATE
-      await fetch(`${API}/informasi-fungsi/${editingId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
-      });
-    } else {
-      // CREATE
-      await fetch(`${API}/informasi-fungsi`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
-      });
-    }
+    const toastId = showToast.loading(
+      editingId ? "Mengupdate data..." : "Menyimpan data..."
+    );
 
-    // Reset form
-    setForm({
-      title: "",
-      desc: "",
-      jurusan: [],
-      iconName: "HiOfficeBuilding",
-      gradientFrom: "from-amber-500",
-      gradientTo: "to-orange-500",
-      lightBg: "bg-amber-50",
-      border: "border-amber-200",
-      textColor: "text-amber-700",
-    });
-    setJurusanList([]);
-    setJurusanInput("");
-    setEditingId(null);
-    setShowModal(false);
-    fetchData();
+    try {
+      const res = await fetch(
+        editingId
+          ? `${API}/informasi-fungsi/${editingId}`
+          : `${API}/informasi-fungsi`,
+        {
+          method: editingId ? "PUT" : "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      if (!res.ok) throw new Error("Gagal menyimpan data");
+
+      showToast.updateSuccess(
+        toastId,
+        editingId
+          ? "Data berhasil diperbarui 🎉"
+          : "Data berhasil ditambahkan 🎉"
+      );
+
+      // Reset form
+      setForm({
+        title: "",
+        desc: "",
+        jurusan: [],
+        iconName: "HiOfficeBuilding",
+        gradient: "from-amber-500 to-orange-500",
+        lightBg: "bg-amber-50",
+        border: "border-amber-200",
+        text: "text-amber-700",
+      });
+
+      setJurusanList([]);
+      setJurusanInput("");
+      setEditingId(null);
+      setShowModal(false);
+
+      fetchData();
+    } catch (error) {
+      console.error(error);
+      showToast.updateError(toastId, "Terjadi kesalahan saat menyimpan");
+    }
   };
 
   /* DELETE */
   const handleDelete = async (id: string) => {
-    if (!confirm("Apakah Anda yakin ingin menghapus data ini?")) return;
+    confirm({
+      title: "Hapus Data?",
+      message:
+        "Data yang dihapus tidak dapat dikembalikan. Apakah Anda yakin ingin melanjutkan?",
+      onConfirm: async () => {
+        const toastId = showToast.loading("Menghapus data...");
 
-    await fetch(`${API}/informasi-fungsi/${id}`, {
-      method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${token}`,
+        try {
+          const res = await fetch(`${API}/informasi-fungsi/${id}`, {
+            method: "DELETE",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+
+          if (!res.ok) throw new Error("Gagal menghapus");
+
+          showToast.updateSuccess(toastId, "Data berhasil dihapus 🗑");
+
+          fetchData();
+        } catch (error) {
+          console.error(error);
+          showToast.updateError(toastId, "Gagal menghapus data");
+        }
       },
     });
-
-    fetchData();
   };
 
   /* EDIT */
   const handleEdit = (item: any) => {
     setForm({
       title: item.title,
-      desc: item.description || item.desc,
+      desc: item.desc || item.desc,
       jurusan: item.jurusan,
       iconName: item.iconName || "HiOfficeBuilding",
-      gradientFrom: item.gradientFrom || "from-amber-500",
-      gradientTo: item.gradientTo || "to-orange-500",
+      gradient: item.gradient || "from-amber-500 to-orange-500",
       lightBg: item.lightBg || "bg-amber-50",
       border: item.border || "border-amber-200",
-      textColor: item.textColor || "text-amber-700",
+      text: item.text || "text-amber-700",
     });
     setJurusanList(item.jurusan || []);
     setEditingId(item._id);
@@ -180,11 +244,10 @@ export default function InformasiFungsiAdmin() {
       desc: "",
       jurusan: [],
       iconName: "HiOfficeBuilding",
-      gradientFrom: "from-amber-500",
-      gradientTo: "to-orange-500",
+      gradient: "from-amber-500 to-orange-500",
       lightBg: "bg-amber-50",
       border: "border-amber-200",
-      textColor: "text-amber-700",
+      text: "text-amber-700",
     });
     setJurusanList([]);
     setJurusanInput("");
@@ -201,7 +264,7 @@ export default function InformasiFungsiAdmin() {
   const filteredData = data.filter(
     (item) =>
       item.title?.toLowerCase().includes(search.toLowerCase()) ||
-      item.description?.toLowerCase().includes(search.toLowerCase()) ||
+      item.desc?.toLowerCase().includes(search.toLowerCase()) ||
       item.jurusan?.some((j: string) =>
         j.toLowerCase().includes(search.toLowerCase()),
       ),
@@ -216,76 +279,126 @@ export default function InformasiFungsiAdmin() {
     return (
       <motion.div
         layout
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, x: -100 }}
-        className={`bg-white rounded-xl shadow-sm border ${item.border} overflow-hidden hover:shadow-md transition-all`}
+        exit={{ opacity: 0 }}
+        className="
+          group
+          rounded-2xl sm:rounded-3xl
+          border border-[#FCA5A5]/30 dark:border-indigo-500/30
+          bg-linear-to-br
+          from-white via-[#FFFDF8] to-[#FFF4EC]
+          dark:from-indigo-950 dark:via-indigo-900 dark:to-indigo-800
+          backdrop-blur
+          shadow-sm hover:shadow-lg
+          transition
+        "
       >
-        <div className="p-4">
-          <div className="flex items-start gap-4">
-            {/* Icon Preview */}
+        <div className="p-4 sm:p-6">
+        <div className="flex gap-3 sm:gap-4">
+
+            {/* ICON */}
             <div
-              className={`w-12 h-12 rounded-xl bg-linear-to-br ${item.gradientFrom} ${item.gradientTo} text-white flex items-center justify-center text-xl shadow-lg shrink-0`}
+              className={`
+                w-10 h-10 sm:w-12 sm:h-12
+                shrink-0
+                rounded-xl
+                bg-linear-to-br ${item.gradient}
+                text-white
+                flex items-center justify-center
+                text-base sm:text-lg
+                shadow
+              `}
             >
               {IconComponent}
             </div>
 
+            {/* CONTENT */}
             <div className="flex-1 min-w-0">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <h3 className="font-semibold text-slate-800">{item.title}</h3>
-                  <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">
-                    {item.description}
-                  </p>
+
+              {/* HEADER ROW */}
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+
+                {/* Title & Desc */}
+                <div className="min-w-0">
+                  <h3 className="
+                    text-base sm:text-lg font-bold
+                    text-[#7F1D1D] dark:text-indigo-200
+                    wrap-break-words
+                  ">
+                    {item.title}
+                  </h3>
+
+                  {item.desc && (
+                    <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-1 line-clamp-2">
+                      {item.desc}
+                    </p>
+                  )}
                 </div>
 
-                <div className="flex items-center gap-1 shrink-0">
+                {/* ACTIONS */}
+                <div className="flex items-center gap-1 mt-1 sm:mt-0 shrink-0">
+
                   <button
                     onClick={() => handleEdit(item)}
-                    className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition"
-                    title="Edit"
+                    className="p-1.5 sm:p-2 rounded-lg text-blue-600 dark:text-indigo-300 hover:bg-blue-50 dark:hover:bg-indigo-900/40 transition"
                   >
-                    <HiPencil />
+                    <HiPencil className="w-4 h-4" />
                   </button>
+
                   <button
                     onClick={() => handleDelete(item._id)}
-                    className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition"
-                    title="Hapus"
+                    className="p-1.5 sm:p-2 rounded-lg text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 transition"
                   >
-                    <HiTrash />
+                    <HiTrash className="w-4 h-4" />
                   </button>
+
                   <button
-                    onClick={() => setExpandedId(isExpanded ? null : item._id)}
-                    className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-lg transition"
+                    onClick={() =>
+                      setExpandedId(isExpanded ? null : item._id)
+                    }
+                    className="p-1.5 sm:p-2 rounded-lg text-slate-400 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-indigo-900/40 transition"
                   >
                     {isExpanded ? (
-                      <HiOutlineChevronUp />
+                      <HiOutlineChevronUp className="w-4 h-4" />
                     ) : (
-                      <HiOutlineChevronDown />
+                      <HiOutlineChevronDown className="w-4 h-4" />
                     )}
                   </button>
+
                 </div>
               </div>
 
-              {/* Expanded Content */}
+              {/* EXPANDED SECTION */}
               <AnimatePresence>
                 {isExpanded && (
                   <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.2 }}
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.25 }}
                     className="overflow-hidden"
                   >
-                    <div className="mt-3 pt-3 border-t border-slate-100">
-                      <p className="text-xs font-medium text-slate-500 mb-2">
+                    <div className="mt-4 pt-4 border-t border-[#FCA5A5]/30 dark:border-indigo-500/30">
+                      <p className="text-xs font-semibold mb-3 text-[#7F1D1D] dark:text-indigo-300">
                         Jurusan yang Diterima:
                       </p>
-                      <div className="flex flex-wrap gap-1.5">
+
+                      <div className="flex flex-wrap gap-2">
                         {item.jurusan?.map((j: string, i: number) => (
                           <span
                             key={i}
-                            className={`px-2 py-1 bg-white text-xs ${item.textColor} rounded-lg border ${item.border}`}
+                            className="
+                              px-2.5 py-1
+                              text-[11px] sm:text-xs
+                              rounded-full
+                              bg-[#FFF4EC]
+                              text-[#7F1D1D]
+                              border border-[#FCA5A5]/40
+                              dark:bg-indigo-900/50
+                              dark:text-indigo-200
+                              dark:border-indigo-500/40
+                            "
                           >
                             {j}
                           </span>
@@ -295,6 +408,7 @@ export default function InformasiFungsiAdmin() {
                   </motion.div>
                 )}
               </AnimatePresence>
+
             </div>
           </div>
         </div>
@@ -303,17 +417,23 @@ export default function InformasiFungsiAdmin() {
   };
 
   return (
-    <div className="min-h-screen p-4 md:p-8 bg-linear-to-br from-slate-50 via-white to-indigo-50">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-linear-to-br from-slate-50 via-white to-slate-100 dark:from-[#0B0614] dark:via-[#120A24] dark:to-[#1E0F3D] p-4 sm:p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-3xl md:text-4xl font-black mb-2">
-              <span className="bg-clip-text text-transparent bg-linear-to-r from-red-700 to-orange-500">
-                Manajemen Informasi Fungsi
-              </span>
+            <h1 className="
+              text-3xl lg:text-4xl 
+              font-extrabold 
+              leading-tight
+              bg-clip-text text-transparent 
+              bg-linear-to-r 
+              from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
+              dark:from-indigo-400 dark:via-violet-400 dark:to-purple-400
+            ">
+              Manajemen Informasi Fungsi
             </h1>
-            <p className="text-slate-600">
+            <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 mt-2">
               Kelola informasi fungsi yang ditampilkan di halaman utama
             </p>
           </div>
@@ -321,95 +441,235 @@ export default function InformasiFungsiAdmin() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => fetchData()}
-              className="p-3 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition"
+              className="
+                inline-flex items-center gap-2
+                px-4 py-2
+                rounded-lg
+                bg-linear-to-r
+                from-[#F59E0B] to-[#B91C1C]
+                dark:from-indigo-600 dark:to-indigo-800
+                text-white font-semibold text-sm
+                shadow-md shadow-[#B91C1C]/30
+                dark:shadow-indigo-600/30
+                hover:scale-[1.03]
+                transition
+              "
               title="Refresh"
             >
-              <HiOutlineRefresh className="text-slate-600" />
+              <HiOutlineRefresh className="w-4 h-4" />
             </button>
             <button
               onClick={openCreateModal}
-              className="inline-flex items-center gap-2 px-6 py-3 bg-linear-to-r from-red-600 to-orange-500 text-white font-semibold rounded-xl hover:shadow-lg hover:scale-105 transition-all duration-300"
+              className="
+                inline-flex items-center gap-2
+                px-5 py-2
+                rounded-lg
+                bg-linear-to-r
+                from-[#7F1D1D] to-[#B91C1C]
+                dark:from-indigo-700 dark:to-indigo-600
+                text-white font-semibold text-sm
+                shadow-md shadow-[#7F1D1D]/30
+                dark:shadow-indigo-600/30
+                hover:scale-[1.03]
+                transition
+              "
             >
-              <HiPlus />
+              <HiPlus className="w-4 h-4" />
               Tambah Baru
             </button>
           </div>
         </div>
 
-        {/* Stats Cards - KUOTA DAN DURASI TELAH DIHAPUS */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
-            <p className="text-sm text-slate-500 mb-1">Total Fungsi</p>
-            <p className="text-3xl font-bold text-slate-800">{data.length}</p>
+        {/* ===================== STATS ===================== */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
+
+          {/* Total Fungsi */}
+          <div
+            className="
+              group relative
+              rounded-2xl
+              border border-[#FCA5A5]/40 dark:border-indigo-500/30
+              bg-linear-to-br
+              from-[#FFFDF8] via-[#FFF4EC] to-white
+              dark:from-indigo-950 dark:via-indigo-900 dark:to-indigo-800
+              p-6
+              shadow-sm hover:shadow-xl
+              transition
+            "
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-wide text-[#7F1D1D] dark:text-indigo-300">
+                  Total Fungsi
+                </p>
+                <p className="text-4xl font-extrabold mt-1 text-[#7F1D1D] dark:text-white">
+                  {data.length}
+                </p>
+              </div>
+
+              <div
+                className="
+                  w-14 h-14 rounded-2xl
+                  bg-[#B91C1C]/90 dark:bg-indigo-600
+                  text-white
+                  flex items-center justify-center
+                  shadow
+                  group-hover:scale-110 transition
+                "
+              >
+                <HiOfficeBuilding className="w-7 h-7" />
+              </div>
+            </div>
+
+            <div className="mt-4 pt-4 border-t border-[#FCA5A5]/40 dark:border-indigo-500/30">
+              <p className="text-xs text-slate-600 dark:text-slate-300">
+                Jumlah seluruh fungsi yang tersedia
+              </p>
+            </div>
           </div>
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
-            <p className="text-sm text-slate-500 mb-1">Total Jurusan</p>
-            <p className="text-3xl font-bold text-slate-800">
-              {data.reduce((acc, item) => acc + (item.jurusan?.length || 0), 0)}
-            </p>
+
+          {/* Total Jurusan */}
+          <div
+            className="
+              group relative
+              rounded-2xl
+              border border-[#FCA5A5]/40 dark:border-indigo-500/30
+              bg-linear-to-br
+              from-[#FFFDF8] via-[#FFF4EC] to-white
+              dark:from-indigo-950 dark:via-indigo-900 dark:to-indigo-800
+              p-6
+              shadow-sm hover:shadow-xl
+              transition
+            "
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-wide text-[#7F1D1D] dark:text-indigo-300">
+                  Total Jurusan
+                </p>
+                <p className="text-4xl font-extrabold mt-1 text-[#7F1D1D] dark:text-white">
+                  {data.reduce((acc, item) => acc + (item.jurusan?.length || 0), 0)}
+                </p>
+              </div>
+
+              <div
+                className="
+                  w-14 h-14 rounded-2xl
+                  bg-amber-500 dark:bg-violet-500
+                  text-white
+                  flex items-center justify-center
+                  shadow
+                  group-hover:scale-110 transition
+                "
+              >
+                <HiAcademicCap className="w-7 h-7" />
+              </div>
+            </div>
+
+            <div className="mt-4 pt-4 border-t border-[#FCA5A5]/40 dark:border-indigo-500/30">
+              <p className="text-xs text-slate-600 dark:text-slate-300">
+                Total jurusan yang tersedia
+              </p>
+            </div>
           </div>
         </div>
 
-        {/* Search Bar */}
-        <div className="mb-6">
+
+
+        {/* ===================== SEARCH BAR ===================== */}
+        <div className="mb-2">
           <div className="relative">
+            <HiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-[#7F1D1D] dark:text-indigo-400 w-5 h-5 z-10" />
             <input
               type="text"
               placeholder="Cari berdasarkan judul, deskripsi, atau jurusan..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/50"
+              className="
+                w-full pl-11 pr-10 py-3
+                rounded-2xl
+                bg-white/90 dark:bg-white/5
+                backdrop-blur
+                border border-[#F59E0B]/40 dark:border-indigo-500/40
+                text-slate-700 dark:text-slate-100
+                placeholder:text-slate-400
+                focus:outline-none focus:ring-2
+                focus:ring-[#B91C1C]/60 dark:focus:ring-indigo-500/60
+                transition
+              "
             />
-            <svg
-              className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
+          </div>
+
+          <div className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+            Total {filteredData.length} dari {data.length} data
           </div>
         </div>
 
         {/* Data List */}
         {loading ? (
-          <div className="space-y-3">
+          <div className="grid gap-4 sm:gap-5">
             {[1, 2, 3].map((i) => (
               <div
                 key={i}
-                className="bg-white rounded-xl p-4 shadow-sm border border-slate-200 animate-pulse"
+                className="
+                  rounded-2xl
+                  border border-[#FCA5A5]/30 dark:border-indigo-500/30
+                  bg-linear-to-br
+                  from-[#FFFDF8] via-white to-[#FFF4EC]
+                  dark:from-indigo-950 dark:via-indigo-900 dark:to-indigo-800
+                  p-4 sm:p-5
+                  animate-pulse
+                "
               >
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-slate-200 rounded-xl" />
-                  <div className="flex-1">
-                    <div className="h-4 w-48 bg-slate-200 rounded-full mb-2" />
-                    <div className="h-3 w-full bg-slate-200 rounded-full" />
+                <div className="flex items-start gap-3 sm:gap-4">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-slate-200 dark:bg-indigo-700 shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 w-32 sm:w-40 bg-slate-200 dark:bg-indigo-700 rounded-full" />
+                    <div className="h-3 w-full bg-slate-200 dark:bg-indigo-700 rounded-full" />
                   </div>
                 </div>
               </div>
             ))}
           </div>
         ) : filteredData.length === 0 ? (
-          <div className="text-center py-20 bg-white rounded-2xl border border-slate-200">
-            <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-slate-100 flex items-center justify-center">
-              <HiAcademicCap className="text-3xl text-slate-400" />
+          <div
+            className="
+              text-center
+              py-14 sm:py-20
+              px-4 sm:px-6
+              rounded-3xl
+              border border-[#FCA5A5]/30 dark:border-indigo-500/30
+              bg-linear-to-br
+              from-[#FFFDF8] via-white to-[#FFF4EC]
+              dark:from-indigo-950 dark:via-indigo-900 dark:to-indigo-800
+              shadow-sm
+            "
+          >
+            <div
+              className="
+                w-16 h-16 sm:w-20 sm:h-20
+                mx-auto mb-5 sm:mb-6
+                rounded-2xl
+                flex items-center justify-center
+                bg-linear-to-br
+                from-[#F59E0B] to-[#B91C1C]
+                dark:from-indigo-600 dark:to-indigo-700
+                text-white shadow-lg
+              "
+            >
+              <HiAcademicCap className="text-2xl sm:text-3xl" />
             </div>
-            <h3 className="text-lg font-semibold text-slate-700 mb-2">
+            <h3 className="text-lg sm:text-xl font-bold text-[#7F1D1D] dark:text-indigo-200 mb-2">
               {search ? "Data tidak ditemukan" : "Belum ada data"}
             </h3>
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-slate-600 dark:text-slate-300 max-w-md mx-auto">
               {search
                 ? "Coba gunakan kata kunci lain"
                 : "Klik tombol 'Tambah Baru' untuk menambahkan data"}
             </p>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="grid gap-4 sm:gap-5">
             <AnimatePresence>
               {filteredData.map((item) => (
                 <PreviewCard key={item._id} item={item} />
@@ -419,8 +679,18 @@ export default function InformasiFungsiAdmin() {
         )}
 
         {/* Footer Info */}
-        <div className="mt-6 text-center text-sm text-slate-500">
-          Total {filteredData.length} dari {data.length} data
+        <div className="
+          mt-8 text-center text-sm
+          text-slate-600 dark:text-slate-300
+        ">
+          <span className="font-semibold text-[#7F1D1D] dark:text-indigo-300">
+            {filteredData.length}
+          </span>{" "}
+          dari{" "}
+          <span className="font-semibold">
+            {data.length}
+          </span>{" "}
+          data ditampilkan
         </div>
       </div>
 
@@ -434,7 +704,7 @@ export default function InformasiFungsiAdmin() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setShowModal(false)}
-              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
+              className="fixed inset-0 bg-black/40 backdrop-blur-md z-50"
             />
 
             {/* Modal */}
@@ -442,44 +712,117 @@ export default function InformasiFungsiAdmin() {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              transition={{ duration: 0.2 }}
-              className="fixed inset-4 md:inset-10 z-50 flex items-center justify-center pointer-events-none"
+              transition={{ duration: 0.25 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 lg:p-10 pointer-events-none"
             >
-              <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto pointer-events-auto">
+              <div
+                className="
+                  pointer-events-auto
+                  w-full max-w-5xl
+                  max-h-[92vh] overflow-y-auto
+                  rounded-3xl
+                  border border-[#FCA5A5]/30 dark:border-indigo-500/30
+                  bg-white/90 dark:bg-indigo-950/80
+                  backdrop-blur-xl
+                  shadow-2xl
+                  transition
+                "
+              >
                 {/* Modal Header */}
-                <div className="sticky top-0 z-10 flex items-center justify-between p-6 border-b border-slate-100 bg-linear-to-r from-slate-50 to-white">
-                  <div>
-                    <h2 className="text-2xl font-bold text-slate-800">
-                      {editingId
-                        ? "Edit Informasi Fungsi"
-                        : "Tambah Informasi Fungsi Baru"}
-                    </h2>
-                    <p className="text-sm text-slate-500 mt-1">
-                      {editingId
-                        ? "Ubah data informasi fungsi yang sudah ada"
-                        : "Isi form berikut untuk menambahkan fungsi baru"}
-                    </p>
+                <div
+                  className="
+                    sticky top-0 z-10
+                    px-5 sm:px-8 py-5
+                    border-b border-[#FCA5A5]/30 dark:border-indigo-500/30
+                    bg-linear-to-r
+                    from-[#FFF4EC] via-white to-[#FFFDF8]
+                    dark:from-indigo-950 dark:via-indigo-900 dark:to-indigo-800
+                    backdrop-blur
+                  "
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    
+                    {/* Left Content */}
+                    <div className="space-y-2">
+
+                      {/* Badge kecil */}
+                      <div className="
+                        inline-flex items-center
+                        px-3 py-1
+                        rounded-full
+                        text-xs font-semibold tracking-wide
+                        bg-[#FDE8E8] text-[#B91C1C]
+                        dark:bg-indigo-900/50 dark:text-indigo-300
+                      ">
+                        {editingId ? "MODE EDIT" : "MODE CREATE"}
+                      </div>
+
+                      {/* Title */}
+                      <h2
+                        className="
+                          text-lg sm:text-2xl font-extrabold leading-snug
+                          bg-linear-to-r
+                          from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
+                          dark:from-indigo-300 dark:via-violet-300 dark:to-purple-400
+                          bg-clip-text text-transparent
+                        "
+                      >
+                        {editingId
+                          ? "Edit Informasi Fungsi"
+                          : "Tambah Informasi Fungsi Baru"}
+                      </h2>
+
+                      {/* Subtitle */}
+                      <p className="text-sm text-slate-600 dark:text-slate-300 max-w-md">
+                        {editingId
+                          ? "Ubah data informasi fungsi yang sudah ada."
+                          : "Isi form berikut untuk menambahkan fungsi baru."}
+                      </p>
+                    </div>
+
+                    {/* Close Button */}
+                    <button
+                      onClick={() => setShowModal(false)}
+                      className="
+                        flex items-center justify-center
+                        w-10 h-10
+                        rounded-xl
+                        bg-white/60 
+                        hover:bg-red-50 
+                        text-red-600 
+                        shadow-sm
+                        transition
+                      "
+                    >
+                      <HiX className="w-5 h-5" />
+                    </button>
                   </div>
-                  <button
-                    onClick={() => setShowModal(false)}
-                    className="p-2 hover:bg-slate-100 rounded-xl transition"
-                  >
-                    <HiX className="text-xl text-slate-500" />
-                  </button>
                 </div>
 
                 {/* Modal Body */}
-                <form onSubmit={handleSubmit} className="p-6">
+                <form onSubmit={handleSubmit} className="px-6 py-6 sm:px-8 sm:py-8">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Left Column */}
                     <div className="space-y-4">
                       <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">
+                        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
                           Judul Fungsi <span className="text-red-500">*</span>
                         </label>
                         <input
                           placeholder="Contoh: Bagian Tata Usaha"
-                          className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/50"
+                          className="
+                            w-full
+                            px-4 py-3
+                            rounded-2xl
+                            border border-[#FCA5A5]/40 dark:border-indigo-500/40
+                            bg-white/80 dark:bg-white/5
+                            backdrop-blur
+                            text-slate-700 dark:text-slate-100
+                            placeholder:text-slate-400
+                            focus:outline-none
+                            focus:ring-2 focus:ring-[#B91C1C]/50 dark:focus:ring-indigo-500/50
+                            transition
+                          "
                           value={form.title}
                           onChange={(e) =>
                             setForm({ ...form, title: e.target.value })
@@ -489,24 +832,68 @@ export default function InformasiFungsiAdmin() {
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">
+                        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
                           Deskripsi <span className="text-red-500">*</span>
                         </label>
+
                         <textarea
                           placeholder="Jelaskan tugas dan fungsi..."
                           rows={4}
-                          className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/50"
+                          className={`
+                            w-full
+                            px-4 py-3
+                            rounded-2xl
+                            border
+                            ${descError
+                              ? "border-rose-500 focus:ring-rose-500/50"
+                              : "border-[#FCA5A5]/40 dark:border-indigo-500/40 focus:ring-[#B91C1C]/50 dark:focus:ring-indigo-500/50"}
+                            bg-white/80 dark:bg-white/5
+                            backdrop-blur
+                            text-slate-700 dark:text-slate-100
+                            placeholder:text-slate-400
+                            focus:outline-none
+                            focus:ring-2
+                            transition
+                          `}
                           value={form.desc}
-                          onChange={(e) =>
-                            setForm({ ...form, desc: e.target.value })
-                          }
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setForm({ ...form, desc: value });
+
+                            if (value.trim().length < 20) {
+                              setDescError("Deskripsi minimal 20 karakter");
+                            } else {
+                              setDescError("");
+                            }
+                          }}
                           required
                         />
+
+                        {/* Character Counter */}
+                        <div className="flex justify-between mt-1 text-xs">
+                          <span
+                            className={`${
+                              descError ? "text-rose-500" : "text-slate-500 dark:text-slate-400"
+                            }`}
+                          >
+                            {descError || "Minimal 20 karakter agar deskripsi lebih jelas."}
+                          </span>
+
+                          <span
+                            className={`${
+                              form.desc.length < 20
+                                ? "text-rose-500"
+                                : "text-emerald-500"
+                            }`}
+                          >
+                            {form.desc.length}/20
+                          </span>
+                        </div>
                       </div>
 
                       {/* JURUSAN SECTION */}
                       <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">
+                        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
                           Jurusan <span className="text-red-500">*</span>
                         </label>
 
@@ -514,7 +901,19 @@ export default function InformasiFungsiAdmin() {
                         <div className="flex gap-2">
                           <input
                             placeholder="Masukkan jurusan..."
-                            className="flex-1 px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-red-500/50"
+                            className="
+                            w-full
+                            px-4 py-3
+                            rounded-2xl
+                            border border-[#FCA5A5]/40 dark:border-indigo-500/40
+                            bg-white/80 dark:bg-white/5
+                            backdrop-blur
+                            text-slate-700 dark:text-slate-100
+                            placeholder:text-slate-400
+                            focus:outline-none
+                            focus:ring-2 focus:ring-[#B91C1C]/50 dark:focus:ring-indigo-500/50
+                            transition
+                          "
                             value={jurusanInput}
                             onChange={(e) => setJurusanInput(e.target.value)}
                             onKeyPress={(e) => {
@@ -540,7 +939,18 @@ export default function InformasiFungsiAdmin() {
                             {jurusanList.map((j, i) => (
                               <span
                                 key={i}
-                                className="flex items-center gap-2 px-3 py-1.5 bg-red-50 text-red-700 rounded-full text-xs border border-red-200"
+                                className="
+                                  flex items-center gap-2
+                                  px-3 py-1.5
+                                  rounded-full
+                                  text-xs font-medium
+                                  bg-[#FFF4EC] text-[#7F1D1D]
+                                  border border-[#FCA5A5]/40
+                                  dark:bg-indigo-900/50
+                                  dark:text-indigo-200
+                                  dark:border-indigo-500/40
+                                  transition
+                                "
                               >
                                 {j}
 
@@ -568,17 +978,25 @@ export default function InformasiFungsiAdmin() {
                     {/* Right Column */}
                     <div className="space-y-4">
                       <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">
+                        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
                           Pilih Icon
                         </label>
                         <select
-                          className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/50"
+                          className="
+                            w-full px-4 py-3
+                            rounded-xl
+                            border border-[#FCA5A5]/40 dark:border-indigo-500/40
+                            bg-white dark:bg-[#1E293B]
+                            text-slate-700 dark:text-white
+                            focus:ring-2 focus:ring-red-500/50 dark:focus:ring-indigo-500/50
+                            transition
+                          "
                           value={form.iconName}
                           onChange={(e) =>
                             setForm({ ...form, iconName: e.target.value })
                           }
                         >
-                          <option value="HiOfficeBuilding">Kantor</option>
+                          <option value="HiOfficeBuilding">Tata Usaha</option>
                           <option value="HiShieldCheck">Penindakan</option>
                           <option value="HiBeaker">Pengujian</option>
                           <option value="HiSearch">Pemeriksaan</option>
@@ -588,48 +1006,56 @@ export default function InformasiFungsiAdmin() {
                       </div>
 
                       {/* Color Preview */}
-                      {/* <div className="space-y-2">
-                        <label className="block text-sm font-medium text-slate-700">
+                      <div className="space-y-2">
+                        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
                           Preview Warna
                         </label>
                         <div className="grid grid-cols-2 gap-2">
                           <select
-                            className="px-3 py-2 text-xs border border-slate-200 rounded-lg"
-                            value={form.gradientFrom}
+                            className="
+                              w-full px-4 py-3
+                              rounded-xl
+                              border border-[#FCA5A5]/40 dark:border-indigo-500/40
+                              bg-white dark:bg-[#1E293B]
+                              text-slate-700 dark:text-white
+                              focus:ring-2 focus:ring-red-500/50 dark:focus:ring-indigo-500/50
+                              transition
+                            "
+                            value={form.gradient}
                             onChange={(e) =>
-                              setForm({ ...form, gradientFrom: e.target.value })
+                              setForm({ ...form, gradient: e.target.value })
                             }
                           >
-                            <option value="from-amber-500">Amber</option>
-                            <option value="from-red-500">Red</option>
-                            <option value="from-blue-500">Blue</option>
-                            <option value="from-emerald-500">Emerald</option>
-                            <option value="from-purple-500">Purple</option>
-                          </select>
-                          <select
-                            className="px-3 py-2 text-xs border border-slate-200 rounded-lg"
-                            value={form.gradientTo}
-                            onChange={(e) =>
-                              setForm({ ...form, gradientTo: e.target.value })
-                            }
-                          >
-                            <option value="to-orange-500">Orange</option>
-                            <option value="to-rose-600">Rose</option>
-                            <option value="to-cyan-500">Cyan</option>
-                            <option value="to-teal-500">Teal</option>
-                            <option value="to-pink-500">Pink</option>
+                            <option value="from-amber-500 to-orange-500">Amber</option>
+                            <option value="from-red-500 to-rose-600">Red</option>
+                            <option value="from-blue-500 to-cyan-500">Blue</option>
+                            <option value="from-emerald-500 to-teal-500">Emerald</option>
+                            <option value="from-purple-500 to-pink-500">Purple</option>
                           </select>
                         </div>
-                      </div> */}
+                      </div>
 
                       {/* Live Preview Card */}
-                      <div className="mt-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
-                        <p className="text-xs font-medium text-slate-500 mb-3">
+                      <div className="
+                        mt-6
+                        p-5
+                        rounded-2xl
+                        border border-[#FCA5A5]/30 dark:border-indigo-500/30
+                        bg-white/70 dark:bg-indigo-900/50
+                        backdrop-blur
+                      ">
+                        <p className="text-xs font-medium text-slate-500 dark:text-white mb-3">
                           Live Preview:
                         </p>
-                        <div className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm">
+                        <div className="
+                          flex items-center gap-4
+                          p-4
+                          rounded-xl
+                          bg-white dark:bg-indigo-950/70
+                          shadow-sm
+                        ">
                           <div
-                            className={`w-10 h-10 rounded-xl bg-linear-to-br ${form.gradientFrom} ${form.gradientTo} text-white flex items-center justify-center text-lg`}
+                            className={`w-10 h-10 rounded-xl bg-linear-to-br ${form.gradient} text-white flex items-center justify-center text-lg`}
                           >
                             {iconMap[form.iconName] || <HiOfficeBuilding />}
                           </div>
@@ -646,7 +1072,7 @@ export default function InformasiFungsiAdmin() {
                           </div>
                         </div>
                         {form.title && (
-                          <p className="mt-2 text-xs text-slate-600">
+                          <p className="mt-2 text-xs text-slate-600 dark:text-white">
                             <span className="font-medium">Judul:</span>{" "}
                             {form.title}
                           </p>
@@ -656,22 +1082,45 @@ export default function InformasiFungsiAdmin() {
                   </div>
 
                   {/* Modal Footer */}
-                  <div className="flex items-center justify-end gap-3 mt-8 pt-6 border-t border-slate-100">
+                  <div className="
+                    flex flex-col sm:flex-row
+                    items-stretch sm:items-center
+                    justify-end
+                    gap-3
+                    mt-10 pt-6
+                    border-t border-[#FCA5A5]/30 dark:border-indigo-500/30
+                  ">
                     <button
                       type="button"
                       onClick={() => setShowModal(false)}
-                      className="px-6 py-2 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 transition"
+                      className="
+                        px-6 py-3
+                        rounded-xl
+                        border border-[#FCA5A5]/40 dark:border-indigo-500/40
+                        text-[#7F1D1D] dark:text-indigo-200
+                        hover:bg-[#FFF4EC] dark:hover:bg-indigo-900/40
+                        transition
+                      "
                     >
                       Batal
                     </button>
                     <button
                       type="submit"
-                      disabled={jurusanList.length === 0}
-                      className={`px-6 py-2 bg-linear-to-r from-red-600 to-orange-500 text-white font-semibold rounded-xl hover:shadow-lg transition ${
-                        jurusanList.length === 0
+                      disabled={jurusanList.length === 0 || form.desc.trim().length < 20}
+                      className={`
+                        px-6 py-3
+                        rounded-xl
+                        bg-linear-to-r
+                        from-[#B91C1C] to-[#F59E0B]
+                        dark:from-indigo-600 dark:to-indigo-700
+                        text-white font-semibold
+                        shadow-lg shadow-[#B91C1C]/30 dark:shadow-indigo-600/30
+                        hover:scale-[1.02]
+                        transition
+                        ${jurusanList.length === 0 || form.desc.trim().length < 20
                           ? "opacity-50 cursor-not-allowed"
-                          : ""
-                      }`}
+                          : ""}
+                      `}
                     >
                       {editingId ? "Update Data" : "Simpan Data"}
                     </button>

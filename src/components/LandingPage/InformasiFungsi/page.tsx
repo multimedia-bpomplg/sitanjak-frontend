@@ -47,48 +47,127 @@ function InformasiFungsiCard({
       whileHover={{ y: -6 }}
       className="group"
     >
-      <div className="relative h-full bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl transition-all duration-500 overflow-hidden">
-        {/* ACCENT TOP LINE */}
-        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-700 via-red-500 to-orange-400" />
+      <div className="
+        relative
+        h-full
+        rounded-3xl
+        overflow-hidden
+        bg-white
+        border border-slate-200/70
+        shadow-sm
+        transition-all duration-500
+        hover:shadow-2xl
+        hover:-translate-y-2
+      ">
+        {/* Accent Line Dynamic */}
+        <div
+          className={`
+            absolute -top-20 -right-20
+            w-40 h-40
+            rounded-full
+            opacity-20 blur-3xl
+            bg-linear-to-br ${item.gradient || "from-red-600 to-orange-500"}
+            transition-all duration-700
+            group-hover:scale-125
+          `}
+        />
 
-        <div className="p-8 flex flex-col h-full">
-          {/* BADGE (OPTIONAL) */}
-          {item.badge && (
-            <span className="inline-block mb-4 px-3 py-1 text-xs font-semibold bg-red-50 text-red-600 rounded-full w-fit">
-              {item.badge}
-            </span>
-          )}
+        <div
+          className={`
+            absolute top-0 left-0 w-full h-1
+            bg-linear-to-r ${item.gradient || "from-red-600 to-orange-500"}
+          `}
+        />
 
+        <div className="relative z-10 p-6 sm:p-8 flex flex-col h-full">
+          
           {/* ICON */}
-          <div className="mb-4 w-12 h-12 rounded-xl bg-gradient-to-br from-red-600 to-orange-500 text-white flex items-center justify-center text-xl shadow-md">
+          <div
+            className={`
+              mb-5
+              w-14 h-14 sm:w-16 sm:h-16
+              rounded-2xl
+              bg-linear-to-br ${item.gradient || "from-red-600 to-orange-500"}
+              text-white
+              flex items-center justify-center
+              text-xl sm:text-2xl
+              shadow-lg
+              ring-4 ring-white
+              transition-all duration-500
+              group-hover:scale-110 group-hover:rotate-3
+            `}
+          >
             {iconMap[item.iconName] || <HiOfficeBuilding />}
           </div>
 
           {/* TITLE */}
-          <h3 className="text-xl font-bold text-slate-800 mb-4 leading-snug group-hover:text-red-700 transition">
+          <h3 className="relative inline-block text-xl sm:text-2xl font-bold text-slate-800 mb-4 leading-snug">
             {item.title}
+
+            <span
+              className={`
+                absolute left-0 -bottom-1
+                h-0.75 w-12
+                rounded-full
+                bg-linear-to-r ${item.gradient || "from-red-600 to-orange-500"}
+                transition-all duration-300
+                group-hover:w-full
+              `}
+            />
           </h3>
 
-          {/* DESCRIPTION */}
-          <p className="text-sm text-slate-600 leading-relaxed flex-grow">
+          <p className="
+            text-sm sm:text-base
+            text-slate-600
+            leading-relaxed
+            grow
+            line-clamp-3
+          ">
             {item.desc}
           </p>
 
-          {/* JURUSAN SECTION */}
-          <div className="border-t border-slate-100 pt-6 mt-6">
+          {/* Divider */}
+          <div className="mt-6 pt-6 border-t border-slate-100">
             <button
               onClick={() => setExpandedIndex(isOpen ? null : index)}
-              className="w-full flex items-center justify-between text-left"
+              className="
+                w-full flex items-center justify-between
+                py-2
+              "
             >
-              <span className="text-sm font-semibold text-red-600">
-                Jurusan yang Diterima
-              </span>
+              <div className="flex items-center gap-3">
+
+                {/* Title */}
+                <span
+                  className={`
+                    text-sm font-semibold
+                    bg-linear-to-r ${item.gradient || "from-red-600 to-orange-500"}
+                    bg-clip-text text-transparent
+                  `}
+                >
+                  Jurusan yang Diterima
+                </span>
+
+                {/* Counter */}
+                <span
+                  className={`
+                    text-xs font-semibold
+                    px-2.5 py-1
+                    rounded-full
+                    bg-slate-100
+                    text-slate-600
+                  `}
+                >
+                  {item.jurusan.length}
+                </span>
+              </div>
 
               <motion.div
                 animate={{ rotate: isOpen ? 180 : 0 }}
-                transition={{ duration: 0.3 }}
+                transition={{ duration: 0.25 }}
+                className="text-slate-400"
               >
-                <HiOutlineChevronDown className="text-lg text-red-600" />
+                <HiOutlineChevronDown className="text-lg" />
               </motion.div>
             </button>
 
@@ -98,21 +177,39 @@ function InformasiFungsiCard({
                 height: isOpen ? "auto" : 0,
                 opacity: isOpen ? 1 : 0,
               }}
-              transition={{ duration: 0.35 }}
+              transition={{ duration: 0.3 }}
               className="overflow-hidden"
             >
-              <div className="mt-4 flex flex-wrap gap-2">
+              <div className="mt-5 flex flex-wrap gap-2">
                 {item.jurusan.map((j: string, i: number) => (
-                  <span
+                  <motion.span
                     key={i}
-                    className="px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 rounded-full hover:bg-red-100 transition"
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.05 }}
+                    whileHover={{ scale: 1.08 }}
+                    className={`
+                      px-4 py-1.5
+                      text-xs sm:text-sm
+                      font-medium
+                      rounded-full
+                      bg-white
+                      border border-slate-200
+                      text-slate-700
+                      shadow-sm
+                      transition-all duration-300
+                      hover:text-white
+                      hover:border-transparent
+                      hover:bg-linear-to-r ${item.gradient || "from-red-600 to-orange-500"}
+                    `}
                   >
                     {j}
-                  </span>
+                  </motion.span>
                 ))}
               </div>
             </motion.div>
           </div>
+
         </div>
       </div>
     </motion.div>
@@ -136,33 +233,25 @@ export default function InformasiFungsi() {
   return (
     <section
       id="informasi"
-      className="relative py-28 px-4 bg-gradient-to-br from-slate-50 via-white to-slate-100"
+      className="w-full flex justify-center px-4 mt-24"
     >
-      {/* Soft Background Glow */}
-      <div className="absolute -top-40 -right-40 w-96 h-96 bg-red-200/30 rounded-full blur-3xl" />
-      <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-orange-200/30 rounded-full blur-3xl" />
-
-      <div className="relative max-w-7xl mx-auto">
+      <div className="max-w-6xl w-full px-6 lg:px-14 py-16">
         {/* HEADER */}
-        <div className="text-center mb-20">
-          <h2 className="text-4xl md:text-5xl font-black mb-6">
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-red-700 via-red-600 to-orange-500">
-              Informasi Fungsi
-            </span>
-            <span className="block text-2xl md:text-3xl text-slate-700 font-bold mt-3">
+        <div className="text-center mb-14">
+          <h2 className="text-3xl lg:text-4xl font-extrabold text-[#7F1D1D]">
+            Informasi Fungsi Formasi Magang
+            <span className="block text-2xl md:text-xl text-slate-700 font-bold mt-1">
               di BPOM Kota Palembang
             </span>
           </h2>
 
-          <p className="text-slate-600 max-w-3xl mx-auto text-lg leading-relaxed">
-            Setiap fungsi memiliki peran strategis dalam menjaga keamanan, mutu,
-            dan kualitas obat serta makanan yang beredar di masyarakat. Pilih
-            bidang yang sesuai dengan kompetensimu.
+          <p className="text-gray-600 mt-3 max-w-2xl mx-auto leading-relaxed">
+            Berikut adalah informasi mengenai fungsi dan peran di Balai Besar POM di Palembang yang dapat menjadi pilihan bidang magang sesuai minat dan latar belakang pendidikan Anda.
           </p>
         </div>
 
         {/* GRID */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {data.map((item, index) => (
             <InformasiFungsiCard
               key={item._id || index}
