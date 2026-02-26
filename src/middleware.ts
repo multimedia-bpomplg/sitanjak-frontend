@@ -1,50 +1,57 @@
 import { NextRequest, NextResponse } from "next/server";
 
-export function middleware(req: NextRequest) {
+export async function middleware(req: NextRequest) {
   const token = req.cookies.get("token")?.value;
+  const path = req.nextUrl.pathname;
 
+  // ===============================
+  // 🚫 PUBLIC ROUTES
+  // ===============================
+  if (
+    path.startsWith("/auth/login") ||
+    path.startsWith("/auth/core-gateway") ||
+    path.startsWith("/maintenance") ||
+    path.startsWith("/403") ||
+    path.startsWith("/_next")
+  ) {
+    return NextResponse.next();
+  }
+
+  // ===============================
+  // 🔥 CEK MAINTENANCE
+  // ===============================
+  try {
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/maintenance/status`,
+    );
+    const data = await res.json();
+
+    if (data.isActive) {
+      const allowedPaths = [
+        "/maintenance",
+        "/auth/core-gateway",
+        "/dashboard/superadmin",
+      ];
+
+      // Kalau path termasuk yang diizinkan
+      if (allowedPaths.some((allowed) => path.startsWith(allowed))) {
+        return NextResponse.next();
+      }
+
+      return NextResponse.redirect(new URL("/maintenance", req.url));
+    }
+  } catch {}
+
+  // ===============================
+  // 🔐 AUTH PROTECTION
+  // ===============================
   if (!token) {
     return NextResponse.redirect(new URL("/auth/login", req.url));
   }
 
-  try {
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    const roles = payload.roles || [];
-
-    const path = req.nextUrl.pathname;
-
-    // ✅ SUPERADMIN ROUTES
-    if (path.startsWith("/dashboard/superadmin")) {
-      if (!roles.includes("superadmin")) {
-        return NextResponse.redirect(new URL("/403", req.url));
-      }
-    }
-
-    // ✅ ADMIN ROUTES
-    if (path.startsWith("/dashboard/admin")) {
-      if (roles.includes("admin") || roles.includes("superadmin")) {
-        return NextResponse.next();
-      }
-
-      return NextResponse.redirect(new URL("/403", req.url));
-    }
-
-    // ✅ MENTOR ROUTES
-    if (path.startsWith("/dashboard/mentor") && !roles.includes("mentor")) {
-      return NextResponse.redirect(new URL("/403", req.url));
-    }
-
-    // ✅ PESERTA ROUTES
-    if (path.startsWith("/dashboard/peserta") && !roles.includes("peserta")) {
-      return NextResponse.redirect(new URL("/403", req.url));
-    }
-
-    return NextResponse.next();
-  } catch {
-    return NextResponse.redirect(new URL("/auth/login", req.url));
-  }
+  return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*"],
+  matcher: ["/((?!_next|api|favicon.ico).*)"],
 };

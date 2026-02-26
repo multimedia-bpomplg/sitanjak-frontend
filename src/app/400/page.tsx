@@ -1,27 +1,24 @@
 "use client";
 
 import Link from "next/link";
-import { AlertTriangle } from "lucide-react";
 
-export default function Page400() {
+export default function Error400() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-yellow-50 to-orange-100 dark:from-[#020617] dark:to-[#0F172A] px-4">
-      <div className="max-w-md w-full bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-3xl shadow-xl p-8 text-center border">
-        <div className="mx-auto mb-6 w-20 h-20 flex items-center justify-center rounded-full bg-linear-to-br from-yellow-500 to-orange-500 text-white">
-          <AlertTriangle size={36} />
-        </div>
-
-        <h1 className="text-5xl font-extrabold mb-2">400</h1>
-        <h2 className="text-xl font-semibold mb-2">Bad Request</h2>
-        <p className="text-gray-600 dark:text-gray-400 mb-6">
-          Permintaan yang dikirim tidak valid.
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-yellow-50 via-white to-orange-100 px-6">
+      <div className="text-center max-w-xl">
+        <h1 className="text-8xl font-extrabold text-yellow-600 drop-shadow-lg">
+          400
+        </h1>
+        <h2 className="text-2xl font-bold text-gray-800 mt-4">Bad Request</h2>
+        <p className="text-gray-600 mt-2">
+          Permintaan yang dikirim tidak valid atau terjadi kesalahan input.
         </p>
 
         <Link
-          href="/dashboard/admin"
-          className="inline-block px-6 py-2 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 transition"
+          href="/"
+          className="inline-block mt-6 px-6 py-3 rounded-xl bg-yellow-600 text-white font-semibold hover:scale-105 transition"
         >
-          Kembali ke Dashboard
+          Kembali ke Beranda
         </Link>
       </div>
     </div>

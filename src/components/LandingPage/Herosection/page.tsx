@@ -39,7 +39,7 @@ export default function HeroSection() {
         {/* IMAGE */}
         <div className="w-full lg:w-[45%] flex justify-center">
           <Image
-            src="/images/landing page/bbpom_plg.png"
+            src="/images/landing-page/bbpom_plg.png"
             alt="Ilustrasi Magang"
             width={500}
             height={500}

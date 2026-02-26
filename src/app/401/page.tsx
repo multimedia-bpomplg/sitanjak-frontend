@@ -1,27 +1,24 @@
 "use client";
 
 import Link from "next/link";
-import { ShieldAlert } from "lucide-react";
 
-export default function Page401() {
+export default function Error401() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-[#020617] dark:to-[#0F172A] px-4">
-      <div className="max-w-md w-full bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-3xl shadow-xl p-8 text-center border">
-        <div className="mx-auto mb-6 w-20 h-20 flex items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 text-white">
-          <ShieldAlert size={36} />
-        </div>
-
-        <h1 className="text-5xl font-extrabold mb-2">401</h1>
-        <h2 className="text-xl font-semibold mb-2">Unauthorized</h2>
-        <p className="text-gray-600 dark:text-gray-400 mb-6">
-          Silakan login terlebih dahulu.
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 via-white to-indigo-100 px-6">
+      <div className="text-center max-w-xl">
+        <h1 className="text-8xl font-extrabold text-blue-600 drop-shadow-lg">
+          401
+        </h1>
+        <h2 className="text-2xl font-bold text-gray-800 mt-4">Unauthorized</h2>
+        <p className="text-gray-600 mt-2">
+          Anda belum login atau token tidak valid.
         </p>
 
         <Link
           href="/auth/login"
-          className="inline-block px-6 py-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 transition"
+          className="inline-block mt-6 px-6 py-3 rounded-xl bg-blue-600 text-white font-semibold hover:scale-105 transition"
         >
-          Login
+          Login Sekarang
         </Link>
       </div>
     </div>

@@ -27,7 +27,7 @@ export default function ProfilPage() {
           observer.disconnect();
         }
       },
-      { threshold: 0.25 }
+      { threshold: 0.25 },
     );
 
     if (sectionRef.current) observer.observe(sectionRef.current);
@@ -61,7 +61,7 @@ export default function ProfilPage() {
             `}
           >
             <h1 className="text-3xl lg:text-4xl font-extrabold text-[#7F1D1D] leading-tight">
-              Balai Besar Pengawas Obat 
+              Balai Besar Pengawas Obat
               <span className="block text-[#B91C1C]">
                 dan Makanan di Palembang
               </span>
@@ -107,11 +107,12 @@ export default function ProfilPage() {
                 <div className="space-y-6 text-gray-700 leading-relaxed">
                   {/* Dasar Hukum */}
                   <p>
-                    Berdasarkan <span className="font-semibold">
+                    Berdasarkan{" "}
+                    <span className="font-semibold">
                       Peraturan Badan POM Nomor 19 Tahun 2023
                     </span>{" "}
-                    tentang Organisasi dan Tata Kerja Unit Pelaksana Teknis di Lingkungan Badan
-                    Pengawas Obat dan Makanan:
+                    tentang Organisasi dan Tata Kerja Unit Pelaksana Teknis di
+                    Lingkungan Badan Pengawas Obat dan Makanan:
                   </p>
 
                   {/* TUGAS */}
@@ -120,9 +121,9 @@ export default function ProfilPage() {
                       Tugas
                     </h4>
                     <p>
-                      Melaksanakan tugas teknis operasional di bidang pengawasan Obat dan
-                      Makanan pada wilayah kerja masing-masing sesuai dengan ketentuan
-                      peraturan perundang-undangan.
+                      Melaksanakan tugas teknis operasional di bidang pengawasan
+                      Obat dan Makanan pada wilayah kerja masing-masing sesuai
+                      dengan ketentuan peraturan perundang-undangan.
                     </p>
                   </div>
 
@@ -133,27 +134,61 @@ export default function ProfilPage() {
                     </h4>
 
                     <ol className="space-y-3 list-decimal list-inside">
-                      <li>Penyusunan rencana, program, dan anggaran di bidang pengawasan Obat dan Makanan;</li>
-                      <li>Pelaksanaan pemeriksaan fasilitas produksi Obat dan Makanan;</li>
-                      <li>Pelaksanaan pemeriksaan fasilitas distribusi Obat dan Makanan dan fasilitas pelayanan kefarmasian;</li>
-                      <li>Pelaksanaan sertifikasi produk dan fasilitas produksi dan distribusi Obat dan Makanan;</li>
-                      <li>Pelaksanaan sampling Obat dan Makanan;</li>
-                      <li>Pelaksanaan pemantauan label dan iklan Obat dan Makanan;</li>
-                      <li>Pelaksanaan pengujian rutin Obat dan Makanan;</li>
-                      <li>Pelaksanaan pengujian Obat dan Makanan dalam rangka investigasi dan penyidikan;</li>
                       <li>
-                        Pelaksanaan cegah tangkal, intelijen, dan penyidikan terhadap pelanggaran
-                        ketentuan peraturan perundang-undangan di bidang pengawasan Obat dan Makanan;
-                      </li>
-                      <li>Pelaksanaan pemantauan peredaran Obat dan Makanan melalui siber;</li>
-                      <li>
-                        Pengelolaan komunikasi, informasi, edukasi, dan pengaduan masyarakat di bidang
+                        Penyusunan rencana, program, dan anggaran di bidang
                         pengawasan Obat dan Makanan;
                       </li>
-                      <li>Pelaksanaan kerja sama di bidang pengawasan Obat dan Makanan;</li>
-                      <li>Pelaksanaan pemantauan, evaluasi, dan pelaporan di bidang pengawasan Obat dan Makanan;</li>
-                      <li>Pelaksanaan urusan tata usaha dan rumah tangga; dan</li>
-                      <li>Pelaksanaan fungsi lain yang diberikan oleh Kepala Badan.</li>
+                      <li>
+                        Pelaksanaan pemeriksaan fasilitas produksi Obat dan
+                        Makanan;
+                      </li>
+                      <li>
+                        Pelaksanaan pemeriksaan fasilitas distribusi Obat dan
+                        Makanan dan fasilitas pelayanan kefarmasian;
+                      </li>
+                      <li>
+                        Pelaksanaan sertifikasi produk dan fasilitas produksi
+                        dan distribusi Obat dan Makanan;
+                      </li>
+                      <li>Pelaksanaan sampling Obat dan Makanan;</li>
+                      <li>
+                        Pelaksanaan pemantauan label dan iklan Obat dan Makanan;
+                      </li>
+                      <li>Pelaksanaan pengujian rutin Obat dan Makanan;</li>
+                      <li>
+                        Pelaksanaan pengujian Obat dan Makanan dalam rangka
+                        investigasi dan penyidikan;
+                      </li>
+                      <li>
+                        Pelaksanaan cegah tangkal, intelijen, dan penyidikan
+                        terhadap pelanggaran ketentuan peraturan
+                        perundang-undangan di bidang pengawasan Obat dan
+                        Makanan;
+                      </li>
+                      <li>
+                        Pelaksanaan pemantauan peredaran Obat dan Makanan
+                        melalui siber;
+                      </li>
+                      <li>
+                        Pengelolaan komunikasi, informasi, edukasi, dan
+                        pengaduan masyarakat di bidang pengawasan Obat dan
+                        Makanan;
+                      </li>
+                      <li>
+                        Pelaksanaan kerja sama di bidang pengawasan Obat dan
+                        Makanan;
+                      </li>
+                      <li>
+                        Pelaksanaan pemantauan, evaluasi, dan pelaporan di
+                        bidang pengawasan Obat dan Makanan;
+                      </li>
+                      <li>
+                        Pelaksanaan urusan tata usaha dan rumah tangga; dan
+                      </li>
+                      <li>
+                        Pelaksanaan fungsi lain yang diberikan oleh Kepala
+                        Badan.
+                      </li>
                     </ol>
                   </div>
                 </div>
@@ -167,9 +202,10 @@ export default function ProfilPage() {
                       Visi
                     </h4>
                     <p>
-                      Terwujudnya Sediaan Farmasi dan Pangan Olahan yang aman, bermutu, dan
-                      berdaya saing dalam mendukung masyarakat sehat dan sejahtera bersama
-                      Indonesia Maju menuju Indonesia Emas 2045.
+                      Terwujudnya Sediaan Farmasi dan Pangan Olahan yang aman,
+                      bermutu, dan berdaya saing dalam mendukung masyarakat
+                      sehat dan sejahtera bersama Indonesia Maju menuju
+                      Indonesia Emas 2045.
                     </p>
                   </div>
 
@@ -181,24 +217,26 @@ export default function ProfilPage() {
 
                     <ol className="space-y-3 list-decimal list-inside">
                       <li>
-                        Meningkatkan efektivitas pengawasan Sediaan Farmasi dan Pangan Olahan
-                        serta penindakan kejahatan Sediaan Farmasi dan Pangan Olahan melalui
-                        kolaborasi pemerintah, pelaku usaha, dan masyarakat;
+                        Meningkatkan efektivitas pengawasan Sediaan Farmasi dan
+                        Pangan Olahan serta penindakan kejahatan Sediaan Farmasi
+                        dan Pangan Olahan melalui kolaborasi pemerintah, pelaku
+                        usaha, dan masyarakat;
                       </li>
                       <li>
-                        Memfasilitasi percepatan pengembangan dunia usaha Sediaan Farmasi dan
-                        Pangan Olahan termasuk UMKM dalam rangka membangun struktur ekonomi
-                        yang produktif dan berdaya saing;
+                        Memfasilitasi percepatan pengembangan dunia usaha
+                        Sediaan Farmasi dan Pangan Olahan termasuk UMKM dalam
+                        rangka membangun struktur ekonomi yang produktif dan
+                        berdaya saing;
                       </li>
                       <li>
-                        Meningkatkan kapasitas masyarakat di bidang Sediaan Farmasi dan Pangan
-                        Olahan dengan mengembangkan kemitraan bersama seluruh pemangku
-                        kepentingan;
+                        Meningkatkan kapasitas masyarakat di bidang Sediaan
+                        Farmasi dan Pangan Olahan dengan mengembangkan kemitraan
+                        bersama seluruh pemangku kepentingan;
                       </li>
                       <li>
-                        Pengelolaan pemerintahan yang bersih, efektif, dan terpercaya untuk
-                        memberikan pelayanan publik yang prima di bidang Sediaan Farmasi dan
-                        Pangan Olahan.
+                        Pengelolaan pemerintahan yang bersih, efektif, dan
+                        terpercaya untuk memberikan pelayanan publik yang prima
+                        di bidang Sediaan Farmasi dan Pangan Olahan.
                       </li>
                     </ol>
                   </div>
@@ -216,7 +254,7 @@ export default function ProfilPage() {
             `}
           >
             <Image
-              src="/images/landing page/bpom_logo.png"
+              src="/images/landing-page/bpom_logo.png"
               alt="Ilustrasi Profil"
               width={400}
               height={400}

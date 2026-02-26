@@ -47,7 +47,8 @@ function InformasiFungsiCard({
       whileHover={{ y: -6 }}
       className="group"
     >
-      <div className="
+      <div
+        className="
         relative
         h-full
         rounded-3xl
@@ -58,7 +59,8 @@ function InformasiFungsiCard({
         transition-all duration-500
         hover:shadow-2xl
         hover:-translate-y-2
-      ">
+      "
+      >
         {/* Accent Line Dynamic */}
         <div
           className={`
@@ -80,7 +82,6 @@ function InformasiFungsiCard({
         />
 
         <div className="relative z-10 p-6 sm:p-8 flex flex-col h-full">
-          
           {/* ICON */}
           <div
             className={`
@@ -116,13 +117,15 @@ function InformasiFungsiCard({
             />
           </h3>
 
-          <p className="
+          <p
+            className="
             text-sm sm:text-base
             text-slate-600
             leading-relaxed
             grow
             line-clamp-3
-          ">
+          "
+          >
             {item.desc}
           </p>
 
@@ -136,7 +139,6 @@ function InformasiFungsiCard({
               "
             >
               <div className="flex items-center gap-3">
-
                 {/* Title */}
                 <span
                   className={`
@@ -209,7 +211,6 @@ function InformasiFungsiCard({
               </div>
             </motion.div>
           </div>
-
         </div>
       </div>
     </motion.div>
@@ -226,15 +227,22 @@ export default function InformasiFungsi() {
   useEffect(() => {
     fetch(`${API}/informasi-fungsi`)
       .then((res) => res.json())
-      .then((json) => setData(json))
+      .then((json) => {
+        // 🔥 pastikan ambil array
+        if (Array.isArray(json)) {
+          setData(json);
+        } else if (Array.isArray(json.data)) {
+          setData(json.data);
+        } else {
+          console.error("Response bukan array:", json);
+          setData([]);
+        }
+      })
       .catch(console.error);
   }, []);
 
   return (
-    <section
-      id="informasi"
-      className="w-full flex justify-center px-4 mt-24"
-    >
+    <section id="informasi" className="w-full flex justify-center px-4 mt-24">
       <div className="max-w-6xl w-full px-6 lg:px-14 py-16">
         {/* HEADER */}
         <div className="text-center mb-14">
@@ -246,7 +254,9 @@ export default function InformasiFungsi() {
           </h2>
 
           <p className="text-gray-600 mt-3 max-w-2xl mx-auto leading-relaxed">
-            Berikut adalah informasi mengenai fungsi dan peran di Balai Besar POM di Palembang yang dapat menjadi pilihan bidang magang sesuai minat dan latar belakang pendidikan Anda.
+            Berikut adalah informasi mengenai fungsi dan peran di Balai Besar
+            POM di Palembang yang dapat menjadi pilihan bidang magang sesuai
+            minat dan latar belakang pendidikan Anda.
           </p>
         </div>
 

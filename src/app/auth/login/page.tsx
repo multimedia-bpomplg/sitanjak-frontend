@@ -11,10 +11,12 @@ import {
   HiEye,
   HiEyeOff,
   HiArrowLeft,
+  HiMailOpen,
 } from "react-icons/hi";
 
 import TurnstileCaptcha from "@/components/TurnstileCaptcha";
 import { loginApi } from "@/app/lib/api";
+import OtpLogin from "./components/OtpLogin";
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -35,6 +37,7 @@ export default function LoginPage() {
   const [captchaKey, setCaptchaKey] = useState(0);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showOtpLogin, setShowOtpLogin] = useState(false);
 
   const [toast, setToast] = useState<{
     show: boolean;
@@ -58,7 +61,23 @@ export default function LoginPage() {
     }
   }, [router]);
 
-  /* ===================== SUBMIT ===================== */
+  /* ===================== HANDLE LOGIN SUCCESS ===================== */
+  const handleLoginSuccess = (data: any) => {
+    document.cookie = `token=${data.token}; path=/`;
+    document.cookie = `roles=${JSON.stringify(data.roles)}; path=/`;
+
+    localStorage.setItem("token", data.token);
+    localStorage.setItem("roles", JSON.stringify(data.roles));
+
+    setToast({ show: false, type: "loading", message: "" });
+    setSuccessPopup(true);
+
+    setTimeout(() => {
+      redirectByRole(data.roles || [], router);
+    }, 1200);
+  };
+
+  /* ===================== SUBMIT LOGIN PASSWORD ===================== */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -68,7 +87,6 @@ export default function LoginPage() {
         type: "error",
         message: "Format email tidak valid. Contoh: nama@email.com",
       });
-
       return;
     }
 
@@ -78,13 +96,10 @@ export default function LoginPage() {
         type: "error",
         message: "Silakan verifikasi CAPTCHA terlebih dahulu",
       });
-
       return;
     }
 
     setLoading(true);
-
-    // SHOW LOADING TOAST
     setToast({
       show: true,
       type: "loading",
@@ -98,59 +113,36 @@ export default function LoginPage() {
         captchaToken,
       });
 
-      // ===================== CEK STATUS AKUN =====================
       const accountStatus = data.status || data.user?.status || "Aktif";
 
       if (accountStatus === "Nonaktif") {
-        // tutup loading
         setToast({ show: false, type: "loading", message: "" });
-
-        // tampilkan notifikasi
         setToast({
           show: true,
           type: "error",
           message: "Akun Anda Nonaktif, silakan hubungi Admin",
         });
-
-        // reset captcha
         setCaptchaToken("");
         setCaptchaKey((prev) => prev + 1);
-
         setLoading(false);
-
-        return; // ⛔ STOP LOGIN DI SINI
+        return;
       }
 
-      // ===================== BARU SIMPAN TOKEN =====================
-      document.cookie = `token=${data.token}; path=/`;
-      document.cookie = `roles=${JSON.stringify(data.roles)}; path=/`;
-
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("roles", JSON.stringify(data.roles));
-
-      setToast({ show: false, type: "loading", message: "" });
-      setSuccessPopup(true);
-      setLoading(false);
-
-      setTimeout(() => {
-        redirectByRole(data.roles || [], router);
-      }, 1200);
+      handleLoginSuccess(data);
     } catch (err: any) {
       setToast({ show: false, type: "loading", message: "" });
-
       setToast({
         show: true,
         type: "error",
         message: err.message || "Email atau password salah",
       });
-
       setCaptchaToken("");
       setCaptchaKey((prev) => prev + 1);
-
       setLoading(false);
     }
   };
 
+  /* ===================== COMPONENTS ===================== */
   const AuthOverlay = ({
     type,
     message,
@@ -164,10 +156,7 @@ export default function LoginPage() {
 
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center">
-        {/* BACKDROP */}
         <div className="absolute inset-0 bg-black/40 backdrop-blur-md" />
-
-        {/* CARD */}
         <div
           className="
             relative w-full max-w-sm
@@ -179,10 +168,8 @@ export default function LoginPage() {
             animate-scaleIn
           "
         >
-          {/* ICON */}
           {isLoading ? (
             <div className="relative mx-auto mb-6 w-24 h-24">
-              {/* OUTER ORBIT */}
               <div
                 className="
                 absolute inset-0
@@ -193,8 +180,6 @@ export default function LoginPage() {
                 animate-orbitFast
               "
               />
-
-              {/* INNER ORBIT */}
               <div
                 className="
                 absolute inset-3
@@ -205,8 +190,6 @@ export default function LoginPage() {
                 animate-orbitSlow
               "
               />
-
-              {/* CENTER ICON */}
               <div
                 className="
                 absolute inset-6
@@ -239,15 +222,12 @@ export default function LoginPage() {
             </div>
           )}
 
-          {/* TITLE */}
           <h3 className="text-xl font-extrabold text-gray-800">
             {isLoading ? "Memproses Login" : "Login Gagal"}
           </h3>
 
-          {/* MESSAGE */}
           <p className="mt-2 text-sm text-gray-600">{message}</p>
 
-          {/* ACTION */}
           {!isLoading && (
             <button
               onClick={onClose}
@@ -266,52 +246,10 @@ export default function LoginPage() {
     );
   };
 
-  const Toast = ({
-    type,
-    message,
-  }: {
-    type: "loading" | "error";
-    message: string;
-  }) => {
-    const config = {
-      loading: {
-        bg: "bg-blue-600",
-        icon: "⏳",
-      },
-      error: {
-        bg: "bg-red-600",
-        icon: "❌",
-      },
-    };
-
-    const c = config[type];
-
-    return (
-      <div className="fixed top-6 right-6 z-50 animate-slideIn">
-        <div
-          className={`
-            ${c.bg}
-            text-white
-            px-5 py-3
-            rounded-xl
-            shadow-lg
-            flex items-center gap-3
-          `}
-        >
-          <span className="text-lg">{c.icon}</span>
-          <span className="text-sm font-medium">{message}</span>
-        </div>
-      </div>
-    );
-  };
-
   const SuccessPopup = () => {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center">
-        {/* BACKDROP */}
         <div className="absolute inset-0 bg-black/40 backdrop-blur-md" />
-
-        {/* CARD */}
         <div
           className="
             relative
@@ -324,9 +262,7 @@ export default function LoginPage() {
             animate-scaleIn
           "
         >
-          {/* RING + CHECK */}
           <div className="relative mx-auto mb-6 w-24 h-24">
-            {/* RING */}
             <div
               className="
               absolute inset-0
@@ -337,8 +273,6 @@ export default function LoginPage() {
               animate-orbitSlow
             "
             />
-
-            {/* CENTER CHECK */}
             <div
               className="
               absolute inset-4
@@ -412,141 +346,188 @@ export default function LoginPage() {
           >
             <HiArrowLeft className="text-lg" />
           </span>
-
           <span>Kembali</span>
         </Link>
 
         <div className="w-full max-w-lg bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl p-10">
-          <h1 className="text-3xl font-extrabold text-center text-[#7F1D1D] mb-2">
-            Masuk ke Akun
-          </h1>
-
-          <div className="flex justify-center my-4">
-            <Image
-              src="/images/icons/sitanjak.png"
-              alt="Logo"
-              width={100}
-              height={100}
+          {showOtpLogin ? (
+            <OtpLogin
+              onBack={() => setShowOtpLogin(false)}
+              onLoginSuccess={handleLoginSuccess}
             />
-          </div>
+          ) : (
+            <>
+              <h1 className="text-3xl font-extrabold text-center text-[#7F1D1D] mb-2">
+                Masuk ke Akun
+              </h1>
 
-          <p className="text-center text-gray-600 mb-6">
-            Silakan login untuk melanjutkan
-          </p>
+              <div className="flex justify-center my-4">
+                <Image
+                  src="/images/icons/sitanjak.png"
+                  alt="Logo"
+                  width={100}
+                  height={100}
+                />
+              </div>
 
-          <form onSubmit={handleSubmit} noValidate className="space-y-5">
-            {/* EMAIL */}
-            <div className="relative">
-              <HiMail
-                className="absolute left-4 top-3.5 text-[#B91C1C]"
-                size={20}
-              />
-              <input
-                type="email"
-                placeholder="Email"
-                className="
-                  w-full pl-12 pr-4 py-3
-                  rounded-xl
-                  bg-white
-                  border border-gray-300
-                  text-gray-800
-                  placeholder:text-gray-400
-                  focus:outline-none 
-                  focus:ring-2 focus:ring-[#FACC15] 
-                  focus:border-[#F59E0B]
-                "
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-                required
-              />
-            </div>
+              <p className="text-center text-gray-600 mb-6">
+                Silakan login untuk melanjutkan
+              </p>
 
-            {/* PASSWORD */}
-            <div className="relative">
-              <HiLockClosed
-                className="absolute left-4 top-3.5 text-[#B91C1C]"
-                size={20}
-              />
+              <form onSubmit={handleSubmit} noValidate className="space-y-5">
+                {/* EMAIL */}
+                <div className="relative">
+                  <HiMail
+                    className="absolute left-4 top-3.5 text-[#B91C1C]"
+                    size={20}
+                  />
+                  <input
+                    type="email"
+                    placeholder="Email"
+                    className="
+                      w-full pl-12 pr-4 py-3
+                      rounded-xl
+                      bg-white
+                      border border-gray-300
+                      text-gray-800
+                      placeholder:text-gray-400
+                      focus:outline-none 
+                      focus:ring-2 focus:ring-[#FACC15] 
+                      focus:border-[#F59E0B]
+                    "
+                    value={form.email}
+                    onChange={(e) =>
+                      setForm({ ...form, email: e.target.value })
+                    }
+                    required
+                  />
+                </div>
 
-              <input
-                type={showPassword ? "text" : "password"}
-                placeholder="Password"
-                className="
-                  w-full pl-12 pr-12 py-3
-                  rounded-xl
-                  bg-white
-                  border border-gray-300
-                  text-gray-800
-                  placeholder:text-gray-400
-                  focus:outline-none 
-                  focus:ring-2 focus:ring-[#FACC15] 
-                  focus:border-[#F59E0B]
-                "
-                value={form.password}
-                onChange={(e) => setForm({ ...form, password: e.target.value })}
-                required
-              />
+                {/* PASSWORD */}
+                <div className="relative">
+                  <HiLockClosed
+                    className="absolute left-4 top-3.5 text-[#B91C1C]"
+                    size={20}
+                  />
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Password"
+                    className="
+                      w-full pl-12 pr-12 py-3
+                      rounded-xl
+                      bg-white
+                      border border-gray-300
+                      text-gray-800
+                      placeholder:text-gray-400
+                      focus:outline-none 
+                      focus:ring-2 focus:ring-[#FACC15] 
+                      focus:border-[#F59E0B]
+                    "
+                    value={form.password}
+                    onChange={(e) =>
+                      setForm({ ...form, password: e.target.value })
+                    }
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((p) => !p)}
+                    className="absolute right-4 top-3.5 text-gray-500 hover:text-blue-600"
+                  >
+                    {showPassword ? (
+                      <HiEyeOff size={20} />
+                    ) : (
+                      <HiEye size={20} />
+                    )}
+                  </button>
+                </div>
+
+                {/* PASSWORD ACTIONS */}
+                <div className="flex justify-end text-sm text-gray-500">
+                  <Link
+                    href="/auth/lupa-password"
+                    className="
+                      font-medium
+                      text-[#7F1D1D]
+                      hover:text-[#B91C1C]
+                      hover:underline
+                    "
+                  >
+                    Lupa password?
+                  </Link>
+                </div>
+
+                {/* CAPTCHA */}
+                <div className="flex justify-center">
+                  <TurnstileCaptcha
+                    key={captchaKey}
+                    onVerify={setCaptchaToken}
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="
+                    w-full flex items-center justify-center gap-2
+                    py-3 rounded-xl
+                    font-semibold text-white
+                    bg-linear-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
+                    hover:brightness-110
+                    transition
+                    disabled:opacity-60
+                  "
+                >
+                  <HiOutlineLogin size={20} />
+                  Login
+                </button>
+              </form>
+
+              <p className="text-center text-black mt-6">
+                Belum melakukan pengajuan?{" "}
+                <Link
+                  href="/pendaftaran"
+                  className="text-blue-700 font-semibold hover:underline"
+                >
+                  Daftar
+                </Link>
+              </p>
+
+              {/* TOMBOL LOGIN DENGAN EMAIL OTP */}
+              <div className="relative my-4">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-white text-gray-500">Atau</span>
+                </div>
+              </div>
 
               <button
-                type="button"
-                onClick={() => setShowPassword((p) => !p)}
-                className="absolute right-4 top-3.5 text-gray-500 hover:text-blue-600"
-              >
-                {showPassword ? <HiEyeOff size={20} /> : <HiEye size={20} />}
-              </button>
-            </div>
-
-            {/* PASSWORD ACTIONS */}
-            <div className="flex justify-end text-sm text-gray-500">
-              <Link
-                href="/auth/lupa-password"
+                onClick={() => setShowOtpLogin(true)}
                 className="
-                  font-medium
-                  text-[#7F1D1D]
-                  hover:text-[#B91C1C]
-                  hover:underline
+                  w-full flex items-center justify-center gap-2
+                  py-3 rounded-xl
+                  font-medium text-[#7F1D1D]
+                  bg-white
+                  border-2 border-[#7F1D1D]
+                  hover:bg-[#7F1D1D] hover:text-white
+                  transition-all duration-300
+                  group
                 "
               >
-                Lupa password?
-              </Link>
-            </div>
+                <HiMailOpen
+                  size={20}
+                  className="group-hover:text-white transition-colors"
+                />
+                Login dengan Email OTP
+              </button>
 
-            {/* CAPTCHA */}
-            <div className="flex justify-center">
-              <TurnstileCaptcha key={captchaKey} onVerify={setCaptchaToken} />
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="
-                w-full flex items-center justify-center gap-2
-                py-3 rounded-xl
-                font-semibold text-white
-                bg-linear-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
-                hover:brightness-110
-                transition
-                disabled:opacity-60
-              "
-            >
-              <HiOutlineLogin size={20} />
-              Login
-            </button>
-          </form>
-
-          <p className="text-center text-black mt-6">
-            Belum melakukan pengajuan?{" "}
-            <Link
-              href="/pendaftaran"
-              className="text-blue-700 font-semibold hover:underline"
-            >
-              Daftar
-            </Link>
-          </p>
-
-          <p className="mt-6 text-center text-xs text-gray-500">
-            © BPOM System • Role Based Access
-          </p>
+              <p className="mt-6 text-center text-xs text-gray-500">
+                © BPOM System • Role Based Access
+              </p>
+            </>
+          )}
         </div>
       </div>
 

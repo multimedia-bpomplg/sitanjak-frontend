@@ -3,6 +3,8 @@ const nextConfig = {
   reactStrictMode: true,
 
   images: {
+    unoptimized: true, // ⬅️ TAMBAHKAN INI
+
     remotePatterns: [
       {
         protocol: "http",
