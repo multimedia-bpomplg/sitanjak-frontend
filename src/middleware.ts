@@ -11,9 +11,10 @@ export async function middleware(req: NextRequest) {
     path === "/" ||
     path.startsWith("/auth") ||
     path.startsWith("/maintenance") ||
+    path.startsWith("/pendaftaran") ||
     path.startsWith("/403") ||
-    path.startsWith("/_next") || // penting
-    path.startsWith("/images") // 🔥 TAMBAHKAN INI
+    path.startsWith("/_next") ||
+    path.startsWith("/images")
   ) {
     return NextResponse.next();
   }
