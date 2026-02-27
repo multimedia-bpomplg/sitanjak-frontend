@@ -8,12 +8,12 @@ export async function middleware(req: NextRequest) {
   // 🚫 PUBLIC ROUTES
   // ===============================
   if (
-    path === "/" || // ⬅️ TAMBAHKAN INI
-    path.startsWith("/auth/login") ||
-    path.startsWith("/auth/core-gateway") ||
+    path === "/" ||
+    path.startsWith("/auth") ||
     path.startsWith("/maintenance") ||
     path.startsWith("/403") ||
-    path.startsWith("/_next")
+    path.startsWith("/_next") || // penting
+    path.startsWith("/images") // 🔥 TAMBAHKAN INI
   ) {
     return NextResponse.next();
   }
