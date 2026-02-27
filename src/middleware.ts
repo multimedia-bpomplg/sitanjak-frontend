@@ -8,6 +8,7 @@ export async function middleware(req: NextRequest) {
   // 🚫 PUBLIC ROUTES
   // ===============================
   if (
+    path === "/" || // ⬅️ TAMBAHKAN INI
     path.startsWith("/auth/login") ||
     path.startsWith("/auth/core-gateway") ||
     path.startsWith("/maintenance") ||
