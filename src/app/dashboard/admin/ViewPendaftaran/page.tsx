@@ -853,7 +853,7 @@ export default function ViewPendaftaranPage() {
                           Peserta {i + 1}
                         </h3>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
                         {editPosisiIndex === i ? (
                           <>
                             <select
@@ -873,7 +873,7 @@ export default function ViewPendaftaranPage() {
                                 setPosisiBaru(val);
                               }}
                               disabled={loadingFormasi}
-                              className="w-full sm:w-auto text-xs px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800"
+                              className="w-full sm:w-56 text-xs px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800"
                             >
                               <option value="">Pilih Posisi</option>
                               {formasiList.map((f) => (
@@ -1398,11 +1398,16 @@ function DetailItem({
   icon: React.ReactNode;
 }) {
   return (
-    <div className="flex items-start gap-2">
-      <div className="mt-0.5 text-[#B91C1C] dark:text-indigo-400">{icon}</div>
-      <div>
-        <p className="text-xs text-slate-500 dark:text-slate-400">{label}</p>
-        <p className="font-medium text-slate-800 dark:text-white">
+    <div className="flex items-start gap-2 min-w-0">
+      <div className="mt-0.5 text-[#B91C1C] dark:text-indigo-400 shrink-0">
+        {icon}
+      </div>
+      <div className="min-w-0 w-full">
+        <p className="text-xs text-slate-500 dark:text-slate-400">
+          {label}
+        </p>
+
+        <p className="font-medium text-slate-800 dark:text-white wrap-break-word">
           {value || "-"}
         </p>
       </div>

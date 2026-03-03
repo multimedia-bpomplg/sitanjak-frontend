@@ -15,7 +15,6 @@ import {
   HiArrowLeft,
   HiClipboardList,
   HiCalendar,
-  HiDownload,
   HiDocument,
 } from "react-icons/hi";
 import { fetchFormasi, IFormasi } from "@/services/formasiService";
@@ -589,18 +588,6 @@ function PendaftaranForm() {
     setPendingSubmit(false);
   };
 
-  /* ================== DOWNLOAD TEMPLATE ================== */
-  const handleDownloadTemplate = () => {
-    const templateUrl = "/pdf/template-surat-pengantar-magang.pdf";
-    const link = document.createElement("a");
-    link.href = templateUrl;
-    link.download = "Template_Surat_Pengantar_Magang.pdf";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    toast.info("📥 Template surat pengantar sedang diunduh...");
-  };
-
   const searchParams = useSearchParams();
 
   const [formasiList, setFormasiList] = useState<IFormasi[]>([]);
@@ -765,15 +752,17 @@ function PendaftaranForm() {
         >
           <div>
             <h3 className="text-sm sm:text-base font-semibold text-gray-800">
-              Template surat pengantar tersedia di sini
+              Contoh Surat Pengantar
             </h3>
             <p className="text-xs sm:text-sm text-gray-500">
-              Unduh template resmi surat pengantar magang.
+              Tersedia sebagai referensi, penggunaan bersifat opsional.
             </p>
           </div>
 
-          <button
-            onClick={handleDownloadTemplate}
+          <a
+            href="https://docs.google.com/document/d/1JiVL8Sg6XiHHs8RBlX5pZZ9zFQTBNWepQfTSwcsa1YU/edit?usp=sharing"
+            target="_blank"
+            rel="noopener noreferrer"
             className="
               inline-flex items-center justify-center gap-2
               w-full md:w-auto
@@ -786,9 +775,9 @@ function PendaftaranForm() {
               transition
             "
           >
-            <HiDownload className="text-lg" />
-            Download Template
-          </button>
+            <HiDocument className="text-lg" />
+            Buka Template
+          </a>
         </div>
       </div>
 

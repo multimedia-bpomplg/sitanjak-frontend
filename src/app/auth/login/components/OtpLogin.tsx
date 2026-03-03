@@ -1,46 +1,67 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { HiMail, HiArrowLeft, HiOutlineLogin } from "react-icons/hi";
 import { loginWithOtpApi, verifyOtpLoginApi } from "@/app/lib/api";
+import Image from "next/image";
 
 interface OtpLoginProps {
   onBack: () => void;
   onLoginSuccess: (data: any) => void;
+  setToast: any;
+  setSuccessPopup: any;
 }
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export default function OtpLogin({ onBack, onLoginSuccess }: OtpLoginProps) {
+export default function OtpLogin({ onBack, onLoginSuccess, setToast, setSuccessPopup, }: OtpLoginProps) {
   const [step, setStep] = useState<"email" | "otp">("email");
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const [countdown, setCountdown] = useState(0);
-  const [successMessage, setSuccessMessage] = useState("");
   const [verifyBlocked, setVerifyBlocked] = useState(false);
   const [blockCountdown, setBlockCountdown] = useState(0);
+
+  const otpLength = 6;
+  const [otpValues, setOtpValues] = useState<string[]>(
+    Array(otpLength).fill("")
+  );
+
+  const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
 
   // Kirim OTP ke email
   const handleRequestOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
 
     if (!emailRegex.test(email)) {
-      setError("Format email tidak valid");
+      setToast({
+        show: true,
+        type: "error",
+        message: "Format email tidak valid",
+      });
       return;
     }
 
     setLoading(true);
+    setToast({
+      show: true,
+      type: "loading",
+      message: "Mengirim kode OTP...",
+    });
+
     try {
       const response = await loginWithOtpApi({ email });
-      setSuccessMessage(
-        response.message || "Kode OTP telah dikirim ke email Anda",
-      );
-      setStep("otp");
 
-      // Start countdown 60 detik untuk request ulang
+      setToast({ show: false, type: "loading", message: "" });
+
+      setSuccessPopup(true);
+
+      setTimeout(() => {
+        setSuccessPopup(false);
+        setStep("otp");
+      }, 1000);
+
       setCountdown(60);
       const timer = setInterval(() => {
         setCountdown((prev) => {
@@ -52,7 +73,11 @@ export default function OtpLogin({ onBack, onLoginSuccess }: OtpLoginProps) {
         });
       }, 1000);
     } catch (err: any) {
-      setError(err.message || "Gagal mengirim OTP");
+      setToast({
+        show: true,
+        type: "error",
+        message: err.message || "Gagal mengirim OTP",
+      });
     } finally {
       setLoading(false);
     }
@@ -61,30 +86,48 @@ export default function OtpLogin({ onBack, onLoginSuccess }: OtpLoginProps) {
   // Verifikasi OTP
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
 
     if (otp.length !== 6) {
-      setError("Kode OTP harus 6 digit");
+      setToast({
+        show: true,
+        type: "error",
+        message: "Kode OTP harus 6 digit",
+      });
       return;
     }
 
     if (verifyBlocked) return;
 
     setLoading(true);
+    setToast({
+      show: true,
+      type: "loading",
+      message: "Memverifikasi OTP...",
+    });
+
     try {
       const response = await verifyOtpLoginApi({ email, otp });
-      onLoginSuccess(response);
+
+      setToast({ show: false, type: "loading", message: "" });
+      setSuccessPopup(true);
+
+      setTimeout(() => {
+        onLoginSuccess(response);
+      }, 1000);
     } catch (err: any) {
-      // 🔥 DETEKSI 429
+      setToast({ show: false, type: "loading", message: "" });
+
       if (err?.status === 429) {
-        setError(
-          err.message ||
+        setToast({
+          show: true,
+          type: "error",
+          message:
+            err.message ||
             "Terlalu banyak percobaan. Silakan tunggu sebelum mencoba lagi.",
-        );
+        });
 
         setVerifyBlocked(true);
 
-        // Misal blokir 60 detik (atau ambil dari backend kalau ada)
         const blockTime = 60;
         setBlockCountdown(blockTime);
 
@@ -99,7 +142,11 @@ export default function OtpLogin({ onBack, onLoginSuccess }: OtpLoginProps) {
           });
         }, 1000);
       } else {
-        setError(err.message || "Kode OTP tidak valid");
+        setToast({
+          show: true,
+          type: "error",
+          message: err.message || "Kode OTP tidak valid",
+        });
       }
     } finally {
       setLoading(false);
@@ -110,11 +157,19 @@ export default function OtpLogin({ onBack, onLoginSuccess }: OtpLoginProps) {
   const handleResendOtp = async () => {
     if (countdown > 0) return;
 
-    setError("");
     setLoading(true);
+    setToast({
+      show: true,
+      type: "loading",
+      message: "Mengirim ulang OTP...",
+    });
+
     try {
-      const response = await loginWithOtpApi({ email });
-      setSuccessMessage("Kode OTP baru telah dikirim");
+      await loginWithOtpApi({ email });
+
+      setToast({ show: false, type: "loading", message: "" });
+      setSuccessPopup(true);
+
       setCountdown(60);
 
       const timer = setInterval(() => {
@@ -127,51 +182,83 @@ export default function OtpLogin({ onBack, onLoginSuccess }: OtpLoginProps) {
         });
       }, 1000);
     } catch (err: any) {
-      setError(err.message || "Gagal mengirim ulang OTP");
+      setToast({
+        show: true,
+        type: "error",
+        message: err.message || "Gagal mengirim ulang OTP",
+      });
     } finally {
       setLoading(false);
     }
   };
 
+  const handleOtpChange = (value: string, index: number) => {
+    if (!/^\d?$/.test(value)) return;
+
+    const newOtp = [...otpValues];
+    newOtp[index] = value;
+    setOtpValues(newOtp);
+
+    if (value && index < otpLength - 1) {
+      inputsRef.current[index + 1]?.focus();
+    }
+
+    setOtp(newOtp.join(""));
+  };
+
+  const handleOtpKeyDown = (e: React.KeyboardEvent, index: number) => {
+    if (e.key === "Backspace" && !otpValues[index] && index > 0) {
+      inputsRef.current[index - 1]?.focus();
+    }
+  };
+
+  const handleOtpPaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const pasteData = e.clipboardData.getData("text").slice(0, otpLength);
+    if (!/^\d+$/.test(pasteData)) return;
+
+    const newOtp = pasteData.split("");
+    setOtpValues(newOtp);
+    setOtp(newOtp.join(""));
+
+    newOtp.forEach((digit, i) => {
+      if (inputsRef.current[i]) {
+        inputsRef.current[i]!.value = digit;
+      }
+    });
+  };
+
   return (
-    <div className="w-full">
-      {/* Header */}
-      <button
-        onClick={onBack}
-        className="flex items-center gap-2 text-gray-600 hover:text-[#7F1D1D] mb-6 transition-colors"
-      >
-        <HiArrowLeft />
-        <span>Kembali ke pilihan login</span>
-      </button>
+    <div className="w-full space-y-6 animate-fadeIn">
+      <h1 className="text-3xl font-extrabold text-center text-[#7F1D1D] mb-2">
+        Login Email OTP
+      </h1>
 
-      <h2 className="text-2xl font-bold text-[#7F1D1D] mb-4">
-        Login dengan Email OTP
-      </h2>
+      <div className="flex justify-center my-4">
+        <Image
+          src="/images/icons/sitanjak.png"
+          alt="Logo"
+          width={100}
+          height={100}
+        />
+      </div>
 
-      {/* Success Message */}
-      {successMessage && (
-        <div className="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded-lg text-sm">
-          {successMessage}
-        </div>
-      )}
-
-      {/* Error Message */}
-      {error && (
-        <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm">
-          {error}
-        </div>
-      )}
+      <p className="text-center text-gray-600 mb-8">
+        Masukkan email untuk menerima kode OTP
+      </p>
+      
 
       {step === "email" ? (
         // FORM EMAIL
-        <form onSubmit={handleRequestOtp} className="space-y-5">
+        <form onSubmit={handleRequestOtp} noValidate className="space-y-5">
           <div className="relative">
             <HiMail
               className="absolute left-4 top-3.5 text-[#B91C1C]"
               size={20}
             />
             <input
-              type="email"
+              type="text"
+              inputMode="email"
               placeholder="Masukkan email Anda"
               className="
                 w-full pl-12 pr-4 py-3
@@ -186,7 +273,6 @@ export default function OtpLogin({ onBack, onLoginSuccess }: OtpLoginProps) {
               "
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              required
               disabled={loading}
             />
           </div>
@@ -220,38 +306,50 @@ export default function OtpLogin({ onBack, onLoginSuccess }: OtpLoginProps) {
       ) : (
         // FORM OTP
         <form onSubmit={handleVerifyOtp} className="space-y-5">
-          <div>
-            <label className="block text-sm text-gray-600 mb-2">
-              Kode OTP telah dikirim ke:
-            </label>
-            <p className="font-medium text-[#7F1D1D] bg-[#FEF3C7] p-2 rounded-lg text-center">
-              {email}
-            </p>
+          <div className="bg-[#FFF7ED] border border-[#FACC15]/40 rounded-xl p-3 text-center">
+            <p className="text-sm text-gray-600">Kode OTP dikirim ke:</p>
+            <p className="font-semibold text-[#7F1D1D]">{email}</p>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Masukkan Kode OTP (6 digit)
             </label>
-            <input
-              type="text"
-              placeholder="000000"
-              maxLength={6}
-              className="
-                w-full px-4 py-3 text-center text-2xl tracking-widest
-                rounded-xl
-                bg-white
-                border border-gray-300
-                text-gray-800
-                focus:outline-none 
-                focus:ring-2 focus:ring-[#FACC15] 
-                focus:border-[#F59E0B]
-              "
-              value={otp}
-              onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
-              required
-              disabled={loading}
-            />
+            <div
+              className="flex justify-center gap-3"
+              onPaste={handleOtpPaste}
+            >
+              {otpValues.map((digit, index) => (
+                <input
+                  key={index}
+                  ref={(el) => {
+                    inputsRef.current[index] = el;
+                  }}
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={1}
+                  value={digit}
+                  onChange={(e) =>
+                    handleOtpChange(e.target.value, index)
+                  }
+                  onKeyDown={(e) => handleOtpKeyDown(e, index)}
+                  disabled={loading}
+                  className="
+                    w-12 h-14
+                    text-black
+                    text-center text-xl font-bold
+                    rounded-xl
+                    border border-gray-300
+                    bg-white
+                    focus:outline-none
+                    focus:ring-2 focus:ring-[#FACC15]
+                    focus:border-[#F59E0B]
+                    transition-all
+                    shadow-sm
+                  "
+                />
+              ))}
+            </div>
           </div>
 
           <button

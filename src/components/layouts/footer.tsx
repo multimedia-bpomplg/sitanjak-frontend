@@ -99,7 +99,7 @@ export default function Footer() {
               alt="Logo Instansi"
               width={100}
               height={100}
-              className="h-auto w-auto drop-shadow-[0_6px_14px_rgba(0,0,0,0.45)]"
+              className="h-28 w-28 drop-shadow-[0_6px_14px_rgba(0,0,0,0.45)]"
             />
 
             <h3 className="text-xl font-bold mt-3">Balai Besar POM Palembang</h3>
@@ -156,7 +156,7 @@ export default function Footer() {
           <p className="text-white/60">
             Developed with ❤️ by{" "}
             <Link
-              href="/developer"
+              href="/aboutdev"
               className="underline hover:text-[#FACC15] transition"
             >
               Tim Pengembang
