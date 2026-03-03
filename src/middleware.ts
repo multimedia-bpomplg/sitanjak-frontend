@@ -5,47 +5,70 @@ export async function middleware(req: NextRequest) {
   const path = req.nextUrl.pathname;
 
   // ===============================
-  // 🚫 PUBLIC ROUTES
+  // BIARKAN ASSET LEWAT
   // ===============================
   if (
-    path === "/" ||
-    path.startsWith("/auth") ||
-    path.startsWith("/maintenance") ||
-    path.startsWith("/pendaftaran") ||
-    path.startsWith("/403") ||
     path.startsWith("/_next") ||
-    path.startsWith("/images")
+    path.startsWith("/images") ||
+    path.startsWith("/favicon.ico") ||
+    path.startsWith("/api")
   ) {
     return NextResponse.next();
   }
 
   // ===============================
-  // 🔥 CEK MAINTENANCE
+  // 🔥 CEK MAINTENANCE DULU
   // ===============================
   try {
     const res = await fetch(
       `${process.env.NEXT_PUBLIC_API_URL}/maintenance/status`,
+      { cache: "no-store" },
     );
+
     const data = await res.json();
 
-    if (data.isActive) {
-      const allowedPaths = [
-        "/maintenance",
-        "/auth/core-gateway",
-        "/dashboard/superadmin",
-      ];
-
-      // Kalau path termasuk yang diizinkan
-      if (allowedPaths.some((allowed) => path.startsWith(allowed))) {
+    if (data?.isActive === true) {
+      // izinkan halaman maintenance
+      if (path.startsWith("/maintenance")) {
         return NextResponse.next();
       }
 
+      // izinkan core-gateway
+      if (path.startsWith("/auth/core-gateway")) {
+        return NextResponse.next();
+      }
+
+      // izinkan superadmin
+      if (token) {
+        try {
+          const payload = JSON.parse(atob(token.split(".")[1]));
+          if (payload?.roles?.includes("superadmin")) {
+            return NextResponse.next();
+          }
+        } catch {}
+      }
+
+      // selain itu redirect
       return NextResponse.redirect(new URL("/maintenance", req.url));
     }
-  } catch {}
+  } catch (err) {
+    console.error("Maintenance fetch error:", err);
+  }
 
   // ===============================
-  // 🔐 AUTH PROTECTION
+  // PUBLIC ROUTES (HANYA JIKA MAINTENANCE OFF)
+  // ===============================
+  if (
+    path === "/" ||
+    path.startsWith("/auth") ||
+    path.startsWith("/pendaftaran") ||
+    path.startsWith("/403")
+  ) {
+    return NextResponse.next();
+  }
+
+  // ===============================
+  // AUTH PROTECTION
   // ===============================
   if (!token) {
     return NextResponse.redirect(new URL("/auth/login", req.url));
@@ -55,5 +78,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next|api|favicon.ico).*)"],
+  matcher: ["/:path*"],
 };
