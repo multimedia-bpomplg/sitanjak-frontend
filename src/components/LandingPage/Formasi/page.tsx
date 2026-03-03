@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   HiOutlineOfficeBuilding,
   HiUsers,
-  HiAcademicCap,
+  HiCalendar,
   HiCheckCircle,
   HiInformationCircle,
   HiRefresh,
@@ -29,37 +29,6 @@ const createSlug = (title: string): string => {
   };
 
   return slugMap[title] || title.toLowerCase().replace(/\s+/g, "-");
-};
-
-const JURUSAN_BY_TITLE: Record<string, string[]> = {
-  "Fungsi Penindakan": [
-    "Ilmu Hukum",
-    "Hukum Pidana",
-    "Kriminologi",
-    "Hukum Administrasi Negara",
-  ],
-  "Fungsi Pengujian": [
-    "Kimia",
-    "Farmasi",
-    "Biologi",
-  ],
-  "Fungsi Pemeriksaan (Inspeksi dan sertifikasi)": [
-    "Farmasi",
-    "Teknik Informatika",
-    "Hukum",
-    "Kesehatan Masyarakat",
-  ],
-  "Fungsi Informasi dan Komunikasi": [
-    "Kesehatan Masyarakat",
-    "Hukum",
-    "Sistem Informasi",
-  ],
-  "Bagian Tata Usaha": [
-    "Administrasi",
-    "Akuntansi",
-    "Teknik Informatika",
-    "Perkantoran"
-  ],
 };
 
 export default function Formasi() {
@@ -267,8 +236,6 @@ export default function Formasi() {
                 const slug = createSlug(item.title);
                 const isFull = item.sisaKuota === 0;
 
-                const jurusanList = JURUSAN_BY_TITLE[item.title] || [];
-
                 return (
                   <div
                     key={item._id}
@@ -323,52 +290,6 @@ export default function Formasi() {
                         Balai Besar POM Palembang
                       </p>
 
-                      {/* ================= JURUSAN ================= */}
-                      <div className="mb-5">
-                        <p className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
-                          <HiAcademicCap className="text-[#7F1D1D]" />
-                          Jurusan yang Diterima
-                        </p>
-
-                        {jurusanList.length > 0 ? (
-                          <div className="flex flex-wrap gap-2">
-                            {jurusanList.map((jur, idx) => (
-                              <span
-                                key={idx}
-                                className="
-                                  text-xs
-                                  px-3 py-1
-                                  rounded-full
-                                  bg-blue-30
-                                  text-blue-700
-                                  border border-blue-400
-                                  hover:bg-blue-200
-                                  transition
-                                "
-                              >
-                                {jur}
-                              </span>
-                            ))}
-
-                            <span
-                              className="
-                                text-xs
-                                px-3 py-1
-                                rounded-full
-                                bg-blue-400
-                                text-white
-                              "
-                            >
-                              Lainnya
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-gray-400 italic">
-                            Semua jurusan diperbolehkan
-                          </span>
-                        )}
-                      </div>
-
                       {/* ================= SISA KUOTA ================= */}
                       <div className="text-center py-6 bg-white/30 rounded-2xl mb-6">
                         <p className="text-xs text-gray-600 mb-2 tracking-wide">
@@ -409,34 +330,6 @@ export default function Formasi() {
                             {item.jumlahPendaftar}
                           </span>
                         </div>
-
-                        {/* 🔥 PREDIKSI */}
-                        {isFull && prediksi[item.title] && (
-                          <div className="mt-2 p-2 rounded-xl bg-white/60 border text-xs text-gray-700">
-                            <p className="font-semibold text-[#7F1D1D]">
-                              Prediksi Kuota
-                            </p>
-
-                            <p>
-                              Akan tersedia{" "}
-                              <b>{prediksi[item.title].slotAkanKosong}</b> slot
-                            </p>
-
-                            <p>
-                              Mulai{" "}
-                              <b>
-                                {formatDate(prediksi[item.title].tersediaMulai)}
-                              </b>
-                            </p>
-
-                            {/* Tampilkan waktu update untuk prediksi */}
-                            {lastUpdated && (
-                              <p className="text-[10px] text-gray-400 mt-1">
-                                Update: {formatTime(lastUpdated)}
-                              </p>
-                            )}
-                          </div>
-                        )}
                       </div>
 
                       {/* Progress */}
@@ -457,6 +350,64 @@ export default function Formasi() {
                           }}
                         />
                       </div>
+
+                      {/* 🔥 PREDIKSI */}
+                      {isFull && prediksi[item.title] && (
+                        <div
+                          className="
+                            mt-4
+                            rounded-2xl
+                            bg-linear-to-br
+                            from-red-50
+                            via-white
+                            to-red-100
+                            border border-red-200
+                            shadow-md
+                            p-4
+                            relative
+                            overflow-hidden
+                          "
+                        >
+                          {/* Accent Line */}
+                          <div className="absolute left-0 top-0 bottom-0 w-1 bg-linear-to-b from-red-500 to-[#7F1D1D]" />
+
+                          <div className="flex items-start gap-3">
+                            
+                            {/* Icon */}
+                            <div className="p-2 rounded-xl bg-red-100">
+                              <HiCalendar className="w-4 h-4 text-red-600" />
+                            </div>
+
+                            {/* Content */}
+                            <div className="flex-1 text-sm space-y-1">
+                              <p className="font-bold text-[#7F1D1D]">
+                                Prediksi Kuota
+                              </p>
+
+                              <p className="text-gray-700">
+                                Akan tersedia{" "}
+                                <span className="font-bold text-red-600">
+                                  {prediksi[item.title].slotAkanKosong}
+                                </span>{" "}
+                                slot
+                              </p>
+
+                              <p className="text-gray-700">
+                                Mulai{" "}
+                                <span className="font-semibold">
+                                  {formatDate(prediksi[item.title].tersediaMulai)}
+                                </span>
+                              </p>
+
+                              {lastUpdated && (
+                                <p className="text-[11px] text-gray-400 mt-2">
+                                  Update: {formatTime(lastUpdated)}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );

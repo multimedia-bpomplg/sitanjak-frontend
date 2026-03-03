@@ -11,7 +11,8 @@ export async function middleware(req: NextRequest) {
     path.startsWith("/_next") ||
     path.startsWith("/images") ||
     path.startsWith("/favicon.ico") ||
-    path.startsWith("/api")
+    path.startsWith("/api") ||
+    path.startsWith("/aboutdev")
   ) {
     return NextResponse.next();
   }
@@ -28,27 +29,25 @@ export async function middleware(req: NextRequest) {
     const data = await res.json();
 
     if (data?.isActive === true) {
-      // izinkan halaman maintenance
       if (path.startsWith("/maintenance")) {
         return NextResponse.next();
       }
 
-      // izinkan core-gateway
       if (path.startsWith("/auth/core-gateway")) {
         return NextResponse.next();
       }
 
-      // izinkan superadmin
+      // Izinkan superadmin bypass maintenance
       if (token) {
         try {
           const payload = JSON.parse(atob(token.split(".")[1]));
+
           if (payload?.roles?.includes("superadmin")) {
             return NextResponse.next();
           }
         } catch {}
       }
 
-      // selain itu redirect
       return NextResponse.redirect(new URL("/maintenance", req.url));
     }
   } catch (err) {
@@ -56,7 +55,7 @@ export async function middleware(req: NextRequest) {
   }
 
   // ===============================
-  // PUBLIC ROUTES (HANYA JIKA MAINTENANCE OFF)
+  // PUBLIC ROUTES
   // ===============================
   if (
     path === "/" ||

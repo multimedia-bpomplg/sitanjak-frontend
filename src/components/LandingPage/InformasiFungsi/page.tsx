@@ -41,91 +41,66 @@ function InformasiFungsiCard({
   return (
     <motion.div
       ref={ref}
-      initial={{ opacity: 0, y: 50 }}
+      initial={{ opacity: 0, y: 60 }}
       animate={inView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.6, ease: "easeOut" }}
-      whileHover={{ y: -6 }}
+      transition={{ duration: 0.7, ease: "easeOut" }}
       className="group"
     >
       <div
-        className="
-        relative
-        h-full
+        className={`
+        relative h-full
         rounded-3xl
         overflow-hidden
-        bg-white
-        border border-slate-200/70
-        shadow-sm
+        bg-white/90 backdrop-blur
+        shadow-lg
         transition-all duration-500
         hover:shadow-2xl
-        hover:-translate-y-2
-      "
+        hover:-translate-y-3
+      `}
       >
-        {/* Accent Line Dynamic */}
+        {/* Soft Gradient Glow */}
         <div
           className={`
-            absolute -top-20 -right-20
-            w-40 h-40
-            rounded-full
-            opacity-20 blur-3xl
-            bg-linear-to-br ${item.gradient || "from-red-600 to-orange-500"}
-            transition-all duration-700
-            group-hover:scale-125
-          `}
+          absolute inset-0 opacity-0
+          group-hover:opacity-10
+          transition duration-500
+          bg-linear-to-br ${item.gradient}
+        `}
         />
 
+        {/* Top Accent */}
         <div
           className={`
-            absolute top-0 left-0 w-full h-1
-            bg-linear-to-r ${item.gradient || "from-red-600 to-orange-500"}
-          `}
+          absolute top-0 left-0 w-full h-1
+          bg-linear-to-r ${item.gradient}
+        `}
         />
 
         <div className="relative z-10 p-6 sm:p-8 flex flex-col h-full">
           {/* ICON */}
           <div
             className={`
-              mb-5
-              w-14 h-14 sm:w-16 sm:h-16
-              rounded-2xl
-              bg-linear-to-br ${item.gradient || "from-red-600 to-orange-500"}
-              text-white
-              flex items-center justify-center
-              text-xl sm:text-2xl
-              shadow-lg
-              ring-4 ring-white
-              transition-all duration-500
-              group-hover:scale-110 group-hover:rotate-3
-            `}
+            mb-6
+            w-14 h-14 sm:w-16 sm:h-16
+            rounded-2xl
+            bg-linear-to-br ${item.gradient}
+            text-white
+            flex items-center justify-center
+            text-xl sm:text-2xl
+            shadow-xl
+            transition-all duration-500
+            group-hover:scale-110 group-hover:rotate-6
+          `}
           >
             {iconMap[item.iconName] || <HiOfficeBuilding />}
           </div>
 
           {/* TITLE */}
-          <h3 className="relative inline-block text-xl sm:text-2xl font-bold text-slate-800 mb-4 leading-snug">
+          <h3 className="text-xl sm:text-2xl font-bold text-slate-800 mb-3">
             {item.title}
-
-            <span
-              className={`
-                absolute left-0 -bottom-1
-                h-0.75 w-12
-                rounded-full
-                bg-linear-to-r ${item.gradient || "from-red-600 to-orange-500"}
-                transition-all duration-300
-                group-hover:w-full
-              `}
-            />
           </h3>
 
-          <p
-            className="
-            text-sm sm:text-base
-            text-slate-600
-            leading-relaxed
-            grow
-            line-clamp-3
-          "
-          >
+          <p className="text-sm sm:text-base text-slate-600 leading-relaxed grow">
             {item.desc}
           </p>
 
@@ -133,32 +108,28 @@ function InformasiFungsiCard({
           <div className="mt-6 pt-6 border-t border-slate-100">
             <button
               onClick={() => setExpandedIndex(isOpen ? null : index)}
-              className="
-                w-full flex items-center justify-between
-                py-2
-              "
+              className="w-full flex items-center justify-between"
             >
               <div className="flex items-center gap-3">
-                {/* Title */}
                 <span
                   className={`
-                    text-sm font-semibold
-                    bg-linear-to-r ${item.gradient || "from-red-600 to-orange-500"}
-                    bg-clip-text text-transparent
-                  `}
+                  text-sm font-semibold
+                  bg-linear-to-r ${item.gradient}
+                  bg-clip-text text-transparent
+                `}
                 >
                   Jurusan yang Diterima
                 </span>
 
-                {/* Counter */}
                 <span
-                  className={`
+                  className="
                     text-xs font-semibold
                     px-2.5 py-1
                     rounded-full
                     bg-slate-100
-                    text-slate-600
-                  `}
+                    text-slate-700
+                    border border-slate-200
+                  "
                 >
                   {item.jurusan.length}
                 </span>
@@ -166,7 +137,7 @@ function InformasiFungsiCard({
 
               <motion.div
                 animate={{ rotate: isOpen ? 180 : 0 }}
-                transition={{ duration: 0.25 }}
+                transition={{ duration: 0.3 }}
                 className="text-slate-400"
               >
                 <HiOutlineChevronDown className="text-lg" />
@@ -179,14 +150,14 @@ function InformasiFungsiCard({
                 height: isOpen ? "auto" : 0,
                 opacity: isOpen ? 1 : 0,
               }}
-              transition={{ duration: 0.3 }}
+              transition={{ duration: 0.4 }}
               className="overflow-hidden"
             >
               <div className="mt-5 flex flex-wrap gap-2">
                 {item.jurusan.map((j: string, i: number) => (
                   <motion.span
                     key={i}
-                    initial={{ opacity: 0, y: 6 }}
+                    initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.05 }}
                     whileHover={{ scale: 1.08 }}
@@ -195,14 +166,13 @@ function InformasiFungsiCard({
                       text-xs sm:text-sm
                       font-medium
                       rounded-full
-                      bg-white
-                      border border-slate-200
+                      bg-slate-50
+                      border border-slate-300
                       text-slate-700
-                      shadow-sm
                       transition-all duration-300
                       hover:text-white
                       hover:border-transparent
-                      hover:bg-linear-to-r ${item.gradient || "from-red-600 to-orange-500"}
+                      hover:bg-linear-to-r ${item.gradient}
                     `}
                   >
                     {j}
@@ -249,7 +219,7 @@ export default function InformasiFungsi() {
           <h2 className="text-3xl lg:text-4xl font-extrabold text-[#7F1D1D]">
             Informasi Fungsi Formasi Magang
             <span className="block text-2xl md:text-xl text-slate-700 font-bold mt-1">
-              di BPOM Kota Palembang
+              Balai Besar POM di Palembang
             </span>
           </h2>
 

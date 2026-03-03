@@ -44,11 +44,11 @@ export default function HomePage() {
           <Formasi />
         </AnimatedSection>
 
-        <Datastatistik />
-
         <AnimatedSection id="informasi">
           <InformasiFungsi />
         </AnimatedSection>
+
+        <Datastatistik />
 
         <AnimatedSection id="manfaat">
           <Manfaat />

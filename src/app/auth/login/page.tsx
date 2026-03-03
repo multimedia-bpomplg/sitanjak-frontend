@@ -354,6 +354,8 @@ export default function LoginPage() {
             <OtpLogin
               onBack={() => setShowOtpLogin(false)}
               onLoginSuccess={handleLoginSuccess}
+              setToast={setToast}
+              setSuccessPopup={setSuccessPopup}
             />
           ) : (
             <>
