@@ -16,6 +16,19 @@ import {
   HiClock,
   HiXCircle,
 } from "react-icons/hi";
+import {
+  UserCheck,
+  XCircle,
+  Search,
+  Filter,
+  ChevronDown,
+  Users,
+  Check,
+  Mail,
+  Briefcase,
+  X,
+  CheckCircle,
+} from "lucide-react";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import AlertPopup from "@/components/ui/AlertPopup";
@@ -132,6 +145,8 @@ export default function ViewPendaftaranPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const LIMIT = 10;
+  const [mentorSearch, setMentorSearch] = useState("");
+  const [filterPosisiMentor, setFilterPosisiMentor] = useState("");
 
   // ✅ State konfirmasi action
   const [confirmAction, setConfirmAction] = useState<{
@@ -550,11 +565,27 @@ export default function ViewPendaftaranPage() {
     return f ? f.sisaKuota : 0;
   };
 
+  const uniquePosisiMentor = [
+    ...new Set(mentorList.map((m) => m.posisiMentor)),
+  ];
+
+  const filteredMentor = mentorList.filter((m) => {
+    const matchSearch = m.name
+      .toLowerCase()
+      .includes(mentorSearch.toLowerCase());
+
+    const matchPosisi = filterPosisiMentor
+      ? m.posisiMentor === filterPosisiMentor
+      : true;
+
+    return matchSearch && matchPosisi;
+  });
+
   return (
     <div className="min-h-screen p-4 sm:p-6 bg-linear-to-br from-slate-50 via-white to-indigo-50 dark:from-[#020617] dark:via-[#020617] dark:to-[#1E1B4B] text-slate-800 dark:text-slate-100 transition-colors">
       <h1 className="flex items-center gap-3 tracking-tight mb-10">
-          <span
-            className="
+        <span
+          className="
               text-2xl sm:text-3xl lg:text-4xl
               font-extrabold leading-tight
               bg-clip-text text-transparent
@@ -562,9 +593,9 @@ export default function ViewPendaftaranPage() {
               from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
               dark:from-indigo-400 dark:via-violet-400 dark:to-purple-400
             "
-          >
-            Data Pendaftaran
-          </span>
+        >
+          Data Pendaftaran
+        </span>
       </h1>
 
       {/* SUMMARY CARD */}
@@ -1084,34 +1115,94 @@ export default function ViewPendaftaranPage() {
 
               {/* MENTOR MODAL */}
               {mentorModal && (
-                <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center">
-                  <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-md">
-                    <h3 className="text-lg font-semibold mb-4">Pilih Mentor</h3>
-                    <select
-                      value={selectedMentor}
-                      onChange={(e) => setSelectedMentor(e.target.value)}
-                      className="w-full border rounded-lg px-3 py-2 mb-4"
-                    >
-                      <option value="">-- Pilih Mentor --</option>
-                      {mentorList.map((m) => (
-                        <option key={m._id} value={m._id}>
-                          {m.name} ({m.posisiMentor})
-                        </option>
-                      ))}
-                    </select>
-                    <div className="flex justify-end gap-2">
-                      <button
-                        onClick={() => setMentorModal(false)}
-                        className="px-3 py-2 rounded-lg bg-slate-200 hover:bg-slate-300"
-                      >
-                        Batal
-                      </button>
-                      <button
-                        onClick={simpanMentor}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg"
-                      >
-                        Simpan
-                      </button>
+                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-300">
+                  <div className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-xl shadow-2xl border border-white/20 dark:border-slate-700/50 overflow-hidden animate-in slide-in-from-bottom-4 duration-300">
+                    {/* HEADER */}
+                    <div className="bg-gradient-to-r from-[#7F1D1D] to-[#B91C1C] dark:from-indigo-700 dark:to-indigo-900 px-6 py-5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-white/20 rounded-xl">
+                            <UserCheck className="w-5 h-5 text-white" />
+                          </div>
+                          <div>
+                            <h3 className="text-xl font-bold text-white">
+                              Pilih Mentor Pembimbing
+                            </h3>
+                            <p className="text-sm text-white/80">
+                              Pilih mentor yang akan membimbing peserta
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => setMentorModal(false)}
+                          className="p-2 hover:bg-white/10 rounded-xl"
+                        >
+                          <XCircle className="w-5 h-5 text-white" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* BODY */}
+                    <div className="p-6">
+                      {/* SEARCH */}
+                      <div className="relative mb-4">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <input
+                          type="text"
+                          placeholder="Cari nama mentor..."
+                          value={mentorSearch}
+                          onChange={(e) => setMentorSearch(e.target.value)}
+                          className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm"
+                        />
+                      </div>
+
+                      {/* LIST */}
+                      <div className="max-h-80 overflow-y-auto space-y-3">
+                        {filteredMentor.map((m) => (
+                          <div
+                            key={m._id}
+                            onClick={() => setSelectedMentor(m._id)}
+                            className={`rounded-2xl p-4 border-2 cursor-pointer transition ${
+                              selectedMentor === m._id
+                                ? "border-[#B91C1C] bg-[#FEE2E2]/40"
+                                : "border-slate-200 hover:border-[#B91C1C]/30"
+                            }`}
+                          >
+                            <div className="flex justify-between items-center">
+                              <div>
+                                <h4 className="font-semibold">{m.name}</h4>
+                                <p className="text-xs text-slate-500">
+                                  {m.email}
+                                </p>
+                                <p className="text-xs text-[#B91C1C] font-medium">
+                                  {m.posisiMentor}
+                                </p>
+                              </div>
+
+                              {selectedMentor === m._id && (
+                                <CheckCircle className="text-emerald-600" />
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* ACTION */}
+                      <div className="flex justify-end gap-3 mt-6">
+                        <button
+                          onClick={() => setMentorModal(false)}
+                          className="px-4 py-2 rounded-lg bg-slate-200"
+                        >
+                          Batal
+                        </button>
+                        <button
+                          disabled={!selectedMentor}
+                          onClick={simpanMentor}
+                          className="px-6 py-2 rounded-lg bg-emerald-600 text-white disabled:opacity-40"
+                        >
+                          Simpan Mentor
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1403,9 +1494,7 @@ function DetailItem({
         {icon}
       </div>
       <div className="min-w-0 w-full">
-        <p className="text-xs text-slate-500 dark:text-slate-400">
-          {label}
-        </p>
+        <p className="text-xs text-slate-500 dark:text-slate-400">{label}</p>
 
         <p className="font-medium text-slate-800 dark:text-white wrap-break-word">
           {value || "-"}

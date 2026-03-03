@@ -278,8 +278,6 @@ export default function SuperadminCoreLogin() {
       const payload = JSON.parse(atob(data.token.split(".")[1]));
 
       localStorage.setItem("roles", JSON.stringify(payload.roles || []));
-      localStorage.setItem("name", payload.name || "");
-      localStorage.setItem("email", payload.email || "");
 
       // Audit log
       console.info(

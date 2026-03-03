@@ -44,8 +44,6 @@ import {
   XCircle,
 } from "lucide-react";
 import { DateRange } from "react-date-range";
-// import "react-date-range/dist/styles.css";
-// import "react-date-range/dist/theme/default.css";
 import {
   format,
   subMonths,
@@ -186,21 +184,24 @@ export default function OversistemDashboard() {
   const API_BASE_URL =
     process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
+  // Flag untuk tracking apakah komponen masih mounted
+  const [isMounted, setIsMounted] = useState(true);
+
   /* ---------------------------
-      Fetch Data Functions - REAL TIME VERSION
+      Fetch Data Functions - REAL TIME VERSION (OTOMATIS)
       --------------------------- */
   const fetchAllData = async () => {
+    // Cek apakah komponen masih mounted
+    if (!isMounted) return;
+
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
 
       if (!token) {
-        console.error("Token tidak ditemukan");
         setLoading(false);
         return;
       }
-
-      console.log("🔄 Fetching REAL-TIME overview data...");
 
       // 1. Stats utama (REAL TIME)
       const statsRes = await fetch(`${API_BASE_URL}/oversistem/stats`, {
@@ -210,30 +211,33 @@ export default function OversistemDashboard() {
 
       if (statsRes.ok) {
         const statsData = await statsRes.json();
-        console.log("✅ Stats data loaded:", statsData);
-        setStats({
-          ...statsData,
-          lastUpdated: new Date().toISOString(),
-        });
 
-        // Set individual statistik
-        if (statsData.statistikPosisi) {
-          setStatistikPosisi(statsData.statistikPosisi);
-        }
-        if (statsData.statistikAsal) {
-          setStatistikAsal(statsData.statistikAsal);
-        }
-        if (statsData.statistikGender) {
-          setStatistikGender(statsData.statistikGender);
-        }
+        // Hanya update state jika komponen masih mounted
+        if (isMounted) {
+          setStats({
+            ...statsData,
+            lastUpdated: new Date().toISOString(),
+          });
 
-        setApiStatus("connected");
+          if (statsData.statistikPosisi) {
+            setStatistikPosisi(statsData.statistikPosisi);
+          }
+          if (statsData.statistikAsal) {
+            setStatistikAsal(statsData.statistikAsal);
+          }
+          if (statsData.statistikGender) {
+            setStatistikGender(statsData.statistikGender);
+          }
+
+          setApiStatus("connected");
+        }
       } else {
-        console.error("❌ Failed to fetch stats:", statsRes.status);
-        setApiStatus("disconnected");
+        if (isMounted) {
+          setApiStatus("disconnected");
+        }
       }
 
-      // 2. Time series bulanan (HANYA data yang ada di database)
+      // 2. Time series bulanan
       const timeSeriesRes = await fetch(
         `${API_BASE_URL}/oversistem/timeseries?year=${selectedYear}`,
         {
@@ -244,13 +248,7 @@ export default function OversistemDashboard() {
 
       if (timeSeriesRes.ok) {
         const timeSeriesData = await timeSeriesRes.json();
-        console.log(
-          "📊 Time series data loaded:",
-          timeSeriesData.length,
-          "records",
-        );
 
-        // Filter hanya data yang memiliki minimal satu nilai non-zero
         const filteredData = timeSeriesData.filter(
           (row: DataRow) =>
             row.logbook > 0 ||
@@ -260,21 +258,23 @@ export default function OversistemDashboard() {
             row.admin_aktif > 0,
         );
 
-        if (filteredData.length === 0) {
-          setDataStatus("empty");
-          setRawData([]);
-          console.log("ℹ️ No monthly data available - showing empty state");
-        } else {
-          setDataStatus("available");
-          setRawData(filteredData);
+        if (isMounted) {
+          if (filteredData.length === 0) {
+            setDataStatus("empty");
+            setRawData([]);
+          } else {
+            setDataStatus("available");
+            setRawData(filteredData);
+          }
         }
       } else {
-        console.error("❌ Failed to fetch time series:", timeSeriesRes.status);
-        setDataStatus("empty");
-        setRawData([]); // JANGAN generate dummy data
+        if (isMounted) {
+          setDataStatus("empty");
+          setRawData([]);
+        }
       }
 
-      // 3. Data detail harian untuk bulan terpilih (HANYA jika ada data)
+      // 3. Data detail harian
       if (
         (activeTab === "logbook" || activeTab === "pendaftaran") &&
         dataMode === "daily"
@@ -289,20 +289,13 @@ export default function OversistemDashboard() {
 
         if (detailedRes.ok) {
           const detailedData = await detailedRes.json();
-          console.log("📅 Daily data loaded:", detailedData.length, "records");
-
-          if (detailedData.length === 0) {
-            console.log("ℹ️ No daily data available");
-            setDetailedData([]);
-          } else {
+          if (isMounted) {
             setDetailedData(detailedData);
           }
         } else {
-          console.error(
-            "❌ Failed to fetch detailed data:",
-            detailedRes.status,
-          );
-          setDetailedData([]); // JANGAN generate dummy data
+          if (isMounted) {
+            setDetailedData([]);
+          }
         }
       }
 
@@ -317,10 +310,13 @@ export default function OversistemDashboard() {
 
       if (logbookStatsRes.ok) {
         const logbookData = await logbookStatsRes.json();
-        console.log("📝 Logbook stats loaded");
-        setLogbookStats(logbookData);
+        if (isMounted) {
+          setLogbookStats(logbookData);
+        }
       } else {
-        setLogbookStats(null);
+        if (isMounted) {
+          setLogbookStats(null);
+        }
       }
 
       // 5. Statistik pendaftaran detail
@@ -334,10 +330,13 @@ export default function OversistemDashboard() {
 
       if (pendaftaranStatsRes.ok) {
         const pendaftaranData = await pendaftaranStatsRes.json();
-        console.log("📋 Pendaftaran stats loaded");
-        setPendaftaranStats(pendaftaranData);
+        if (isMounted) {
+          setPendaftaranStats(pendaftaranData);
+        }
       } else {
-        setPendaftaranStats(null);
+        if (isMounted) {
+          setPendaftaranStats(null);
+        }
       }
 
       // 6. Statistik selesai
@@ -351,10 +350,13 @@ export default function OversistemDashboard() {
 
       if (selesaiRes.ok) {
         const selesaiData = await selesaiRes.json();
-        console.log("✅ Completion stats loaded");
-        setStatistikSelesai(selesaiData);
+        if (isMounted) {
+          setStatistikSelesai(selesaiData);
+        }
       } else {
-        setStatistikSelesai([]);
+        if (isMounted) {
+          setStatistikSelesai([]);
+        }
       }
 
       // 7. Fetch available years
@@ -365,15 +367,18 @@ export default function OversistemDashboard() {
 
       if (yearsRes.ok) {
         const yearsData = await yearsRes.json();
-        setAvailableYears(yearsData);
+        if (isMounted) {
+          setAvailableYears(yearsData);
+        }
       } else {
-        // Default years dari tahun saat ini
         const currentYear = new Date().getFullYear();
-        setAvailableYears([currentYear]);
+        if (isMounted) {
+          setAvailableYears([currentYear]);
+        }
       }
 
       // 8. Check data availability
-      const checkRes = await fetch(
+      await fetch(
         `${API_BASE_URL}/oversistem/check-data?year=${selectedYear}&month=${selectedMonth}`,
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -381,59 +386,45 @@ export default function OversistemDashboard() {
         },
       );
 
-      if (checkRes.ok) {
-        const checkData = await checkRes.json();
-        console.log("🔍 Data availability:", checkData);
-      }
-
       // Update timestamp
-      setLastUpdated(format(new Date(), "HH:mm:ss"));
+      if (isMounted) {
+        setLastUpdated(format(new Date(), "HH:mm:ss"));
+      }
     } catch (error) {
-      console.error("❌ Error fetching data:", error);
-      setDataStatus("error");
-      setApiStatus("disconnected");
+      if (isMounted) {
+        setDataStatus("error");
+        setApiStatus("disconnected");
 
-      // TIDAK ADA FALLBACK DATA DUMMY
-      // Reset semua state ke nilai kosong/0
-      setStats({
-        pesertaAktif: 0,
-        mentorAktif: 0,
-        adminAktif: 0,
-        pendaftaranAktif: 0,
-        pendaftaranHariIni: 0,
-        logbookHariIni: 0,
-        totalPendaftar: 0,
-        totalLogbook: 0,
-        lastUpdated: new Date().toISOString(),
-        statistikPosisi: [],
-        statistikAsal: [],
-        statistikGender: [],
-      });
+        setStats({
+          pesertaAktif: 0,
+          mentorAktif: 0,
+          adminAktif: 0,
+          pendaftaranAktif: 0,
+          pendaftaranHariIni: 0,
+          logbookHariIni: 0,
+          totalPendaftar: 0,
+          totalLogbook: 0,
+          lastUpdated: new Date().toISOString(),
+          statistikPosisi: [],
+          statistikAsal: [],
+          statistikGender: [],
+        });
 
-      setRawData([]);
-      setDetailedData([]);
-      setStatistikPosisi([]);
-      setStatistikAsal([]);
-      setStatistikGender([]);
-      setStatistikSelesai([]);
-      setLogbookStats(null);
-      setPendaftaranStats(null);
+        setRawData([]);
+        setDetailedData([]);
+        setStatistikPosisi([]);
+        setStatistikAsal([]);
+        setStatistikGender([]);
+        setStatistikSelesai([]);
+        setLogbookStats(null);
+        setPendaftaranStats(null);
+      }
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (isMounted) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
-  };
-
-  // Helper untuk generate data bulanan - MODIFIED: Return empty array
-  const generateMonthlyData = (year: number): DataRow[] => {
-    // Tidak generate data dummy, return empty array
-    return [];
-  };
-
-  // Helper untuk generate data harian - MODIFIED: Return empty array
-  const generateDailyData = (year: number, month: number): DataRow[] => {
-    // Tidak generate data dummy, return empty array
-    return [];
   };
 
   const refreshData = () => {
@@ -442,11 +433,23 @@ export default function OversistemDashboard() {
   };
 
   useEffect(() => {
+    setIsMounted(true);
+
+    // Initial fetch
     fetchAllData();
 
-    // Auto-refresh every 2 minutes untuk real-time
-    const interval = setInterval(fetchAllData, 2 * 60 * 1000);
-    return () => clearInterval(interval);
+    // Auto-refresh setiap 1 jam (3600000 ms)
+    // Ini memenuhi permintaan "data real time secara otomasi dalam waktu 1 jam"
+    const interval = setInterval(() => {
+      if (isMounted) {
+        fetchAllData();
+      }
+    }, 3600000); // 1 jam
+
+    return () => {
+      setIsMounted(false);
+      clearInterval(interval);
+    };
   }, [selectedYear, selectedMonth, activeTab, dataMode]);
 
   /* ---------------------------
@@ -460,7 +463,6 @@ export default function OversistemDashboard() {
   };
 
   const getChartData = (): ChartData<"bar"> => {
-    // Tentukan data mana yang akan digunakan
     const useDetailedData =
       (activeTab === "logbook" || activeTab === "pendaftaran") &&
       dataMode === "daily";
@@ -469,7 +471,6 @@ export default function OversistemDashboard() {
       ? detailedData
       : filterDataByDateRange(rawData);
 
-    // Jika tidak ada data, return empty dataset
     if (sourceData.length === 0) {
       return {
         labels: ["Tidak ada data"],
@@ -485,7 +486,6 @@ export default function OversistemDashboard() {
       };
     }
 
-    // Buat label berdasarkan mode data
     const labels = sourceData.map((row) => {
       if (useDetailedData) {
         const date = parseISO(row.date);
@@ -494,7 +494,6 @@ export default function OversistemDashboard() {
       return format(parseISO(row.date), "MMM yyyy", { locale: id });
     });
 
-    // Data berdasarkan activeTab
     const getDataForTab = () => {
       switch (activeTab) {
         case "pendaftaran":
@@ -696,7 +695,6 @@ export default function OversistemDashboard() {
         return;
       }
 
-      // Fetch export data dari API
       const exportRes = await fetch(
         `${API_BASE_URL}/oversistem/export?startDate=${format(
           dateRange.startDate,
@@ -715,10 +713,8 @@ export default function OversistemDashboard() {
 
       const exportData = await exportRes.json();
 
-      // Prepare data untuk Excel
       const workbook = XLSX.utils.book_new();
 
-      // 1. Time Series Sheet (hanya data yang ada)
       const timeSeriesData =
         exportData.timeSeries ||
         (rawData.length > 0
@@ -741,31 +737,26 @@ export default function OversistemDashboard() {
         );
       }
 
-      // 2. Statistik Posisi
       if (statistikPosisi.length > 0) {
         const posisiWS = XLSX.utils.json_to_sheet(statistikPosisi);
         XLSX.utils.book_append_sheet(workbook, posisiWS, "Statistik Posisi");
       }
 
-      // 3. Statistik Asal
       if (statistikAsal.length > 0) {
         const asalWS = XLSX.utils.json_to_sheet(statistikAsal);
         XLSX.utils.book_append_sheet(workbook, asalWS, "Statistik Asal");
       }
 
-      // 4. Statistik Gender
       if (statistikGender.length > 0) {
         const genderWS = XLSX.utils.json_to_sheet(statistikGender);
         XLSX.utils.book_append_sheet(workbook, genderWS, "Statistik Gender");
       }
 
-      // 5. Statistik Selesai
       if (statistikSelesai.length > 0) {
         const selesaiWS = XLSX.utils.json_to_sheet(statistikSelesai);
         XLSX.utils.book_append_sheet(workbook, selesaiWS, "Statistik Selesai");
       }
 
-      // 6. Summary Stats Sheet
       const summaryData = [
         {
           "Peserta Aktif": stats.pesertaAktif,
@@ -790,7 +781,6 @@ export default function OversistemDashboard() {
       const summaryWS = XLSX.utils.json_to_sheet(summaryData);
       XLSX.utils.book_append_sheet(workbook, summaryWS, "Summary Stats");
 
-      // 7. Data Status Sheet
       const statusData = [
         {
           Status:
@@ -806,7 +796,6 @@ export default function OversistemDashboard() {
       const statusWS = XLSX.utils.json_to_sheet(statusData);
       XLSX.utils.book_append_sheet(workbook, statusWS, "Data Status");
 
-      // Generate Excel file
       const excelBuffer = XLSX.write(workbook, {
         bookType: "xlsx",
         type: "array",
@@ -821,7 +810,6 @@ export default function OversistemDashboard() {
         `oversistem-report-${format(new Date(), "yyyy-MM-dd-HHmm")}.xlsx`,
       );
     } catch (error) {
-      console.error("Error exporting to Excel:", error);
       alert("Gagal mengekspor data ke Excel");
     }
   };
@@ -1260,7 +1248,7 @@ export default function OversistemDashboard() {
             </div>
             <div className="mt-2 text-xs text-gray-500">
               <Clock className="w-3 h-3 inline mr-1 text-purple-500" />
-              <span>Auto-refresh: 2 min</span>
+              <span>Auto-refresh: 1 jam</span>
             </div>
           </div>
 
@@ -1998,7 +1986,7 @@ export default function OversistemDashboard() {
           <div>
             <h3 className="text-lg font-semibold">Data Detail Time Series</h3>
             <p className="text-sm text-gray-500 mt-1">
-              Data real-time dari database • Auto-refresh setiap 2 menit
+              Data real-time dari database • Auto-refresh setiap 1 jam
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -2163,7 +2151,7 @@ export default function OversistemDashboard() {
                 </span>
                 <span className="flex items-center gap-1">
                   <Clock className="w-4 h-4 text-purple-500" />
-                  <span>Auto-refresh: 2 menit</span>
+                  <span>Auto-refresh: 1 jam</span>
                 </span>
               </div>
             </div>
@@ -2177,8 +2165,7 @@ export default function OversistemDashboard() {
           <div className="border-t dark:border-gray-700 pt-3 mt-3">
             <p className="text-xs">
               <strong>Real-Time System:</strong> Semua data ditampilkan langsung
-              dari database tanpa data dummy. Jika tidak ada data yang tersedia,
-              sistem akan menampilkan status "Tidak Ada Data".
+              dari database tanpa data dummy. Auto-refresh setiap 1 jam.
             </p>
           </div>
         </div>

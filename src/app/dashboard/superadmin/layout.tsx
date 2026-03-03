@@ -62,13 +62,19 @@ export default function SuperadminLayout({
   }, [pathname]);
 
   /* ===================== LOGOUT ===================== */
-  const handleSignOut = () => {
-    localStorage.clear();
+  const handleSignOut = async () => {
+    try {
+      document.cookie = "token=; Max-Age=0; path=/;";
+      document.cookie = "refreshToken=; Max-Age=0; path=/;";
+      localStorage.removeItem("token");
+    } catch (err) {}
+
     router.replace("/auth/login");
   };
 
   useEffect(() => {
     const token = localStorage.getItem("token");
+
     if (!token) {
       handleSignOut();
       return;
@@ -76,16 +82,18 @@ export default function SuperadminLayout({
 
     try {
       const payload = JSON.parse(atob(token.split(".")[1]));
+      if (payload.exp * 1000 < Date.now()) {
+        handleSignOut();
+        return;
+      }
 
       setUser({
         name: payload.name,
         email: payload.email,
         roles: payload.roles || [],
-
         avatar: payload.avatar,
       });
     } catch (error) {
-      console.error("Token tidak valid");
       handleSignOut();
     }
   }, []);
