@@ -29,10 +29,10 @@ import {
   X,
   CheckCircle,
 } from "lucide-react";
-import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import AlertPopup from "@/components/ui/AlertPopup";
 import { fetchFormasi, IFormasi } from "@/services/formasiService";
+import * as XLSX from "xlsx-js-style";
 
 /* ===================== TYPE ===================== */
 type Peserta = {
@@ -107,7 +107,7 @@ const POSISI_MAGANG = [
   "Bagian Tata Usaha",
 ];
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL;
+const API_BASE: string = process.env.NEXT_PUBLIC_API_URL || "";
 
 /* ================== HITUNG DURASI MAGANG ================== */
 const hitungDurasiMagang = (mulai: string, selesai: string) => {
@@ -338,7 +338,7 @@ export default function ViewPendaftaranPage() {
         "Status pendaftaran dan surat balasan berhasil diproses.",
         "Berhasil",
       );
-      await loadData();
+      loadData();
       closeModal();
     } catch (error: any) {
       showAlert("error", error.message || "Terjadi kesalahan", "Gagal");
@@ -463,59 +463,153 @@ export default function ViewPendaftaranPage() {
 
   const downloadExcel = () => {
     if (data.length === 0) {
-      showAlert(
-        "error",
-        "Tidak ada data pendaftaran yang dapat diunduh.",
-        "Data Kosong",
-      );
+      showAlert("error", "Tidak ada data pendaftaran.", "Data Kosong");
       return;
     }
 
     const excelData = data.flatMap((pendaftaran, index) =>
       pendaftaran.peserta.map((p) => ({
         No: index + 1,
-        "Nama Lengkap": p.nama,
+        Nama: p.nama,
         Email: p.email,
-        "No WhatsApp": p.wa,
-        "Posisi Magang": p.posisi,
-        "Kategori Pendaftaran": pendaftaran.kategori,
-        "Status Pendaftaran": pendaftaran.status,
-        "Mulai Magang": p.tanggalMulaiMagang,
-        "Selesai Magang": p.tanggalSelesaiMagang,
+        WhatsApp: p.wa,
+        Posisi: p.posisi,
+        Kategori: pendaftaran.kategori,
+        Status: pendaftaran.status,
+
+        "Mulai Magang": new Date(
+          p.tanggalMulaiMagang ?? "",
+        ).toLocaleDateString(),
+
+        "Selesai Magang": new Date(
+          p.tanggalSelesaiMagang ?? "",
+        ).toLocaleDateString(),
+
+        "Tanggal Lahir": new Date(p.tanggalLahir ?? "").toLocaleDateString(),
+
         "Tempat Lahir": p.tempatLahir,
-        "Tanggal Lahir": p.tanggalLahir,
+
         "Jenis Kelamin": p.jenisKelamin,
         Provinsi: p.provinsi,
         Kota: p.kota,
         Kecamatan: p.kecamatan,
         Kelurahan: p.kelurahan,
-        "Alamat Lengkap": p.alamatLengkap,
+        Alamat: p.alamatLengkap,
+
         "Tanggal Daftar": new Date(pendaftaran.createdAt).toLocaleDateString(),
+
+        "Surat Pengantar": pendaftaran.suratPengantar
+          ? `${API_BASE}/uploads/${pendaftaran.suratPengantar}`
+          : "",
+
+        "Surat Balasan": pendaftaran.suratBalasan
+          ? `${API_BASE}/uploads/${pendaftaran.suratBalasan}`
+          : "Belum Ada",
       })),
     );
 
     const worksheet = XLSX.utils.json_to_sheet(excelData);
-    const headerStyle = {
-      font: { bold: true },
-      alignment: { horizontal: "center", vertical: "center", wrapText: true },
-    };
 
-    const range = XLSX.utils.decode_range(worksheet["!ref"]!);
-    for (let C = range.s.c; C <= range.e.c; ++C) {
-      const cellAddress = XLSX.utils.encode_cell({ r: 0, c: C });
-      if (worksheet[cellAddress]) {
-        worksheet[cellAddress].s = headerStyle;
-      }
+    /* =============================
+     STYLE HEADER
+  ============================= */
+    const range = XLSX.utils.decode_range(worksheet["!ref"] || "A1:A1");
+
+    for (let C = range.s.c; C <= range.e.c; C++) {
+      const cell = XLSX.utils.encode_cell({ r: 0, c: C });
+
+      if (!worksheet[cell]) continue;
+
+      worksheet[cell].s = {
+        font: {
+          bold: true,
+          color: { rgb: "FFFFFF" },
+        },
+        alignment: {
+          horizontal: "center",
+          vertical: "center",
+        },
+        fill: {
+          fgColor: { rgb: "B91C1C" },
+        },
+        border: {
+          top: { style: "thin" },
+          bottom: { style: "thin" },
+          left: { style: "thin" },
+          right: { style: "thin" },
+        },
+      };
     }
+
+    /* =============================
+     TAMBAHKAN HYPERLINK
+  ============================= */
+
+    const jsonKeys = Object.keys(excelData[0]);
+
+    const colPengantar = jsonKeys.indexOf("Surat Pengantar");
+    const colBalasan = jsonKeys.indexOf("Surat Balasan");
+
+    excelData.forEach((row, i) => {
+      const r = i + 1;
+
+      if (row["Surat Pengantar"]) {
+        const cell = XLSX.utils.encode_cell({
+          r,
+          c: colPengantar,
+        });
+
+        worksheet[cell] = {
+          t: "s",
+          v: "Download",
+          l: {
+            Target: row["Surat Pengantar"],
+          },
+          s: {
+            font: {
+              color: { rgb: "0563C1" },
+              underline: true,
+            },
+            alignment: { horizontal: "center" },
+          },
+        };
+      }
+
+      if (row["Surat Balasan"] !== "Belum Ada") {
+        const cell = XLSX.utils.encode_cell({
+          r,
+          c: colBalasan,
+        });
+
+        worksheet[cell] = {
+          t: "s",
+          v: "Download",
+          l: {
+            Target: row["Surat Balasan"],
+          },
+          s: {
+            font: {
+              color: { rgb: "0563C1" },
+              underline: true,
+            },
+            alignment: { horizontal: "center" },
+          },
+        };
+      }
+    });
+
+    /* =============================
+     AUTO WIDTH KOLOM
+  ============================= */
 
     worksheet["!cols"] = [
       { wch: 5 },
       { wch: 25 },
       { wch: 30 },
       { wch: 18 },
-      { wch: 20 },
-      { wch: 18 },
-      { wch: 18 },
+      { wch: 22 },
+      { wch: 15 },
+      { wch: 15 },
       { wch: 15 },
       { wch: 15 },
       { wch: 20 },
@@ -527,18 +621,47 @@ export default function ViewPendaftaranPage() {
       { wch: 18 },
       { wch: 40 },
       { wch: 18 },
+      { wch: 18 },
     ];
 
+    /* =============================
+     FREEZE HEADER
+  ============================= */
+
+    worksheet["!freeze"] = {
+      xSplit: 0,
+      ySplit: 1,
+    };
+
+    /* =============================
+     FILTER
+  ============================= */
+
+    worksheet["!autofilter"] = {
+      ref: worksheet["!ref"] || "A1",
+    };
+
+    /* =============================
+     BUAT WORKBOOK
+  ============================= */
+
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Data Pendaftaran");
+
+    XLSX.utils.book_append_sheet(
+      workbook,
+      worksheet,
+      "Data Pendaftaran Magang",
+    );
+
     const excelBuffer = XLSX.write(workbook, {
       bookType: "xlsx",
       type: "array",
-      cellStyles: true,
     });
+
     const file = new Blob([excelBuffer], {
       type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     });
+
     saveAs(file, `data-pendaftaran-${Date.now()}.xlsx`);
   };
 
@@ -641,7 +764,7 @@ export default function ViewPendaftaranPage() {
           className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-linear-to-r from-emerald-500 to-green-600 hover:opacity-90 shadow-md hover:shadow-lg transition w-full sm:w-auto"
         >
           <HiDocumentText className="text-lg" />
-          Download Excel
+          Download Data Pendaftaran [Excel]
         </button>
       </div>
 
@@ -1116,8 +1239,8 @@ export default function ViewPendaftaranPage() {
               {/* MENTOR MODAL */}
               {mentorModal && (
                 <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-300">
-
-                  <div className="
+                  <div
+                    className="
                     bg-white dark:bg-slate-900
                     rounded-3xl
                     w-full
@@ -1129,11 +1252,11 @@ export default function ViewPendaftaranPage() {
                     border border-white/20 dark:border-slate-700/50
                     overflow-hidden
                     animate-in slide-in-from-bottom-4 duration-300
-                  ">
+                  "
+                  >
                     {/* HEADER */}
                     <div className="bg-linear-to-r from-[#7F1D1D] to-[#B91C1C] dark:from-indigo-700 dark:to-indigo-900 px-4 sm:px-6 py-4 sm:py-5">
                       <div className="flex items-start sm:items-center justify-between gap-3">
-                        
                         <div className="flex items-start sm:items-center gap-3">
                           <div className="p-2 bg-white/20 rounded-xl shrink-0">
                             <UserCheck className="w-5 h-5 text-white" />
@@ -1308,14 +1431,14 @@ export default function ViewPendaftaranPage() {
                                         : "bg-[#FEE2E2] text-[#7F1D1D] dark:bg-indigo-500/20 dark:text-indigo-300"
                                     }
                                   `}
-                                              >
-                                                {m.posisiMentor}
-                                              </span>
-                                            </div>
+                                >
+                                  {m.posisiMentor}
+                                </span>
+                              </div>
 
-                                            {/* Hover effect indicator */}
-                                            <div
-                                              className={`
+                              {/* Hover effect indicator */}
+                              <div
+                                className={`
                                   absolute inset-0 rounded-2xl pointer-events-none
                                   ${
                                     selectedMentor !== m._id &&
@@ -1329,14 +1452,16 @@ export default function ViewPendaftaranPage() {
                       </div>
 
                       {/* ACTION BUTTONS dengan desain modern */}
-                      <div className="
+                      <div
+                        className="
                         flex flex-col sm:flex-row
                         sm:items-center
                         sm:justify-end
                         gap-3
                         mt-6 pt-4
                         border-t border-slate-200 dark:border-slate-700
-                      ">
+                      "
+                      >
                         {/* Tombol Batal */}
                         <button
                           onClick={() => setMentorModal(false)}

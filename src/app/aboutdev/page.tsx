@@ -11,7 +11,7 @@ export default function TentangKami() {
       name: "Muhammad Samsu Hidayattullah",
       photo: "/images/team/dayatDev.jpeg",
       headline: "Web Developer – SITANJAK",
-      linkedin: "https://linkedin.com/in/username1",
+      linkedin: "https://www.linkedin.com/in/muhammad-samsu-hidayattullah/",
       github: "https://github.com/Samssu",
     },
     {
@@ -25,7 +25,6 @@ export default function TentangKami() {
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-linear-to-br from-[#FFF8F2] via-[#FFF1E6] to-[#FFE4C7] px-6 py-20">
-
       {/* Soft Glow Background */}
       <div className="absolute -top-40 -left-40 w-125 h-125 bg-[#7F1D1D]/10 rounded-full blur-[140px]" />
       <div className="absolute -bottom-40 -right-40 w-125 h-125 bg-[#F59E0B]/20 rounded-full blur-[140px]" />
@@ -55,7 +54,8 @@ export default function TentangKami() {
 
       {/* HEADER */}
       <div className="relative text-center mb-20">
-        <h1 className="
+        <h1
+          className="
           text-4xl md:text-5xl
           font-extrabold
           leading-tight
@@ -63,23 +63,24 @@ export default function TentangKami() {
           bg-linear-to-r
           from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
           bg-clip-text text-transparent
-        ">
+        "
+        >
           Tim Pengembang Sistem
         </h1>
         <p className="mt-6 text-gray-600 max-w-2xl mx-auto leading-relaxed text-base md:text-lg">
-          SITANJAK dikembangkan untuk menghadirkan sistem pengelolaan Program Magang
-          yang terstruktur, transparan, dan berbasis digital.
+          SITANJAK dikembangkan untuk menghadirkan sistem pengelolaan Program
+          Magang yang terstruktur, transparan, dan berbasis digital.
         </p>
 
         <p className="mt-4 text-gray-500 max-w-2xl mx-auto leading-relaxed text-sm md:text-base">
-          Pengembangan sistem ini dilakukan oleh tim pengembang yang berfokus pada
-          kualitas implementasi, serta kemudahan penggunaan bagi seluruh pengguna.
+          Pengembangan sistem ini dilakukan oleh tim pengembang yang berfokus
+          pada kualitas implementasi, serta kemudahan penggunaan bagi seluruh
+          pengguna.
         </p>
       </div>
 
       {/* TEAM GRID */}
       <div className="relative max-w-6xl mx-auto grid md:grid-cols-2 gap-12">
-
         {team.map((dev, i) => (
           <div
             key={i}
@@ -97,12 +98,10 @@ export default function TentangKami() {
               hover:shadow-[0_35px_90px_-15px_rgba(0,0,0,0.35)]
             "
           >
-
             {/* Hover Glow */}
             <div className="absolute inset-0 rounded-3xl bg-linear-to-br from-[#FACC15]/20 to-[#7F1D1D]/20 opacity-0 group-hover:opacity-100 transition duration-500" />
 
             <div className="relative text-center">
-
               {/* Avatar */}
               <div className="flex justify-center mb-6">
                 <div className="relative">
@@ -118,18 +117,19 @@ export default function TentangKami() {
               </div>
 
               {/* Name */}
-              <h2 className="text-2xl font-bold text-[#7F1D1D]">
-                {dev.name}
-              </h2>
+              <h2 className="text-2xl font-bold text-[#7F1D1D]">{dev.name}</h2>
 
               {/* Role Badge */}
-              <div className="mt-3 inline-block px-4 py-1.5 rounded-full 
+              <div
+                className="mt-3 inline-block px-4 py-1.5 rounded-full 
                 bg-linear-to-r from-[#7F1D1D]/10 to-[#F59E0B]/10 
-                border border-[#7F1D1D]/20">
-
-                <p className="text-sm font-semibold tracking-wide 
+                border border-[#7F1D1D]/20"
+              >
+                <p
+                  className="text-sm font-semibold tracking-wide 
                   bg-linear-to-r from-[#7F1D1D] to-[#F59E0B] 
-                  bg-clip-text text-transparent">
+                  bg-clip-text text-transparent"
+                >
                   {dev.headline}
                 </p>
               </div>
@@ -177,7 +177,6 @@ export default function TentangKami() {
                   GitHub
                 </a>
               </div>
-
             </div>
           </div>
         ))}
@@ -185,7 +184,8 @@ export default function TentangKami() {
 
       {/* FOOTER */}
       <div className="relative mt-24 text-center text-sm text-gray-500">
-        © {new Date().getFullYear()} SITANJAK - Sistem Informasi Tahapan dan Jangkauan Magang Akademik
+        © {new Date().getFullYear()} SITANJAK - Sistem Informasi Tahapan dan
+        Jangkauan Magang Akademik
       </div>
     </div>
   );

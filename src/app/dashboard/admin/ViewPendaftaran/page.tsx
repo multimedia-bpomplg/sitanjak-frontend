@@ -338,7 +338,7 @@ export default function ViewPendaftaranPage() {
         "Status pendaftaran dan surat balasan berhasil diproses.",
         "Berhasil",
       );
-      await loadData();
+      loadData();
       closeModal();
     } catch (error: any) {
       showAlert("error", error.message || "Terjadi kesalahan", "Gagal");
@@ -1101,7 +1101,7 @@ export default function ViewPendaftaranPage() {
                             const returnUrl = encodeURIComponent(
                               window.location.pathname + window.location.hash,
                             );
-                            window.location.href = `/dashboard/admin/ManajemenAkun/buatpeserta?email=${encodeURIComponent(p.email)}&name=${encodeURIComponent(p.nama)}&returnTo=${returnUrl}`;
+                            window.location.href = `/dashboard/superadmin/ManajemenAkun/buatpeserta?email=${encodeURIComponent(p.email)}&name=${encodeURIComponent(p.nama)}&returnTo=${returnUrl}`;
                           }}
                           className="text-xs px-3 py-1.5 rounded-lg font-medium transition bg-blue-600 hover:bg-blue-700 text-white dark:bg-indigo-600 dark:hover:bg-indigo-700"
                         >
@@ -1116,8 +1116,8 @@ export default function ViewPendaftaranPage() {
               {/* MENTOR MODAL */}
               {mentorModal && (
                 <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-300">
-
-                  <div className="
+                  <div
+                    className="
                     bg-white dark:bg-slate-900
                     rounded-3xl
                     w-full
@@ -1129,11 +1129,11 @@ export default function ViewPendaftaranPage() {
                     border border-white/20 dark:border-slate-700/50
                     overflow-hidden
                     animate-in slide-in-from-bottom-4 duration-300
-                  ">
+                  "
+                  >
                     {/* HEADER */}
                     <div className="bg-linear-to-r from-[#7F1D1D] to-[#B91C1C] dark:from-indigo-700 dark:to-indigo-900 px-4 sm:px-6 py-4 sm:py-5">
                       <div className="flex items-start sm:items-center justify-between gap-3">
-                        
                         <div className="flex items-start sm:items-center gap-3">
                           <div className="p-2 bg-white/20 rounded-xl shrink-0">
                             <UserCheck className="w-5 h-5 text-white" />
@@ -1308,14 +1308,14 @@ export default function ViewPendaftaranPage() {
                                         : "bg-[#FEE2E2] text-[#7F1D1D] dark:bg-indigo-500/20 dark:text-indigo-300"
                                     }
                                   `}
-                                              >
-                                                {m.posisiMentor}
-                                              </span>
-                                            </div>
+                                >
+                                  {m.posisiMentor}
+                                </span>
+                              </div>
 
-                                            {/* Hover effect indicator */}
-                                            <div
-                                              className={`
+                              {/* Hover effect indicator */}
+                              <div
+                                className={`
                                   absolute inset-0 rounded-2xl pointer-events-none
                                   ${
                                     selectedMentor !== m._id &&
@@ -1329,14 +1329,16 @@ export default function ViewPendaftaranPage() {
                       </div>
 
                       {/* ACTION BUTTONS dengan desain modern */}
-                      <div className="
+                      <div
+                        className="
                         flex flex-col sm:flex-row
                         sm:items-center
                         sm:justify-end
                         gap-3
                         mt-6 pt-4
                         border-t border-slate-200 dark:border-slate-700
-                      ">
+                      "
+                      >
                         {/* Tombol Batal */}
                         <button
                           onClick={() => setMentorModal(false)}

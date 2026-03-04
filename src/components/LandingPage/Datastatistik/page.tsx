@@ -22,8 +22,8 @@ export default function Statistik() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const data = await fetchFormasi();
-        setFormasiList(data);
+        const formasiData = await fetchFormasi();
+        setFormasiList(formasiData);
       } catch (err) {
         console.error("Gagal load statistik:", err);
       } finally {
@@ -37,44 +37,46 @@ export default function Statistik() {
   // =====================================
   // HITUNG DATA
   // =====================================
+
+  // Total Kuota
   const totalKuota = formasiList.reduce((a, b) => a + b.kuota, 0);
 
+  // Semua pendaftar
   const totalPendaftar = formasiList.reduce((a, b) => a + b.jumlahPendaftar, 0);
 
+  // Peserta sedang magang (kuota terisi)
   const sedangMagang = formasiList.reduce(
-    (a, b) => a + Math.max(0, b.kuota - b.sisaKuota),
+    (a, b) => a + (b.kuota - b.sisaKuota),
     0,
   );
 
-  const selesaiMagang = formasiList.reduce(
-    (a, b) => a + (b.sisaKuota === 0 ? b.kuota : 0),
-    0,
-  );
+  // Estimasi peserta selesai magang
+  const selesaiMagang = totalPendaftar - sedangMagang;
 
   // =====================================
   // DATA UI
   // =====================================
   const stats = [
     {
-      label: "Total Kuota",
+      label: "Total Kuota Magang",
       value: totalKuota,
       color: "from-[#FACC15] to-[#EAB308]",
       icon: HiBriefcase,
     },
     {
-      label: "Total Pendaftar",
+      label: "Jumlah Pendaftar ",
       value: totalPendaftar,
       color: "from-[#B91C1C] to-[#7F1D1D]",
       icon: HiUsers,
     },
     {
-      label: "Sedang Magang",
+      label: "Peserta Sedang Magang",
       value: sedangMagang,
       color: "from-[#84CC16] to-[#365314]",
       icon: FaUserCheck,
     },
     {
-      label: "Selesai Magang",
+      label: "Peserta Selesai Magang",
       value: selesaiMagang,
       color: "from-[#F97316] to-[#9A3412]",
       icon: HiCheckCircle,
