@@ -53,12 +53,14 @@ export default function OtpLogin({ onBack, onLoginSuccess, setToast, setSuccessP
     try {
       const response = await loginWithOtpApi({ email });
 
-      setToast({ show: false, type: "loading", message: "" });
-
-      setSuccessPopup(true);
+      setToast({
+        show: true,
+        type: "loading",
+        message: "Kode OTP berhasil dikirim",
+      });
 
       setTimeout(() => {
-        setSuccessPopup(false);
+        setToast({ show: false, type: "loading", message: "" });
         setStep("otp");
       }, 1000);
 

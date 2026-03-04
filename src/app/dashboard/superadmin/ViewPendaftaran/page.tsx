@@ -1115,27 +1115,42 @@ export default function ViewPendaftaranPage() {
 
               {/* MENTOR MODAL */}
               {mentorModal && (
-                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-300">
-                  <div className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-xl shadow-2xl border border-white/20 dark:border-slate-700/50 overflow-hidden animate-in slide-in-from-bottom-4 duration-300">
-                    {/* HEADER dengan gradient */}
-                    <div className="bg-gradient-to-r from-[#7F1D1D] to-[#B91C1C] dark:from-indigo-700 dark:to-indigo-900 px-6 py-5">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-white/20 rounded-xl">
+                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-300">
+
+                  <div className="
+                    bg-white dark:bg-slate-900
+                    rounded-3xl
+                    w-full
+                    sm:max-w-2xl
+                    lg:max-w-3xl
+                    max-h-[90vh]
+                    flex flex-col
+                    shadow-2xl
+                    border border-white/20 dark:border-slate-700/50
+                    overflow-hidden
+                    animate-in slide-in-from-bottom-4 duration-300
+                  ">
+                    {/* HEADER */}
+                    <div className="bg-linear-to-r from-[#7F1D1D] to-[#B91C1C] dark:from-indigo-700 dark:to-indigo-900 px-4 sm:px-6 py-4 sm:py-5">
+                      <div className="flex items-start sm:items-center justify-between gap-3">
+                        
+                        <div className="flex items-start sm:items-center gap-3">
+                          <div className="p-2 bg-white/20 rounded-xl shrink-0">
                             <UserCheck className="w-5 h-5 text-white" />
                           </div>
+
                           <div>
-                            <h3 className="text-xl font-bold text-white tracking-tight">
+                            <h3 className="text-base sm:text-xl font-bold text-white tracking-tight">
                               Pilih Mentor Pembimbing
                             </h3>
-                            <p className="text-sm text-white/80 mt-0.5">
+                            <p className="text-xs sm:text-sm text-white/80 mt-1">
                               Pilih mentor yang akan membimbing peserta magang
                             </p>
                           </div>
                         </div>
                         <button
                           onClick={() => setMentorModal(false)}
-                          className="p-2 hover:bg-white/10 rounded-xl transition-all duration-200"
+                          className="p-2 hover:bg-white/10 rounded-xl transition shrink-0"
                         >
                           <XCircle className="w-5 h-5 text-white" />
                         </button>
@@ -1143,7 +1158,7 @@ export default function ViewPendaftaranPage() {
                     </div>
 
                     {/* BODY */}
-                    <div className="p-6">
+                    <div className="flex-1 overflow-y-auto p-4 sm:p-6">
                       {/* SEARCH & FILTER SECTION */}
                       <div className="space-y-3 mb-5">
                         {/* Search Input */}
@@ -1179,28 +1194,6 @@ export default function ViewPendaftaranPage() {
                         </div>
                       </div>
 
-                      {/* STATISTIK MENTOR */}
-                      {uniquePosisiMentor.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mb-5">
-                          <span className="text-xs font-medium text-slate-500 dark:text-slate-400 mr-1">
-                            Posisi tersedia:
-                          </span>
-                          {uniquePosisiMentor.slice(0, 4).map((pos) => (
-                            <span
-                              key={pos}
-                              className="px-2.5 py-1 text-xs rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
-                            >
-                              {pos}
-                            </span>
-                          ))}
-                          {uniquePosisiMentor.length > 4 && (
-                            <span className="px-2.5 py-1 text-xs rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-                              +{uniquePosisiMentor.length - 4}
-                            </span>
-                          )}
-                        </div>
-                      )}
-
                       {/* TOTAL MENTOR & INFO */}
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
@@ -1220,7 +1213,7 @@ export default function ViewPendaftaranPage() {
                       </div>
 
                       {/* LIST MENTOR - dengan desain card yang lebih premium */}
-                      <div className="max-h-80 overflow-y-auto space-y-3 pr-2 custom-scrollbar">
+                      <div className="space-y-3 pr-1 sm:pr-2">
                         {filteredMentor.length === 0 ? (
                           <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
                             <div className="p-4 bg-slate-100 dark:bg-slate-800 rounded-2xl mb-3">
@@ -1243,7 +1236,7 @@ export default function ViewPendaftaranPage() {
                   border-2 hover:shadow-lg group
                   ${
                     selectedMentor === m._id
-                      ? "border-[#B91C1C] dark:border-indigo-500 bg-gradient-to-r from-[#B91C1C]/5 to-transparent dark:from-indigo-500/20"
+                      ? "border-[#B91C1C] dark:border-indigo-500 bg-linear-to-r from-[#B91C1C]/5 to-transparent dark:from-indigo-500/20"
                       : "border-slate-200 dark:border-slate-700 hover:border-[#B91C1C]/30 dark:hover:border-indigo-500/30 bg-white dark:bg-slate-800/30 hover:bg-slate-50 dark:hover:bg-slate-800/50"
                   }
                 `}
@@ -1265,7 +1258,7 @@ export default function ViewPendaftaranPage() {
                         ${
                           selectedMentor === m._id
                             ? "bg-[#B91C1C] dark:bg-indigo-500 text-white"
-                            : "bg-gradient-to-br from-[#B91C1C]/10 to-[#7F1D1D]/10 dark:from-indigo-500/20 dark:to-indigo-600/20 text-[#7F1D1D] dark:text-indigo-400"
+                            : "bg-linear-to-br from-[#B91C1C]/10 to-[#7F1D1D]/10 dark:from-indigo-500/20 dark:to-indigo-600/20 text-[#7F1D1D] dark:text-indigo-400"
                         }
                       `}
                                   >
@@ -1300,27 +1293,35 @@ export default function ViewPendaftaranPage() {
                                 {/* Badge Posisi - Mobile friendly */}
                                 <span
                                   className={`
-                      text-xs px-3 py-1.5 rounded-xl font-medium whitespace-nowrap ml-2
-                      ${
-                        selectedMentor === m._id
-                          ? "bg-white/20 text-[#B91C1C] dark:text-indigo-400"
-                          : "bg-[#FEE2E2] text-[#7F1D1D] dark:bg-indigo-500/20 dark:text-indigo-300"
-                      }
-                    `}
-                                >
-                                  {m.posisiMentor}
-                                </span>
-                              </div>
+                                    text-[10px] sm:text-xs
+                                    px-2.5 sm:px-3
+                                    py-1.5
+                                    rounded-xl
+                                    font-medium
+                                    ml-2
+                                    max-w-30 sm:max-w-none
+                                    truncate sm:whitespace-nowrap
+                                    text-center
+                                    ${
+                                      selectedMentor === m._id
+                                        ? "bg-white/20 text-[#B91C1C] dark:text-indigo-400"
+                                        : "bg-[#FEE2E2] text-[#7F1D1D] dark:bg-indigo-500/20 dark:text-indigo-300"
+                                    }
+                                  `}
+                                              >
+                                                {m.posisiMentor}
+                                              </span>
+                                            </div>
 
-                              {/* Hover effect indicator */}
-                              <div
-                                className={`
-                    absolute inset-0 rounded-2xl pointer-events-none
-                    ${
-                      selectedMentor !== m._id &&
-                      "group-hover:border-2 group-hover:border-[#B91C1C]/20 dark:group-hover:border-indigo-500/20"
-                    }
-                  `}
+                                            {/* Hover effect indicator */}
+                                            <div
+                                              className={`
+                                  absolute inset-0 rounded-2xl pointer-events-none
+                                  ${
+                                    selectedMentor !== m._id &&
+                                    "group-hover:border-2 group-hover:border-[#B91C1C]/20 dark:group-hover:border-indigo-500/20"
+                                  }
+                                `}
                               />
                             </div>
                           ))
@@ -1328,24 +1329,28 @@ export default function ViewPendaftaranPage() {
                       </div>
 
                       {/* ACTION BUTTONS dengan desain modern */}
-                      <div className="flex items-center justify-end gap-3 mt-8 pt-4 border-t border-slate-200 dark:border-slate-700">
+                      <div className="
+                        flex flex-col sm:flex-row
+                        sm:items-center
+                        sm:justify-end
+                        gap-3
+                        mt-6 pt-4
+                        border-t border-slate-200 dark:border-slate-700
+                      ">
                         {/* Tombol Batal */}
                         <button
                           onClick={() => setMentorModal(false)}
                           className="
-              group relative px-6 py-2.5 rounded-xl
-              bg-slate-100 dark:bg-slate-800
-              hover:bg-slate-200 dark:hover:bg-slate-700
-              text-slate-700 dark:text-slate-300
-              font-medium text-sm
-              transition-all duration-200
-              overflow-hidden
-            "
+                            w-full sm:w-auto
+                            px-6 py-2.5 rounded-xl
+                            bg-slate-100 dark:bg-slate-800
+                            hover:bg-slate-200 dark:hover:bg-slate-700
+                            text-slate-700 dark:text-slate-300
+                            font-medium text-sm
+                            transition
+                          "
                         >
-                          <span className="relative z-10 flex items-center gap-2">
-                            <X className="w-4 h-4" />
-                            Batal
-                          </span>
+                          Batal
                         </button>
 
                         {/* Tombol Simpan */}
@@ -1353,27 +1358,24 @@ export default function ViewPendaftaranPage() {
                           disabled={!selectedMentor}
                           onClick={simpanMentor}
                           className="
-              group relative px-8 py-2.5 rounded-xl
-              bg-gradient-to-r from-[#059669] to-[#10B981]
-              hover:from-[#047857] hover:to-[#059669]
-              text-white font-semibold text-sm
-              transition-all duration-200
-              disabled:opacity-40 disabled:cursor-not-allowed
-              disabled:hover:from-[#059669] disabled:hover:to-[#10B981]
-              shadow-lg shadow-emerald-500/30
-              hover:shadow-xl hover:shadow-emerald-500/40
-              hover:scale-[1.02] active:scale-[0.98]
-            "
+                            w-full sm:w-auto
+                            px-8 py-2.5 rounded-xl
+                            bg-linear-to-r from-[#059669] to-[#10B981]
+                            text-white font-semibold text-sm
+                            transition
+                            disabled:opacity-40
+                            flex items-center justify-center
+                          "
                         >
                           <span className="flex items-center gap-2">
                             {selectedMentor ? (
                               <>
-                                <CheckCircle className="w-4 h-4" />
+                                <CheckCircle className="w-4 h-4 mr-2" />
                                 Simpan Mentor
                               </>
                             ) : (
                               <>
-                                <UserCheck className="w-4 h-4" />
+                                <UserCheck className="w-4 h-4 mr-2" />
                                 Pilih Mentor
                               </>
                             )}

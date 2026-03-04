@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { FaLinkedin, FaGithub } from "react-icons/fa";
 import Link from "next/link";
 import { HiArrowLeft } from "react-icons/hi";
@@ -7,20 +8,18 @@ import { HiArrowLeft } from "react-icons/hi";
 export default function TentangKami() {
   const team = [
     {
-      name: "Nama Developer 1",
-      photo:
-        "https://images.unsplash.com/photo-1603415526960-f7e0328a5f58?q=80&w=400",
-      headline: "Berperan dalam pengembangan dan optimalisasi fitur sistem untuk mendukung pengelolaan Program Magang.",
+      name: "Muhammad Samsu Hidayattullah",
+      photo: "/images/team/dayatDev.jpeg",
+      headline: "Web Developer – SITANJAK",
       linkedin: "https://linkedin.com/in/username1",
-      github: "https://github.com/username1",
+      github: "https://github.com/Samssu",
     },
     {
-      name: "Nama Developer 2",
-      photo:
-        "https://images.unsplash.com/photo-1607746882042-944635dfe10e?q=80&w=400",
-      headline: "Berkontribusi dalam perancangan dan pengembangan antarmuka sistem SITANJAK.",
-      linkedin: "https://linkedin.com/in/username2",
-      github: "https://github.com/username2",
+      name: "Mulia Sahpira",
+      photo: "/images/team/muliaDev.png",
+      headline: "Web Developer – SITANJAK",
+      linkedin: "https://www.linkedin.com/in/mulia-sahpira/",
+      github: "https://github.com/LiaMuliaa",
     },
   ];
 
@@ -107,10 +106,12 @@ export default function TentangKami() {
               {/* Avatar */}
               <div className="flex justify-center mb-6">
                 <div className="relative">
-                  <img
+                  <Image
                     src={dev.photo}
                     alt={dev.name}
-                    className="w-28 h-28 rounded-full object-cover border-4 border-white shadow-xl"
+                    width={112}
+                    height={112}
+                    className="rounded-full object-cover border-4 border-white shadow-xl"
                   />
                   <div className="absolute inset-0 rounded-full bg-linear-to-tr from-[#7F1D1D]/20 to-[#F59E0B]/20 blur-md opacity-0 group-hover:opacity-100 transition duration-500" />
                 </div>
@@ -121,10 +122,17 @@ export default function TentangKami() {
                 {dev.name}
               </h2>
 
-              {/* Headline */}
-              <p className="mt-4 text-gray-600 text-sm md:text-base leading-relaxed">
-                {dev.headline}
-              </p>
+              {/* Role Badge */}
+              <div className="mt-3 inline-block px-4 py-1.5 rounded-full 
+                bg-linear-to-r from-[#7F1D1D]/10 to-[#F59E0B]/10 
+                border border-[#7F1D1D]/20">
+
+                <p className="text-sm font-semibold tracking-wide 
+                  bg-linear-to-r from-[#7F1D1D] to-[#F59E0B] 
+                  bg-clip-text text-transparent">
+                  {dev.headline}
+                </p>
+              </div>
 
               {/* Divider */}
               <div className="w-16 h-1 mx-auto bg-linear-to-r from-[#7F1D1D] to-[#F59E0B] rounded-full my-6" />
