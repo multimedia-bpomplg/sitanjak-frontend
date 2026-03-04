@@ -50,8 +50,11 @@ export default function Statistik() {
     0,
   );
 
-  // Estimasi peserta selesai magang
-  const selesaiMagang = totalPendaftar - sedangMagang;
+  // Peserta selesai magang (data asli dari backend)
+  const selesaiMagang = formasiList.reduce(
+    (a, b) => a + (b.jumlahSelesaiMagang || 0),
+    0,
+  );
 
   // =====================================
   // DATA UI
@@ -184,40 +187,40 @@ export default function Statistik() {
               <div
                 key={i}
                 className="
-                    relative
-                    bg-white/60 backdrop-blur-xl
-                    border border-white/70
-                    rounded-3xl p-6
-                    shadow-md
-                    hover:shadow-xl
-                    hover:-translate-y-1
-                    transition-all duration-300
-                    overflow-hidden
-                    group
-                  "
+                      relative
+                      bg-white/60 backdrop-blur-xl
+                      border border-white/70
+                      rounded-3xl p-6
+                      shadow-md
+                      hover:shadow-xl
+                      hover:-translate-y-1
+                      transition-all duration-300
+                      overflow-hidden
+                      group
+                    "
               >
                 {/* Background Effect */}
                 <div
                   className="
-                      absolute inset-0 opacity-0
-                      group-hover:opacity-100
-                      bg-linear-to-r from-white/10 to-white/30
-                      transition
-                    "
+                        absolute inset-0 opacity-0
+                        group-hover:opacity-100
+                        bg-linear-to-r from-white/10 to-white/30
+                        transition
+                      "
                 />
 
                 {/* Icon */}
                 <div
                   className={`
-                      relative z-10
-                      w-14 h-14
-                      flex items-center justify-center
-                      rounded-2xl
-                      bg-linear-to-r ${item.color}
-                      text-white
-                      shadow-lg
-                      mb-4
-                    `}
+                        relative z-10
+                        w-14 h-14
+                        flex items-center justify-center
+                        rounded-2xl
+                        bg-linear-to-r ${item.color}
+                        text-white
+                        shadow-lg
+                        mb-4
+                      `}
                 >
                   <item.icon size={26} />
                 </div>

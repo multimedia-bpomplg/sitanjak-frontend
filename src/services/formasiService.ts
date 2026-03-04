@@ -9,6 +9,8 @@ export interface IFormasi {
   kode: string;
   divisi: string;
   jurusan: string[];
+
+  jumlahSelesaiMagang?: number;
 }
 
 export const fetchFormasi = async (): Promise<IFormasi[]> => {
