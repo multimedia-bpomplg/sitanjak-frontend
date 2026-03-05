@@ -181,8 +181,7 @@ export default function OversistemDashboard() {
   >("checking");
 
   // API Base URL
-  const API_BASE_URL =
-    process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
   // Flag untuk tracking apakah komponen masih mounted
   const [isMounted, setIsMounted] = useState(true);

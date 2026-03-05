@@ -576,12 +576,26 @@ export default function LogbookModal({
     // 🔥 HANDLE REVISI DI AWAL (BIAR TS TIDAK SALAH NARROWING)
     if (approvalStatus === "revisi") {
       return (
-        <div className="text-center py-2 w-full">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-800 rounded-full">
-            <FiRefreshCw className="animate-spin" />
-            <span className="font-semibold">Menunggu Revisi Peserta</span>
-          </div>
-        </div>
+        <button
+          disabled={submitDisabled}
+          onClick={handleUpdateLogbook}
+          className={`
+        w-full sm:w-auto justify-center
+        px-8 py-3
+        rounded-full
+        font-semibold
+        flex items-center gap-2
+        transition-all
+        ${
+          submitDisabled
+            ? "bg-slate-300 text-slate-500 cursor-not-allowed"
+            : "bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl active:scale-[0.98]"
+        }
+      `}
+        >
+          <FiRefreshCw />
+          Kirim Revisi
+        </button>
       );
     }
 

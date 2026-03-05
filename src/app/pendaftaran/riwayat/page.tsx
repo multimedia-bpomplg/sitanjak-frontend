@@ -18,10 +18,9 @@ export default function RiwayatPendaftaran() {
   const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
-  // ✅ AMAN: Menggunakan environment variable dari .env.local
-  const API_URL =
-    process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
-  const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:5000";
+  // ✅ AMAN: Menggunakan environment variable dari .env
+  const API_URL = process.env.NEXT_PUBLIC_API_URL;
+  const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
   const FILE_BASE_URL = `${BASE_URL}/api/uploads`;
 
   const [popup, setPopup] = useState<{

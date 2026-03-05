@@ -552,10 +552,13 @@ function PendaftaranForm() {
       formData.append("peserta", JSON.stringify(pesertaFinal));
       formData.append("suratPengantar", surat!);
 
-      const res = await fetch("http://localhost:5000/api/pendaftaran", {
-        method: "POST",
-        body: formData,
-      });
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/pendaftaran`,
+        {
+          method: "POST",
+          body: formData,
+        },
+      );
 
       if (res.ok) {
         toast.dismiss(toastId);
