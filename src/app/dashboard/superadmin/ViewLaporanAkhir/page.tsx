@@ -97,6 +97,8 @@ export default function ViewLaporanAkhirSuperadmin() {
     const pesertaMap = new Map<string, PesertaLaporan>();
 
     laporanList.forEach((laporan: LaporanAkhir) => {
+      if (!laporan?.user?._id) return;
+
       const userId = laporan.user._id;
 
       if (!pesertaMap.has(userId)) {
@@ -333,8 +335,8 @@ export default function ViewLaporanAkhirSuperadmin() {
             </span>
           </h1>
           <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400">
-            Kelola dan review laporan akhir semua peserta magang. Pantau
-            status dan berikan feedback.
+            Kelola dan review laporan akhir semua peserta magang. Pantau status
+            dan berikan feedback.
           </p>
         </div>
 
@@ -500,10 +502,10 @@ export default function ViewLaporanAkhirSuperadmin() {
                       i === 0
                         ? "col-span-1"
                         : i === 1
-                        ? "col-span-5"
-                        : i === 4
-                        ? "col-span-2"
-                        : "col-span-2"
+                          ? "col-span-5"
+                          : i === 4
+                            ? "col-span-2"
+                            : "col-span-2"
                     }
                     text-center
                     text-xs font-semibold uppercase
