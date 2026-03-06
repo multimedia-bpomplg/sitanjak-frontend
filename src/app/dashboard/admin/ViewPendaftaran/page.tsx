@@ -1101,7 +1101,7 @@ export default function ViewPendaftaranPage() {
                             const returnUrl = encodeURIComponent(
                               window.location.pathname + window.location.hash,
                             );
-                            window.location.href = `/dashboard/superadmin/ManajemenAkun/buatpeserta?email=${encodeURIComponent(p.email)}&name=${encodeURIComponent(p.nama)}&returnTo=${returnUrl}`;
+                            window.location.href = `/dashboard/admin/ManajemenAkun/buatpeserta?email=${encodeURIComponent(p.email)}&name=${encodeURIComponent(p.nama)}&returnTo=${returnUrl}`;
                           }}
                           className="text-xs px-3 py-1.5 rounded-lg font-medium transition bg-blue-600 hover:bg-blue-700 text-white dark:bg-indigo-600 dark:hover:bg-indigo-700"
                         >

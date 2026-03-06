@@ -43,6 +43,33 @@ export default function ViewLogbookMentor() {
     Record<string, FilledDateType>
   >({});
 
+  /* =================Summaryboard Mentor================= */
+  const summary = Object.values(filledDates).reduce(
+    (acc, item) => {
+      acc.total++;
+
+      if (item.approvalStatus === "disetujui") {
+        if (item.status === "hadir") acc.hadir++;
+        if (item.status === "tidak_hadir_keterangan") acc.izin++;
+        if (item.status === "tidak_hadir_tanpa_keterangan")
+          acc.tanpaKeterangan++;
+      }
+
+      if (item.approvalStatus === "ditolak") acc.ditolak++;
+      if (item.approvalStatus === "revisi") acc.revisi++;
+
+      return acc;
+    },
+    {
+      total: 0,
+      hadir: 0,
+      izin: 0,
+      tanpaKeterangan: 0,
+      ditolak: 0,
+      revisi: 0,
+    },
+  );
+
   /* ================= FETCH PESERTA BIMBINGAN ================= */
   useEffect(() => {
     const fetchPeserta = async () => {
@@ -826,6 +853,56 @@ export default function ViewLogbookMentor() {
               </div>
             </div>
 
+            {/* ===== SUMMARY BOARD ===== */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+              <SummaryCard
+                icon="📘"
+                title="Total Logbook"
+                value={summary.total}
+                desc="Seluruh catatan"
+              />
+
+              <SummaryCard
+                icon="✅"
+                title="Hadir"
+                value={summary.hadir}
+                desc="Kehadiran valid"
+                color="text-emerald-600"
+              />
+
+              <SummaryCard
+                icon="📝"
+                title="Tidak Hadir (Ket.)"
+                value={summary.izin}
+                desc="Dengan keterangan"
+                color="text-blue-600"
+              />
+
+              <SummaryCard
+                icon="❌"
+                title="Tanpa Keterangan"
+                value={summary.tanpaKeterangan}
+                desc="Perlu perhatian"
+                color="text-red-600"
+              />
+
+              <SummaryCard
+                icon="⛔"
+                title="Ditolak"
+                value={summary.ditolak}
+                desc="Ditolak mentor"
+                color="text-rose-600"
+              />
+
+              <SummaryCard
+                icon="✏️"
+                title="Revisi"
+                value={summary.revisi}
+                desc="Perlu revisi"
+                color="text-purple-600"
+              />
+            </div>
+
             {/* ===== CALENDAR WRAPPER ===== */}
             <div
               className="
@@ -854,6 +931,41 @@ export default function ViewLogbookMentor() {
           onClose={() => setSelectedDate(null)}
         />
       )}
+    </div>
+  );
+}
+
+function SummaryCard({
+  icon,
+  title,
+  value,
+  desc,
+  color = "text-slate-800",
+}: {
+  icon: string;
+  title: string;
+  value: number;
+  desc: string;
+  color?: string;
+}) {
+  return (
+    <div
+      className="
+      rounded-2xl p-4 text-center
+      bg-white dark:bg-indigo-900/40
+      border border-slate-200 dark:border-indigo-500/30
+      shadow-sm
+    "
+    >
+      <div className="text-xl mb-1">{icon}</div>
+
+      <div className={`text-2xl font-bold ${color}`}>{value}</div>
+
+      <div className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+        {title}
+      </div>
+
+      <div className="text-xs text-slate-500 dark:text-slate-400">{desc}</div>
     </div>
   );
 }

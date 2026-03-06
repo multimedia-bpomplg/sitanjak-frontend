@@ -580,56 +580,6 @@ export default function LogbookModal({
           disabled={submitDisabled}
           onClick={handleUpdateLogbook}
           className={`
-        w-full sm:w-auto justify-center
-        px-8 py-3
-        rounded-full
-        font-semibold
-        flex items-center gap-2
-        transition-all
-        ${
-          submitDisabled
-            ? "bg-slate-300 text-slate-500 cursor-not-allowed"
-            : "bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl active:scale-[0.98]"
-        }
-      `}
-        >
-          <FiRefreshCw />
-          Kirim Revisi
-        </button>
-      );
-    }
-
-    if (mode === "create") {
-      return (
-        <button
-          disabled={submitDisabled}
-          onClick={handleSubmit}
-          className={`
-          w-full sm:w-auto justify-center
-          px-8 py-3
-          rounded-full
-          font-semibold
-          flex items-center gap-2
-          transition-all
-          ${
-            submitDisabled
-              ? "bg-slate-300 text-slate-500 cursor-not-allowed"
-              : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg hover:shadow-xl active:scale-[0.98]"
-          }
-        `}
-        >
-          <FiCheck />
-          Simpan Logbook
-        </button>
-      );
-    }
-
-    if (mode === "edit") {
-      return (
-        <button
-          disabled={submitDisabled}
-          onClick={handleUpdateLogbook}
-          className={`
           w-full sm:w-auto justify-center
           px-8 py-3
           rounded-full
@@ -649,6 +599,56 @@ export default function LogbookModal({
       );
     }
 
+    if (mode === "create") {
+      return (
+        <button
+          disabled={submitDisabled}
+          onClick={handleSubmit}
+          className={`
+            w-full sm:w-auto justify-center
+            px-8 py-3
+            rounded-full
+            font-semibold
+            flex items-center gap-2
+            transition-all
+            ${
+              submitDisabled
+                ? "bg-slate-300 text-slate-500 cursor-not-allowed"
+                : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg hover:shadow-xl active:scale-[0.98]"
+            }
+          `}
+        >
+          <FiCheck />
+          Simpan Logbook
+        </button>
+      );
+    }
+
+    if (mode === "edit") {
+      return (
+        <button
+          disabled={submitDisabled}
+          onClick={handleUpdateLogbook}
+          className={`
+            w-full sm:w-auto justify-center
+            px-8 py-3
+            rounded-full
+            font-semibold
+            flex items-center gap-2
+            transition-all
+            ${
+              submitDisabled
+                ? "bg-slate-300 text-slate-500 cursor-not-allowed"
+                : "bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl active:scale-[0.98]"
+            }
+          `}
+        >
+          <FiRefreshCw />
+          Kirim Revisi
+        </button>
+      );
+    }
+
     if (role === "mentor" && mode === "view" && approvalStatus === "menunggu") {
       return (
         <>
@@ -656,17 +656,17 @@ export default function LogbookModal({
             onClick={() => setShowRevisionModal(true)}
             disabled={!mentorNote.trim()}
             className={`
-            w-full sm:w-auto justify-center
-            px-6 py-3 rounded-full
-            font-semibold
-            flex items-center gap-2
-            transition-all
-            ${
-              !mentorNote.trim()
-                ? "bg-slate-300 text-slate-500 cursor-not-allowed"
-                : "bg-blue-600 hover:bg-blue-700 text-white shadow-lg"
-            }
-          `}
+              w-full sm:w-auto justify-center
+              px-6 py-3 rounded-full
+              font-semibold
+              flex items-center gap-2
+              transition-all
+              ${
+                !mentorNote.trim()
+                  ? "bg-slate-300 text-slate-500 cursor-not-allowed"
+                  : "bg-blue-600 hover:bg-blue-700 text-white shadow-lg"
+              }
+            `}
           >
             <FiRefreshCw />
             Minta Revisi
@@ -676,17 +676,17 @@ export default function LogbookModal({
             onClick={() => handleApprove(false)}
             disabled={!mentorNote.trim()}
             className={`
-            w-full sm:w-auto justify-center
-            px-6 py-3 rounded-full
-            font-semibold
-            flex items-center gap-2
-            transition-all
-            ${
-              !mentorNote.trim()
-                ? "bg-slate-300 text-slate-500 cursor-not-allowed"
-                : "bg-red-600 hover:bg-red-700 text-white shadow-lg"
-            }
-          `}
+              w-full sm:w-auto justify-center
+              px-6 py-3 rounded-full
+              font-semibold
+              flex items-center gap-2
+              transition-all
+              ${
+                !mentorNote.trim()
+                  ? "bg-slate-300 text-slate-500 cursor-not-allowed"
+                  : "bg-red-600 hover:bg-red-700 text-white shadow-lg"
+              }
+            `}
           >
             <FiX />
             Tolak
@@ -696,17 +696,17 @@ export default function LogbookModal({
             onClick={() => handleApprove(true)}
             disabled={!mentorNote.trim()}
             className={`
-            w-full sm:w-auto justify-center
-            px-6 py-3 rounded-full
-            font-semibold
-            flex items-center gap-2
-            transition-all
-            ${
-              !mentorNote.trim()
-                ? "bg-slate-300 text-slate-500 cursor-not-allowed"
-                : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg"
-            }
-          `}
+              w-full sm:w-auto justify-center
+              px-6 py-3 rounded-full
+              font-semibold
+              flex items-center gap-2
+              transition-all
+              ${
+                !mentorNote.trim()
+                  ? "bg-slate-300 text-slate-500 cursor-not-allowed"
+                  : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg"
+              }
+            `}
           >
             <FiCheck />
             Setujui
@@ -735,25 +735,25 @@ export default function LogbookModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-3 sm:p-6">
       <div
         className="
-          w-full max-w-3xl
-          rounded-3xl
-          bg-white dark:bg-slate-900
-          shadow-2xl
-          flex flex-col
-          max-h-[90vh]
-          overflow-hidden
-        "
+            w-full max-w-3xl
+            rounded-3xl
+            bg-white dark:bg-slate-900
+            shadow-2xl
+            flex flex-col
+            max-h-[90vh]
+            overflow-hidden
+          "
       >
         <div
           className="
-            px-5 sm:px-6 py-4
-            border-b border-slate-200 dark:border-slate-800
-            bg-linear-to-r
-            from-[#FCA5A5] via-[#FDE68A] to-[#FFF7ED]
-            dark:from-indigo-800 dark:via-indigo-700 dark:to-indigo-900
-            text-slate-900 dark:text-white
-            shadow-lg
-          "
+              px-5 sm:px-6 py-4
+              border-b border-slate-200 dark:border-slate-800
+              bg-linear-to-r
+              from-[#FCA5A5] via-[#FDE68A] to-[#FFF7ED]
+              dark:from-indigo-800 dark:via-indigo-700 dark:to-indigo-900
+              text-slate-900 dark:text-white
+              shadow-lg
+            "
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -824,27 +824,27 @@ export default function LogbookModal({
                       setStatus(option.value as Status);
                     }}
                     className={`
-                      flex items-center gap-3 p-4 rounded-xl border transition-all
-                      ${
-                        status === option.value
-                          ? statusStyle[option.value]
-                          : "border-slate-200 hover:bg-slate-50 text-slate-600 dark:text-slate-300"
-                      }
-                    `}
+                        flex items-center gap-3 p-4 rounded-xl border transition-all
+                        ${
+                          status === option.value
+                            ? statusStyle[option.value]
+                            : "border-slate-200 hover:bg-slate-50 text-slate-600 dark:text-slate-300"
+                        }
+                      `}
                   >
                     <div
                       className={`
-                        p-2 rounded-lg
-                        ${
-                          status === option.value
-                            ? option.value === "hadir"
-                              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
-                              : option.value === "tidak_hadir_keterangan"
-                                ? "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
-                                : "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300"
-                            : "bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-300"
-                        }
-                      `}
+                          p-2 rounded-lg
+                          ${
+                            status === option.value
+                              ? option.value === "hadir"
+                                ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
+                                : option.value === "tidak_hadir_keterangan"
+                                  ? "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
+                                  : "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300"
+                              : "bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-300"
+                          }
+                        `}
                     >
                       {option.icon}
                     </div>
@@ -906,36 +906,36 @@ export default function LogbookModal({
                       <label className="block">
                         <div
                           className="
-                            border-2 border-dashed
-                            border-[#F59E0B]
-                            bg-linear-to-br
-                            from-[#FFF7ED] via-[#FEF3C7] to-[#FFF1F2]
-                            dark:from-indigo-900/40
-                            dark:via-indigo-800/40
-                            dark:to-indigo-900/60
-                            rounded-2xl
-                            p-6 sm:p-8
-                            text-center
-                            cursor-pointer
-                            transition-all
-                            hover:scale-[1.01]
-                            hover:shadow-md
-                            dark:border-indigo-600
-                          "
+                              border-2 border-dashed
+                              border-[#F59E0B]
+                              bg-linear-to-br
+                              from-[#FFF7ED] via-[#FEF3C7] to-[#FFF1F2]
+                              dark:from-indigo-900/40
+                              dark:via-indigo-800/40
+                              dark:to-indigo-900/60
+                              rounded-2xl
+                              p-6 sm:p-8
+                              text-center
+                              cursor-pointer
+                              transition-all
+                              hover:scale-[1.01]
+                              hover:shadow-md
+                              dark:border-indigo-600
+                            "
                         >
                           <div
                             className="
-                              mx-auto mb-3
-                              w-14 h-14
-                              rounded-xl
-                              flex items-center justify-center
-                              bg-linear-to-br
-                              from-[#F59E0B] to-[#B91C1C]
-                              dark:from-indigo-500
-                              dark:to-violet-500
-                              text-white
-                              shadow
-                            "
+                                mx-auto mb-3
+                                w-14 h-14
+                                rounded-xl
+                                flex items-center justify-center
+                                bg-linear-to-br
+                                from-[#F59E0B] to-[#B91C1C]
+                                dark:from-indigo-500
+                                dark:to-violet-500
+                                text-white
+                                shadow
+                              "
                           >
                             <FiUpload className="text-2xl" />
                           </div>
@@ -1002,18 +1002,18 @@ export default function LogbookModal({
                         </div>
                         <label
                           className="
-                            inline-flex items-center justify-center
-                            gap-2 px-4 py-2.5
-                            rounded-xl
-                            text-sm font-semibold
-                            cursor-pointer
-                            bg-linear-to-r
-                            from-[#F59E0B] to-[#B91C1C]
-                            dark:from-indigo-600 dark:to-violet-500
-                            text-white
-                            shadow hover:shadow-lg
-                            transition
-                          "
+                              inline-flex items-center justify-center
+                              gap-2 px-4 py-2.5
+                              rounded-xl
+                              text-sm font-semibold
+                              cursor-pointer
+                              bg-linear-to-r
+                              from-[#F59E0B] to-[#B91C1C]
+                              dark:from-indigo-600 dark:to-violet-500
+                              text-white
+                              shadow hover:shadow-lg
+                              transition
+                            "
                         >
                           <FiUpload />
                           Tambah Foto Lainnya
@@ -1075,33 +1075,33 @@ export default function LogbookModal({
                     {!pdfFile && !pdfUrl ? (
                       <div
                         className="
-                          border-2 border-dashed
-                          border-[#B91C1C]
-                          dark:border-indigo-600
-                          rounded-2xl
-                          p-6
-                          text-center
-                          transition-all
-                          bg-linear-to-br
-                          from-[#FFF7ED] via-[#FFF1F2] to-white
-                          dark:from-indigo-950
-                          dark:via-indigo-900
-                          dark:to-indigo-950
-                          hover:shadow-md
-                        "
+                            border-2 border-dashed
+                            border-[#B91C1C]
+                            dark:border-indigo-600
+                            rounded-2xl
+                            p-6
+                            text-center
+                            transition-all
+                            bg-linear-to-br
+                            from-[#FFF7ED] via-[#FFF1F2] to-white
+                            dark:from-indigo-950
+                            dark:via-indigo-900
+                            dark:to-indigo-950
+                            hover:shadow-md
+                          "
                       >
                         <div
                           className="
-                            mx-auto mb-3
-                            w-12 h-12
-                            rounded-xl
-                            flex items-center justify-center
-                            bg-linear-to-br
-                            from-[#F97316] to-[#7F1D1D]
-                            dark:from-indigo-500
-                            dark:to-violet-500
-                            text-white
-                          "
+                              mx-auto mb-3
+                              w-12 h-12
+                              rounded-xl
+                              flex items-center justify-center
+                              bg-linear-to-br
+                              from-[#F97316] to-[#7F1D1D]
+                              dark:from-indigo-500
+                              dark:to-violet-500
+                              text-white
+                            "
                         >
                           <FiUpload className="text-xl" />
                         </div>
@@ -1113,25 +1113,25 @@ export default function LogbookModal({
                     ) : (
                       <div
                         className="
-                          border
-                          border-emerald-300
-                          dark:border-emerald-600
-                          rounded-2xl
-                          p-4
-                          flex items-center gap-4
-                          bg-emerald-50
-                          dark:bg-emerald-900/20
-                          transition
-                        "
+                            border
+                            border-emerald-300
+                            dark:border-emerald-600
+                            rounded-2xl
+                            p-4
+                            flex items-center gap-4
+                            bg-emerald-50
+                            dark:bg-emerald-900/20
+                            transition
+                          "
                       >
                         <div
                           className="
-                            w-12 h-12
-                            rounded-xl
-                            flex items-center justify-center
-                            bg-emerald-500
-                            text-white
-                          "
+                              w-12 h-12
+                              rounded-xl
+                              flex items-center justify-center
+                              bg-emerald-500
+                              text-white
+                            "
                         >
                           <FiFileText className="text-xl" />
                         </div>
@@ -1147,11 +1147,11 @@ export default function LogbookModal({
 
                         <span
                           className="
-                            text-xs font-semibold
-                            px-3 py-1 rounded-full
-                            bg-emerald-200 text-emerald-800
-                            dark:bg-emerald-800 dark:text-emerald-200
-                          "
+                              text-xs font-semibold
+                              px-3 py-1 rounded-full
+                              bg-emerald-200 text-emerald-800
+                              dark:bg-emerald-800 dark:text-emerald-200
+                            "
                         >
                           {pdfFile ? "Baru" : "Ada"}
                         </span>
@@ -1172,28 +1172,28 @@ export default function LogbookModal({
                     rel="noopener noreferrer"
                     onClick={(e) => e.stopPropagation()}
                     className="
-                      flex items-center gap-4
-                      p-4 rounded-2xl
-                      border
-                      border-amber-200 dark:border-indigo-700
-                      bg-amber-50 dark:bg-indigo-900/30
-                      hover:shadow-md
-                      transition
-                      group
-                    "
+                        flex items-center gap-4
+                        p-4 rounded-2xl
+                        border
+                        border-amber-200 dark:border-indigo-700
+                        bg-amber-50 dark:bg-indigo-900/30
+                        hover:shadow-md
+                        transition
+                        group
+                      "
                   >
                     <div
                       className="
-                        w-12 h-12
-                        rounded-xl
-                        flex items-center justify-center
-                        bg-linear-to-br
-                        from-amber-500 to-orange-600
-                        dark:from-indigo-500 dark:to-violet-600
-                        text-white
-                        group-hover:scale-105
-                        transition
-                      "
+                          w-12 h-12
+                          rounded-xl
+                          flex items-center justify-center
+                          bg-linear-to-br
+                          from-amber-500 to-orange-600
+                          dark:from-indigo-500 dark:to-violet-600
+                          text-white
+                          group-hover:scale-105
+                          transition
+                        "
                     >
                       <FiFileText className="text-xl" />
                     </div>
@@ -1209,11 +1209,11 @@ export default function LogbookModal({
 
                     <span
                       className="
-                        text-xs font-semibold
-                        px-3 py-1 rounded-full
-                        bg-amber-200 text-amber-800
-                        dark:bg-indigo-800 dark:text-indigo-200
-                      "
+                          text-xs font-semibold
+                          px-3 py-1 rounded-full
+                          bg-amber-200 text-amber-800
+                          dark:bg-indigo-800 dark:text-indigo-200
+                        "
                     >
                       📄 Lihat PDF
                     </span>
@@ -1269,36 +1269,36 @@ export default function LogbookModal({
                       <label className="block">
                         <div
                           className="
-                            border-2 border-dashed
-                            border-[#F59E0B]
-                            bg-linear-to-br
-                            from-[#FFF7ED] via-[#FEF3C7] to-[#FFF1F2]
-                            dark:from-indigo-900/40
-                            dark:via-indigo-800/40
-                            dark:to-indigo-900/60
-                            rounded-2xl
-                            p-6 sm:p-8
-                            text-center
-                            cursor-pointer
-                            transition-all
-                            hover:scale-[1.01]
-                            hover:shadow-md
-                            dark:border-indigo-600
-                          "
+                              border-2 border-dashed
+                              border-[#F59E0B]
+                              bg-linear-to-br
+                              from-[#FFF7ED] via-[#FEF3C7] to-[#FFF1F2]
+                              dark:from-indigo-900/40
+                              dark:via-indigo-800/40
+                              dark:to-indigo-900/60
+                              rounded-2xl
+                              p-6 sm:p-8
+                              text-center
+                              cursor-pointer
+                              transition-all
+                              hover:scale-[1.01]
+                              hover:shadow-md
+                              dark:border-indigo-600
+                            "
                         >
                           <div
                             className="
-                              mx-auto mb-3
-                              w-14 h-14
-                              rounded-xl
-                              flex items-center justify-center
-                              bg-linear-to-br
-                              from-[#F59E0B] to-[#B91C1C]
-                              dark:from-indigo-500
-                              dark:to-violet-500
-                              text-white
-                              shadow
-                            "
+                                mx-auto mb-3
+                                w-14 h-14
+                                rounded-xl
+                                flex items-center justify-center
+                                bg-linear-to-br
+                                from-[#F59E0B] to-[#B91C1C]
+                                dark:from-indigo-500
+                                dark:to-violet-500
+                                text-white
+                                shadow
+                              "
                           >
                             <FiUpload className="text-2xl" />
                           </div>
@@ -1363,18 +1363,18 @@ export default function LogbookModal({
                         </div>
                         <label
                           className="
-                            inline-flex items-center justify-center
-                            gap-2 px-4 py-2.5
-                            rounded-xl
-                            text-sm font-semibold
-                            cursor-pointer
-                            bg-linear-to-r
-                            from-[#F59E0B] to-[#B91C1C]
-                            dark:from-indigo-600 dark:to-violet-500
-                            text-white
-                            shadow hover:shadow-lg
-                            transition
-                          "
+                              inline-flex items-center justify-center
+                              gap-2 px-4 py-2.5
+                              rounded-xl
+                              text-sm font-semibold
+                              cursor-pointer
+                              bg-linear-to-r
+                              from-[#F59E0B] to-[#B91C1C]
+                              dark:from-indigo-600 dark:to-violet-500
+                              text-white
+                              shadow hover:shadow-lg
+                              transition
+                            "
                         >
                           <FiUpload />
                           Tambah Foto Lainnya
@@ -1436,33 +1436,33 @@ export default function LogbookModal({
                     {!pdfFile && !pdfUrl ? (
                       <div
                         className="
-                          border-2 border-dashed
-                          border-[#B91C1C]
-                          dark:border-indigo-600
-                          rounded-2xl
-                          p-6
-                          text-center
-                          transition-all
-                          bg-linear-to-br
-                          from-[#FFF7ED] via-[#FFF1F2] to-white
-                          dark:from-indigo-950
-                          dark:via-indigo-900
-                          dark:to-indigo-950
-                          hover:shadow-md
-                        "
+                            border-2 border-dashed
+                            border-[#B91C1C]
+                            dark:border-indigo-600
+                            rounded-2xl
+                            p-6
+                            text-center
+                            transition-all
+                            bg-linear-to-br
+                            from-[#FFF7ED] via-[#FFF1F2] to-white
+                            dark:from-indigo-950
+                            dark:via-indigo-900
+                            dark:to-indigo-950
+                            hover:shadow-md
+                          "
                       >
                         <div
                           className="
-                            mx-auto mb-3
-                            w-12 h-12
-                            rounded-xl
-                            flex items-center justify-center
-                            bg-linear-to-br
-                            from-[#F97316] to-[#7F1D1D]
-                            dark:from-indigo-500
-                            dark:to-violet-500
-                            text-white
-                          "
+                              mx-auto mb-3
+                              w-12 h-12
+                              rounded-xl
+                              flex items-center justify-center
+                              bg-linear-to-br
+                              from-[#F97316] to-[#7F1D1D]
+                              dark:from-indigo-500
+                              dark:to-violet-500
+                              text-white
+                            "
                         >
                           <FiUpload className="text-xl" />
                         </div>
@@ -1477,25 +1477,25 @@ export default function LogbookModal({
                     ) : (
                       <div
                         className="
-                          border
-                          border-emerald-300
-                          dark:border-emerald-600
-                          rounded-2xl
-                          p-4
-                          flex items-center gap-4
-                          bg-emerald-50
-                          dark:bg-emerald-900/20
-                          transition
-                        "
+                            border
+                            border-emerald-300
+                            dark:border-emerald-600
+                            rounded-2xl
+                            p-4
+                            flex items-center gap-4
+                            bg-emerald-50
+                            dark:bg-emerald-900/20
+                            transition
+                          "
                       >
                         <div
                           className="
-                            w-12 h-12
-                            rounded-xl
-                            flex items-center justify-center
-                            bg-emerald-500
-                            text-white
-                          "
+                              w-12 h-12
+                              rounded-xl
+                              flex items-center justify-center
+                              bg-emerald-500
+                              text-white
+                            "
                         >
                           <FiFileText className="text-xl" />
                         </div>
@@ -1511,11 +1511,11 @@ export default function LogbookModal({
 
                         <span
                           className="
-                            text-xs font-semibold
-                            px-3 py-1 rounded-full
-                            bg-emerald-200 text-emerald-800
-                            dark:bg-emerald-800 dark:text-emerald-200
-                          "
+                              text-xs font-semibold
+                              px-3 py-1 rounded-full
+                              bg-emerald-200 text-emerald-800
+                              dark:bg-emerald-800 dark:text-emerald-200
+                            "
                         >
                           {pdfFile ? "Baru" : "Ada"}
                         </span>
@@ -1536,28 +1536,28 @@ export default function LogbookModal({
                     rel="noopener noreferrer"
                     onClick={(e) => e.stopPropagation()}
                     className="
-                      flex items-center gap-4
-                      p-4 rounded-2xl
-                      border
-                      border-amber-200 dark:border-indigo-700
-                      bg-amber-50 dark:bg-indigo-900/30
-                      hover:shadow-md
-                      transition
-                      group
-                    "
+                        flex items-center gap-4
+                        p-4 rounded-2xl
+                        border
+                        border-amber-200 dark:border-indigo-700
+                        bg-amber-50 dark:bg-indigo-900/30
+                        hover:shadow-md
+                        transition
+                        group
+                      "
                   >
                     <div
                       className="
-                        w-12 h-12
-                        rounded-xl
-                        flex items-center justify-center
-                        bg-linear-to-br
-                        from-amber-500 to-orange-600
-                        dark:from-indigo-500 dark:to-violet-600
-                        text-white
-                        group-hover:scale-105
-                        transition
-                      "
+                          w-12 h-12
+                          rounded-xl
+                          flex items-center justify-center
+                          bg-linear-to-br
+                          from-amber-500 to-orange-600
+                          dark:from-indigo-500 dark:to-violet-600
+                          text-white
+                          group-hover:scale-105
+                          transition
+                        "
                     >
                       <FiFileText className="text-xl" />
                     </div>
@@ -1573,11 +1573,11 @@ export default function LogbookModal({
 
                     <span
                       className="
-                        text-xs font-semibold
-                        px-3 py-1 rounded-full
-                        bg-amber-200 text-amber-800
-                        dark:bg-indigo-800 dark:text-indigo-200
-                      "
+                          text-xs font-semibold
+                          px-3 py-1 rounded-full
+                          bg-amber-200 text-amber-800
+                          dark:bg-indigo-800 dark:text-indigo-200
+                        "
                     >
                       📄 Lihat PDF
                     </span>
@@ -1621,13 +1621,13 @@ export default function LogbookModal({
           {mode === "create" && (
             <div
               className={`
-                p-4 rounded-xl border transition
-                ${
-                  agree
-                    ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30"
-                    : "border-slate-200 bg-slate-50 dark:bg-slate-800 dark:border-slate-700"
-                }
-              `}
+                  p-4 rounded-xl border transition
+                  ${
+                    agree
+                      ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30"
+                      : "border-slate-200 bg-slate-50 dark:bg-slate-800 dark:border-slate-700"
+                  }
+                `}
             >
               <button
                 type="button"
@@ -1636,15 +1636,15 @@ export default function LogbookModal({
               >
                 <div
                   className={`
-                    w-6 h-6 rounded border-2
-                    flex items-center justify-center shrink-0 mt-0.5
-                    transition
-                    ${
-                      agree
-                        ? "bg-emerald-600 border-emerald-600 text-white"
-                        : "border-slate-400 dark:border-slate-500 bg-transparent"
-                    }
-                  `}
+                      w-6 h-6 rounded border-2
+                      flex items-center justify-center shrink-0 mt-0.5
+                      transition
+                      ${
+                        agree
+                          ? "bg-emerald-600 border-emerald-600 text-white"
+                          : "border-slate-400 dark:border-slate-500 bg-transparent"
+                      }
+                    `}
                 >
                   {agree && <FiCheck className="text-sm" />}
                 </div>
@@ -1652,25 +1652,25 @@ export default function LogbookModal({
                 <div>
                   <p
                     className={`
-                      font-medium
-                      ${
-                        agree
-                          ? "text-emerald-700 dark:text-emerald-300"
-                          : "text-slate-700 dark:text-slate-200"
-                      }
-                    `}
+                        font-medium
+                        ${
+                          agree
+                            ? "text-emerald-700 dark:text-emerald-300"
+                            : "text-slate-700 dark:text-slate-200"
+                        }
+                      `}
                   >
                     Konfirmasi
                   </p>
                   <p
                     className={`
-                      text-sm mt-1
-                      ${
-                        agree
-                          ? "text-emerald-600 dark:text-emerald-400"
-                          : "text-slate-500 dark:text-slate-400"
-                      }
-                    `}
+                        text-sm mt-1
+                        ${
+                          agree
+                            ? "text-emerald-600 dark:text-emerald-400"
+                            : "text-slate-500 dark:text-slate-400"
+                        }
+                      `}
                   >
                     Saya menyatakan bahwa semua data yang diisi adalah benar dan
                     dapat dipertanggungjawabkan
@@ -1695,14 +1695,14 @@ export default function LogbookModal({
                   onChange={(e) => setMentorNote(e.target.value)}
                   rows={4}
                   className="
-                    w-full px-4 py-3
-                    border rounded-xl
-                    resize-y
-                    max-h-[40vh]
-                    transition
-                    focus:border-indigo-500
-                    focus:ring-2 focus:ring-indigo-200
-                  "
+                      w-full px-4 py-3
+                      border rounded-xl
+                      resize-y
+                      max-h-[40vh]
+                      transition
+                      focus:border-indigo-500
+                      focus:ring-2 focus:ring-indigo-200
+                    "
                   placeholder="Berikan catatan atau komentar untuk peserta..."
                 />
                 <p className="text-sm text-slate-500">
@@ -1717,16 +1717,16 @@ export default function LogbookModal({
             <button
               onClick={onClose}
               className="
-                w-full sm:w-auto
-                px-6 py-3
-                rounded-full
-                font-medium
-                border
-                border-red-500 text-red-600
-                hover:bg-red-50
-                dark:border-red-400 dark:text-red-400 dark:hover:bg-red-900/30
-                transition
-              "
+                  w-full sm:w-auto
+                  px-6 py-3
+                  rounded-full
+                  font-medium
+                  border
+                  border-red-500 text-red-600
+                  hover:bg-red-50
+                  dark:border-red-400 dark:text-red-400 dark:hover:bg-red-900/30
+                  transition
+                "
             >
               {mode === "view" ? "Tutup" : "Batalkan"}
             </button>
@@ -1769,28 +1769,28 @@ export default function LogbookModal({
 
           <div
             className="
-              relative
-              w-full max-w-sm sm:max-w-md
-              rounded-3xl
-              bg-white dark:bg-slate-900
-              shadow-2xl
-              p-6 sm:p-8
-              text-center
-              animate-scaleIn
-            "
+                relative
+                w-full max-w-sm sm:max-w-md
+                rounded-3xl
+                bg-white dark:bg-slate-900
+                shadow-2xl
+                p-6 sm:p-8
+                text-center
+                animate-scaleIn
+              "
           >
             <div
               className="
-                mx-auto mb-4
-                w-20 h-20
-                rounded-full
-                flex items-center justify-center
-                shadow-lg
-                bg-linear-to-br
-                from-[#F59E0B] to-[#B91C1C]
-                dark:from-indigo-500 dark:to-violet-600
-                text-white
-              "
+                  mx-auto mb-4
+                  w-20 h-20
+                  rounded-full
+                  flex items-center justify-center
+                  shadow-lg
+                  bg-linear-to-br
+                  from-[#F59E0B] to-[#B91C1C]
+                  dark:from-indigo-500 dark:to-violet-600
+                  text-white
+                "
             >
               <FiCheck className="text-3xl" />
             </div>
@@ -1811,21 +1811,21 @@ export default function LogbookModal({
               <button
                 onClick={() => setShowConfirm(false)}
                 className="
-                  w-full
-                  px-4 py-3
-                  rounded-xl
-                  border
-                  border-slate-300
-                  text-slate-700
-                  font-medium
-                  bg-white
-                  hover:bg-slate-100
-                  dark:bg-slate-800
-                  dark:border-slate-600
-                  dark:text-slate-200
-                  dark:hover:bg-slate-700
-                  transition
-                "
+                    w-full
+                    px-4 py-3
+                    rounded-xl
+                    border
+                    border-slate-300
+                    text-slate-700
+                    font-medium
+                    bg-white
+                    hover:bg-slate-100
+                    dark:bg-slate-800
+                    dark:border-slate-600
+                    dark:text-slate-200
+                    dark:hover:bg-slate-700
+                    transition
+                  "
               >
                 Periksa Lagi
               </button>
@@ -1833,20 +1833,20 @@ export default function LogbookModal({
               <button
                 onClick={submitConfirmed}
                 className="
-                  w-full
-                  px-4 py-3
-                  rounded-xl
-                  font-semibold
-                  text-white
-                  shadow-lg
-                  transition-all
-                  bg-linear-to-r
-                  from-[#F59E0B] via-[#F97316] to-[#7F1D1D]
-                  hover:brightness-110
-                  dark:from-indigo-600
-                  dark:via-indigo-500
-                  dark:to-violet-600
-                "
+                    w-full
+                    px-4 py-3
+                    rounded-xl
+                    font-semibold
+                    text-white
+                    shadow-lg
+                    transition-all
+                    bg-linear-to-r
+                    from-[#F59E0B] via-[#F97316] to-[#7F1D1D]
+                    hover:brightness-110
+                    dark:from-indigo-600
+                    dark:via-indigo-500
+                    dark:to-violet-600
+                  "
               >
                 Ya, Kirim Logbook
               </button>
@@ -1895,13 +1895,13 @@ export default function LogbookModal({
                 onClick={handleRequestRevision}
                 disabled={!revisionNote.trim()}
                 className={`
-                  flex-1 px-4 py-3 rounded-xl font-semibold text-white transition
-                  ${
-                    !revisionNote.trim()
-                      ? "bg-slate-300 cursor-not-allowed"
-                      : "bg-blue-600 hover:bg-blue-700"
-                  }
-                `}
+                    flex-1 px-4 py-3 rounded-xl font-semibold text-white transition
+                    ${
+                      !revisionNote.trim()
+                        ? "bg-slate-300 cursor-not-allowed"
+                        : "bg-blue-600 hover:bg-blue-700"
+                    }
+                  `}
               >
                 Kirim Permintaan Revisi
               </button>
@@ -1948,11 +1948,11 @@ function FieldSection({
       {!editable ? (
         <div
           className="
-            p-4 rounded-xl border min-h-25 whitespace-pre-line
-            bg-white text-slate-800
-            dark:bg-slate-800 dark:text-slate-200
-            border-slate-200 dark:border-slate-700
-          "
+              p-4 rounded-xl border min-h-25 whitespace-pre-line
+              bg-white text-slate-800
+              dark:bg-slate-800 dark:text-slate-200
+              border-slate-200 dark:border-slate-700
+            "
         >
           {value || <span className="text-slate-400">-</span>}
         </div>
@@ -1967,24 +1967,24 @@ function FieldSection({
             }}
             rows={4}
             className={`
-              w-full
-              px-4 py-3
-              rounded-2xl
-              resize-y
-              max-h-[45vh]
-              text-sm sm:text-base
-              leading-relaxed sm:leading-loose
-              border
-              transition-all
-              focus:outline-none focus:ring-2
-              ${
-                isError
-                  ? "border-red-500 focus:ring-red-300 bg-white dark:bg-slate-800"
-                  : isValid
-                    ? "border-emerald-500 focus:ring-emerald-300 bg-white dark:bg-slate-800"
-                    : "border-slate-300 bg-white dark:bg-slate-800 focus:ring-slate-400"
-              }
-            `}
+                w-full
+                px-4 py-3
+                rounded-2xl
+                resize-y
+                max-h-[45vh]
+                text-sm sm:text-base
+                leading-relaxed sm:leading-loose
+                border
+                transition-all
+                focus:outline-none focus:ring-2
+                ${
+                  isError
+                    ? "border-red-500 focus:ring-red-300 bg-white dark:bg-slate-800"
+                    : isValid
+                      ? "border-emerald-500 focus:ring-emerald-300 bg-white dark:bg-slate-800"
+                      : "border-slate-300 bg-white dark:bg-slate-800 focus:ring-slate-400"
+                }
+              `}
             placeholder={placeholder}
           />
           <div className="flex justify-between items-center text-sm mt-1">

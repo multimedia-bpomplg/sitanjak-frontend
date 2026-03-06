@@ -45,6 +45,7 @@ type LogbookSummary = {
   hadir: number;
   tidakHadirDenganKeterangan: number;
   tidakHadirTanpaKeterangan: number;
+  ditolakMentor: number;
 };
 
 export default function ViewLogbookSuperadmin() {
@@ -163,22 +164,34 @@ export default function ViewLogbookSuperadmin() {
       (logbook) => logbook.user && logbook.user._id === pesertaId,
     );
 
-    // Hitung summary
     const summary: LogbookSummary = {
       total: pesertaLogbooks.length,
-      hadir: pesertaLogbooks.filter((l) => l.status === "hadir").length,
-      tidakHadirDenganKeterangan: pesertaLogbooks.filter(
-        (l) => l.status === "tidak_hadir_keterangan",
+
+      hadir: pesertaLogbooks.filter(
+        (l) => l.status === "hadir" && l.approvalStatus === "disetujui",
       ).length,
+
+      tidakHadirDenganKeterangan: pesertaLogbooks.filter(
+        (l) =>
+          l.status === "tidak_hadir_keterangan" &&
+          l.approvalStatus === "disetujui",
+      ).length,
+
       tidakHadirTanpaKeterangan: pesertaLogbooks.filter(
-        (l) => l.status === "tidak_hadir_tanpa_keterangan",
+        (l) =>
+          l.status === "tidak_hadir_tanpa_keterangan" &&
+          l.approvalStatus === "disetujui",
+      ).length,
+
+      ditolakMentor: pesertaLogbooks.filter(
+        (l) => l.approvalStatus === "ditolak",
       ).length,
     };
 
-    // Buat filledDates dari logbook yang ada
     const dates: Record<string, string> = {};
+
     pesertaLogbooks.forEach((logbook) => {
-      dates[logbook.date] = logbook._id; // Simpan ID logbook untuk referensi
+      dates[logbook.date] = logbook._id;
     });
 
     setLogbookSummary(summary);
@@ -440,13 +453,13 @@ export default function ViewLogbookSuperadmin() {
       <div className="w-full max-w-4xl mx-auto">
         <div
           className="
-          rounded-2xl
-          bg-white/80 dark:bg-indigo-950/50
-          backdrop-blur
-          shadow-lg
-          p-6
-          text-slate-800 dark:text-slate-100
-        "
+            rounded-2xl
+            bg-white/80 dark:bg-indigo-950/50
+            backdrop-blur
+            shadow-lg
+            p-6
+            text-slate-800 dark:text-slate-100
+          "
         >
           {/* Header */}
           <div className="mb-4 grid grid-cols-3 items-center">
@@ -466,13 +479,13 @@ export default function ViewLogbookSuperadmin() {
               <button
                 onClick={() => setCurrentMonth(new Date(year, month - 1, 1))}
                 className="
-                  w-9 h-9
-                  rounded-full
-                  flex items-center justify-center
-                  bg-slate-200/70 dark:bg-indigo-900/60
-                  hover:bg-slate-300 dark:hover:bg-indigo-800
-                  transition
-                "
+                    w-9 h-9
+                    rounded-full
+                    flex items-center justify-center
+                    bg-slate-200/70 dark:bg-indigo-900/60
+                    hover:bg-slate-300 dark:hover:bg-indigo-800
+                    transition
+                  "
               >
                 ←
               </button>
@@ -480,13 +493,13 @@ export default function ViewLogbookSuperadmin() {
               <button
                 onClick={() => setCurrentMonth(new Date(year, month + 1, 1))}
                 className="
-                  w-9 h-9
-                  rounded-full
-                  flex items-center justify-center
-                  bg-slate-200/70 dark:bg-indigo-900/60
-                  hover:bg-slate-300 dark:hover:bg-indigo-800
-                  transition
-                "
+                    w-9 h-9
+                    rounded-full
+                    flex items-center justify-center
+                    bg-slate-200/70 dark:bg-indigo-900/60
+                    hover:bg-slate-300 dark:hover:bg-indigo-800
+                    transition
+                  "
               >
                 →
               </button>
@@ -519,24 +532,24 @@ export default function ViewLogbookSuperadmin() {
                   disabled={disabled}
                   onClick={() => onSelectDate(isoDate, isFilled)}
                   className={`
-                    relative aspect-square
-                    rounded-xl
-                    border p-2
-                    text-sm font-semibold
-                    transition-all
-                    ${
-                      isFilled
-                        ? "bg-emerald-100 dark:bg-emerald-500/20 border-emerald-400 dark:border-emerald-400 text-emerald-800 dark:text-emerald-200"
-                        : isToday
-                          ? "bg-white dark:bg-indigo-800/40 border-slate-300 dark:border-indigo-400 text-slate-800 dark:text-white"
-                          : "bg-slate-100 dark:bg-indigo-950/60 border-slate-200 dark:border-indigo-700 text-slate-400 dark:text-indigo-300"
-                    }
-                    ${
-                      disabled
-                        ? "opacity-40 cursor-not-allowed"
-                        : "hover:scale-[1.04] hover:shadow-md"
-                    }
-                  `}
+                      relative aspect-square
+                      rounded-xl
+                      border p-2
+                      text-sm font-semibold
+                      transition-all
+                      ${
+                        isFilled
+                          ? "bg-emerald-100 dark:bg-emerald-500/20 border-emerald-400 dark:border-emerald-400 text-emerald-800 dark:text-emerald-200"
+                          : isToday
+                            ? "bg-white dark:bg-indigo-800/40 border-slate-300 dark:border-indigo-400 text-slate-800 dark:text-white"
+                            : "bg-slate-100 dark:bg-indigo-950/60 border-slate-200 dark:border-indigo-700 text-slate-400 dark:text-indigo-300"
+                      }
+                      ${
+                        disabled
+                          ? "opacity-40 cursor-not-allowed"
+                          : "hover:scale-[1.04] hover:shadow-md"
+                      }
+                    `}
                 >
                   <div className="text-sm font-bold">{date.getDate()}</div>
 
@@ -587,49 +600,37 @@ export default function ViewLogbookSuperadmin() {
   /* ================= STATISTICS ================= */
   const totalPeserta = peserta.length;
 
-  const totalLogbook = peserta.reduce(
-    (sum, p) => sum + p.totalLogbooks,
-    0,
-  );
+  const totalLogbook = peserta.reduce((sum, p) => sum + p.totalLogbooks, 0);
 
-  const totalApproved = peserta.reduce(
-    (sum, p) => sum + p.approvedLogbooks,
-    0,
-  );
+  const totalApproved = peserta.reduce((sum, p) => sum + p.approvedLogbooks, 0);
 
-  const totalPending = peserta.reduce(
-    (sum, p) => sum + p.pendingLogbooks,
-    0,
-  );
+  const totalPending = peserta.reduce((sum, p) => sum + p.pendingLogbooks, 0);
 
-  const totalRejected = peserta.reduce(
-    (sum, p) => sum + p.rejectedLogbooks,
-    0,
-  );
+  const totalRejected = peserta.reduce((sum, p) => sum + p.rejectedLogbooks, 0);
 
   return (
     <div
       className="
-        min-h-screen p-4 sm:p-6 lg:p-10
-        bg-linear-to-br
-        from-slate-50 via-white to-indigo-100
-        dark:from-[#0B0614] dark:via-[#120A24] dark:to-[#1E0F3D]
-        text-slate-800 dark:text-slate-100
-        transition-colors
-      "
+          min-h-screen p-4 sm:p-6 lg:p-10
+          bg-linear-to-br
+          from-slate-50 via-white to-indigo-100
+          dark:from-[#0B0614] dark:via-[#120A24] dark:to-[#1E0F3D]
+          text-slate-800 dark:text-slate-100
+          transition-colors
+        "
     >
       {/* HEADER */}
       <div className="mb-10">
         <h1 className="flex items-center gap-3 tracking-tight mb-2">
           <span
             className="
-              text-2xl sm:text-3xl lg:text-4xl
-              font-extrabold leading-tight
-              bg-clip-text text-transparent
-              bg-linear-to-r
-              from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
-              dark:from-indigo-400 dark:via-violet-400 dark:to-purple-400
-            "
+                text-2xl sm:text-3xl lg:text-4xl
+                font-extrabold leading-tight
+                bg-clip-text text-transparent
+                bg-linear-to-r
+                from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
+                dark:from-indigo-400 dark:via-violet-400 dark:to-purple-400
+              "
           >
             Logbook Peserta
           </span>
@@ -692,17 +693,17 @@ export default function ViewLogbookSuperadmin() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="
-              w-full pl-11 pr-10 py-3
-              rounded-2xl
-              bg-white/90 dark:bg-white/5
-              backdrop-blur
-              border border-[#F59E0B]/40 dark:border-indigo-500/40
-              text-slate-700 dark:text-slate-100
-              placeholder:text-slate-400
-              focus:outline-none focus:ring-2
-              focus:ring-[#B91C1C]/60 dark:focus:ring-indigo-500/60
-              transition
-            "
+                w-full pl-11 pr-10 py-3
+                rounded-2xl
+                bg-white/90 dark:bg-white/5
+                backdrop-blur
+                border border-[#F59E0B]/40 dark:border-indigo-500/40
+                text-slate-700 dark:text-slate-100
+                placeholder:text-slate-400
+                focus:outline-none focus:ring-2
+                focus:ring-[#B91C1C]/60 dark:focus:ring-indigo-500/60
+                transition
+              "
           />
         </div>
       </div>
@@ -710,13 +711,13 @@ export default function ViewLogbookSuperadmin() {
       {/* ===================== TABLE ===================== */}
       <div
         className="
-          rounded-2xl
-          bg-white/90 dark:bg-white/5
-          backdrop-blur
-          border border-slate-200 dark:border-indigo-500/30
-          shadow-lg
-          overflow-hidden
-        "
+            rounded-2xl
+            bg-white/90 dark:bg-white/5
+            backdrop-blur
+            border border-slate-200 dark:border-indigo-500/30
+            shadow-lg
+            overflow-hidden
+          "
       >
         <div className="overflow-x-auto">
           <table className="w-full text-sm sm:text-base">
@@ -724,9 +725,9 @@ export default function ViewLogbookSuperadmin() {
             <thead>
               <tr
                 className="
-                  bg-slate-50 dark:bg-indigo-500/10
-                  border-b border-slate-200 dark:border-indigo-500/30
-                "
+                    bg-slate-50 dark:bg-indigo-500/10
+                    border-b border-slate-200 dark:border-indigo-500/30
+                  "
               >
                 {[
                   "No",
@@ -741,11 +742,11 @@ export default function ViewLogbookSuperadmin() {
                   <th
                     key={h}
                     className="
-                      py-4 px-6
-                      text-center
-                      text-xs font-semibold uppercase
-                      text-slate-600 dark:text-indigo-200
-                    "
+                        py-4 px-6
+                        text-center
+                        text-xs font-semibold uppercase
+                        text-slate-600 dark:text-indigo-200
+                      "
                   >
                     {h}
                   </th>
@@ -788,12 +789,12 @@ export default function ViewLogbookSuperadmin() {
                       <div className="flex items-center justify-center gap-3">
                         <div
                           className="
-                            w-10 h-10 rounded-full
-                            bg-linear-to-br from-[#7F1D1D] to-[#F59E0B]
-                            dark:from-indigo-600 dark:to-violet-500
-                            flex items-center justify-center
-                            text-white shadow
-                          "
+                              w-10 h-10 rounded-full
+                              bg-linear-to-br from-[#7F1D1D] to-[#F59E0B]
+                              dark:from-indigo-600 dark:to-violet-500
+                              flex items-center justify-center
+                              text-white shadow
+                            "
                         >
                           <HiUser className="w-5 h-5" />
                         </div>
@@ -861,18 +862,18 @@ export default function ViewLogbookSuperadmin() {
                           onClick={() => handleViewCalendar(p)}
                           disabled={p.totalLogbooks === 0}
                           className="
-                            inline-flex items-center gap-2
-                            px-3 py-2
-                            rounded-lg
-                            text-sm font-semibold
-                            text-white
-                            bg-linear-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
-                            dark:from-indigo-600 dark:to-violet-500
-                            shadow
-                            hover:shadow-xl
-                            transition
-                            disabled:opacity-50
-                          "
+                              inline-flex items-center gap-2
+                              px-3 py-2
+                              rounded-lg
+                              text-sm font-semibold
+                              text-white
+                              bg-linear-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
+                              dark:from-indigo-600 dark:to-violet-500
+                              shadow
+                              hover:shadow-xl
+                              transition
+                              disabled:opacity-50
+                            "
                         >
                           <FiEye />
                           Lihat
@@ -885,16 +886,16 @@ export default function ViewLogbookSuperadmin() {
                             p.totalLogbooks === 0 || downloadingId === p._id
                           }
                           className="
-                            inline-flex items-center gap-2
-                            px-3 py-2
-                            rounded-lg
-                            text-sm font-semibold
-                            text-white
-                            bg-emerald-600 hover:bg-emerald-700
-                            shadow
-                            transition
-                            disabled:opacity-50
-                          "
+                              inline-flex items-center gap-2
+                              px-3 py-2
+                              rounded-lg
+                              text-sm font-semibold
+                              text-white
+                              bg-emerald-600 hover:bg-emerald-700
+                              shadow
+                              transition
+                              disabled:opacity-50
+                            "
                         >
                           {downloadingId === p._id ? "..." : "PDF"}
                         </button>
@@ -916,17 +917,17 @@ export default function ViewLogbookSuperadmin() {
             disabled={page === 1}
             onClick={() => setPage((p) => p - 1)}
             className="
-              px-4 py-2
-              rounded-lg
-              text-sm font-medium
-              border
-              border-slate-300 dark:border-indigo-500/30
-              bg-white dark:bg-indigo-950
-              text-slate-700 dark:text-indigo-200
-              hover:bg-[#FFF1F2] dark:hover:bg-indigo-900/40
-              disabled:opacity-40 disabled:cursor-not-allowed
-              transition
-            "
+                px-4 py-2
+                rounded-lg
+                text-sm font-medium
+                border
+                border-slate-300 dark:border-indigo-500/30
+                bg-white dark:bg-indigo-950
+                text-slate-700 dark:text-indigo-200
+                hover:bg-[#FFF1F2] dark:hover:bg-indigo-900/40
+                disabled:opacity-40 disabled:cursor-not-allowed
+                transition
+              "
           >
             Prev
           </button>
@@ -940,24 +941,24 @@ export default function ViewLogbookSuperadmin() {
                 key={i}
                 onClick={() => setPage(i + 1)}
                 className={`
-                  min-w-9.5 h-9.5
-                  rounded-lg
-                  text-sm font-semibold
-                  transition
-                  ${
-                    active
-                      ? `
-                        bg-[#B91C1C] text-white shadow
-                        dark:bg-indigo-600 dark:text-white
-                      `
-                      : `
-                        bg-white dark:bg-indigo-950
-                        text-[#7F1D1D] dark:text-indigo-200
-                        border border-slate-300 dark:border-indigo-500/30
-                        hover:bg-[#FFF1F2] dark:hover:bg-indigo-900/40
-                      `
-                  }
-                `}
+                    min-w-9.5 h-9.5
+                    rounded-lg
+                    text-sm font-semibold
+                    transition
+                    ${
+                      active
+                        ? `
+                          bg-[#B91C1C] text-white shadow
+                          dark:bg-indigo-600 dark:text-white
+                        `
+                        : `
+                          bg-white dark:bg-indigo-950
+                          text-[#7F1D1D] dark:text-indigo-200
+                          border border-slate-300 dark:border-indigo-500/30
+                          hover:bg-[#FFF1F2] dark:hover:bg-indigo-900/40
+                        `
+                    }
+                  `}
               >
                 {i + 1}
               </button>
@@ -969,17 +970,17 @@ export default function ViewLogbookSuperadmin() {
             disabled={page === totalPage}
             onClick={() => setPage((p) => p + 1)}
             className="
-              px-4 py-2
-              rounded-lg
-              text-sm font-medium
-              border
-              border-slate-300 dark:border-indigo-500/30
-              bg-white dark:bg-indigo-950
-              text-slate-700 dark:text-indigo-200
-              hover:bg-[#FFF1F2] dark:hover:bg-indigo-900/40
-              disabled:opacity-40 disabled:cursor-not-allowed
-              transition
-            "
+                px-4 py-2
+                rounded-lg
+                text-sm font-medium
+                border
+                border-slate-300 dark:border-indigo-500/30
+                bg-white dark:bg-indigo-950
+                text-slate-700 dark:text-indigo-200
+                hover:bg-[#FFF1F2] dark:hover:bg-indigo-900/40
+                disabled:opacity-40 disabled:cursor-not-allowed
+                transition
+              "
           >
             Next
           </button>
@@ -991,27 +992,27 @@ export default function ViewLogbookSuperadmin() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 dark:bg-black/70 backdrop-blur-md p-3 sm:p-6">
           <div
             className="
-            w-full max-w-5xl
-            bg-white/90 dark:bg-indigo-950/40
-            backdrop-blur
-            rounded-3xl
-            border border-slate-200 dark:border-indigo-500/30
-            shadow-2xl
-            flex flex-col
-            max-h-[92vh]
-            overflow-hidden
-          "
+              w-full max-w-5xl
+              bg-white/90 dark:bg-indigo-950/40
+              backdrop-blur
+              rounded-3xl
+              border border-slate-200 dark:border-indigo-500/30
+              shadow-2xl
+              flex flex-col
+              max-h-[92vh]
+              overflow-hidden
+            "
           >
             {/* Header */}
             <div
               className="
-              px-5 sm:px-6 py-4 sm:py-5
-              bg-linear-to-r
-              from-[#F59E0B] via-[#B91C1C] to-[#7F1D1D]
-              dark:from-indigo-600 dark:to-violet-500
-              text-white
-              flex items-center justify-between
-            "
+                px-5 sm:px-6 py-4 sm:py-5
+                bg-linear-to-r
+                from-[#F59E0B] via-[#B91C1C] to-[#7F1D1D]
+                dark:from-indigo-600 dark:to-violet-500
+                text-white
+                flex items-center justify-between
+              "
             >
               {/* LEFT */}
               <div className="flex items-center gap-3">
@@ -1033,11 +1034,11 @@ export default function ViewLogbookSuperadmin() {
                   setFilledDates({});
                 }}
                 className="
-                  p-2
-                  rounded-full
-                  hover:bg-white/20
-                  transition
-                "
+                    p-2
+                    rounded-full
+                    hover:bg-white/20
+                    transition
+                  "
               >
                 <HiX className="text-xl" />
               </button>
@@ -1047,71 +1048,72 @@ export default function ViewLogbookSuperadmin() {
             {logbookSummary && (
               <div
                 className="
-                px-5 sm:px-6 py-5
-                border-b border-slate-200 dark:border-indigo-500/30
-                bg-slate-50/80 dark:bg-indigo-950/30
-              "
+      px-5 sm:px-6 py-5
+      border-b border-slate-200 dark:border-indigo-500/30
+      bg-slate-50/80 dark:bg-indigo-950/30
+    "
               >
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  <div
-                    className="
-                    rounded-2xl p-4 text-center
-                    bg-white dark:bg-indigo-900/40
-                    border border-slate-200 dark:border-indigo-500/30
-                    shadow-sm
-                  "
-                  >
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+                  {/* Total Logbook */}
+                  <div className="rounded-2xl p-4 text-center bg-white dark:bg-indigo-900/40 border border-slate-200 dark:border-indigo-500/30 shadow-sm">
+                    <div className="text-xl mb-1">📘</div>
                     <div className="text-2xl font-bold text-slate-800 dark:text-white">
                       {logbookSummary.total}
                     </div>
-                    <div className="text-sm text-slate-500 dark:text-slate-400">
-                      Total Logbook
+                    <div className="text-sm font-semibold">Total Logbook</div>
+                    <div className="text-xs text-slate-500">
+                      Seluruh catatan
                     </div>
                   </div>
-                  <div
-                    className="
-                    rounded-2xl p-4 text-center
-                    bg-white dark:bg-indigo-900/40
-                    border border-slate-200 dark:border-indigo-500/30
-                    shadow-sm
-                  "
-                  >
+
+                  {/* Hadir */}
+                  <div className="rounded-2xl p-4 text-center bg-white dark:bg-indigo-900/40 border border-slate-200 dark:border-indigo-500/30 shadow-sm">
+                    <div className="text-xl mb-1">✅</div>
                     <div className="text-2xl font-bold text-emerald-600">
                       {logbookSummary.hadir}
                     </div>
-                    <div className="text-sm text-slate-500 dark:text-slate-400">
-                      Hadir
+                    <div className="text-sm font-semibold">Hadir</div>
+                    <div className="text-xs text-slate-500">
+                      Kehadiran valid
                     </div>
                   </div>
-                  <div
-                    className="
-                    rounded-2xl p-4 text-center
-                    bg-white dark:bg-indigo-900/40
-                    border border-slate-200 dark:border-indigo-500/30
-                    shadow-sm
-                  "
-                  >
+
+                  {/* Tidak Hadir Dengan Keterangan */}
+                  <div className="rounded-2xl p-4 text-center bg-white dark:bg-indigo-900/40 border border-slate-200 dark:border-indigo-500/30 shadow-sm">
+                    <div className="text-xl mb-1">📝</div>
                     <div className="text-2xl font-bold text-blue-600">
                       {logbookSummary.tidakHadirDenganKeterangan}
                     </div>
-                    <div className="text-sm text-slate-500 dark:text-slate-400">
-                      Izin
+                    <div className="text-sm font-semibold">
+                      Tidak Hadir (Keterangan)
+                    </div>
+                    <div className="text-xs text-slate-500">
+                      Dengan keterangan
                     </div>
                   </div>
-                  <div
-                    className="
-                    rounded-2xl p-4 text-center
-                    bg-white dark:bg-indigo-900/40
-                    border border-slate-200 dark:border-indigo-500/30
-                    shadow-sm
-                  "
-                  >
+
+                  {/* Tanpa Keterangan */}
+                  <div className="rounded-2xl p-4 text-center bg-white dark:bg-indigo-900/40 border border-slate-200 dark:border-indigo-500/30 shadow-sm">
+                    <div className="text-xl mb-1">❌</div>
                     <div className="text-2xl font-bold text-red-600">
                       {logbookSummary.tidakHadirTanpaKeterangan}
                     </div>
-                    <div className="text-sm text-slate-500 dark:text-slate-400">
-                      Tanpa Keterangan
+                    <div className="text-sm font-semibold">
+                      Tidak Hadir (Tanpa Ket.)
                     </div>
+                    <div className="text-xs text-slate-500">
+                      Perlu perhatian
+                    </div>
+                  </div>
+
+                  {/* Ditolak Mentor */}
+                  <div className="rounded-2xl p-4 text-center bg-white dark:bg-indigo-900/40 border border-slate-200 dark:border-indigo-500/30 shadow-sm">
+                    <div className="text-xl mb-1">⛔</div>
+                    <div className="text-2xl font-bold text-amber-600">
+                      {logbookSummary.ditolakMentor}
+                    </div>
+                    <div className="text-sm font-semibold">Ditolak Mentor</div>
+                    <div className="text-xs text-slate-500">Perlu revisi</div>
                   </div>
                 </div>
               </div>
@@ -1121,11 +1123,11 @@ export default function ViewLogbookSuperadmin() {
             <div className="flex-1 overflow-y-auto p-4 sm:p-6">
               <div
                 className="
-                rounded-2xl
-                bg-white dark:bg-indigo-950/40
-                border border-slate-200 dark:border-indigo-500/30
-                p-3 sm:p-4
-              "
+                  rounded-2xl
+                  bg-white dark:bg-indigo-950/40
+                  border border-slate-200 dark:border-indigo-500/30
+                  p-3 sm:p-4
+                "
               >
                 <Calendar
                   onSelectDate={handleSelectDate}
@@ -1144,17 +1146,17 @@ export default function ViewLogbookSuperadmin() {
                   setFilledDates({});
                 }}
                 className="
-                  w-full
-                  px-6 py-2.5
-                  rounded-xl
-                  bg-linear-to-r from-[#F59E0B] via-[#B91C1C] to-[#7F1D1D]
-                  hover:from-amber-400 hover:via-[#DC2626] hover:to-[#991B1B]
-                  dark:bg-linear-to-r dark:from-indigo-600 dark:to-violet-500
-                  dark:hover:from-indigo-500 dark:hover:to-violet-400
-                  text-white font-semibold
-                  shadow-md hover:shadow-xl
-                  transition-all
-                "
+                    w-full
+                    px-6 py-2.5
+                    rounded-xl
+                    bg-linear-to-r from-[#F59E0B] via-[#B91C1C] to-[#7F1D1D]
+                    hover:from-amber-400 hover:via-[#DC2626] hover:to-[#991B1B]
+                    dark:bg-linear-to-r dark:from-indigo-600 dark:to-violet-500
+                    dark:hover:from-indigo-500 dark:hover:to-violet-400
+                    text-white font-semibold
+                    shadow-md hover:shadow-xl
+                    transition-all
+                  "
               >
                 Tutup Kalender
               </button>
@@ -1211,16 +1213,16 @@ function StatCard({ title, value, icon, note, color }: StatCardProps) {
   return (
     <div
       className="
-        group relative
-        rounded-2xl
-        border border-[#FCA5A5]/40 dark:border-indigo-500/30
-        bg-linear-to-br
-        from-[#FFFDF8] via-[#FFF4EC] to-white
-        dark:from-indigo-950 dark:via-indigo-900 dark:to-indigo-800
-        p-6
-        shadow-sm hover:shadow-xl
-        transition
-      "
+          group relative
+          rounded-2xl
+          border border-[#FCA5A5]/40 dark:border-indigo-500/30
+          bg-linear-to-br
+          from-[#FFFDF8] via-[#FFF4EC] to-white
+          dark:from-indigo-950 dark:via-indigo-900 dark:to-indigo-800
+          p-6
+          shadow-sm hover:shadow-xl
+          transition
+        "
     >
       {/* TOP */}
       <div className="flex items-center justify-between">
@@ -1235,13 +1237,13 @@ function StatCard({ title, value, icon, note, color }: StatCardProps) {
 
         <div
           className={`
-            w-14 h-14 rounded-2xl
-            text-white
-            flex items-center justify-center
-            shadow
-            group-hover:scale-110 transition
-            ${iconColorMap[color]}
-          `}
+              w-14 h-14 rounded-2xl
+              text-white
+              flex items-center justify-center
+              shadow
+              group-hover:scale-110 transition
+              ${iconColorMap[color]}
+            `}
         >
           {icon}
         </div>
