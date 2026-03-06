@@ -5,20 +5,22 @@ export async function middleware(req: NextRequest) {
   const path = req.nextUrl.pathname;
 
   // ===============================
-  // BIARKAN ASSET LEWAT
+  // BIARKAN FILE STATIC LEWAT
   // ===============================
   if (
     path.startsWith("/_next") ||
     path.startsWith("/images") ||
-    path.startsWith("/favicon.ico") ||
     path.startsWith("/api") ||
-    path.startsWith("/aboutdev")
+    path.startsWith("/aboutdev") ||
+    path.match(/\.(png|jpg|jpeg|svg|ico|webp)$/) ||
+    path === "/sitemap.xml" ||
+    path === "/robots.txt"
   ) {
     return NextResponse.next();
   }
 
   // ===============================
-  // 🔥 CEK MAINTENANCE DULU
+  // 🔥 CEK MAINTENANCE
   // ===============================
   try {
     const res = await fetch(
@@ -37,7 +39,7 @@ export async function middleware(req: NextRequest) {
         return NextResponse.next();
       }
 
-      // Izinkan superadmin bypass maintenance
+      // superadmin bypass
       if (token) {
         try {
           const payload = JSON.parse(atob(token.split(".")[1]));
