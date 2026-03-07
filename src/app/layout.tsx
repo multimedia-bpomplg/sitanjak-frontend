@@ -34,10 +34,25 @@ export const metadata: Metadata = {
     "bpom palembang",
   ],
 
-  icons: {
-    icon: "/favicon.ico",
+  /* ================= CANONICAL ================= */
+  alternates: {
+    canonical: "/",
   },
 
+  /* ================= ICON ================= */
+  icons: {
+    icon: "/favicon.ico",
+    shortcut: "/favicon.ico",
+    apple: "/favicon.ico",
+  },
+
+  /* ================= ROBOTS ================= */
+  robots: {
+    index: true,
+    follow: true,
+  },
+
+  /* ================= OPEN GRAPH ================= */
   openGraph: {
     title: "SI TANJAK - Sistem Informasi Magang BPOM Palembang",
     description:
@@ -53,6 +68,15 @@ export const metadata: Metadata = {
         height: 630,
       },
     ],
+  },
+
+  /* ================= TWITTER ================= */
+  twitter: {
+    card: "summary_large_image",
+    title: "SI TANJAK - Sistem Informasi Magang BPOM Palembang",
+    description:
+      "Platform digital pendaftaran dan pengelolaan magang mahasiswa dan SMK di BPOM Palembang.",
+    images: ["/seo.png"],
   },
 };
 
@@ -77,7 +101,7 @@ export default function RootLayout({
           theme="light"
         />
 
-        {/* Google Analytics */}
+        {/* ================= GOOGLE ANALYTICS ================= */}
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-N99D5H3PSJ"
           strategy="afterInteractive"
