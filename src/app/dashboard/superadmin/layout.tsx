@@ -82,15 +82,24 @@ export default function SuperadminLayout({
 
     try {
       const payload = JSON.parse(atob(token.split(".")[1]));
+
       if (payload.exp * 1000 < Date.now()) {
         handleSignOut();
+        return;
+      }
+
+      const roles = payload.roles || [];
+
+      // 🔒 CEK ROLE SUPERADMIN
+      if (!roles.includes("superadmin")) {
+        router.replace("/dashboard/admin");
         return;
       }
 
       setUser({
         name: payload.name,
         email: payload.email,
-        roles: payload.roles || [],
+        roles: roles,
         avatar: payload.avatar,
       });
     } catch (error) {

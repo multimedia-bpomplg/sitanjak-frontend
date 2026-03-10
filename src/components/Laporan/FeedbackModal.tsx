@@ -27,6 +27,11 @@ export default function FeedbackModal({ month, mode, onClose }: Props) {
 
   const isTextValid = (text: string) => text.trim().length >= MIN_TEXT;
 
+  const [kepuasanMagang, setKepuasanMagang] = useState(0);
+  const [rekomendasiProgram, setRekomendasiProgram] = useState(0);
+  const [kemudahanProses, setKemudahanProses] = useState(0);
+  const [peningkatanSkill, setPeningkatanSkill] = useState(0);
+
   /* ================= FETCH (VIEW MODE) ================= */
   useEffect(() => {
     if (mode !== "view") return;
@@ -50,6 +55,12 @@ export default function FeedbackModal({ month, mode, onClose }: Props) {
         setMentorComment(data.mentorComment || "");
         setMentorCommentedBy(data.mentorCommentedBy || null);
         setIsFeedbackMentorSent(data.isFeedbackMentorSent || false);
+        if (data.survey) {
+          setKepuasanMagang(data.survey.kepuasanMagang || 0);
+          setRekomendasiProgram(data.survey.rekomendasiProgram || 0);
+          setKemudahanProses(data.survey.kemudahanProses || 0);
+          setPeningkatanSkill(data.survey.peningkatanSkill || 0);
+        }
       } catch {
         console.error("Gagal memuat feedback");
       }
@@ -64,9 +75,15 @@ export default function FeedbackModal({ month, mode, onClose }: Props) {
       readonly ||
       !agree ||
       !isTextValid(feedbackBPOM) ||
-      !isTextValid(feedbackMentor)
-    )
+      !isTextValid(feedbackMentor) ||
+      kepuasanMagang === 0 ||
+      rekomendasiProgram === 0 ||
+      kemudahanProses === 0 ||
+      peningkatanSkill === 0
+    ) {
+      showToast.error("Semua survei wajib diisi");
       return;
+    }
 
     const toastId = showToast.loading("Mengirim feedback...");
 
@@ -79,6 +96,12 @@ export default function FeedbackModal({ month, mode, onClose }: Props) {
         },
         body: JSON.stringify({
           month,
+
+          kepuasanMagang,
+          rekomendasiProgram,
+          kemudahanProses,
+          peningkatanSkill,
+
           feedbackBPOM,
           feedbackMentor,
         }),
@@ -167,6 +190,62 @@ export default function FeedbackModal({ month, mode, onClose }: Props) {
               </div>
             </div>
           )}
+
+          <div className="space-y-4">
+            <h3 className="font-bold text-lg">📊 Survei Pengalaman Magang</h3>
+
+            <SurveyItem
+              question="1. Seberapa puas Anda dengan pengalaman magang di BPOM?"
+              value={kepuasanMagang}
+              onChange={setKepuasanMagang}
+              labels={[
+                "Sangat Tidak Puas",
+                "Tidak Puas",
+                "Cukup",
+                "Puas",
+                "Sangat Puas",
+              ]}
+            />
+
+            <SurveyItem
+              question="2. Apakah Anda akan merekomendasikan program magang BPOM kepada teman?"
+              value={rekomendasiProgram}
+              onChange={setRekomendasiProgram}
+              labels={[
+                "Sangat Tidak Rekomendasi",
+                "Tidak Rekomendasi",
+                "Netral",
+                "Rekomendasi",
+                "Sangat Rekomendasi",
+              ]}
+            />
+
+            <SurveyItem
+              question="3. Bagaimana tingkat kemudahan proses pendaftaran magang?"
+              value={kemudahanProses}
+              onChange={setKemudahanProses}
+              labels={[
+                "Sangat Sulit",
+                "Sulit",
+                "Cukup",
+                "Mudah",
+                "Sangat Mudah",
+              ]}
+            />
+
+            <SurveyItem
+              question="4. Apakah kegiatan magang meningkatkan skill Anda?"
+              value={peningkatanSkill}
+              onChange={setPeningkatanSkill}
+              labels={[
+                "Sangat Tidak Membantu",
+                "Tidak Membantu",
+                "Cukup",
+                "Membantu",
+                "Sangat Membantu",
+              ]}
+            />
+          </div>
 
           {/* KOMENTAR MENTOR (HANYA DI VIEW MODE) */}
           {mode === "view" && mentorComment && (
@@ -558,6 +637,49 @@ function ConfirmDialog({
             {confirmText}
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/* ================= COMPONENT SURVEY ITEM ================= */
+function SurveyItem({
+  question,
+  value,
+  onChange,
+  labels,
+}: {
+  question: string;
+  value: number;
+  onChange: (v: number) => void;
+  labels: string[];
+}) {
+  return (
+    <div className="space-y-3">
+      <p className="text-sm font-semibold">{question}</p>
+
+      <div className="grid grid-cols-5 gap-2">
+        {[1, 2, 3, 4, 5].map((score) => (
+          <button
+            key={score}
+            onClick={() => onChange(score)}
+            className={`
+              flex flex-col items-center justify-center
+              rounded-xl border p-2 text-xs font-medium
+              transition
+              ${
+                value === score
+                  ? "bg-emerald-500 text-white border-emerald-500"
+                  : "bg-white border-slate-300 hover:bg-slate-50"
+              }
+            `}
+          >
+            <span className="text-sm font-bold">{score}</span>
+            <span className="text-[10px] leading-tight text-center">
+              {labels[score - 1]}
+            </span>
+          </button>
+        ))}
       </div>
     </div>
   );

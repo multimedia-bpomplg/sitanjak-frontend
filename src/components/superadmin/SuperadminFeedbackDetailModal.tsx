@@ -15,10 +15,17 @@ import {
 
 type Props = {
   feedback: any;
+  totalSurveyScore?: number;
+  surveyCategory?: string;
   onClose: () => void;
 };
 
-export default function SuperadminFeedbackModal({ feedback, onClose }: Props) {
+export default function SuperadminFeedbackModal({
+  feedback,
+  totalSurveyScore,
+  surveyCategory,
+  onClose,
+}: Props) {
   const [showPdf, setShowPdf] = useState(false);
 
   const formatDate = (dateString: string) => {
@@ -303,6 +310,83 @@ export default function SuperadminFeedbackModal({ feedback, onClose }: Props) {
             </div>
           )}
 
+          {/* ================= SURVEY RESULT ================= */}
+          {typeof totalSurveyScore === "number" && (
+            <div
+              className="
+    mt-3
+    p-4
+    rounded-2xl
+    bg-linear-to-r
+    from-emerald-50
+    to-green-100
+    dark:from-indigo-900/40
+    dark:to-indigo-800/40
+    border
+    border-emerald-300
+    dark:border-indigo-500/40
+    flex
+    justify-between
+    items-center
+  "
+            >
+              <div>
+                <p className="text-sm font-semibold">Total Skor Survey</p>
+                <p className="text-xs opacity-70">
+                  Kategori: {surveyCategory || "-"}
+                </p>
+              </div>
+
+              <span
+                className="
+      text-xl
+      font-bold
+      px-4
+      py-1
+      rounded-xl
+      bg-emerald-500
+      text-white
+      shadow
+    "
+              >
+                {totalSurveyScore} / 20
+              </span>
+            </div>
+          )}
+          {feedback?.survey && (
+            <div className="space-y-4">
+              <h3
+                className="
+      font-bold tracking-wide
+      text-[#7F1D1D]
+      dark:text-indigo-300
+    "
+              >
+                Hasil Survei Peserta
+              </h3>
+
+              <SurveyView
+                label="Kepuasan Magang"
+                value={feedback.survey.kepuasanMagang}
+              />
+
+              <SurveyView
+                label="Rekomendasi Program"
+                value={feedback.survey.rekomendasiProgram}
+              />
+
+              <SurveyView
+                label="Kemudahan Proses"
+                value={feedback.survey.kemudahanProses}
+              />
+
+              <SurveyView
+                label="Peningkatan Skill"
+                value={feedback.survey.peningkatanSkill}
+              />
+            </div>
+          )}
+
           {/* FEEDBACK CONTENT */}
           <div className="space-y-5">
             <FieldView
@@ -459,6 +543,41 @@ function FieldView({ label, value }: { label: string; value: string }) {
       "
       >
         {value || <span className="opacity-40">-</span>}
+      </div>
+    </div>
+  );
+}
+
+// Komponen untuk menampilkan hasil survei dalam bentuk bintang
+function SurveyView({ label, value }: { label: string; value: number }) {
+  const labels = ["Sangat Buruk", "Buruk", "Cukup", "Baik", "Sangat Baik"];
+
+  return (
+    <div
+      className="
+      p-4 rounded-2xl
+      bg-white/80 dark:bg-indigo-950/40
+      border border-[#F59E0B]/30
+      dark:border-indigo-500/30
+      flex items-center justify-between
+    "
+    >
+      <span className="font-medium">{label}</span>
+
+      <div className="flex items-center gap-3">
+        <span className="text-sm opacity-70">{labels[value - 1]}</span>
+
+        <span
+          className="
+          px-3 py-1
+          rounded-lg
+          bg-emerald-500
+          text-white
+          text-sm font-bold
+        "
+        >
+          {value}/5
+        </span>
       </div>
     </div>
   );
