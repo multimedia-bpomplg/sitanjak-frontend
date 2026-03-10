@@ -14,16 +14,16 @@ import {
   FaClock,
   FaCopy,
   FaQrcode,
-  FaArrowRight,
   FaCheckDouble,
   FaShieldAlt,
 } from "react-icons/fa";
-import { HiPhone, HiCheckCircle, HiXCircle } from "react-icons/hi";
+import { HiXCircle } from "react-icons/hi";
 import { motion, AnimatePresence } from "framer-motion";
 import { showToast } from "@/components/ui/toastDashboard";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import Modal from "@/components/ui/Modal";
 import moment from "moment";
+import { QRCodeSVG } from "qrcode.react";
 moment.locale("id");
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL;
@@ -32,6 +32,8 @@ interface WhatsAppData {
   _id: string;
   phoneNumber: string;
   isActive: boolean;
+  groupId?: string;
+  groupName?: string;
   updatedBy: {
     name: string;
     email: string;
@@ -40,10 +42,18 @@ interface WhatsAppData {
   updatedAt: string;
 }
 
+interface GroupData {
+  id: string;
+  name: string;
+  participants: number;
+}
+
 export default function ManajemenWhatsappPage() {
   const [whatsapps, setWhatsapps] = useState<WhatsAppData[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [qr, setQR] = useState<string | null>(null);
+  const [waStatus, setWaStatus] = useState<string>("disconnected");
 
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -54,6 +64,12 @@ export default function ManajemenWhatsappPage() {
   // Delete confirmation
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  // Group states
+  const [groups, setGroups] = useState<GroupData[]>([]);
+  const [activeGroupId, setActiveGroupId] = useState<string | null>(null);
+  const [selectedGroup, setSelectedGroup] = useState<GroupData | null>(null);
+  const [isSavingGroup, setIsSavingGroup] = useState(false);
 
   useEffect(() => {
     fetchWhatsapps();
@@ -74,10 +90,15 @@ export default function ManajemenWhatsappPage() {
 
       if (result.success) {
         setWhatsapps(result.data);
+
+        const active = result.data.find((w: WhatsAppData) => w.isActive);
+        if (active?.groupId) {
+          setActiveGroupId(active.groupId);
+        }
       } else {
         showToast.error(result.message || "Gagal mengambil data");
       }
-    } catch (error) {
+    } catch {
       showToast.error("Terjadi kesalahan saat mengambil data");
     } finally {
       setLoading(false);
@@ -137,10 +158,7 @@ export default function ManajemenWhatsappPage() {
       setIsModalOpen(false);
       fetchWhatsapps();
     } catch (err: any) {
-      showToast.updateError(
-        toastId,
-        err.message || "Terjadi kesalahan"
-      );
+      showToast.updateError(toastId, err.message || "Terjadi kesalahan");
     } finally {
       setSubmitting(false);
     }
@@ -177,10 +195,7 @@ export default function ManajemenWhatsappPage() {
       setShowDeleteConfirm(false);
       fetchWhatsapps();
     } catch (err: any) {
-      showToast.updateError(
-        toastId,
-        err.message || "Terjadi kesalahan"
-      );
+      showToast.updateError(toastId, err.message || "Terjadi kesalahan");
     } finally {
       setSubmitting(false);
       setDeleteId(null);
@@ -192,7 +207,6 @@ export default function ManajemenWhatsappPage() {
   };
 
   const formatDisplayNumber = (num: string): string => {
-    // Format: 0812-3456-7890
     const cleaned = formatPhoneNumber(num);
     const match = cleaned.match(/^(\d{4})(\d{4})(\d{4})$/);
     if (match) {
@@ -209,16 +223,149 @@ export default function ManajemenWhatsappPage() {
   const activeWhatsapp = whatsapps.find((w) => w.isActive);
   const inactiveWhatsapps = whatsapps.filter((w) => !w.isActive);
 
+  const fetchQR = async () => {
+    try {
+      const token = localStorage.getItem("token");
+
+      const res = await fetch(`${API_BASE}/whatsapp/qr`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const result = await res.json();
+
+      if (result.success) {
+        setQR(result.qr);
+        setWaStatus(result.status);
+      }
+    } catch {
+      // Silent fail
+    }
+  };
+
+  const reconnectWhatsapp = async () => {
+    const toastId = showToast.loading("Menghubungkan ulang WhatsApp...");
+    try {
+      const token = localStorage.getItem("token");
+
+      await fetch(`${API_BASE}/whatsapp/reconnect`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      fetchQR();
+      showToast.updateSuccess(toastId, "Reconnect berhasil");
+    } catch {
+      showToast.updateError(toastId, "Gagal reconnect");
+    }
+  };
+
+  const fetchGroups = async () => {
+    try {
+      const token = localStorage.getItem("token");
+
+      const res = await fetch(`${API_BASE}/whatsapp/groups`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const result = await res.json();
+
+      if (result.success) {
+        setGroups(result.data);
+      }
+    } catch {
+      // Silent fail
+    }
+  };
+
+  const handleSelectGroup = async (group: GroupData) => {
+    setIsSavingGroup(true);
+    const toastId = showToast.loading("Menyimpan grup...");
+
+    try {
+      const token = localStorage.getItem("token");
+
+      const res = await fetch(`${API_BASE}/whatsapp/set-group`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          groupId: group.id,
+          groupName: group.name,
+        }),
+      });
+
+      const result = await res.json();
+
+      if (result.success) {
+        setActiveGroupId(group.id);
+        setSelectedGroup(group);
+        showToast.updateSuccess(
+          toastId,
+          `Grup "${group.name}" berhasil dipilih`,
+        );
+
+        // Update local whatsapps data
+        setWhatsapps((prev) =>
+          prev.map((w) =>
+            w.isActive ? { ...w, groupId: group.id, groupName: group.name } : w,
+          ),
+        );
+      } else {
+        showToast.updateError(toastId, result.message);
+      }
+    } catch {
+      showToast.updateError(toastId, "Gagal memilih grup");
+    } finally {
+      setIsSavingGroup(false);
+    }
+  };
+
+  const handleDropdownChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const groupId = e.target.value;
+
+    const group = groups.find((g) => g.id === groupId);
+
+    if (group) {
+      handleSelectGroup(group);
+    }
+  };
+
+  useEffect(() => {
+    fetchQR();
+
+    const interval = setInterval(() => {
+      if (waStatus !== "connected") {
+        fetchQR();
+      }
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [waStatus]);
+
+  useEffect(() => {
+    if (waStatus === "connected") {
+      fetchGroups();
+    }
+  }, [waStatus]);
+
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-slate-50 via-white to-indigo-50 dark:from-[#020617] dark:via-[#0B1120] dark:to-[#1E1B4B]">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-indigo-50 dark:from-[#020617] dark:via-[#0B1120] dark:to-[#1E1B4B]">
         <LoadingSpinner />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-slate-50 via-white to-indigo-50 dark:from-[#020617] dark:via-[#0B1120] dark:to-[#1E1B4B] p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50 dark:from-[#020617] dark:via-[#0B1120] dark:to-[#1E1B4B] p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
         <motion.div
@@ -232,15 +379,17 @@ export default function ManajemenWhatsappPage() {
                 <FaWhatsapp className="text-4xl text-green-600" />
               </div>
               <div>
-                <h1 className="
+                <h1
+                  className="
                   text-3xl lg:text-4xl 
                   font-extrabold 
                   leading-tight
                   bg-clip-text text-transparent 
-                  bg-linear-to-r 
+                  bg-gradient-to-r 
                   from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
                   dark:from-indigo-400 dark:via-violet-400 dark:to-purple-400
-                ">
+                "
+                >
                   Manajemen WhatsApp
                 </h1>
                 <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
@@ -255,7 +404,7 @@ export default function ManajemenWhatsappPage() {
             whileTap={{ scale: 0.98 }}
             onClick={() => handleOpenModal("add")}
             className="flex items-center justify-center gap-2 px-6 py-3
-              bg-linear-to-r 
+              bg-gradient-to-r 
               from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
               dark:from-indigo-600 dark:to-violet-500
               text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all
@@ -331,7 +480,7 @@ export default function ManajemenWhatsappPage() {
               exit={{ opacity: 0, scale: 0.95 }}
               className="
                 relative overflow-hidden rounded-2xl
-                bg-linear-to-r from-green-500 to-emerald-600
+                bg-gradient-to-r from-green-500 to-emerald-600
                 shadow-2xl
               "
             >
@@ -342,20 +491,24 @@ export default function ManajemenWhatsappPage() {
               </div>
 
               <div className="relative p-5 sm:p-8">
-                <div className="
+                <div
+                  className="
                   flex flex-col
                   lg:flex-row
                   lg:items-center
                   lg:justify-between
                   gap-6
-                ">
+                "
+                >
                   {/* LEFT SIDE */}
                   <div className="flex flex-col sm:flex-row sm:items-start gap-4">
-                    <div className="
+                    <div
+                      className="
                       w-14 h-14 sm:w-16 sm:h-16
                       rounded-2xl bg-white/20 backdrop-blur
                       flex items-center justify-center
-                    ">
+                    "
+                    >
                       <FaWhatsapp className="text-3xl sm:text-4xl text-white" />
                     </div>
 
@@ -374,12 +527,14 @@ export default function ManajemenWhatsappPage() {
                         {formatDisplayNumber(activeWhatsapp.phoneNumber)}
                       </h2>
 
-                      <div className="
+                      <div
+                        className="
                         flex flex-col sm:flex-row
                         sm:items-center
                         gap-2 sm:gap-6
                         text-white/80 text-xs sm:text-sm
-                      ">
+                      "
+                      >
                         <span className="flex items-center gap-1">
                           <FaUserCheck />
                           {activeWhatsapp.updatedBy?.name || "Unknown"}
@@ -408,193 +563,328 @@ export default function ManajemenWhatsappPage() {
                     Salin Nomor
                   </button>
                 </div>
+
+                {/* Grup WhatsApp List */}
+                {groups.length > 0 && waStatus === "connected" && (
+                  <div className="mt-6 bg-white/10 rounded-xl p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-white font-semibold">
+                        Grup WhatsApp Tersedia
+                      </h3>
+                      {isSavingGroup && (
+                        <div className="flex items-center gap-2 text-white/70 text-xs">
+                          <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          <span>Menyimpan...</span>
+                        </div>
+                      )}
+                    </div>
+                    {/* Grup WhatsApp Dropdown */}
+                    {groups.length > 0 && waStatus === "connected" && (
+                      <div className="mt-6 bg-white/10 rounded-xl p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <h3 className="text-white font-semibold">
+                            Pilih Grup WhatsApp
+                          </h3>
+
+                          {isSavingGroup && (
+                            <div className="flex items-center gap-2 text-white/70 text-xs">
+                              <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                              <span>Menyimpan...</span>
+                            </div>
+                          )}
+                        </div>
+
+                        <select
+                          value={activeGroupId || ""}
+                          onChange={handleDropdownChange}
+                          disabled={isSavingGroup}
+                          className="
+        w-full
+        bg-white/20
+        text-white
+        border border-white/30
+        rounded-lg
+        px-4 py-2
+        text-sm
+        focus:outline-none
+        focus:ring-2
+        focus:ring-white/50
+      "
+                        >
+                          <option value="" className="text-black">
+                            -- Pilih Grup --
+                          </option>
+
+                          {groups.map((group) => (
+                            <option
+                              key={group.id}
+                              value={group.id}
+                              className="text-black"
+                            >
+                              {group.name} ({group.participants} anggota)
+                            </option>
+                          ))}
+                        </select>
+
+                        {/* Info group aktif */}
+                        {activeGroupId && (
+                          <div className="mt-3 text-xs text-white/80 flex items-center gap-2">
+                            <FaCheckDouble className="text-emerald-300" />
+                            Grup aktif:{" "}
+                            <span className="font-semibold">
+                              {groups.find((g) => g.id === activeGroupId)?.name}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Table Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden"
-        >
-          {/* Table Header */}
-          <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-                <FaHistory />
-                Riwayat Nomor WhatsApp
-              </h3>
-              <span className="text-sm text-slate-500 dark:text-slate-400">
-                Total {whatsapps.length} nomor
-              </span>
-            </div>
-          </div>
-
-          {/* Table */}
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-slate-50 dark:bg-slate-800/50">
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                    Nomor WhatsApp
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                    Diperbarui Oleh
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                    Terakhir Update
-                  </th>
-                  <th className="px-6 py-4 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                    Aksi
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-                {whatsapps.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="px-6 py-12">
-                      <div className="flex flex-col items-center justify-center text-center">
-                        <div className="w-20 h-20 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-4">
-                          <FaWhatsapp className="text-4xl text-green-500" />
-                        </div>
-                        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
-                          Belum ada nomor WhatsApp
-                        </h3>
-                        <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
-                          Tambahkan nomor WhatsApp pertama Anda untuk memulai
-                        </p>
-                        <button
-                          onClick={() => handleOpenModal("add")}
-                          className="flex items-center gap-2 px-4 py-2 bg-linear-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B] dark:from-indigo-600 dark:to-violet-500 text-white rounded-lg font-medium transition"
-                        >
-                          <FaPlus />
-                          Tambah Nomor
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  whatsapps.map((wa, index) => (
-                    <motion.tr
-                      key={wa._id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                      className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition"
-                    >
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div
-                            className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                              wa.isActive
-                                ? "bg-green-100 dark:bg-green-900/30"
-                                : "bg-slate-100 dark:bg-slate-800"
-                            }`}
-                          >
-                            <FaWhatsapp
-                              className={`${
-                                wa.isActive
-                                  ? "text-green-600"
-                                  : "text-slate-400"
-                              }`}
-                            />
-                          </div>
-                          <div>
-                            <p className="font-medium text-slate-900 dark:text-white">
-                              {formatDisplayNumber(wa.phoneNumber)}
-                            </p>
-                            <p className="text-xs text-slate-500">
-                              +62{wa.phoneNumber.substring(2)}
-                            </p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        {wa.isActive ? (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400">
-                            <FaCheckCircle className="text-xs" />
-                            Aktif
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
-                            Tidak Aktif
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
-                            <span className="text-xs font-medium text-indigo-600 dark:text-indigo-400">
-                              {wa.updatedBy?.name?.charAt(0) || "U"}
-                            </span>
-                          </div>
-                          <span className="text-sm text-slate-700 dark:text-slate-300">
-                            {wa.updatedBy?.name || "Unknown"}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex flex-col">
-                          <span className="text-sm text-slate-700 dark:text-slate-300">
-                            {moment(wa.updatedAt).format("DD MMM YYYY")}
-                          </span>
-                          <span className="text-xs text-slate-500">
-                            {moment(wa.updatedAt).format("HH:mm")} WIB
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center justify-end gap-2">
-                          <motion.button
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                            onClick={() => handleOpenModal("edit", wa)}
-                            className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-lg transition"
-                            title="Edit"
-                          >
-                            <FaEdit />
-                          </motion.button>
-                          {!wa.isActive && (
-                            <motion.button
-                              whileHover={{ scale: 1.1 }}
-                              whileTap={{ scale: 0.9 }}
-                              onClick={() => handleDeleteClick(wa._id)}
-                              className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition"
-                              title="Hapus"
-                            >
-                              <FaTrash />
-                            </motion.button>
-                          )}
-                        </div>
-                      </td>
-                    </motion.tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Table Footer */}
-          {whatsapps.length > 0 && (
-            <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-slate-600 dark:text-slate-400">
-                  Menampilkan {whatsapps.length} nomor
-                </span>
-                <span className="text-slate-600 dark:text-slate-400 flex items-center gap-2">
-                  <FaShieldAlt className="text-green-500" />
-                  Hanya satu nomor yang dapat aktif
+        {/* Table + QR Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* TABLE SECTION */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden"
+          >
+            {/* Table Header */}
+            <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                  <FaHistory />
+                  Riwayat Nomor WhatsApp
+                </h3>
+                <span className="text-sm text-slate-500 dark:text-slate-400">
+                  Total {whatsapps.length} nomor
                 </span>
               </div>
             </div>
-          )}
-        </motion.div>
+
+            {/* Table */}
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-slate-50 dark:bg-slate-800/50">
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                      Nomor WhatsApp
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                      Grup
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                      Diperbarui Oleh
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                      Terakhir Update
+                    </th>
+                    <th className="px-6 py-4 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                      Aksi
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                  {whatsapps.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-12">
+                        <div className="flex flex-col items-center justify-center text-center">
+                          <div className="w-20 h-20 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-4">
+                            <FaWhatsapp className="text-4xl text-green-500" />
+                          </div>
+                          <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
+                            Belum ada nomor WhatsApp
+                          </h3>
+                          <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+                            Tambahkan nomor WhatsApp pertama Anda untuk memulai
+                          </p>
+                          <button
+                            onClick={() => handleOpenModal("add")}
+                            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B] dark:from-indigo-600 dark:to-violet-500 text-white rounded-lg font-medium transition"
+                          >
+                            <FaPlus />
+                            Tambah Nomor
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    whatsapps.map((wa, index) => (
+                      <motion.tr
+                        key={wa._id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition"
+                      >
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div
+                              className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                                wa.isActive
+                                  ? "bg-green-100 dark:bg-green-900/30"
+                                  : "bg-slate-100 dark:bg-slate-800"
+                              }`}
+                            >
+                              <FaWhatsapp
+                                className={`${
+                                  wa.isActive
+                                    ? "text-green-600"
+                                    : "text-slate-400"
+                                }`}
+                              />
+                            </div>
+                            <div>
+                              <p className="font-medium text-slate-900 dark:text-white">
+                                {formatDisplayNumber(wa.phoneNumber)}
+                              </p>
+                              <p className="text-xs text-slate-500">
+                                +62{wa.phoneNumber.substring(2)}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          {wa.isActive ? (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400">
+                              <FaCheckCircle className="text-xs" />
+                              Aktif
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+                              Tidak Aktif
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4">
+                          {wa.groupName ? (
+                            <span className="text-sm text-slate-700 dark:text-slate-300">
+                              {wa.groupName.length > 20
+                                ? wa.groupName.substring(0, 20) + "..."
+                                : wa.groupName}
+                            </span>
+                          ) : (
+                            <span className="text-sm text-slate-400">-</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
+                              <span className="text-xs font-medium text-indigo-600 dark:text-indigo-400">
+                                {wa.updatedBy?.name?.charAt(0) || "U"}
+                              </span>
+                            </div>
+                            <span className="text-sm text-slate-700 dark:text-slate-300">
+                              {wa.updatedBy?.name || "Unknown"}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex flex-col">
+                            <span className="text-sm text-slate-700 dark:text-slate-300">
+                              {moment(wa.updatedAt).format("DD MMM YYYY")}
+                            </span>
+                            <span className="text-xs text-slate-500">
+                              {moment(wa.updatedAt).format("HH:mm")} WIB
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center justify-end gap-2">
+                            <motion.button
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.9 }}
+                              onClick={() => handleOpenModal("edit", wa)}
+                              className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-lg transition"
+                              title="Edit"
+                            >
+                              <FaEdit />
+                            </motion.button>
+                            {!wa.isActive && (
+                              <motion.button
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.9 }}
+                                onClick={() => handleDeleteClick(wa._id)}
+                                className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition"
+                                title="Hapus"
+                              >
+                                <FaTrash />
+                              </motion.button>
+                            )}
+                          </div>
+                        </td>
+                      </motion.tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Table Footer */}
+            {whatsapps.length > 0 && (
+              <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-slate-600 dark:text-slate-400">
+                    Menampilkan {whatsapps.length} nomor
+                  </span>
+                  <span className="text-slate-600 dark:text-slate-400 flex items-center gap-2">
+                    <FaShieldAlt className="text-green-500" />
+                    Hanya satu nomor yang dapat aktif
+                  </span>
+                </div>
+              </div>
+            )}
+          </motion.div>
+
+          {/* QR SECTION */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-6"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold flex items-center gap-2">
+                <FaQrcode /> WhatsApp Connection
+              </h3>
+
+              <button
+                onClick={reconnectWhatsapp}
+                className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm"
+              >
+                Reconnect
+              </button>
+            </div>
+
+            {waStatus === "connected" ? (
+              <div className="text-green-600 font-semibold flex items-center gap-2">
+                <FaCheckCircle /> WhatsApp Connected
+              </div>
+            ) : qr ? (
+              <div className="flex flex-col items-center gap-4">
+                <QRCodeSVG
+                  value={qr}
+                  size={220}
+                  bgColor="#ffffff"
+                  fgColor="#000000"
+                  level="M"
+                />
+                <p className="text-sm text-gray-500 text-center">
+                  Scan QR menggunakan WhatsApp admin
+                </p>
+              </div>
+            ) : (
+              <p className="text-gray-500 text-center">Menunggu QR...</p>
+            )}
+          </motion.div>
+        </div>
 
         {/* Info Cards */}
         <motion.div
@@ -639,7 +929,7 @@ export default function ManajemenWhatsappPage() {
         </motion.div>
       </div>
 
-      {/* Modal Add/Edit - FIXED: title as string, icon separate */}
+      {/* Modal Add/Edit */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
@@ -648,7 +938,6 @@ export default function ManajemenWhatsappPage() {
         }
       >
         <div className="space-y-6">
-          {/* Icon Header */}
           <div className="flex items-center gap-3 pb-2 border-b border-slate-200 dark:border-slate-700">
             <div
               className={`w-10 h-10 rounded-lg flex items-center justify-center ${
@@ -733,7 +1022,7 @@ export default function ManajemenWhatsappPage() {
             <button
               onClick={handleSubmit}
               disabled={submitting}
-              className="px-6 py-2 rounded-lg bg-linear-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white text-sm font-semibold flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+              className="px-6 py-2 rounded-lg bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white text-sm font-semibold flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {submitting ? (
                 <>
@@ -742,7 +1031,7 @@ export default function ManajemenWhatsappPage() {
                 </>
               ) : (
                 <>
-                  <HiCheckCircle />
+                  <FaCheckCircle />
                   Simpan
                 </>
               )}
@@ -751,7 +1040,7 @@ export default function ManajemenWhatsappPage() {
         </div>
       </Modal>
 
-      {/* Delete Confirmation Modal - FIXED: title as string, icon separate */}
+      {/* Delete Confirmation Modal */}
       <Modal
         isOpen={showDeleteConfirm}
         onClose={() => setShowDeleteConfirm(false)}

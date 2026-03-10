@@ -206,9 +206,9 @@ export default function AdminDashboard() {
       {/* HEADER */}
       <div className="mb-8">
         <h1 className="flex items-center gap-3 tracking-tight mb-2">
-            <p className="text-3xl">📊</p>
-            <span
-              className="
+          <p className="text-3xl">📊</p>
+          <span
+            className="
                 text-2xl sm:text-3xl lg:text-4xl
                 font-extrabold leading-tight
                 bg-clip-text text-transparent
@@ -216,9 +216,9 @@ export default function AdminDashboard() {
                 from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
                 dark:from-indigo-400 dark:via-violet-400 dark:to-purple-400
               "
-            >
-              Dashboard Admin 
-            </span>
+          >
+            Dashboard Admin
+          </span>
         </h1>
         <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 mt-2">
           Selamat datang! Kelola semua aktivitas magang dari sini.
