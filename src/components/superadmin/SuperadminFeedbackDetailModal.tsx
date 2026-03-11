@@ -331,7 +331,7 @@ export default function SuperadminFeedbackModal({
   "
             >
               <div>
-                <p className="text-sm font-semibold">Total Skor Survey</p>
+                <p className="text-sm font-semibold">Total Skor Feedback</p>
                 <p className="text-xs opacity-70">
                   Kategori: {surveyCategory || "-"}
                 </p>
@@ -362,26 +362,26 @@ export default function SuperadminFeedbackModal({
       dark:text-indigo-300
     "
               >
-                Hasil Survei Peserta
+                Hasil Feedback Peserta
               </h3>
 
               <SurveyView
-                label="Kepuasan Magang"
+                label="1. Kemudahan memahami tampilan dan navigasi website SITANJAK"
                 value={feedback.survey.kepuasanMagang}
               />
 
               <SurveyView
-                label="Rekomendasi Program"
+                label="2. Kemudahan proses pendaftaran magang melalui website SITANJAK"
                 value={feedback.survey.rekomendasiProgram}
               />
 
               <SurveyView
-                label="Kemudahan Proses"
+                label="3. Kemudahan menggunakan fitur logbook dan unggah laporan"
                 value={feedback.survey.kemudahanProses}
               />
 
               <SurveyView
-                label="Peningkatan Skill"
+                label="4. Kepuasan keseluruhan penggunaan website SITANJAK"
                 value={feedback.survey.peningkatanSkill}
               />
             </div>

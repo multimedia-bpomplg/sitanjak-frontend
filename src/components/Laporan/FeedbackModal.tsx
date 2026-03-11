@@ -127,6 +127,14 @@ export default function FeedbackModal({ month, mode, onClose }: Props) {
     }
   };
 
+  const totalQuestions = 4;
+
+  const answered =
+    [kepuasanMagang, rekomendasiProgram, kemudahanProses, peningkatanSkill]
+      .filter((v) => v !== 0).length;
+
+  const progress = (answered / totalQuestions) * 100;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-3 sm:p-6">
       <div
@@ -191,60 +199,57 @@ export default function FeedbackModal({ month, mode, onClose }: Props) {
             </div>
           )}
 
-          <div className="space-y-4">
-            <h3 className="font-bold text-lg">📊 Survei Pengalaman Magang</h3>
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg sm:text-xl font-extrabold text-slate-800 dark:text-white">
+                📊 Feedback Pengalaman Magang
+              </h3>
 
-            <SurveyItem
-              question="1. Seberapa puas Anda dengan pengalaman magang di BPOM?"
-              value={kepuasanMagang}
-              onChange={setKepuasanMagang}
-              labels={[
-                "Sangat Tidak Puas",
-                "Tidak Puas",
-                "Cukup",
-                "Puas",
-                "Sangat Puas",
-              ]}
-            />
+              <span className="text-xs px-3 py-1 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-200">
+                4 Pertanyaan
+              </span>
+            </div>
 
-            <SurveyItem
-              question="2. Apakah Anda akan merekomendasikan program magang BPOM kepada teman?"
-              value={rekomendasiProgram}
-              onChange={setRekomendasiProgram}
-              labels={[
-                "Sangat Tidak Rekomendasi",
-                "Tidak Rekomendasi",
-                "Netral",
-                "Rekomendasi",
-                "Sangat Rekomendasi",
-              ]}
-            />
+            <div className="space-y-3">
+              <div className="flex justify-between text-xs text-slate-500">
+                <span>Progress Pengisian</span>
+                <span>{answered}/{totalQuestions}</span>
+              </div>
 
-            <SurveyItem
-              question="3. Bagaimana tingkat kemudahan proses pendaftaran magang?"
-              value={kemudahanProses}
-              onChange={setKemudahanProses}
-              labels={[
-                "Sangat Sulit",
-                "Sulit",
-                "Cukup",
-                "Mudah",
-                "Sangat Mudah",
-              ]}
-            />
+              <div className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-emerald-500 transition-all duration-500"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+            </div>
 
-            <SurveyItem
-              question="4. Apakah kegiatan magang meningkatkan skill Anda?"
-              value={peningkatanSkill}
-              onChange={setPeningkatanSkill}
-              labels={[
-                "Sangat Tidak Membantu",
-                "Tidak Membantu",
-                "Cukup",
-                "Membantu",
-                "Sangat Membantu",
-              ]}
-            />
+            <div className="grid gap-5">
+
+              <SurveyItem
+                question="1. Seberapa mudah Anda memahami tampilan dan navigasi pada website SITANJAK?"
+                value={kepuasanMagang}
+                onChange={setKepuasanMagang}
+              />
+
+              <SurveyItem
+                question="2. Seberapa mudah proses pendaftaran magang melalui website SITANJAK?"
+                value={rekomendasiProgram}
+                onChange={setRekomendasiProgram}
+              />
+
+              <SurveyItem
+                question="3. Seberapa mudah menggunakan fitur pencatatan kegiatan harian (logbook) dan pengunggahan laporan akhir di website SITANJAK?"
+                value={kemudahanProses}
+                onChange={setKemudahanProses}
+              />
+
+              <SurveyItem
+                question="4. Secara keseluruhan, seberapa puas Anda menggunakan website SITANJAK dan apakah Anda bersedia merekomendasikannya kepada teman atau peserta magang lainnya?"
+                value={peningkatanSkill}
+                onChange={setPeningkatanSkill}
+              />
+            </div>
           </div>
 
           {/* KOMENTAR MENTOR (HANYA DI VIEW MODE) */}
@@ -647,39 +652,68 @@ function SurveyItem({
   question,
   value,
   onChange,
-  labels,
 }: {
   question: string;
   value: number;
   onChange: (v: number) => void;
-  labels: string[];
 }) {
-  return (
-    <div className="space-y-3">
-      <p className="text-sm font-semibold">{question}</p>
 
-      <div className="grid grid-cols-5 gap-2">
-        {[1, 2, 3, 4, 5].map((score) => (
-          <button
-            key={score}
-            onClick={() => onChange(score)}
-            className={`
-              flex flex-col items-center justify-center
-              rounded-xl border p-2 text-xs font-medium
-              transition
-              ${
-                value === score
-                  ? "bg-emerald-500 text-white border-emerald-500"
-                  : "bg-white border-slate-300 hover:bg-slate-50"
-              }
-            `}
-          >
-            <span className="text-sm font-bold">{score}</span>
-            <span className="text-[10px] leading-tight text-center">
-              {labels[score - 1]}
-            </span>
-          </button>
-        ))}
+  const emojis = ["😡", "😕", "😐", "🙂", "😍"];
+
+  const labels = [
+    "Sangat Buruk",
+    "Buruk",
+    "Cukup",
+    "Baik",
+    "Sangat Baik",
+  ];
+
+  return (
+    <div
+      className="
+      rounded-2xl
+      border border-slate-200 dark:border-slate-700
+      bg-white dark:bg-slate-800/60
+      p-5
+      shadow-sm
+      hover:shadow-md
+      transition
+    "
+    >
+      <p className="text-sm sm:text-base font-semibold text-slate-800 dark:text-slate-200 mb-4">
+        {question}
+      </p>
+
+      <div className="flex justify-between gap-2 sm:gap-4">
+        {emojis.map((emoji, i) => {
+          const score = i + 1;
+          const active = value === score;
+
+          return (
+            <button
+              key={score}
+              onClick={() => onChange(score)}
+              className={`
+                flex flex-col items-center
+                flex-1
+                py-3
+                rounded-xl
+                transition-all
+                ${
+                  active
+                    ? "bg-emerald-500 text-white scale-110 shadow-md"
+                    : "bg-slate-100 dark:bg-slate-700 hover:scale-105"
+                }
+              `}
+            >
+              <span className="text-xl sm:text-2xl">{emoji}</span>
+
+              <span className="text-[10px] sm:text-xs mt-1 text-center">
+                {labels[i]}
+              </span>
+            </button>
+          );
+        })}
       </div>
     </div>
   );
