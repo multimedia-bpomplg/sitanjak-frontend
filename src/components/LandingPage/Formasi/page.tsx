@@ -457,26 +457,28 @@ export default function Formasi() {
                       </p>
 
                       {/* ================= SISA KUOTA ================= */}
-                      <p className="text-xs text-gray-600 mb-2 tracking-wide">
+                      <p className="text-xs text-gray-600 text-center mb-2 tracking-wide">
                         SISA KUOTA BULAN{" "}
                         {new Date()
                           .toLocaleDateString("id-ID", { month: "long" })
                           .toUpperCase()}
                       </p>
 
-                      <p
-                        className={`text-5xl font-extrabold ${
-                          isFull
-                            ? "text-red-500"
-                            : kuotaBulanIni.sisaKuota <= 2
-                              ? "text-yellow-500"
-                              : "text-green-500"
-                        }`}
-                      >
-                        {kuotaBulanIni.sisaKuota}
-                      </p>
+                      <div className="flex flex-col items-center justify-center my-4">
+                        <p
+                          className={`text-6xl font-extrabold tracking-tight ${
+                            isFull
+                              ? "text-red-500"
+                              : kuotaBulanIni.sisaKuota <= 2
+                                ? "text-yellow-500"
+                                : "text-green-500"
+                          }`}
+                        >
+                          {kuotaBulanIni.sisaKuota}
+                        </p>
 
-                      <p className="text-sm text-gray-600">orang</p>
+                        <p className="text-sm text-gray-500 mt-1">orang</p>
+                      </div>
 
                       {/* ================= INFO ================= */}
                       <div className="text-sm text-gray-700 space-y-3 mb-4">
@@ -521,27 +523,53 @@ export default function Formasi() {
                       {/* 🔥 PREDIKSI */}
                       {prediksi[item.title] && (
                         <div
-                          className="
-                                  mt-4
-                                  rounded-2xl
-                                  bg-linear-to-br
-                                  from-red-50
-                                  via-white
-                                  to-red-100
-                                  border border-red-200
-                                  shadow-md
-                                  p-4
-                                  relative
-                                  overflow-hidden
-                                "
+                          className={`
+                          mt-4
+                          rounded-2xl
+                          shadow-md
+                          p-4
+                          relative
+                          overflow-hidden
+                          ${
+                            isFull
+                              ? "bg-linear-to-br from-red-50 via-white to-red-100 border border-red-200"
+                              : kuotaBulanIni.sisaKuota <= 2
+                                ? "bg-linear-to-br from-yellow-50 via-white to-yellow-100 border border-yellow-200"
+                                : "bg-linear-to-br from-green-50 via-white to-green-100 border border-green-200"
+                          }
+                        `}
                         >
                           {/* Accent Line */}
-                          <div className="absolute left-0 top-0 bottom-0 w-1 bg-linear-to-b from-red-500 to-[#7F1D1D]" />
+                          <div
+                            className={`absolute left-0 top-0 bottom-0 w-1 ${
+                              isFull
+                                ? "bg-linear-to-b from-red-500 to-red-700"
+                                : kuotaBulanIni.sisaKuota <= 2
+                                  ? "bg-linear-to-b from-yellow-400 to-yellow-600"
+                                  : "bg-linear-to-b from-green-400 to-green-600"
+                            }`}
+                          />
 
                           <div className="flex items-start gap-3">
                             {/* Icon */}
-                            <div className="p-2 rounded-xl bg-red-100">
-                              <HiCalendar className="w-4 h-4 text-red-600" />
+                            <div
+                              className={`p-2 rounded-xl ${
+                                isFull
+                                  ? "bg-red-100"
+                                  : kuotaBulanIni.sisaKuota <= 2
+                                    ? "bg-yellow-100"
+                                    : "bg-green-100"
+                              }`}
+                            >
+                              <HiCalendar
+                                className={`w-4 h-4 ${
+                                  isFull
+                                    ? "text-red-600"
+                                    : kuotaBulanIni.sisaKuota <= 2
+                                      ? "text-yellow-600"
+                                      : "text-green-600"
+                                }`}
+                              />
                             </div>
 
                             {/* Content */}
@@ -552,32 +580,53 @@ export default function Formasi() {
 
                               {prediksi[item.title]
                                 ?.slice(0, 4)
-                                .map((p: any, i: number) => (
-                                  <div
-                                    key={i}
-                                    className="flex justify-between items-center text-sm border-b border-gray-100 pb-1"
-                                  >
-                                    <span className="text-gray-600">
-                                      {p.bulan}
-                                    </span>
+                                .map((p: any, i: number) => {
 
-                                    <span className="text-xs text-gray-500">
-                                      {p.aktif} Magang
-                                    </span>
+                                  const totalKuota = item.kuota;
+                                  const filled = p.aktif;
+                                  const empty = p.sisaKuota;
 
-                                    <span
-                                      className={`font-bold ${
-                                        p.sisaKuota === 0
-                                          ? "text-red-500"
-                                          : p.sisaKuota <= 2
-                                            ? "text-yellow-500"
-                                            : "text-green-600"
-                                      }`}
-                                    >
-                                      {p.sisaKuota} Slot
-                                    </span>
-                                  </div>
-                                ))}
+                                  return (
+                                    <div key={i} className="space-y-1 py-2">
+
+                                      {/* Header */}
+                                      <div className="flex justify-between items-center text-sm">
+                                        <span className="font-medium text-gray-700">
+                                          {p.bulan}
+                                        </span>
+
+                                        <span className="font-semibold text-green-600">
+                                          {empty} Slot
+                                        </span>
+                                      </div>
+
+                                      {/* Slot visual */}
+                                      <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
+                                        <div
+                                          className={`h-2 rounded-full ${
+                                            p.sisaKuota === 0
+                                              ? "bg-red-500"
+                                              : p.sisaKuota <= 2
+                                              ? "bg-yellow-500"
+                                              : "bg-green-500"
+                                          }`}
+                                          style={{
+                                            width: `${Math.min(
+                                              100,
+                                              (p.aktif / item.kuota) * 100
+                                            )}%`,
+                                          }}
+                                        />
+                                      </div>
+
+                                      {/* Info */}
+                                      <div className="text-xs text-gray-500">
+                                        {filled} terisi • {empty} tersedia
+                                      </div>
+
+                                    </div>
+                                  );
+                              })}
                             </div>
                           </div>
                         </div>
