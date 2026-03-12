@@ -8,7 +8,7 @@ import {
   HiCheckCircle,
   HiSearch,
   HiClock,
-  HiDownload, 
+  HiDownload,
 } from "react-icons/hi";
 import { FiMessageCircle } from "react-icons/fi";
 import SuperadminFeedbackDetailModal from "@/components/superadmin/SuperadminFeedbackDetailModal";
@@ -30,6 +30,13 @@ type PesertaFeedback = {
 type FeedbackDetail = {
   _id: string;
   month: string;
+  survey: {
+    kepuasanMagang: number;
+    rekomendasiProgram: number;
+    kemudahanProses: number;
+    peningkatanSkill: number;
+  };
+
   feedbackBPOM: string;
   feedbackMentor: string;
   isFeedbackMentorSent: boolean;
@@ -62,7 +69,7 @@ export default function ViewFeedbackSuperadmin() {
   const [selectedFeedback, setSelectedFeedback] =
     useState<FeedbackDetail | null>(null);
   const [statistics, setStatistics] = useState<any>(null);
-  
+
   // Pagination state
   const [page, setPage] = useState(1);
   const itemsPerPage = 10;
@@ -229,6 +236,25 @@ export default function ViewFeedbackSuperadmin() {
     });
   };
 
+  const getTotalSurveyScore = (survey: FeedbackDetail["survey"]) => {
+    if (!survey) return 0;
+
+    return (
+      survey.kepuasanMagang +
+      survey.rekomendasiProgram +
+      survey.kemudahanProses +
+      survey.peningkatanSkill
+    );
+  };
+
+  const getSurveyCategory = (total: number) => {
+    if (total >= 17) return "Sangat Baik";
+    if (total >= 13) return "Baik";
+    if (total >= 9) return "Cukup";
+    if (total >= 5) return "Kurang";
+    return "Buruk";
+  };
+
   return (
     <div
       className="
@@ -259,7 +285,7 @@ export default function ViewFeedbackSuperadmin() {
               Monitoring Feedback Peserta
             </span>
           </h1>
-          <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400">
+          <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 mt-2">
             Pantau feedback dari peserta untuk BPOM dan mentor
           </p>
         </div>
@@ -633,13 +659,20 @@ export default function ViewFeedbackSuperadmin() {
       {selectedFeedback && selectedPeserta && (
         <SuperadminFeedbackDetailModal
           feedback={selectedFeedback}
+          totalSurveyScore={
+            selectedFeedback ? getTotalSurveyScore(selectedFeedback.survey) : 0
+          }
+          surveyCategory={
+            selectedFeedback
+              ? getSurveyCategory(getTotalSurveyScore(selectedFeedback.survey))
+              : ""
+          }
           onClose={() => {
             setSelectedFeedback(null);
             setSelectedPeserta(null);
           }}
         />
       )}
-
     </div>
   );
 }

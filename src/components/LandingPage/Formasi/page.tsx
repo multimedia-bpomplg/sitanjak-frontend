@@ -17,6 +17,7 @@ import {
   fetchPrediksi,
 } from "@/services/formasiService";
 import { FaUserCheck } from "react-icons/fa";
+import CalendarPopup from "@/components/calendar/CalendarPopup";
 
 // Fungsi untuk membuat slug yang konsisten (lowercase)
 const createSlug = (title: string): string => {
@@ -41,6 +42,8 @@ export default function Formasi() {
   const [error, setError] = useState<string | null>(null);
   const [prediksi, setPrediksi] = useState<any>({});
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const [selectedFormasi, setSelectedFormasi] = useState<IFormasi | null>(null);
 
   // Ref untuk menyimpan interval
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -62,6 +65,96 @@ export default function Formasi() {
     });
   };
 
+  function simulasiKuotaBulanan(formasi: IFormasi) {
+    const kuota = formasi.kuota;
+
+    const mulaiList = formasi.tanggalMulaiMagang || [];
+    const selesaiList = formasi.tanggalSelesaiMagang || [];
+
+    const hasil: {
+      bulan: string;
+      aktif: number;
+      sisaKuota: number;
+    }[] = [];
+
+    const sekarang = new Date();
+
+    for (let i = 0; i < 6; i++) {
+      const bulanStart = new Date(
+        sekarang.getFullYear(),
+        sekarang.getMonth() + i,
+        1,
+      );
+
+      const bulanEnd = new Date(
+        sekarang.getFullYear(),
+        sekarang.getMonth() + i + 1,
+        0,
+      );
+
+      const aktif = mulaiList.reduce((acc, mulai, idx) => {
+        const start = new Date(mulai);
+        const end = new Date(selesaiList[idx]);
+
+        const overlap = start <= bulanEnd && end >= bulanStart;
+
+        return overlap ? acc + 1 : acc;
+      }, 0);
+
+      hasil.push({
+        bulan: bulanStart.toLocaleDateString("id-ID", {
+          month: "long",
+          year: "numeric",
+        }),
+        aktif,
+        sisaKuota: Math.max(0, kuota - aktif),
+      });
+    }
+
+    return hasil;
+  }
+
+  function hitungPrediksiKuota(formasi: IFormasi) {
+    const kuota = formasi.kuota;
+
+    const mulaiList = formasi.tanggalMulaiMagang || [];
+    const selesaiList = formasi.tanggalSelesaiMagang || [];
+
+    const sekarang = new Date();
+
+    const hasil: any[] = [];
+
+    for (let i = 0; i < 6; i++) {
+      const bulan = new Date(
+        sekarang.getFullYear(),
+        sekarang.getMonth() + i,
+        1,
+      );
+
+      const aktif = mulaiList.reduce((total, mulai, idx) => {
+        const start = new Date(mulai);
+        const end = new Date(selesaiList[idx]);
+
+        if (bulan >= start && bulan <= end) {
+          return total + 1;
+        }
+
+        return total;
+      }, 0);
+
+      hasil.push({
+        bulan: bulan.toLocaleDateString("id-ID", {
+          month: "long",
+          year: "numeric",
+        }),
+        aktif,
+        sisaKuota: Math.max(0, kuota - aktif),
+      });
+    }
+
+    return hasil;
+  }
+
   // Fungsi untuk memuat data
   const loadFormasi = useCallback(async (isAutoRefresh = false) => {
     // Jika auto refresh, set status refreshing, bukan loading
@@ -72,14 +165,27 @@ export default function Formasi() {
     }
 
     try {
-      const [formasiData, prediksiData] = await Promise.all([
-        fetchFormasi(),
-        fetchPrediksi(),
-      ]);
+      const formasiData = await fetchFormasi();
 
       setFormasiList(formasiData);
-      setPrediksi(prediksiData);
       setLastUpdated(new Date());
+
+      // 🔥 hitung prediksi kuota otomatis
+      const simulasi: Record<string, any> = {};
+
+      formasiData.forEach((f: IFormasi) => {
+        simulasi[f.title] = simulasiKuotaBulanan(f);
+      });
+
+      setPrediksi(simulasi);
+
+      // 🔥 DATA TAMBAHAN FORMASI (tidak ditampilkan di UI)
+      formasiData.forEach((f: IFormasi) => {
+        console.log("Formasi:", f.title);
+        console.log("Status Magang:", f.statusMagang);
+        console.log("Tanggal Mulai:", f.tanggalMulaiMagang);
+        console.log("Tanggal Selesai:", f.tanggalSelesaiMagang);
+      });
       setError(null);
     } catch (err) {
       console.error(err);
@@ -134,6 +240,61 @@ export default function Formasi() {
     loadFormasi(true);
   };
 
+  function getKuotaBulanIni(formasi: IFormasi) {
+    const kuota = formasi.kuota;
+
+    const mulaiList = formasi.tanggalMulaiMagang || [];
+    const selesaiList = formasi.tanggalSelesaiMagang || [];
+
+    const sekarang = new Date();
+
+    const awalBulan = new Date(sekarang.getFullYear(), sekarang.getMonth(), 1);
+    const akhirBulan = new Date(
+      sekarang.getFullYear(),
+      sekarang.getMonth() + 1,
+      0,
+    );
+
+    const aktif = mulaiList.reduce((total, mulai, idx) => {
+      const start = new Date(mulai);
+      const end = new Date(selesaiList[idx]);
+
+      const overlap = start <= akhirBulan && end >= awalBulan;
+
+      return overlap ? total + 1 : total;
+    }, 0);
+
+    return {
+      aktif,
+      sisaKuota: Math.max(0, kuota - aktif),
+    };
+  }
+
+  function getPendaftarBulanIni(formasi: IFormasi) {
+    const mulaiList = formasi.tanggalMulaiMagang || [];
+    const selesaiList = formasi.tanggalSelesaiMagang || [];
+
+    const sekarang = new Date();
+
+    const awalBulan = new Date(sekarang.getFullYear(), sekarang.getMonth(), 1);
+    const akhirBulan = new Date(
+      sekarang.getFullYear(),
+      sekarang.getMonth() + 1,
+      0,
+    );
+
+    const jumlah = mulaiList.reduce((total, mulai, idx) => {
+      const start = new Date(mulai);
+      const end = new Date(selesaiList[idx]);
+
+      const overlap = start <= akhirBulan && end >= awalBulan;
+
+      return overlap ? total + 1 : total;
+    }, 0);
+
+    return jumlah;
+  }
+
   return (
     <section
       id="formasi"
@@ -142,19 +303,19 @@ export default function Formasi() {
     >
       <div
         className={`
-          max-w-6xl w-full
-          px-8 lg:px-14 py-10
-          transition-all duration-700 ease-out
-          ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}
-        `}
+                max-w-6xl w-full
+                px-8 lg:px-14 py-10
+                transition-all duration-700 ease-out
+                ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}
+              `}
       >
         {/* HEADER */}
         <div
           className={`
-            text-center mb-8
-            transition-all duration-700 delay-100
-            ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}
-          `}
+                  text-center mb-8
+                  transition-all duration-700 delay-100
+                  ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}
+                `}
         >
           <h2 className="text-3xl lg:text-4xl font-extrabold text-[#7F1D1D]">
             Formasi Magang
@@ -175,12 +336,12 @@ export default function Formasi() {
               onClick={handleManualRefresh}
               disabled={refreshing}
               className={`
-                flex items-center gap-2 px-3 py-1 rounded-full
-                bg-white/80 hover:bg-white
-                text-[#7F1D1D] border border-[#7F1D1D]/20
-                transition-all duration-300
-                ${refreshing ? "opacity-50 cursor-not-allowed" : "hover:scale-105"}
-              `}
+                      flex items-center gap-2 px-3 py-1 rounded-full
+                      bg-white/80 hover:bg-white
+                      text-[#7F1D1D] border border-[#7F1D1D]/20
+                      transition-all duration-300
+                      ${refreshing ? "opacity-50 cursor-not-allowed" : "hover:scale-105"}
+                    `}
             >
               <HiRefresh
                 className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`}
@@ -234,27 +395,32 @@ export default function Formasi() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
               {formasiList.map((item, i) => {
                 const slug = createSlug(item.title);
-                const isFull = item.sisaKuota === 0;
+                const kuotaBulanIni = getKuotaBulanIni(item);
+                const isFull = kuotaBulanIni.sisaKuota === 0;
 
                 return (
                   <div
                     key={item._id}
+                    onClick={() => {
+                      setSelectedFormasi({
+                        ...item,
+                        statusMagang: item.statusMagang || [],
+                        tanggalMulaiMagang: item.tanggalMulaiMagang || [],
+                        tanggalSelesaiMagang: item.tanggalSelesaiMagang || [],
+                      });
+
+                      setCalendarOpen(true);
+                    }}
                     className={`
-                      relative group
-                      rounded-3xl
-                      overflow-hidden
-                      shadow-lg
-                      transition-all duration-500
-                      hover:-translate-y-3
-                      hover:shadow-2xl
-                      ${
-                        isFull
-                          ? "bg-linear-to-br from-red-100 via-white to-red-50"
-                          : item.sisaKuota <= 2
-                            ? "bg-linear-to-br from-yellow-100 via-white to-orange-50"
-                            : "bg-linear-to-br from-green-100 via-white to-emerald-50"
-                      }
-                    `}
+          relative group
+          rounded-3xl
+          overflow-hidden
+          shadow-lg
+          transition-all duration-500
+          hover:-translate-y-3
+          hover:shadow-2xl
+          cursor-pointer
+        `}
                   >
                     {/* Soft Gradient Glow */}
                     <div className="absolute inset-0 bg-linear-to-br from-red-200/20 to-transparent opacity-0 group-hover:opacity-100 transition duration-500" />
@@ -268,17 +434,17 @@ export default function Formasi() {
 
                         <span
                           className={`text-xs px-3 py-1 rounded-full backdrop-blur-md font-semibold
-                          ${
-                            isFull
-                              ? "bg-red-500/80 text-white"
-                              : item.sisaKuota <= 2
-                                ? "bg-yellow-400/80 text-black"
-                                : "bg-green-500/80 text-white"
-                          }`}
+                                ${
+                                  isFull
+                                    ? "bg-red-500/80 text-white"
+                                    : kuotaBulanIni.sisaKuota <= 2
+                                      ? "bg-yellow-400/80 text-black"
+                                      : "bg-green-500/80 text-white"
+                                }`}
                         >
                           {isFull
                             ? "Penuh"
-                            : item.sisaKuota <= 2
+                            : kuotaBulanIni.sisaKuota <= 2
                               ? "Hampir Penuh"
                               : "Tersedia"}
                         </span>
@@ -291,25 +457,26 @@ export default function Formasi() {
                       </p>
 
                       {/* ================= SISA KUOTA ================= */}
-                      <div className="text-center py-6 bg-white/30 rounded-2xl mb-6">
-                        <p className="text-xs text-gray-600 mb-2 tracking-wide">
-                          SISA KUOTA
-                        </p>
+                      <p className="text-xs text-gray-600 mb-2 tracking-wide">
+                        SISA KUOTA BULAN{" "}
+                        {new Date()
+                          .toLocaleDateString("id-ID", { month: "long" })
+                          .toUpperCase()}
+                      </p>
 
-                        <p
-                          className={`text-5xl font-extrabold ${
-                            isFull
-                              ? "text-red-500"
-                              : item.sisaKuota <= 2
-                                ? "text-yellow-500"
-                                : "text-green-500"
-                          }`}
-                        >
-                          {item.sisaKuota}
-                        </p>
+                      <p
+                        className={`text-5xl font-extrabold ${
+                          isFull
+                            ? "text-red-500"
+                            : kuotaBulanIni.sisaKuota <= 2
+                              ? "text-yellow-500"
+                              : "text-green-500"
+                        }`}
+                      >
+                        {kuotaBulanIni.sisaKuota}
+                      </p>
 
-                        <p className="text-sm text-gray-600">orang</p>
-                      </div>
+                      <p className="text-sm text-gray-600">orang</p>
 
                       {/* ================= INFO ================= */}
                       <div className="text-sm text-gray-700 space-y-3 mb-4">
@@ -324,10 +491,10 @@ export default function Formasi() {
                         <div className="flex justify-between">
                           <span className="flex items-center gap-1">
                             <FaUserCheck className="text-blue-500" />
-                            Sudah Mendaftar
+                            Sudah Magang Bulan Ini
                           </span>
                           <span className="font-semibold">
-                            {item.jumlahPendaftar}
+                            {getPendaftarBulanIni(item)}
                           </span>
                         </div>
                       </div>
@@ -338,72 +505,79 @@ export default function Formasi() {
                           className={`h-2 rounded-full ${
                             isFull
                               ? "bg-red-500"
-                              : item.sisaKuota <= 2
+                              : kuotaBulanIni.sisaKuota <= 2
                                 ? "bg-yellow-500"
                                 : "bg-green-500"
                           }`}
                           style={{
                             width: `${Math.min(
                               100,
-                              (item.jumlahPendaftar / item.kuota) * 100,
+                              (getPendaftarBulanIni(item) / item.kuota) * 100,
                             )}%`,
                           }}
                         />
                       </div>
 
                       {/* 🔥 PREDIKSI */}
-                      {isFull && prediksi[item.title] && (
+                      {prediksi[item.title] && (
                         <div
                           className="
-                            mt-4
-                            rounded-2xl
-                            bg-linear-to-br
-                            from-red-50
-                            via-white
-                            to-red-100
-                            border border-red-200
-                            shadow-md
-                            p-4
-                            relative
-                            overflow-hidden
-                          "
+                                  mt-4
+                                  rounded-2xl
+                                  bg-linear-to-br
+                                  from-red-50
+                                  via-white
+                                  to-red-100
+                                  border border-red-200
+                                  shadow-md
+                                  p-4
+                                  relative
+                                  overflow-hidden
+                                "
                         >
                           {/* Accent Line */}
                           <div className="absolute left-0 top-0 bottom-0 w-1 bg-linear-to-b from-red-500 to-[#7F1D1D]" />
 
                           <div className="flex items-start gap-3">
-                            
                             {/* Icon */}
                             <div className="p-2 rounded-xl bg-red-100">
                               <HiCalendar className="w-4 h-4 text-red-600" />
                             </div>
 
                             {/* Content */}
-                            <div className="flex-1 text-sm space-y-1">
+                            <div className="flex-1 text-sm space-y-2">
                               <p className="font-bold text-[#7F1D1D]">
                                 Prediksi Kuota
                               </p>
 
-                              <p className="text-gray-700">
-                                Akan tersedia{" "}
-                                <span className="font-bold text-red-600">
-                                  {prediksi[item.title].slotAkanKosong}
-                                </span>{" "}
-                                slot
-                              </p>
+                              {prediksi[item.title]
+                                ?.slice(0, 4)
+                                .map((p: any, i: number) => (
+                                  <div
+                                    key={i}
+                                    className="flex justify-between items-center text-sm border-b border-gray-100 pb-1"
+                                  >
+                                    <span className="text-gray-600">
+                                      {p.bulan}
+                                    </span>
 
-                              <p className="text-gray-700">
-                                Mulai{" "}
-                                <span className="font-semibold">
-                                  {formatDate(prediksi[item.title].tersediaMulai)}
-                                </span>
-                              </p>
+                                    <span className="text-xs text-gray-500">
+                                      {p.aktif} Magang
+                                    </span>
 
-                              {lastUpdated && (
-                                <p className="text-[11px] text-gray-400 mt-2">
-                                  Update: {formatTime(lastUpdated)}
-                                </p>
-                              )}
+                                    <span
+                                      className={`font-bold ${
+                                        p.sisaKuota === 0
+                                          ? "text-red-500"
+                                          : p.sisaKuota <= 2
+                                            ? "text-yellow-500"
+                                            : "text-green-600"
+                                      }`}
+                                    >
+                                      {p.sisaKuota} Slot
+                                    </span>
+                                  </div>
+                                ))}
                             </div>
                           </div>
                         </div>
@@ -423,6 +597,11 @@ export default function Formasi() {
           </>
         )}
       </div>
+      <CalendarPopup
+        isOpen={calendarOpen}
+        onClose={() => setCalendarOpen(false)}
+        formasi={selectedFormasi}
+      />
     </section>
   );
 }
