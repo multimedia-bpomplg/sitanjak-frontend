@@ -18,7 +18,6 @@ export default function RiwayatPendaftaran() {
   const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
-  // ✅ AMAN: Menggunakan environment variable dari .env
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
   const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
   const FILE_BASE_URL = `${BASE_URL}/api/uploads`;
@@ -32,64 +31,6 @@ export default function RiwayatPendaftaran() {
     type: "success",
     message: "",
   });
-
-  // 🔒 Proteksi dari DevTools inspection (opsional)
-  useEffect(() => {
-    // Deteksi DevTools
-    const devToolsDetector = () => {
-      const start = performance.now();
-      debugger;
-      const end = performance.now();
-
-      if (end - start > 100) {
-        console.clear();
-        // Bisa redirect atau tampilkan pesan
-        // window.location.href = '/unauthorized';
-      }
-    };
-
-    const interval = setInterval(devToolsDetector, 2000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // 🔒 Proteksi right-click
-  useEffect(() => {
-    const handleContextMenu = (e: MouseEvent) => {
-      e.preventDefault();
-      setPopup({
-        show: true,
-        type: "warning",
-        message: "Inspect element tidak diizinkan",
-      });
-    };
-
-    document.addEventListener("contextmenu", handleContextMenu);
-    return () => document.removeEventListener("contextmenu", handleContextMenu);
-  }, []);
-
-  // 🔒 Proteksi keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Cegah F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U
-      if (
-        e.key === "F12" ||
-        (e.ctrlKey &&
-          e.shiftKey &&
-          (e.key === "I" || e.key === "J" || e.key === "C")) ||
-        (e.ctrlKey && e.key === "U")
-      ) {
-        e.preventDefault();
-        setPopup({
-          show: true,
-          type: "warning",
-          message: "Developer tools tidak diizinkan",
-        });
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
 
   const handleSearch = async () => {
     if (!email) {
