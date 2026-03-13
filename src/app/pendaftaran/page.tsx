@@ -792,6 +792,48 @@ function PendaftaranForm() {
     };
   }
 
+  function getStatusKuota(sisa: number, total: number) {
+    if (sisa <= 0) {
+      return {
+        label: "Kuota Penuh",
+        badge: "bg-red-500 text-white",
+        card: "border-red-300 bg-red-50",
+        text: "text-red-600",
+        progress: "bg-red-500",
+      };
+    }
+
+    if (sisa <= Math.ceil(total * 0.3)) {
+      return {
+        label: "Hampir Penuh",
+        badge: "bg-yellow-400 text-black",
+        card: "border-yellow-300 bg-yellow-50",
+        text: "text-yellow-600",
+        progress: "bg-yellow-500",
+      };
+    }
+
+    return {
+      label: "Tersedia",
+      badge: "bg-green-500 text-white",
+      card: "border-green-300 bg-green-50",
+      text: "text-green-600",
+      progress: "bg-green-500",
+    };
+  }
+
+  function getStatusKuotaPrediksi(sisa: number, total: number) {
+    if (sisa <= 0) {
+      return "bg-red-500";
+    }
+
+    if (sisa <= Math.ceil(total * 0.3)) {
+      return "bg-yellow-500";
+    }
+
+    return "bg-green-500";
+  }
+
   return (
     <>
       {/* BACK TO HOME BUTTON */}
@@ -1055,7 +1097,13 @@ function PendaftaranForm() {
             <label className="text-sm font-medium text-gray-700 mb-3 block">
               Posisi Magang <span className="text-red-500">*</span>
             </label>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+
+            {/* TAMBAHAN: petunjuk klik card */}
+            <p className="text-xs text-gray-500 mb-3 flex items-center gap-2">
+              <HiCalendar className="text-gray-400" />
+              Klik card posisi untuk melihat jadwal ketersediaan magang pada kalender
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {formasiList.map((item) => {
                 const kuota = item.kuota;
 
@@ -1067,6 +1115,7 @@ function PendaftaranForm() {
                 const prediksi = simulasiKuotaBulanan(item);
 
                 const penuh = false;
+                const status = getStatusKuota(sisa, kuota);
 
                 const selected = peserta[i].posisi === item.title;
 
@@ -1083,54 +1132,47 @@ function PendaftaranForm() {
                       setCalendarOpen(true);
                     }}
                     className={`
-relative group
-rounded-3xl
-shadow-lg
-p-6
-cursor-pointer
-transition-all
-hover:-translate-y-2
-hover:shadow-xl
+                      relative group
+                      rounded-3xl
+                      shadow-lg
+                      p-6
+                      cursor-pointer
+                      transition-all
+                      hover:-translate-y-2
+                      hover:shadow-xl
+                      border
+                      hover:border-[#7F1D1D]
 
-${selected ? "ring-2 ring-[#7F1D1D]" : ""}
+                      ${selected ? "ring-2 ring-[#7F1D1D]" : ""}
 
-${penuh ? "bg-red-50 border-2 border-red-700" : "bg-white"}
-`}
+                      ${status.card}
+                    `}
                   >
+
                     {/* HEADER */}
-                    <div className="flex justify-between mb-3">
-                      <h3 className="font-bold text-[#7F1D1D]">{item.title}</h3>
+                    <div className="flex items-start justify-between gap-2 mb-3">
+                      <h3 className="font-bold text-[#7F1D1D] leading-snug">{item.title}</h3>
 
                       <span
-                        className={`text-xs px-3 py-1 rounded-full font-semibold
-${
-  penuh
-    ? "bg-red-500 text-white"
-    : sisa <= 2
-      ? "bg-yellow-400 text-black"
-      : "bg-green-500 text-white"
-}`}
+                        className={`text-[11px] px-3 py-1 rounded-full font-semibold whitespace-nowrap ${status.badge}`}
                       >
-                        {sisa <= 0
-                          ? "Kuota Bulan Ini Penuh"
-                          : sisa <= 2
-                            ? "Hampir Penuh"
-                            : "Tersedia"}
+                        {status.label}
                       </span>
                     </div>
-
-                    <p className="text-sm text-gray-500 mb-4">
-                      Balai Besar POM Palembang
-                    </p>
 
                     {/* KUOTA */}
 
                     <div className="text-center mb-4">
-                      <p className="text-xs text-gray-600">SISA KUOTA BULAN</p>
+                      <p className="text-xs text-gray-600 text-center mb-2 tracking-wide">
+                        SISA KUOTA BULAN{" "}
+                        {new Date()
+                          .toLocaleDateString("id-ID", { month: "long" })
+                          .toUpperCase()}
+                      </p>
 
                       <p
                         className={`text-5xl font-extrabold
-${penuh ? "text-red-700" : sisa <= 2 ? "text-yellow-500" : "text-green-500"}`}
+                        ${status.text}`}
                       >
                         {sisa}
                       </p>
@@ -1162,7 +1204,7 @@ ${penuh ? "text-red-700" : sisa <= 2 ? "text-yellow-500" : "text-green-500"}`}
 
                     {/* PREDIKSI */}
 
-                    <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-black">
+                    <div className={`rounded-xl p-3 text-black border ${status.card}`}>
                       <p className="text-sm font-bold text-[#7F1D1D] mb-2">
                         Prediksi Kuota
                       </p>
@@ -1179,7 +1221,7 @@ ${penuh ? "text-red-700" : sisa <= 2 ? "text-yellow-500" : "text-green-500"}`}
 
                             <div className="w-full bg-gray-200 h-2 rounded-full mt-1">
                               <div
-                                className="bg-green-500 h-2 rounded-full"
+                                className={`${getStatusKuotaPrediksi(p.sisaKuota, item.kuota)} h-2 rounded-full`}
                                 style={{
                                   width: `${(p.aktif / item.kuota) * 100}%`,
                                 }}
@@ -1193,6 +1235,19 @@ ${penuh ? "text-red-700" : sisa <= 2 ? "text-yellow-500" : "text-green-500"}`}
                         );
                       })}
                     </div>
+
+                    <div className="flex items-center justify-center gap-1 text-[11px] text-gray-500 mb-2">
+                      <HiCalendar className="text-gray-400" />
+                      <span>Lihat jadwal magang di kalender</span>
+                    </div>
+
+                    {/* TAMBAHAN: jika kuota penuh */}
+                    {sisa === 0 && (
+                      <div className="text-xs text-red-600 text-center mb-2 font-medium">
+                        Kuota bulan ini penuh • Cek tanggal lain di kalender
+                      </div>
+                    )}
+
                     <div className="mt-4">
                       <button
                         type="button"
@@ -1212,8 +1267,8 @@ ${penuh ? "text-red-700" : sisa <= 2 ? "text-yellow-500" : "text-green-500"}`}
       penuh
         ? "bg-gray-300 text-gray-500 cursor-not-allowed"
         : selected
-          ? "bg-[#7F1D1D] text-white"
-          : "bg-[#F59E0B] text-white hover:brightness-110"
+          ? "bg-green-600 text-white"
+          : "bg-linear-to-r from-[#F59E0B] to-[#FACC15] text-white hover:brightness-110"
     }
   `}
                       >
