@@ -1809,7 +1809,6 @@ function DetailItem({
 }
 
 /* ================== STATUS MAGANG BADGE ================== */
-
 function getStatusMagang(
   statusPendaftaran: string,
   mulai?: string,

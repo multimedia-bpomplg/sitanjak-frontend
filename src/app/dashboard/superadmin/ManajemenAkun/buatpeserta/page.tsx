@@ -5,13 +5,7 @@ import { useState, useEffect } from "react";
 import { showToast } from "@/components/ui/toastDashboard";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { useSearchParams } from "next/navigation";
-import {
-  HiUser,
-  HiUsers,
-  HiCheck,
-  HiX,
-  HiSearch,
-} from "react-icons/hi";
+import { HiUser, HiUsers, HiCheck, HiX, HiSearch } from "react-icons/hi";
 
 /* ================= TYPE ================= */
 type PesertaAkun = {
@@ -20,6 +14,12 @@ type PesertaAkun = {
   email: string;
   status: "Aktif" | "Nonaktif";
   periode: string;
+  statusMagang?:
+    | "Menunggu"
+    | "Belum Waktu Magang"
+    | "Sedang Magang"
+    | "Selesai Magang"
+    | "Tidak Magang";
 };
 
 /* ================= PAGE ================= */
@@ -55,7 +55,7 @@ export default function BuatAkunPesertaPage() {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
-        }
+        },
       );
 
       const result = await res.json();
@@ -71,6 +71,7 @@ export default function BuatAkunPesertaPage() {
         status: item.status || "Aktif",
         periode:
           item.periode || new Date(item.createdAt).getFullYear().toString(),
+        statusMagang: item.statusMagang || "Menunggu",
       }));
 
       setData(mapped);
@@ -121,7 +122,7 @@ export default function BuatAkunPesertaPage() {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
           body: JSON.stringify(form),
-        }
+        },
       );
 
       const result = await res.json();
@@ -162,7 +163,7 @@ export default function BuatAkunPesertaPage() {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
-        }
+        },
       );
 
       const result = await res.json();
@@ -172,7 +173,7 @@ export default function BuatAkunPesertaPage() {
       }
 
       setData((prev) =>
-        prev.map((p) => (p._id === id ? { ...p, status: "Nonaktif" } : p))
+        prev.map((p) => (p._id === id ? { ...p, status: "Nonaktif" } : p)),
       );
 
       setSelected((prev) => (prev ? { ...prev, status: "Nonaktif" } : prev));
@@ -183,7 +184,7 @@ export default function BuatAkunPesertaPage() {
     } catch (error: any) {
       showToast.updateError(
         toastId,
-        error.message || "Terjadi kesalahan server"
+        error.message || "Terjadi kesalahan server",
       );
     }
   };
@@ -208,7 +209,7 @@ export default function BuatAkunPesertaPage() {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
-        }
+        },
       );
 
       const result = await res.json();
@@ -218,7 +219,7 @@ export default function BuatAkunPesertaPage() {
       }
 
       setData((prev) =>
-        prev.map((p) => (p._id === id ? { ...p, status: "Aktif" } : p))
+        prev.map((p) => (p._id === id ? { ...p, status: "Aktif" } : p)),
       );
 
       setSelected((prev) => (prev ? { ...prev, status: "Aktif" } : prev));
@@ -229,7 +230,7 @@ export default function BuatAkunPesertaPage() {
     } catch (error: any) {
       showToast.updateError(
         toastId,
-        error.message || "Terjadi kesalahan server"
+        error.message || "Terjadi kesalahan server",
       );
     }
   };
@@ -269,7 +270,7 @@ export default function BuatAkunPesertaPage() {
   const startIndex = (page - 1) * itemsPerPage;
   const paginatedData = filteredData.slice(
     startIndex,
-    startIndex + itemsPerPage
+    startIndex + itemsPerPage,
   );
 
   /* ================= RENDER ================= */
@@ -287,7 +288,8 @@ export default function BuatAkunPesertaPage() {
       {/* HEADER */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         <div>
-          <h1 className="
+          <h1
+            className="
             text-3xl lg:text-4xl 
             font-extrabold 
             leading-tight
@@ -295,7 +297,8 @@ export default function BuatAkunPesertaPage() {
             bg-linear-to-r 
             from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
             dark:from-indigo-400 dark:via-violet-400 dark:to-purple-400
-          ">
+          "
+          >
             Manajemen Akun Peserta
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
@@ -334,14 +337,16 @@ export default function BuatAkunPesertaPage() {
       </div>
 
       {/* SUMMARY */}
-      <div className="
+      <div
+        className="
         grid
         grid-cols-1
         sm:grid-cols-2
         xl:grid-cols-3
         gap-8
         mb-8
-      ">
+      "
+      >
         <StatCard
           title="Total Peserta"
           value={totalPeserta}
@@ -428,9 +433,9 @@ export default function BuatAkunPesertaPage() {
                 <th className="w-[20%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
                   Periode
                 </th>
-                <th className="w-[20%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
-                  Status
-                </th>
+                <th className="w-[20%] py-4 px-6 text-center">Status</th>
+
+                <th className="w-[20%] py-4 px-6 text-center">Status Magang</th>
               </tr>
             </thead>
 
@@ -532,6 +537,12 @@ export default function BuatAkunPesertaPage() {
                       >
                         {item.status}
                       </span>
+                    </td>
+                    {/* STATUS MAGANG */}
+                    <td className="py-4 px-6 text-center">
+                      <StatusMagangBadge
+                        status={item.statusMagang || "Menunggu"}
+                      />
                     </td>
                   </tr>
                 ))
@@ -716,13 +727,7 @@ type StatCardProps = {
   color: StatCardColor;
 };
 
-function StatCard({
-  title,
-  value,
-  icon,
-  note,
-  color,
-}: StatCardProps) {
+function StatCard({ title, value, icon, note, color }: StatCardProps) {
   const iconColorMap: Record<StatCardColor, string> = {
     indigo: "bg-[#B91C1C]/90 dark:bg-indigo-600",
     emerald: "bg-emerald-500 dark:bg-emerald-600",
@@ -778,14 +783,11 @@ function StatCard({
 
       {/* FOOTER */}
       <div className="mt-4 pt-4 border-t border-[#FCA5A5]/40 dark:border-indigo-500/30">
-        <p className="text-xs text-slate-600 dark:text-slate-300">
-          {note}
-        </p>
+        <p className="text-xs text-slate-600 dark:text-slate-300">{note}</p>
       </div>
     </div>
   );
 }
-
 
 function Modal({
   title,
@@ -984,4 +986,43 @@ function Detail({ label, value }: { label: string; value: string }) {
       </p>
     </div>
   );
+}
+
+function StatusMagangBadge({ status }: { status: string }) {
+  switch (status) {
+    case "Belum Waktu Magang":
+      return (
+        <span className="inline-flex px-2 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-700">
+          Belum Mulai
+        </span>
+      );
+
+    case "Sedang Magang":
+      return (
+        <span className="inline-flex px-2 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
+          Sedang Magang
+        </span>
+      );
+
+    case "Tidak Magang":
+      return (
+        <span className="inline-flex px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700">
+          Tidak
+        </span>
+      );
+
+    case "Selesai Magang":
+      return (
+        <span className="inline-flex px-2 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">
+          Selesai
+        </span>
+      );
+
+    default:
+      return (
+        <span className="inline-flex px-2 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700">
+          Menunggu
+        </span>
+      );
+  }
 }

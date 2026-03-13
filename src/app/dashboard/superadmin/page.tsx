@@ -64,8 +64,8 @@ import { id } from "date-fns/locale";
 ChartJS.register(...registerables);
 
 /* ---------------------------
-    Data Types
-    --------------------------- */
+      Data Types
+      --------------------------- */
 type DataRow = {
   date: string;
   logbook: number;
@@ -111,8 +111,8 @@ type OverviewStats = {
 };
 
 /* ---------------------------
-    Component
-    --------------------------- */
+      Component
+      --------------------------- */
 export default function OversistemDashboard() {
   // State untuk data
   const [rawData, setRawData] = useState<DataRow[]>([]);
@@ -187,8 +187,8 @@ export default function OversistemDashboard() {
   const [isMounted, setIsMounted] = useState(true);
 
   /* ---------------------------
-      Fetch Data Functions - REAL TIME VERSION (OTOMATIS)
-      --------------------------- */
+        Fetch Data Functions - REAL TIME VERSION (OTOMATIS)
+        --------------------------- */
   const fetchAllData = async () => {
     // Cek apakah komponen masih mounted
     if (!isMounted) return;
@@ -452,8 +452,8 @@ export default function OversistemDashboard() {
   }, [selectedYear, selectedMonth, activeTab, dataMode]);
 
   /* ---------------------------
-      Helper Functions
-      --------------------------- */
+        Helper Functions
+        --------------------------- */
   const filterDataByDateRange = (data: DataRow[]) => {
     return data.filter((row) => {
       const rowDate = parseISO(row.date);
@@ -488,7 +488,7 @@ export default function OversistemDashboard() {
     const labels = sourceData.map((row) => {
       if (useDetailedData) {
         const date = parseISO(row.date);
-        return `Hari ${date.getDate()}`;
+        return format(date, "d MMM", { locale: id });
       }
       return format(parseISO(row.date), "MMM yyyy", { locale: id });
     });
@@ -684,8 +684,8 @@ export default function OversistemDashboard() {
   };
 
   /* ---------------------------
-      Export Functions
-      --------------------------- */
+        Export Functions
+        --------------------------- */
   const exportToExcel = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -814,8 +814,8 @@ export default function OversistemDashboard() {
   };
 
   /* ---------------------------
-      Chart Options
-      --------------------------- */
+        Chart Options
+        --------------------------- */
   const barChartOptions: ChartOptions<"bar"> = {
     responsive: true,
     maintainAspectRatio: false,
@@ -966,8 +966,8 @@ export default function OversistemDashboard() {
   };
 
   /* ---------------------------
-      Helper untuk statistik
-      --------------------------- */
+        Helper untuk statistik
+        --------------------------- */
   const getTotalLogbook = () => {
     if (!logbookStats?.monthly) return stats.totalLogbook || 0;
     return logbookStats.monthly.reduce(
@@ -1003,17 +1003,17 @@ export default function OversistemDashboard() {
   const isMobile = typeof window !== "undefined" && window.innerWidth < 640;
 
   /* ---------------------------
-      Render - REAL TIME VERSION
-      --------------------------- */
+        Render - REAL TIME VERSION
+        --------------------------- */
   return (
     <div
       className="
-        min-h-screen
-        bg-linear-to-br
-        from-[#FFFDF5] via-[#FFF7ED] to-white
-        dark:from-[#020617] dark:via-[#020617] dark:to-[#1E1B4B]
-        p-4 md:p-6 xl:p-10
-      "
+          min-h-screen
+          bg-linear-to-br
+          from-[#FFFDF5] via-[#FFF7ED] to-white
+          dark:from-[#020617] dark:via-[#020617] dark:to-[#1E1B4B]
+          p-4 md:p-6 xl:p-10
+        "
     >
       {/* Header dengan status */}
       <div className="mb-8">
@@ -1023,13 +1023,13 @@ export default function OversistemDashboard() {
               <h1 className="flex items-center gap-3 tracking-tight mb-1">
                 <span
                   className="
-                    text-2xl sm:text-3xl lg:text-4xl
-                    font-extrabold leading-tight
-                    bg-clip-text text-transparent
-                    bg-linear-to-r
-                    from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
-                    dark:from-indigo-400 dark:via-violet-400 dark:to-purple-400
-                  "
+                      text-2xl sm:text-3xl lg:text-4xl
+                      font-extrabold leading-tight
+                      bg-clip-text text-transparent
+                      bg-linear-to-r
+                      from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
+                      dark:from-indigo-400 dark:via-violet-400 dark:to-purple-400
+                    "
                 >
                   Oversistem Dashboard
                 </span>
@@ -1084,18 +1084,18 @@ export default function OversistemDashboard() {
               onClick={refreshData}
               disabled={refreshing || loading}
               className="
-                  inline-flex items-center gap-2
-                  px-4 py-2
-                  rounded-lg
-                  bg-linear-to-r
-                  from-[#F59E0B] to-[#B91C1C]
-                  dark:from-indigo-600 dark:to-indigo-800
-                  text-white font-semibold text-sm
-                  shadow-md shadow-[#B91C1C]/30
-                  dark:shadow-indigo-600/30
-                  hover:scale-[1.03]
-                  transition
-                "
+                    inline-flex items-center gap-2
+                    px-4 py-2
+                    rounded-lg
+                    bg-linear-to-r
+                    from-[#F59E0B] to-[#B91C1C]
+                    dark:from-indigo-600 dark:to-indigo-800
+                    text-white font-semibold text-sm
+                    shadow-md shadow-[#B91C1C]/30
+                    dark:shadow-indigo-600/30
+                    hover:scale-[1.03]
+                    transition
+                  "
             >
               <RefreshCw
                 className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`}
@@ -1382,12 +1382,12 @@ export default function OversistemDashboard() {
       {/* Controls */}
       <div
         className="
-          mb-8
-          bg-white/90 dark:bg-indigo-950/40
-          rounded-2xl p-5
-          border border-amber-200 dark:border-indigo-500/30
-          shadow
-        "
+            mb-8
+            bg-white/90 dark:bg-indigo-950/40
+            rounded-2xl p-5
+            border border-amber-200 dark:border-indigo-500/30
+            shadow
+          "
       >
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           {/* Tab Navigation */}
@@ -1428,51 +1428,51 @@ export default function OversistemDashboard() {
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key as any)}
                 className={`
-                    px-4 py-2 rounded-xl
-                    flex items-center gap-2 relative
-                    font-medium
-                    transition-all 
-                  ${
-                    activeTab === tab.key
-                      ? `
-                        bg-linear-to-r
-                        from-[#F59E0B] to-[#B91C1C]
-                        dark:from-indigo-600 dark:to-indigo-800
-                        text-white
-                        shadow-lg shadow-[#B91C1C]/30
-                        dark:shadow-indigo-600/40
-                      `
-                      : `
-                        bg-amber-50
-                        text-[#7F1D1D]
-                        hover:bg-amber-100
-                        dark:bg-indigo-950/40
-                        dark:text-indigo-200
-                        dark:hover:bg-indigo-900/40
-                      `
-                  }`}
+                      px-4 py-2 rounded-xl
+                      flex items-center gap-2 relative
+                      font-medium
+                      transition-all 
+                    ${
+                      activeTab === tab.key
+                        ? `
+                          bg-linear-to-r
+                          from-[#F59E0B] to-[#B91C1C]
+                          dark:from-indigo-600 dark:to-indigo-800
+                          text-white
+                          shadow-lg shadow-[#B91C1C]/30
+                          dark:shadow-indigo-600/40
+                        `
+                        : `
+                          bg-amber-50
+                          text-[#7F1D1D]
+                          hover:bg-amber-100
+                          dark:bg-indigo-950/40
+                          dark:text-indigo-200
+                          dark:hover:bg-indigo-900/40
+                        `
+                    }`}
               >
                 {tab.icon}
                 <span>{tab.label}</span>
                 {tab.count > 0 && (
                   <span
                     className={`
-                        absolute -top-1 -right-1
-                        text-xs px-1.5 py-0.5 rounded-full
-                        ${
-                          activeTab === tab.key
-                            ? `
-                            bg-[#7F1D1D]
-                            text-white
-                            dark:bg-indigo-500
-                          `
-                            : `
-                            bg-amber-200
-                            text-[#7F1D1D]
-                            dark:bg-indigo-500/30
-                            dark:text-indigo-200
-                          `
-                        }`}
+                          absolute -top-1 -right-1
+                          text-xs px-1.5 py-0.5 rounded-full
+                          ${
+                            activeTab === tab.key
+                              ? `
+                              bg-[#7F1D1D]
+                              text-white
+                              dark:bg-indigo-500
+                            `
+                              : `
+                              bg-amber-200
+                              text-[#7F1D1D]
+                              dark:bg-indigo-500/30
+                              dark:text-indigo-200
+                            `
+                          }`}
                   >
                     {tab.count}
                   </span>
@@ -1560,11 +1560,11 @@ export default function OversistemDashboard() {
       <div className="mb-8">
         <div
           className="
-            bg-white/95 dark:bg-indigo-950/40
-            rounded-2xl p-6
-            border border-amber-200 dark:border-indigo-500/30
-            shadow-xl
-          "
+              bg-white/95 dark:bg-indigo-950/40
+              rounded-2xl p-6
+              border border-amber-200 dark:border-indigo-500/30
+              shadow-xl
+            "
         >
           <div className="h-100">
             {loading ? (
@@ -1623,10 +1623,10 @@ export default function OversistemDashboard() {
           <div className="mb-8">
             <div
               className="bg-white/95 dark:bg-indigo-950/40
-                rounded-2xl p-6
-                border border-amber-200 dark:border-indigo-500/30
-                shadow-xl
-              "
+                  rounded-2xl p-6
+                  border border-amber-200 dark:border-indigo-500/30
+                  shadow-xl
+                "
             >
               <h3 className="text-lg font-semibold mb-4">
                 Statistik Detail{" "}
@@ -1852,10 +1852,10 @@ export default function OversistemDashboard() {
         {/* Posisi Magang */}
         <div
           className="bg-white/95 dark:bg-indigo-950/40
-            rounded-2xl p-6
-            border border-amber-200 dark:border-indigo-500/30
-            shadow-xl
-          "
+              rounded-2xl p-6
+              border border-amber-200 dark:border-indigo-500/30
+              shadow-xl
+            "
         >
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold">Posisi Magang</h3>
@@ -1883,10 +1883,10 @@ export default function OversistemDashboard() {
         {/* Asal Instansi */}
         <div
           className="bg-white/95 dark:bg-indigo-950/40
-            rounded-2xl p-6
-            border border-amber-200 dark:border-indigo-500/30
-            shadow-xl
-          "
+              rounded-2xl p-6
+              border border-amber-200 dark:border-indigo-500/30
+              shadow-xl
+            "
         >
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold">Asal Instansi</h3>
@@ -1915,10 +1915,10 @@ export default function OversistemDashboard() {
         {/* Jenis Kelamin */}
         <div
           className="bg-white/95 dark:bg-indigo-950/40
-            rounded-2xl p-6
-            border border-amber-200 dark:border-indigo-500/30
-            shadow-xl
-          "
+              rounded-2xl p-6
+              border border-amber-200 dark:border-indigo-500/30
+              shadow-xl
+            "
         >
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold">Jenis Kelamin</h3>
@@ -1945,10 +1945,10 @@ export default function OversistemDashboard() {
         {/* Perkiraan Selesai */}
         <div
           className="bg-white/95 dark:bg-indigo-950/40
-            rounded-2xl p-6
-            border border-amber-200 dark:border-indigo-500/30
-            shadow-xl
-          "
+              rounded-2xl p-6
+              border border-amber-200 dark:border-indigo-500/30
+              shadow-xl
+            "
         >
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold">Perkiraan Selesai</h3>
@@ -1976,10 +1976,10 @@ export default function OversistemDashboard() {
       {/* Data Table - REAL TIME */}
       <div
         className="bg-white/95 dark:bg-indigo-950/40
-          rounded-2xl
-          border border-amber-200 dark:border-indigo-500/30
-          shadow-xl
-        "
+            rounded-2xl
+            border border-amber-200 dark:border-indigo-500/30
+            shadow-xl
+          "
       >
         <div className="px-6 py-4 border-b dark:border-gray-700 flex items-center justify-between">
           <div>

@@ -372,6 +372,25 @@ export default function CalendarPopup({
     );
   }
 
+  const filteredRanges = internRanges.filter((range) => {
+    const start = parseDate(range.mulai);
+    const end = parseDate(range.selesai);
+
+    const monthStart = new Date(
+      currentDate.getFullYear(),
+      currentDate.getMonth(),
+      1,
+    );
+
+    const monthEnd = new Date(
+      currentDate.getFullYear(),
+      currentDate.getMonth() + 1,
+      0,
+    );
+
+    return start <= monthEnd && end >= monthStart;
+  });
+
   return (
     <>
       <style jsx global>{`
@@ -581,7 +600,7 @@ export default function CalendarPopup({
                   Rangkuman Periode Magang
                 </div>
                 <div className="flex flex-col gap-2">
-                  {internRanges.map((range, ri) => {
+                  {filteredRanges.map((range, ri) => {
                     const colors = getRangeColors(ri);
                     const isFull = range.kuotaTerisi >= range.kuotaTotal;
                     return (

@@ -11,6 +11,7 @@ import {
   HiPhone,
   HiBriefcase,
   HiUpload,
+  HiUsers,
   HiLocationMarker,
   HiArrowLeft,
   HiClipboardList,
@@ -19,6 +20,8 @@ import {
 } from "react-icons/hi";
 import { fetchFormasi, IFormasi } from "@/services/formasiService";
 import { useSearchParams } from "next/navigation";
+import CalendarPopup from "@/components/calendar/CalendarPopup";
+import { FaUserCheck } from "react-icons/fa";
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const waRegex = /^08[0-9]{8,11}$/;
@@ -174,7 +177,7 @@ type Peserta = {
   nama: string;
   posisi: string;
 
-  asalJenis: "Universitas" | "SMK" | "";
+  asalJenis: "Universitas" | "SMK" | "Instansi" | "";
   asalNama: string;
   asalNamaLainnya: string;
   jurusan: string;
@@ -252,6 +255,13 @@ function PendaftaranForm() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [pendingSubmit, setPendingSubmit] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const [selectedFormasi, setSelectedFormasi] = useState<IFormasi | null>(null);
+  const [formasiList, setFormasiList] = useState<IFormasi[]>([]);
+  const [loadingFormasi, setLoadingFormasi] = useState(true);
+  const [warningKelompok, setWarningKelompok] = useState<string | null>(null);
+  const [slotWarning, setSlotWarning] = useState<string | null>(null);
+  const [slotPenuh, setSlotPenuh] = useState(false);
 
   /* ================== LOAD PROVINSI ================== */
   useEffect(() => {
@@ -259,6 +269,39 @@ function PendaftaranForm() {
       .then((res) => res.json())
       .then(setProvinsi);
   }, []);
+
+  /* ==================  Slot Predisi maganng ================== */
+  useEffect(() => {
+    peserta.forEach((p) => {
+      if (!p.posisi || !p.tanggalMulaiMagang || !p.tanggalSelesaiMagang) return;
+
+      const formasi = formasiList.find((f) => f.title === p.posisi);
+      if (!formasi) return;
+
+      const cek = cekSlotMagang(
+        formasi,
+        p.tanggalMulaiMagang,
+        p.tanggalSelesaiMagang,
+      );
+
+      if (cek.penuh) {
+        setSlotPenuh(true);
+
+        setSlotWarning(
+          `❌ Posisi ${p.posisi} pada tanggal ${p.tanggalMulaiMagang} hingga ${p.tanggalSelesaiMagang} sudah penuh`,
+        );
+      } else if (cek.aktif > 0) {
+        setSlotPenuh(false);
+
+        setSlotWarning(
+          `⚠️ Sudah ada ${cek.aktif} orang magang pada tanggal tersebut`,
+        );
+      } else {
+        setSlotPenuh(false);
+        setSlotWarning(null);
+      }
+    });
+  }, [peserta, formasiList]);
 
   /* ================== UPDATE DATA ================== */
   const update = async (
@@ -364,7 +407,10 @@ function PendaftaranForm() {
     });
   };
 
-  const isValidNamaInstansi = (jenis: "Universitas" | "SMK", text: string) => {
+  const isValidNamaInstansi = (
+    jenis: "Universitas" | "SMK" | "Instansi",
+    text: string,
+  ) => {
     const trimmed = text.trim();
 
     if (jenis === "Universitas") {
@@ -454,21 +500,25 @@ function PendaftaranForm() {
         }
       }
 
-      if (!p.jurusan) {
-        newErrors[`jurusan-${i}`] = true;
-      }
+      // jurusan hanya wajib jika bukan Instansi
+      if (p.asalJenis !== "Instansi") {
+        if (!p.jurusan) {
+          newErrors[`jurusan-${i}`] = true;
+        }
 
-      if (p.jurusan === "LAINNYA") {
-        if (!p.jurusanLainnya) {
-          newErrors[`jurusanLainnya-${i}`] = true;
-        } else if (!isCapitalizeEachWord(p.jurusanLainnya)) {
-          newErrors[`jurusanLainnya-${i}`] = true;
+        if (p.jurusan === "LAINNYA") {
+          if (!p.jurusanLainnya) {
+            newErrors[`jurusanLainnya-${i}`] = true;
+          } else if (!isCapitalizeEachWord(p.jurusanLainnya)) {
+            newErrors[`jurusanLainnya-${i}`] = true;
 
-          toast.error(
-            `❌ Nama jurusan harus ditulis dengan huruf kapital di awal setiap kata.\n\nContoh: Teknik Informatika (S1)`,
-            { autoClose: 4000 },
-          );
-          hasSpecificError = true;
+            toast.error(
+              `❌ Nama jurusan harus ditulis dengan huruf kapital di awal setiap kata.\n\nContoh: Teknik Informatika (S1)`,
+              { autoClose: 4000 },
+            );
+
+            hasSpecificError = true;
+          }
         }
       }
 
@@ -531,7 +581,12 @@ function PendaftaranForm() {
       ...p,
       asalNama:
         p.asalNama === "LAINNYA" ? p.asalNamaLainnya.trim() : p.asalNama,
-      jurusan: p.jurusan === "LAINNYA" ? p.jurusanLainnya.trim() : p.jurusan,
+      jurusan:
+        p.asalJenis === "Instansi"
+          ? ""
+          : p.jurusan === "LAINNYA"
+            ? p.jurusanLainnya.trim()
+            : p.jurusan,
     }));
   };
 
@@ -559,6 +614,8 @@ function PendaftaranForm() {
           body: formData,
         },
       );
+
+      const result = await res.json();
 
       if (res.ok) {
         toast.dismiss(toastId);
@@ -592,9 +649,6 @@ function PendaftaranForm() {
   };
 
   const searchParams = useSearchParams();
-
-  const [formasiList, setFormasiList] = useState<IFormasi[]>([]);
-  const [loadingFormasi, setLoadingFormasi] = useState(true);
 
   useEffect(() => {
     const loadFormasi = async () => {
@@ -631,6 +685,113 @@ function PendaftaranForm() {
 
   const today = new Date().toISOString().split("T")[0];
 
+  function simulasiKuotaBulanan(formasi: IFormasi) {
+    const kuota = formasi.kuota;
+
+    const mulaiList = formasi.tanggalMulaiMagang || [];
+    const selesaiList = formasi.tanggalSelesaiMagang || [];
+
+    const hasil: {
+      bulan: string;
+      aktif: number;
+      sisaKuota: number;
+    }[] = [];
+
+    const sekarang = new Date();
+
+    for (let i = 0; i < 4; i++) {
+      const bulanStart = new Date(
+        sekarang.getFullYear(),
+        sekarang.getMonth() + i,
+        1,
+      );
+
+      const bulanEnd = new Date(
+        sekarang.getFullYear(),
+        sekarang.getMonth() + i + 1,
+        0,
+      );
+
+      const aktif = mulaiList.reduce((acc, mulai, idx) => {
+        const start = new Date(mulai);
+        const end = new Date(selesaiList[idx]);
+
+        const overlap = start <= bulanEnd && end >= bulanStart;
+
+        return overlap ? acc + 1 : acc;
+      }, 0);
+
+      hasil.push({
+        bulan: bulanStart.toLocaleDateString("id-ID", {
+          month: "long",
+          year: "numeric",
+        }),
+        aktif,
+        sisaKuota: Math.max(0, kuota - aktif),
+      });
+    }
+
+    return hasil;
+  }
+
+  function hitungKuotaBulanIni(formasi: IFormasi) {
+    const kuota = formasi.kuota;
+
+    const mulaiList = formasi.tanggalMulaiMagang || [];
+    const selesaiList = formasi.tanggalSelesaiMagang || [];
+
+    const now = new Date();
+
+    const bulanStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const bulanEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+    let aktif = 0;
+
+    mulaiList.forEach((mulai, idx) => {
+      const start = new Date(mulai);
+      const end = new Date(selesaiList[idx]);
+
+      const overlap = start <= bulanEnd && end >= bulanStart;
+
+      if (overlap) aktif++;
+    });
+
+    const sisa = Math.max(0, kuota - aktif);
+
+    return {
+      aktif,
+      sisa,
+    };
+  }
+
+  function cekSlotMagang(formasi: IFormasi, mulai: string, selesai: string) {
+    if (!mulai || !selesai) return { penuh: false, aktif: 0 };
+
+    const kuota = formasi.kuota;
+
+    const mulaiList = formasi.tanggalMulaiMagang || [];
+    const selesaiList = formasi.tanggalSelesaiMagang || [];
+
+    let aktif = 0;
+
+    mulaiList.forEach((m, idx) => {
+      const start = new Date(m);
+      const end = new Date(selesaiList[idx]);
+
+      const newStart = new Date(mulai);
+      const newEnd = new Date(selesai);
+
+      const overlap = newStart <= end && newEnd >= start;
+
+      if (overlap) aktif++;
+    });
+
+    return {
+      aktif,
+      penuh: aktif >= kuota,
+    };
+  }
+
   return (
     <>
       {/* BACK TO HOME BUTTON */}
@@ -640,7 +801,7 @@ function PendaftaranForm() {
           className="
               inline-flex items-center gap-3
               px-5 py-2.5
-              rounded-xl
+              rounded-xl  
               bg-white/80 backdrop-blur
               border border-gray-200
               text-gray-700 font-medium
@@ -810,7 +971,17 @@ function PendaftaranForm() {
               <div className="form-field">
                 <select
                   value={kategori}
-                  onChange={(e) => setKategori(e.target.value as any)}
+                  onChange={(e) => {
+                    const value = e.target.value as "sendiri" | "bersama";
+
+                    setKategori(value);
+
+                    if (value === "sendiri") {
+                      ubahJumlah(1);
+                    } else {
+                      ubahJumlah(2);
+                    }
+                  }}
                 >
                   <option value="sendiri">Sendiri</option>
                   <option value="bersama">Bersama (Kelompok)</option>
@@ -881,146 +1052,197 @@ function PendaftaranForm() {
               )}
             </div>
 
-            <div>
-              <label className="text-sm font-medium text-gray-700 mb-3 block">
-                Posisi Magang <span className="text-red-500">*</span>
-              </label>
+            <label className="text-sm font-medium text-gray-700 mb-3 block">
+              Posisi Magang <span className="text-red-500">*</span>
+            </label>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {formasiList.map((item) => {
+                const kuota = item.kuota;
 
-              <div
-                className={`
-                  grid gap-4
-                  sm:grid-cols-2
-                  ${
-                    errors[`posisi-${i}`]
-                      ? "ring-2 ring-red-400 rounded-xl p-3"
-                      : ""
-                  }
-                `}
-              >
-                {formasiList.map((f) => {
-                  const total = f.kuota || 1; // total kuota
-                  const sisa = f.sisaKuota;
-                  const terisi = total - sisa;
-                  const persen = Math.round((terisi / total) * 100);
+                const kuotaRealtime = hitungKuotaBulanIni(item);
 
-                  const penuh = sisa === 0;
-                  const hampirPenuh = sisa > 0 && sisa <= 3;
+                const aktif = kuotaRealtime.aktif;
+                const sisa = kuotaRealtime.sisa;
 
-                  let colorStyle = "";
-                  let badge = "";
+                const prediksi = simulasiKuotaBulanan(item);
 
-                  if (penuh) {
-                    colorStyle =
-                      "border-red-300 text-red-700 opacity-70 cursor-not-allowed";
-                    badge = "Penuh";
-                  } else if (hampirPenuh) {
-                    colorStyle =
-                      "border-yellow-300 text-yellow-700 hover:border-yellow-400";
-                    badge = "Hampir Penuh";
-                  } else {
-                    colorStyle =
-                      "border-green-300 text-green-700 hover:border-green-400";
-                    badge = "Tersedia";
-                  }
+                const penuh = false;
 
-                  const selected = peserta[i].posisi === f.title;
+                const selected = peserta[i].posisi === item.title;
 
-                  return (
-                    <button
-                      type="button"
-                      key={f._id}
-                      disabled={penuh}
-                      onClick={() => {
-                        if (penuh) {
-                          toast.error("❌ Kuota formasi ini sudah penuh");
-                          return;
-                        }
+                return (
+                  <div
+                    key={item._id}
+                    onClick={() => {
+                      if (penuh) {
+                        toast.error("❌ Kuota formasi ini sudah penuh");
+                        return;
+                      }
 
-                        update(i, "posisi", f.title);
-                        setErrors((prev) => ({
-                          ...prev,
-                          [`posisi-${i}`]: false,
-                        }));
-                      }}
-                      className={`
-                        w-full text-left
-                        border rounded-xl p-4
-                        transition-all duration-200
-                        flex flex-col gap-3
-                        bg-white
-                        shadow-sm hover:shadow-md
-                        ${colorStyle}
-                        ${selected ? "ring-2 ring-offset-1 ring-[#7F1D1D]" : ""}
-                      `}
-                    >
-                      {/* Header */}
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`
-                            w-10 h-10 rounded-lg
-                            flex items-center justify-center
-                            ${
-                              penuh
-                                ? "bg-red-100"
-                                : hampirPenuh
-                                  ? "bg-yellow-100"
-                                  : "bg-green-100"
-                            }
-                          `}
-                        >
-                          <HiBriefcase className="text-lg" />
-                        </div>
+                      setSelectedFormasi(item);
+                      setCalendarOpen(true);
+                    }}
+                    className={`
+relative group
+rounded-3xl
+shadow-lg
+p-6
+cursor-pointer
+transition-all
+hover:-translate-y-2
+hover:shadow-xl
 
-                        <p className="font-semibold leading-tight">{f.title}</p>
-                      </div>
+${selected ? "ring-2 ring-[#7F1D1D]" : ""}
 
-                      {/* Info kuota */}
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs opacity-80">
-                          Sisa kuota: {sisa} / {total}
+${penuh ? "bg-red-50 border-2 border-red-700" : "bg-white"}
+`}
+                  >
+                    {/* HEADER */}
+                    <div className="flex justify-between mb-3">
+                      <h3 className="font-bold text-[#7F1D1D]">{item.title}</h3>
+
+                      <span
+                        className={`text-xs px-3 py-1 rounded-full font-semibold
+${
+  penuh
+    ? "bg-red-500 text-white"
+    : sisa <= 2
+      ? "bg-yellow-400 text-black"
+      : "bg-green-500 text-white"
+}`}
+                      >
+                        {sisa <= 0
+                          ? "Kuota Bulan Ini Penuh"
+                          : sisa <= 2
+                            ? "Hampir Penuh"
+                            : "Tersedia"}
+                      </span>
+                    </div>
+
+                    <p className="text-sm text-gray-500 mb-4">
+                      Balai Besar POM Palembang
+                    </p>
+
+                    {/* KUOTA */}
+
+                    <div className="text-center mb-4">
+                      <p className="text-xs text-gray-600">SISA KUOTA BULAN</p>
+
+                      <p
+                        className={`text-5xl font-extrabold
+${penuh ? "text-red-700" : sisa <= 2 ? "text-yellow-500" : "text-green-500"}`}
+                      >
+                        {sisa}
+                      </p>
+
+                      <p className="text-sm text-gray-500">orang</p>
+                    </div>
+
+                    {/* INFO */}
+
+                    <div className="text-sm space-y-2 mb-4 text-black">
+                      <div className="flex justify-between">
+                        <span className="flex items-center gap-1 text-black">
+                          <HiUsers className="text-yellow-500" />
+                          Total Kuota
                         </span>
 
-                        <span
-                          className={`
-                            text-xs font-semibold px-3 py-1 rounded-full
-                            ${
-                              penuh
-                                ? "bg-red-200 text-red-800"
-                                : hampirPenuh
-                                  ? "bg-yellow-200 text-yellow-800"
-                                  : "bg-green-200 text-green-800"
-                            }
-                          `}
-                        >
-                          {badge}
+                        <span className="font-semibold">{kuota}</span>
+                      </div>
+
+                      <div className="flex justify-between">
+                        <span className="flex items-center gap-1 text-black">
+                          <FaUserCheck className="text-blue-500" />
+                          Sudah Magang
                         </span>
-                      </div>
 
-                      {/* Progress bar */}
-                      <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
-                        <div
-                          className={`
-                            h-full transition-all duration-300
-                            ${
-                              penuh
-                                ? "bg-red-500"
-                                : hampirPenuh
-                                  ? "bg-yellow-400"
-                                  : "bg-green-500"
-                            }
-                          `}
-                          style={{ width: `${persen}%` }}
-                        />
+                        <span className="font-semibold">{aktif}</span>
                       </div>
-                    </button>
-                  );
-                })}
-              </div>
+                    </div>
 
-              <p className="text-xs text-gray-500 mt-2">
-                Pilih posisi magang sesuai ketersediaan kuota.
-              </p>
+                    {/* PREDIKSI */}
+
+                    <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-black">
+                      <p className="text-sm font-bold text-[#7F1D1D] mb-2">
+                        Prediksi Kuota
+                      </p>
+
+                      {prediksi.slice(0, 4).map((p, idx) => {
+                        return (
+                          <div key={idx} className="mb-2">
+                            <div className="flex justify-between text-xs">
+                              <span>{p.bulan}</span>
+                              <span className="font-semibold text-black">
+                                {p.sisaKuota} Slot
+                              </span>
+                            </div>
+
+                            <div className="w-full bg-gray-200 h-2 rounded-full mt-1">
+                              <div
+                                className="bg-green-500 h-2 rounded-full"
+                                style={{
+                                  width: `${(p.aktif / item.kuota) * 100}%`,
+                                }}
+                              />
+                            </div>
+
+                            <div className="text-xs text-black">
+                              {p.aktif} terisi • {p.sisaKuota} tersedia
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="mt-4">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+
+                          if (penuh) {
+                            toast.error("❌ Kuota formasi ini sudah penuh");
+                            return;
+                          }
+
+                          update(i, "posisi", item.title);
+                        }}
+                        className={`
+    w-full py-2.5 rounded-xl text-sm font-semibold transition
+    ${
+      penuh
+        ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+        : selected
+          ? "bg-[#7F1D1D] text-white"
+          : "bg-[#F59E0B] text-white hover:brightness-110"
+    }
+  `}
+                      >
+                        {penuh
+                          ? "Kuota Penuh"
+                          : selected
+                            ? "Posisi Dipilih"
+                            : "Pilih Posisi"}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
+
+            {/* Notifikasi Waring tanggal magang */}
+
+            {slotWarning && (
+              <div
+                className={`mb-3 p-3 rounded-lg text-sm font-medium
+    ${
+      slotPenuh
+        ? "bg-red-100 text-red-700 border border-red-300"
+        : "bg-yellow-100 text-yellow-700 border border-yellow-300"
+    }`}
+              >
+                {slotWarning}
+              </div>
+            )}
 
             <div className="grid md:grid-cols-2 gap-6">
               {/* Tanggal Mulai Magang */}
@@ -1218,17 +1440,31 @@ function PendaftaranForm() {
                 <select
                   value={peserta[i].asalJenis}
                   onChange={(e) => {
-                    update(i, "asalJenis", e.target.value);
+                    const jenis = e.target.value as
+                      | "Universitas"
+                      | "SMK"
+                      | "Instansi"
+                      | "";
+
+                    update(i, "asalJenis", jenis);
                     update(i, "asalNama", "");
                     update(i, "asalNamaLainnya", "");
-                    update(i, "jurusan", "");
-                    update(i, "jurusanLainnya", "");
-                    setErrors((p) => ({ ...p, [`asalJenis-${i}`]: false }));
+
+                    if (jenis === "Instansi") {
+                      update(i, "jurusan", "");
+                      update(i, "jurusanLainnya", "");
+                    }
+
+                    setErrors((p) => ({
+                      ...p,
+                      [`asalJenis-${i}`]: false,
+                    }));
                   }}
                 >
-                  <option value="">Pilih Asal Instansi</option>
+                  <option value="">Pilih Instansi</option>
                   <option value="Universitas">Universitas</option>
                   <option value="SMK">SMK</option>
+                  <option value="Instansi">Instansi</option>
                 </select>
               </div>
 
@@ -1239,51 +1475,85 @@ function PendaftaranForm() {
               )}
             </div>
 
-            {peserta[i].asalJenis && (
-              <>
-                {/* ================= NAMA ASAL (UNIV / SMK) ================= */}
-                <div>
-                  <label className="text-sm font-medium text-gray-700 mb-1 block">
-                    Nama {peserta[i].asalJenis}{" "}
-                    <span className="text-red-500">*</span>
-                  </label>
+            {/* ================= NAMA INSTANSI ================= */}
 
-                  <div
-                    className={`form-field ${
-                      errors[`asalNama-${i}`] ? "form-error" : ""
-                    }`}
-                  >
-                    <select
-                      value={peserta[i].asalNama}
-                      onChange={(e) => {
-                        update(i, "asalNama", e.target.value);
-                        update(i, "asalNamaLainnya", "");
-                        setErrors((p) => ({
-                          ...p,
-                          [`asalNama-${i}`]: false,
-                        }));
-                      }}
-                    >
-                      <option value="">Pilih {peserta[i].asalJenis}</option>
+            {/* INSTANSI PEMERINTAH */}
+            {peserta[i].asalJenis === "Instansi" && (
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-1 block">
+                  Nama Instansi Pemerintah{" "}
+                  <span className="text-red-500">*</span>
+                </label>
 
-                      {(peserta[i].asalJenis === "Universitas"
-                        ? UNIVERSITAS_LIST
-                        : SMK_LIST
-                      ).map((item) => (
-                        <option key={item} value={item}>
-                          {item}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {errors[`asalNama-${i}`] && (
-                    <p className="text-xs text-red-500 mt-1">
-                      Nama {peserta[i].asalJenis} wajib dipilih
-                    </p>
-                  )}
+                <div
+                  className={`form-field ${
+                    errors[`asalNama-${i}`] ? "form-error" : ""
+                  }`}
+                >
+                  <input
+                    value={peserta[i].asalNama}
+                    placeholder="Contoh: Dinas Kesehatan Provinsi Sumatera Selatan"
+                    onChange={(e) => {
+                      update(i, "asalNama", e.target.value);
+                      setErrors((p) => ({
+                        ...p,
+                        [`asalNama-${i}`]: false,
+                      }));
+                    }}
+                  />
                 </div>
-              </>
+
+                {errors[`asalNama-${i}`] && (
+                  <p className="text-xs text-red-500 mt-1">
+                    Nama instansi wajib diisi
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* UNIVERSITAS / SMK */}
+            {peserta[i].asalJenis && peserta[i].asalJenis !== "Instansi" && (
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-1 block">
+                  Nama {peserta[i].asalJenis}{" "}
+                  <span className="text-red-500">*</span>
+                </label>
+
+                <div
+                  className={`form-field ${
+                    errors[`asalNama-${i}`] ? "form-error" : ""
+                  }`}
+                >
+                  <select
+                    value={peserta[i].asalNama}
+                    onChange={(e) => {
+                      update(i, "asalNama", e.target.value);
+                      update(i, "asalNamaLainnya", "");
+                      setErrors((p) => ({
+                        ...p,
+                        [`asalNama-${i}`]: false,
+                      }));
+                    }}
+                  >
+                    <option value="">Pilih {peserta[i].asalJenis}</option>
+
+                    {(peserta[i].asalJenis === "Universitas"
+                      ? UNIVERSITAS_LIST
+                      : SMK_LIST
+                    ).map((item) => (
+                      <option key={item} value={item}>
+                        {item}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {errors[`asalNama-${i}`] && (
+                  <p className="text-xs text-red-500 mt-1">
+                    Nama {peserta[i].asalJenis} wajib dipilih
+                  </p>
+                )}
+              </div>
             )}
 
             {peserta[i].asalNama === "LAINNYA" && (
@@ -1329,7 +1599,7 @@ function PendaftaranForm() {
             )}
 
             {/* ================= JURUSAN ================= */}
-            {peserta[i].asalJenis && peserta[i].asalNama && (
+            {peserta[i].asalJenis !== "Instansi" && peserta[i].asalNama && (
               <>
                 {/* ===== SELECT JURUSAN ===== */}
                 <div>
@@ -1662,13 +1932,19 @@ function PendaftaranForm() {
 
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || slotPenuh}
           className="w-full py-4 rounded-xl text-white font-semibold text-lg
               bg-linear-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
               hover:scale-[1.02] transition disabled:opacity-60"
         >
           {loading ? "Mengirim..." : "Kirim Pendaftaran"}
         </button>
+        {slotPenuh && (
+          <p className="text-center text-red-600 text-sm mt-3 font-medium">
+            Pendaftaran tidak dapat dilakukan karena kuota magang pada tanggal
+            tersebut sudah penuh.
+          </p>
+        )}
       </form>
 
       {/* ================= MODAL KONFIRMASI ================= */}
@@ -1785,6 +2061,11 @@ function PendaftaranForm() {
           </div>
         </div>
       )}
+      <CalendarPopup
+        isOpen={calendarOpen}
+        onClose={() => setCalendarOpen(false)}
+        formasi={selectedFormasi}
+      />
     </>
   );
 }
