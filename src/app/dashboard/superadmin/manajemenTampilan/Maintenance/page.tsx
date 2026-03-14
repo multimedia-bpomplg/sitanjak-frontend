@@ -46,7 +46,10 @@ interface MaintenanceData {
 }
 
 export default function MaintenanceSuperadmin() {
-  const [duration, setDuration] = useState(60);
+  const [duration, setDuration] = useState(30);
+  const [durationDays, setDurationDays] = useState(0);
+  const [durationHours, setDurationHours] = useState(0);
+  const [durationMinutes, setDurationMinutes] = useState(0);
   const [email, setEmail] = useState("");
   const [maintenanceData, setMaintenanceData] =
     useState<MaintenanceData | null>(null);
@@ -141,12 +144,19 @@ export default function MaintenanceSuperadmin() {
     const toastId = showToast.loading("Mengaktifkan maintenance...");
 
     try {
+      // hitung total menit dari hari / jam / menit
+      const totalMinutes =
+        durationDays * 1440 + durationHours * 60 + durationMinutes;
+
+      // jika semua 0 maka dianggap manual
+      const isManual = manualMode || totalMinutes === 0;
+
       await axios.post(
         `${API}/maintenance/activate`,
         {
-          durationMinutes: manualMode ? null : duration,
+          durationMinutes: isManual ? null : totalMinutes,
           email,
-          manual: manualMode,
+          manual: isManual,
         },
         {
           headers: {
@@ -156,6 +166,7 @@ export default function MaintenanceSuperadmin() {
       );
 
       await fetchMaintenanceData();
+
       setConfirmStep(0);
       setEmail("");
 
@@ -163,7 +174,7 @@ export default function MaintenanceSuperadmin() {
     } catch (error: any) {
       showToast.updateError(
         toastId,
-        error.response?.data?.message || "Gagal mengaktifkan maintenance"
+        error.response?.data?.message || "Gagal mengaktifkan maintenance",
       );
     } finally {
       setLoading(false);
@@ -192,7 +203,7 @@ export default function MaintenanceSuperadmin() {
     } catch (error: any) {
       showToast.updateError(
         toastId,
-        error.response?.data?.message || "Gagal menonaktifkan maintenance"
+        error.response?.data?.message || "Gagal menonaktifkan maintenance",
       );
     } finally {
       setLoading(false);
@@ -256,10 +267,12 @@ export default function MaintenanceSuperadmin() {
   const getStatusBadge = () => {
     if (!maintenanceData?.isActive) {
       return (
-        <span className="inline-flex items-center
+        <span
+          className="inline-flex items-center
           px-3 sm:px-4
           py-1.5 sm:py-2
-          text-xs sm:text-sm rounded-xl font-medium bg-green-100 text-green-700 border border-green-200">
+          text-xs sm:text-sm rounded-xl font-medium bg-green-100 text-green-700 border border-green-200"
+        >
           <span className="w-2 h-2 rounded-full bg-green-600 mr-2"></span>
           INACTIVE
         </span>
@@ -268,10 +281,12 @@ export default function MaintenanceSuperadmin() {
 
     if (maintenanceData.isManual) {
       return (
-        <span className="inline-flex items-center
+        <span
+          className="inline-flex items-center
           px-3 sm:px-4
           py-1.5 sm:py-2
-          text-xs sm:text-sm rounded-xl font-medium bg-amber-100 text-amber-700 border border-amber-200">
+          text-xs sm:text-sm rounded-xl font-medium bg-amber-100 text-amber-700 border border-amber-200"
+        >
           <span className="w-2 h-2 rounded-full bg-amber-600 animate-pulse mr-2"></span>
           MANUAL MODE
         </span>
@@ -279,10 +294,12 @@ export default function MaintenanceSuperadmin() {
     }
 
     return (
-      <span className="inline-flex items-center
+      <span
+        className="inline-flex items-center
         px-3 sm:px-4
         py-1.5 sm:py-2
-        text-xs sm:text-sm rounded-xl font-medium bg-red-100 text-red-700 border border-red-200">
+        text-xs sm:text-sm rounded-xl font-medium bg-red-100 text-red-700 border border-red-200"
+      >
         <span className="w-2 h-2 rounded-full bg-red-600 animate-pulse mr-2"></span>
         AUTO MODE
       </span>
@@ -294,7 +311,6 @@ export default function MaintenanceSuperadmin() {
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
-          
           {/* Left Section */}
           <div className="flex items-start gap-4">
             <div className="w-14 h-14 rounded-2xl bg-red-500/20 dark:bg-indigo-600/20 flex items-center justify-center">
@@ -302,7 +318,8 @@ export default function MaintenanceSuperadmin() {
             </div>
 
             <div>
-              <h1 className="
+              <h1
+                className="
                 text-3xl lg:text-4xl 
                 font-extrabold 
                 leading-tight
@@ -310,7 +327,8 @@ export default function MaintenanceSuperadmin() {
                 bg-linear-to-r 
                 from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
                 dark:from-indigo-400 dark:via-violet-400 dark:to-purple-400
-              ">
+              "
+              >
                 Maintenance Mode Control
               </h1>
 
@@ -322,7 +340,6 @@ export default function MaintenanceSuperadmin() {
 
           {/* Right Section */}
           <div className="flex items-center gap-3">
-            
             <button
               onClick={fetchMaintenanceData}
               className="
@@ -362,44 +379,53 @@ export default function MaintenanceSuperadmin() {
               <Download className="w-4 h-4" />
               Export
             </button>
-
           </div>
         </div>
 
         {/* Main Content */}
         <div className="max-w-7xl mx-auto px-4 py-8">
-          <div className="grid grid-cols-1 
+          <div
+            className="grid grid-cols-1 
             md:grid-cols-1 
             lg:grid-cols-3 
             xl:grid-cols-3 
-            gap-6 lg:gap-8">
+            gap-6 lg:gap-8"
+          >
             {/* Left Column - Control Panel */}
-            <div className="
+            <div
+              className="
               lg:col-span-1
               space-y-6
               xl:sticky xl:top-24
               h-fit
-            ">
+            "
+            >
               {/* Status Card */}
-              <div className="rounded-2xl sm:rounded-3xl
+              <div
+                className="rounded-2xl sm:rounded-3xl
                 border border-[#FCA5A5]/30 dark:border-indigo-500/30
                 bg-linear-to-br
                 from-white via-[#FFFDF8] to-[#FFF4EC]
                 dark:from-indigo-950 dark:via-indigo-900 dark:to-indigo-800
                 backdrop-blur
                 shadow-sm hover:shadow-xl
-                transition overflow-hidden">
+                transition overflow-hidden"
+              >
                 <div className="p-6">
-                  <div className="
+                  <div
+                    className="
                     flex flex-col sm:flex-row
                     sm:items-center
                     sm:justify-between
                     gap-4
-                  ">
+                  "
+                  >
                     <div className="flex items-center gap-3">
                       <div
                         className={`p-2 rounded-lg ${
-                          maintenanceData?.isActive ? "bg-red-50" : "bg-green-50"
+                          maintenanceData?.isActive
+                            ? "bg-red-50"
+                            : "bg-green-50"
                         }`}
                       >
                         {maintenanceData?.isActive ? (
@@ -455,14 +481,16 @@ export default function MaintenanceSuperadmin() {
               </div>
 
               {/* Control Panel */}
-              <div className="rounded-2xl sm:rounded-3xl
+              <div
+                className="rounded-2xl sm:rounded-3xl
                 border border-[#FCA5A5]/30 dark:border-indigo-500/30
                 bg-linear-to-br
                 from-white via-[#FFFDF8] to-[#FFF4EC]
                 dark:from-indigo-950 dark:via-indigo-900 dark:to-indigo-800
                 backdrop-blur
                 shadow-sm hover:shadow-xl
-                transition">
+                transition"
+              >
                 <div className="border-b border-slate-200 dark:border-indigo-500/30 px-6 py-4">
                   <div className="flex items-center gap-2">
                     <Settings className="w-5 h-5 text-slate-500 dark:text-indigo-300" />
@@ -476,17 +504,21 @@ export default function MaintenanceSuperadmin() {
                   {!maintenanceData?.isActive ? (
                     <div className="space-y-6">
                       {/* Mode Manual Toggle */}
-                      <div className="
+                      <div
+                        className="
                         rounded-xl p-4
                         bg-slate-50 dark:bg-indigo-900/40
                         border border-transparent dark:border-indigo-500/20
-                      ">
-                        <div className="
+                      "
+                      >
+                        <div
+                          className="
                           flex flex-col sm:flex-row
                           sm:items-center
                           sm:justify-between
                           gap-4
-                        ">
+                        "
+                        >
                           <div>
                             <label className="font-medium text-slate-700 dark:text-indigo-200">
                               Mode Manual
@@ -508,36 +540,340 @@ export default function MaintenanceSuperadmin() {
                         </div>
                       </div>
 
-                      {/* Input Durasi */}
+                      {/* Input Durasi dengan Desain Lebih Baik */}
                       {!manualMode && (
-                        <div className="space-y-2">
-                          <label className="block text-sm font-medium text-slate-700 dark:text-white">
-                            Durasi Maintenance (menit)
+                        <div className="space-y-4">
+                          <label className="block text-sm font-semibold text-slate-700 dark:text-white">
+                            ⏱️ Durasi Maintenance
                           </label>
-                          <div className="relative">
-                            <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
-                            <input
-                              type="number"
-                              min="1"
-                              value={duration}
-                              onChange={(e) =>
-                                setDuration(Number(e.target.value))
-                              }
-                              className="
-                                w-full pl-10 pr-4 py-3
-                                rounded-xl
-                                border border-slate-200 dark:border-indigo-500/40
-                                bg-white dark:bg-indigo-950/60
-                                text-slate-700 dark:text-white
-                                focus:ring-2 focus:ring-red-500 dark:focus:ring-indigo-500
-                                outline-none
-                              "
-                            />
+
+                          {/* Card Container untuk Input */}
+                          <div
+                            className="
+      rounded-xl
+      bg-gradient-to-br from-slate-50 to-white
+      dark:from-indigo-900/40 dark:to-indigo-800/40
+      border border-slate-200 dark:border-indigo-500/30
+      p-5
+      shadow-inner
+    "
+                          >
+                            {/* Label untuk setiap field */}
+                            <div className="grid grid-cols-3 gap-3 mb-2">
+                              <div className="text-xs font-medium text-slate-500 dark:text-indigo-300 text-center">
+                                HARI
+                              </div>
+                              <div className="text-xs font-medium text-slate-500 dark:text-indigo-300 text-center">
+                                JAM
+                              </div>
+                              <div className="text-xs font-medium text-slate-500 dark:text-indigo-300 text-center">
+                                MENIT
+                              </div>
+                            </div>
+
+                            {/* Input Fields dengan Ikon */}
+                            <div className="grid grid-cols-3 gap-3">
+                              {/* Hari */}
+                              <div className="relative">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={durationDays}
+                                  onChange={(e) =>
+                                    setDurationDays(
+                                      Math.max(
+                                        0,
+                                        parseInt(e.target.value) || 0,
+                                      ),
+                                    )
+                                  }
+                                  className="
+              w-full
+              pl-3 pr-8 py-3
+              text-lg font-semibold
+              text-center
+              rounded-xl
+              border-2 border-slate-200 dark:border-indigo-500/40
+              bg-white dark:bg-indigo-950/60
+              text-slate-800 dark:text-white
+              placeholder:text-slate-400
+              focus:border-red-400 dark:focus:border-indigo-400
+              focus:ring-2 focus:ring-red-200 dark:focus:ring-indigo-500/30
+              outline-none
+              transition-all
+              [appearance:textfield]
+              [&::-webkit-outer-spin-button]:appearance-none
+              [&::-webkit-inner-spin-button]:appearance-none
+            "
+                                  placeholder="0"
+                                />
+                                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-medium text-slate-400">
+                                  hr
+                                </span>
+                              </div>
+
+                              {/* Jam */}
+                              <div className="relative">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="23"
+                                  value={durationHours}
+                                  onChange={(e) => {
+                                    const val = parseInt(e.target.value) || 0;
+                                    setDurationHours(
+                                      Math.min(23, Math.max(0, val)),
+                                    );
+                                  }}
+                                  className="
+              w-full
+              pl-3 pr-8 py-3
+              text-lg font-semibold
+              text-center
+              rounded-xl
+              border-2 border-slate-200 dark:border-indigo-500/40
+              bg-white dark:bg-indigo-950/60
+              text-slate-800 dark:text-white
+              placeholder:text-slate-400
+              focus:border-red-400 dark:focus:border-indigo-400
+              focus:ring-2 focus:ring-red-200 dark:focus:ring-indigo-500/30
+              outline-none
+              transition-all
+              [appearance:textfield]
+              [&::-webkit-outer-spin-button]:appearance-none
+              [&::-webkit-inner-spin-button]:appearance-none
+            "
+                                  placeholder="0"
+                                />
+                                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-medium text-slate-400">
+                                  jm
+                                </span>
+                              </div>
+
+                              {/* Menit */}
+                              <div className="relative">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="59"
+                                  value={durationMinutes}
+                                  onChange={(e) => {
+                                    const val = parseInt(e.target.value) || 0;
+                                    setDurationMinutes(
+                                      Math.min(59, Math.max(0, val)),
+                                    );
+                                  }}
+                                  className="
+              w-full
+              pl-3 pr-8 py-3
+              text-lg font-semibold
+              text-center
+              rounded-xl
+              border-2 border-slate-200 dark:border-indigo-500/40
+              bg-white dark:bg-indigo-950/60
+              text-slate-800 dark:text-white
+              placeholder:text-slate-400
+              focus:border-red-400 dark:focus:border-indigo-400
+              focus:ring-2 focus:ring-red-200 dark:focus:ring-indigo-500/30
+              outline-none
+              transition-all
+              [appearance:textfield]
+              [&::-webkit-outer-spin-button]:appearance-none
+              [&::-webkit-inner-spin-button]:appearance-none
+            "
+                                  placeholder="0"
+                                />
+                                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-medium text-slate-400">
+                                  mnt
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Quick Select Buttons */}
+                            <div className="mt-4 flex flex-wrap gap-2 justify-center">
+                              <button
+                                onClick={() => {
+                                  setDurationDays(0);
+                                  setDurationHours(0);
+                                  setDurationMinutes(30);
+                                }}
+                                className="
+            px-3 py-1.5
+            text-xs font-medium
+            rounded-lg
+            bg-white dark:bg-indigo-900/60
+            border border-slate-200 dark:border-indigo-500/30
+            text-slate-600 dark:text-indigo-200
+            hover:bg-red-50 hover:border-red-200
+            dark:hover:bg-indigo-800 dark:hover:border-indigo-400
+            transition-all
+          "
+                              >
+                                30 Menit
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setDurationDays(0);
+                                  setDurationHours(1);
+                                  setDurationMinutes(0);
+                                }}
+                                className="
+            px-3 py-1.5
+            text-xs font-medium
+            rounded-lg
+            bg-white dark:bg-indigo-900/60
+            border border-slate-200 dark:border-indigo-500/30
+            text-slate-600 dark:text-indigo-200
+            hover:bg-red-50 hover:border-red-200
+            dark:hover:bg-indigo-800 dark:hover:border-indigo-400
+            transition-all
+          "
+                              >
+                                1 Jam
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setDurationDays(0);
+                                  setDurationHours(2);
+                                  setDurationMinutes(0);
+                                }}
+                                className="
+            px-3 py-1.5
+            text-xs font-medium
+            rounded-lg
+            bg-white dark:bg-indigo-900/60
+            border border-slate-200 dark:border-indigo-500/30
+            text-slate-600 dark:text-indigo-200
+            hover:bg-red-50 hover:border-red-200
+            dark:hover:bg-indigo-800 dark:hover:border-indigo-400
+            transition-all
+          "
+                              >
+                                2 Jam
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setDurationDays(1);
+                                  setDurationHours(0);
+                                  setDurationMinutes(0);
+                                }}
+                                className="
+            px-3 py-1.5
+            text-xs font-medium
+            rounded-lg
+            bg-white dark:bg-indigo-900/60
+            border border-slate-200 dark:border-indigo-500/30
+            text-slate-600 dark:text-indigo-200
+            hover:bg-red-50 hover:border-red-200
+            dark:hover:bg-indigo-800 dark:hover:border-indigo-400
+            transition-all
+          "
+                              >
+                                1 Hari
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setDurationDays(7);
+                                  setDurationHours(0);
+                                  setDurationMinutes(0);
+                                }}
+                                className="
+            px-3 py-1.5
+            text-xs font-medium
+            rounded-lg
+            bg-white dark:bg-indigo-900/60
+            border border-slate-200 dark:border-indigo-500/30
+            text-slate-600 dark:text-indigo-200
+            hover:bg-red-50 hover:border-red-200
+            dark:hover:bg-indigo-800 dark:hover:border-indigo-400
+            transition-all
+          "
+                              >
+                                7 Hari
+                              </button>
+                            </div>
                           </div>
-                          <p className="text-xs text-slate-400">
-                            Maintenance akan otomatis nonaktif setelah {duration}{" "}
-                            menit
-                          </p>
+
+                          {/* Info Durasi dengan Desain Menarik */}
+                          {durationDays > 0 ||
+                          durationHours > 0 ||
+                          durationMinutes > 0 ? (
+                            <div
+                              className="
+        flex items-center gap-3
+        p-4
+        rounded-xl
+        bg-gradient-to-r from-red-50 to-amber-50
+        dark:from-indigo-900/40 dark:to-purple-900/40
+        border border-red-200 dark:border-indigo-500/30
+      "
+                            >
+                              <div
+                                className="
+          w-10 h-10
+          rounded-full
+          bg-red-100 dark:bg-indigo-600
+          flex items-center justify-center
+          text-red-600 dark:text-white
+        "
+                              >
+                                <Clock className="w-5 h-5" />
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-slate-700 dark:text-white">
+                                  Maintenance akan berakhir dalam:
+                                </p>
+                                <p className="text-base font-bold text-red-600 dark:text-indigo-300">
+                                  {durationDays > 0 && `${durationDays} hari `}
+                                  {durationHours > 0 && `${durationHours} jam `}
+                                  {durationMinutes > 0 &&
+                                    `${durationMinutes} menit`}
+                                  {durationDays === 0 &&
+                                    durationHours === 0 &&
+                                    durationMinutes === 0 &&
+                                    "0 menit"}
+                                </p>
+                              </div>
+                            </div>
+                          ) : (
+                            <div
+                              className="
+        flex items-center gap-2
+        p-3
+        rounded-lg
+        bg-amber-50 dark:bg-amber-900/20
+        border border-amber-200 dark:border-amber-700
+      "
+                            >
+                              <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                              <p className="text-xs text-amber-700 dark:text-amber-300">
+                                Masukkan durasi maintenance atau gunakan mode
+                                manual untuk tanpa batas waktu
+                              </p>
+                            </div>
+                          )}
+
+                          {/* Hint untuk Mode Manual */}
+                          <div
+                            className="
+      flex items-start gap-2
+      p-3
+      rounded-lg
+      bg-blue-50 dark:bg-blue-900/20
+      border border-blue-200 dark:border-blue-800
+    "
+                          >
+                            <span className="text-blue-600 dark:text-blue-400 text-lg">
+                              💡
+                            </span>
+                            <p className="text-xs text-blue-700 dark:text-blue-300">
+                              <span className="font-semibold">
+                                Mode Manual:
+                              </span>{" "}
+                              Aktifkan toggle di atas untuk maintenance tanpa
+                              batas waktu
+                            </p>
+                          </div>
                         </div>
                       )}
 
@@ -550,13 +886,15 @@ export default function MaintenanceSuperadmin() {
                           Aktifkan Maintenance
                         </button>
                       ) : (
-                        <div className="
+                        <div
+                          className="
                           space-y-4
                           bg-red-50 dark:bg-red-900/30
                           border border-red-200 dark:border-red-500/40
                           rounded-xl
                           p-4
-                        ">
+                        "
+                        >
                           <div className="flex items-start gap-3">
                             <div className="p-1 bg-red-100 dark:bg-red-500/20 rounded-full">
                               <AlertTriangle className="w-5 h-5 text-red-600" />
@@ -590,10 +928,12 @@ export default function MaintenanceSuperadmin() {
                             />
                           </div>
 
-                          <div className="
+                          <div
+                            className="
                             flex flex-col sm:flex-row
                             gap-3
-                          ">
+                          "
+                          >
                             <button
                               onClick={() => setConfirmStep(0)}
                               className="
@@ -692,33 +1032,39 @@ export default function MaintenanceSuperadmin() {
 
             {/* Right Column - History */}
             <div className="lg:col-span-2">
-              <div className="rounded-2xl sm:rounded-3xl
+              <div
+                className="rounded-2xl sm:rounded-3xl
                 border border-[#FCA5A5]/30 dark:border-indigo-500/30
                 bg-linear-to-br
                 from-white via-[#FFFDF8] to-[#FFF4EC]
                 dark:from-indigo-950 dark:via-indigo-900 dark:to-indigo-800
                 backdrop-blur
                 shadow-sm hover:shadow-xl
-                transition">
+                transition"
+              >
                 {/* History Header */}
                 <div className="border-b border-slate-100 px-6 py-4">
-                  <div className="
+                  <div
+                    className="
                     flex flex-col sm:flex-row
                     sm:items-center
                     sm:justify-between
                     gap-4
-                  ">
+                  "
+                  >
                     <div className="flex items-center gap-2">
                       <History className="w-5 h-5 text-slate-500" />
                       <h3 className="font-semibold text-slate-700 dark:text-indigo-200">
                         Riwayat Maintenance
                       </h3>
-                      <span className="
+                      <span
+                        className="
                         ml-2 px-2 py-0.5 rounded-full text-xs
                         bg-slate-100 text-slate-600
                         dark:bg-indigo-900/50 dark:text-indigo-300
                         wrap-break-word
-                      ">
+                      "
+                      >
                         Total {maintenanceData?.history?.length || 0} catatan
                       </span>
                     </div>
@@ -771,7 +1117,9 @@ export default function MaintenanceSuperadmin() {
                           </label>
                           <select
                             value={dateRange}
-                            onChange={(e) => setDateRange(e.target.value as any)}
+                            onChange={(e) =>
+                              setDateRange(e.target.value as any)
+                            }
                             className="
                               w-full text-sm
                               border border-[#FCA5A5]/40 dark:border-indigo-500/40
@@ -860,7 +1208,8 @@ export default function MaintenanceSuperadmin() {
                               `}
                             />
                             {/* Content */}
-                            <div className="
+                            <div
+                              className="
                               rounded-2xl
                               border border-[#FCA5A5]/20
                               bg-white/80
@@ -870,15 +1219,18 @@ export default function MaintenanceSuperadmin() {
                               p-4
                               hover:shadow-lg
                               transition
-                            ">
+                            "
+                            >
                               <div className="space-y-3">
                                 {/* Header */}
-                                <div className="
+                                <div
+                                  className="
                                   flex flex-col sm:flex-row
                                   sm:items-center
                                   sm:justify-between
                                   gap-4
-                                ">
+                                "
+                                >
                                   <div className="flex flex-wrap items-center gap-2">
                                     {!item.endTime ? (
                                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200">
@@ -918,7 +1270,9 @@ export default function MaintenanceSuperadmin() {
 
                                   <div className="flex items-start gap-2 text-slate-600 dark:text-indigo-200">
                                     <User className="w-4 h-4 text-slate-400 dark:text-indigo-400 mt-0.5" />
-                                    <span className="break-all">Oleh: {item.activatedBy}</span>
+                                    <span className="break-all">
+                                      Oleh: {item.activatedBy}
+                                    </span>
                                   </div>
 
                                   <div className="flex items-start gap-2 text-slate-600 dark:text-indigo-200">
@@ -932,14 +1286,16 @@ export default function MaintenanceSuperadmin() {
 
                                 {/* Duration Info */}
                                 {item.endTime && (
-                                  <div className="
+                                  <div
+                                    className="
                                     mt-3
                                     text-xs
                                     text-slate-500 dark:text-indigo-200
                                     bg-slate-100 dark:bg-indigo-900/50
                                     p-2
                                     rounded-lg
-                                  ">
+                                  "
+                                  >
                                     Total waktu:{" "}
                                     {Math.round(
                                       (new Date(item.endTime).getTime() -
@@ -973,7 +1329,9 @@ export default function MaintenanceSuperadmin() {
                             </button>
                             <button
                               onClick={() =>
-                                setCurrentPage((p) => Math.min(totalPages, p + 1))
+                                setCurrentPage((p) =>
+                                  Math.min(totalPages, p + 1),
+                                )
                               }
                               disabled={currentPage === totalPages}
                               className="p-2 rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -992,24 +1350,30 @@ export default function MaintenanceSuperadmin() {
 
           {/* Statistics Cards */}
           {maintenanceData && (
-            <div className="mt-6 grid grid-cols-1 
+            <div
+              className="mt-6 grid grid-cols-1 
               sm:grid-cols-2 
               lg:grid-cols-4 
-              gap-4 lg:gap-6">
-              <div className="rounded-2xl
+              gap-4 lg:gap-6"
+            >
+              <div
+                className="rounded-2xl
                 border border-[#FCA5A5]/30 dark:border-indigo-500/30
                 bg-linear-to-br
                 from-[#FFFDF8] via-white to-[#FFF4EC]
                 dark:from-indigo-950 dark:via-indigo-900 dark:to-indigo-800
                 p-5
                 shadow-sm hover:shadow-xl
-                transition">
+                transition"
+              >
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-blue-50 rounded-lg">
                     <History className="w-4 h-4 text-blue-600" />
                   </div>
                   <div>
-                    <p className="text-xs text-slate-500 dark:text-slate-300">Total Aktivasi</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-300">
+                      Total Aktivasi
+                    </p>
                     <p className="text-lg font-semibold text-slate-700 dark:text-white">
                       {maintenanceData.history?.length || 0}
                     </p>
@@ -1017,45 +1381,55 @@ export default function MaintenanceSuperadmin() {
                 </div>
               </div>
 
-              <div className="rounded-2xl
+              <div
+                className="rounded-2xl
                 border border-[#FCA5A5]/30 dark:border-indigo-500/30
                 bg-linear-to-br
                 from-[#FFFDF8] via-white to-[#FFF4EC]
                 dark:from-indigo-950 dark:via-indigo-900 dark:to-indigo-800
                 p-5
                 shadow-sm hover:shadow-xl
-                transition">
+                transition"
+              >
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-green-50 rounded-lg">
                     <CheckCircle className="w-4 h-4 text-green-600" />
                   </div>
                   <div>
-                    <p className="text-xs text-slate-500 dark:text-slate-300">Selesai</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-300">
+                      Selesai
+                    </p>
                     <p className="text-lg font-semibold text-slate-700 dark:text-white">
-                      {maintenanceData.history?.filter((h) => h.endTime).length ||
-                        0}
+                      {maintenanceData.history?.filter((h) => h.endTime)
+                        .length || 0}
                     </p>
                   </div>
                 </div>
               </div>
 
-              <div className="rounded-2xl
+              <div
+                className="rounded-2xl
                 border border-[#FCA5A5]/30 dark:border-indigo-500/30
                 bg-linear-to-br
                 from-[#FFFDF8] via-white to-[#FFF4EC]
                 dark:from-indigo-950 dark:via-indigo-900 dark:to-indigo-800
                 p-5
                 shadow-sm hover:shadow-xl
-                transition">
+                transition"
+              >
                 <div className="flex items-center gap-3">
-                  <div className="
+                  <div
+                    className="
                     p-2 rounded-lg
                     bg-red-50 
-                  ">
+                  "
+                  >
                     <AlertTriangle className="w-4 h-4 text-red-600" />
                   </div>
                   <div>
-                    <p className="text-xs text-slate-500 dark:text-slate-300">Sedang Aktif</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-300">
+                      Sedang Aktif
+                    </p>
                     <p className="text-lg font-semibold text-slate-700 dark:text-white">
                       {maintenanceData.history?.filter((h) => !h.endTime)
                         .length || 0}
@@ -1064,20 +1438,24 @@ export default function MaintenanceSuperadmin() {
                 </div>
               </div>
 
-              <div className="rounded-2xl
+              <div
+                className="rounded-2xl
                 border border-[#FCA5A5]/30 dark:border-indigo-500/30
                 bg-linear-to-br
                 from-[#FFFDF8] via-white to-[#FFF4EC]
                 dark:from-indigo-950 dark:via-indigo-900 dark:to-indigo-800
                 p-5
                 shadow-sm hover:shadow-xl
-                transition">
+                transition"
+              >
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-purple-50 rounded-lg">
                     <Settings className="w-4 h-4 text-purple-600" />
                   </div>
                   <div>
-                    <p className="text-xs text-slate-500 dark:text-slate-300">Mode Manual</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-300">
+                      Mode Manual
+                    </p>
                     <p className="text-lg font-semibold text-slate-700 dark:text-white">
                       {maintenanceData.history?.filter((h) => h.isManual)
                         .length || 0}

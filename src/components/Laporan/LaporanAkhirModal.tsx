@@ -12,12 +12,13 @@ type Props = {
 
 export default function LaporanAkhirUploadModal({ onClose }: Props) {
   const [file, setFile] = useState<File | null>(null);
+  const [lampiran1, setLampiran1] = useState<File | null>(null);
+  const [lampiran2, setLampiran2] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [agree, setAgree] = useState(false);
 
   const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
-
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const selectedFile = acceptedFiles[0];
@@ -69,7 +70,22 @@ export default function LaporanAkhirUploadModal({ onClose }: Props) {
 
   /* ================= UPLOAD ================= */
   const handleUpload = async () => {
-    if (!file || !agree) return;
+    if (!file) {
+      showToast.error("Laporan akhir belum diupload");
+      return;
+    }
+
+    if (!lampiran1 && !lampiran2) {
+      showToast.error(
+        "⚠ Minimal salah satu surat evaluasi harus diupload (BPOM atau TKPA)",
+      );
+      return;
+    }
+
+    if (!agree) {
+      showToast.error("Silakan centang pernyataan terlebih dahulu");
+      return;
+    }
 
     setUploading(true);
     const toastId = showToast.loading("Mengupload laporan akhir...");
@@ -78,6 +94,8 @@ export default function LaporanAkhirUploadModal({ onClose }: Props) {
       const token = localStorage.getItem("token");
       const formData = new FormData();
       formData.append("file", file);
+      if (lampiran1) formData.append("lampiran1", lampiran1);
+      if (lampiran2) formData.append("lampiran2", lampiran2);
 
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/laporan-akhir/upload`,
@@ -110,6 +128,30 @@ export default function LaporanAkhirUploadModal({ onClose }: Props) {
       setUploading(false);
     }
   };
+
+  <div className="space-y-3">
+    <label className="text-sm font-semibold">
+      Lampiran 1 (Template Surat Pernyataan)
+    </label>
+
+    <input
+      type="file"
+      accept="application/pdf"
+      onChange={(e) => setLampiran1(e.target.files?.[0] || null)}
+      className="w-full border rounded-lg p-2"
+    />
+
+    <label className="text-sm font-semibold">
+      Lampiran 2 (Template Form Penilaian)
+    </label>
+
+    <input
+      type="file"
+      accept="application/pdf"
+      onChange={(e) => setLampiran2(e.target.files?.[0] || null)}
+      className="w-full border rounded-lg p-2"
+    />
+  </div>;
 
   /* ================= FORMAT FILE SIZE ================= */
   const formatFileSize = (bytes: number) => {
@@ -165,8 +207,8 @@ export default function LaporanAkhirUploadModal({ onClose }: Props) {
                 isDragActive
                   ? "border-emerald-400 bg-emerald-50 dark:bg-emerald-900/20"
                   : isDragReject
-                  ? "border-red-400 bg-red-50 dark:bg-red-900/20"
-                  : "border-slate-300 dark:border-slate-700 hover:border-indigo-400"
+                    ? "border-red-400 bg-red-50 dark:bg-red-900/20"
+                    : "border-slate-300 dark:border-slate-700 hover:border-indigo-400"
               }`}
             >
               <input {...getInputProps()} />
@@ -218,6 +260,49 @@ export default function LaporanAkhirUploadModal({ onClose }: Props) {
             </div>
           )}
 
+          {/* ================= TEMPLATE UPLOAD ================= */}
+          {file && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* TEMPLATE WAJIB */}
+              <div className="rounded-xl border border-red-200 bg-red-50 p-4">
+                <p className="text-sm font-bold text-red-700 mb-2">
+                  Surat Evaluasi BPOM dan Surat Pernyataan diri
+                </p>
+
+                <input
+                  type="file"
+                  accept="application/pdf"
+                  onChange={(e) => setLampiran1(e.target.files?.[0] || null)}
+                  className="w-full border rounded-lg p-2 text-sm"
+                />
+
+                <p className="text-xs mt-1 text-red-600">
+                  {lampiran1
+                    ? "✓ File siap dikirim"
+                    : "⚠ Wajib diupload • Maksimal 2MB"}
+                </p>
+              </div>
+
+              {/* TEMPLATE OPSIONAL */}
+              <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
+                <p className="text-sm font-bold text-blue-700 mb-2">
+                  Surat Evaluasi BPOM TKPA dan Surat Pernyataan diri
+                </p>
+
+                <input
+                  type="file"
+                  accept="application/pdf"
+                  onChange={(e) => setLampiran2(e.target.files?.[0] || null)}
+                  className="w-full border rounded-lg p-2 text-sm"
+                />
+
+                <p className="text-xs text-blue-600 mt-1">
+                  Opsional hanya untuk TKPA • Maksimal 2MB
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* AGREEMENT */}
           {file && (
             <button
@@ -260,7 +345,9 @@ export default function LaporanAkhirUploadModal({ onClose }: Props) {
 
           <button
             onClick={() => setShowConfirm(true)}
-            disabled={!file || !agree || uploading}
+            disabled={
+              !file || (!lampiran1 && !lampiran2) || !agree || uploading
+            }
             className={`w-full sm:w-auto px-6 py-2.5 rounded-full text-sm font-semibold text-white transition-all
             ${
               !file || !agree || uploading
@@ -312,8 +399,8 @@ export default function LaporanAkhirUploadModal({ onClose }: Props) {
               </h3>
 
               <p className="text-sm text-slate-600 dark:text-slate-300 max-w-xs mx-auto">
-                Laporan akhir hanya dapat diupload <b>satu kali</b> dan tidak dapat
-                diubah kembali.
+                Laporan akhir hanya dapat diupload <b>satu kali</b> dan tidak
+                dapat diubah kembali.
               </p>
             </div>
 

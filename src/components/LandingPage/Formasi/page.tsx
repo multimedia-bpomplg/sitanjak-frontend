@@ -180,15 +180,9 @@ export default function Formasi() {
       setPrediksi(simulasi);
 
       // 🔥 DATA TAMBAHAN FORMASI (tidak ditampilkan di UI)
-      formasiData.forEach((f: IFormasi) => {
-        console.log("Formasi:", f.title);
-        console.log("Status Magang:", f.statusMagang);
-        console.log("Tanggal Mulai:", f.tanggalMulaiMagang);
-        console.log("Tanggal Selesai:", f.tanggalSelesaiMagang);
-      });
+      formasiData.forEach((f: IFormasi) => {});
       setError(null);
     } catch (err) {
-      console.error(err);
       setError("Gagal memuat data");
     } finally {
       if (isAutoRefresh) {
@@ -206,7 +200,6 @@ export default function Formasi() {
 
     // Setup interval untuk refresh setiap 5 menit (300000 ms)
     intervalRef.current = setInterval(() => {
-      console.log("Auto-refreshing formasi data...");
       loadFormasi(true);
     }, 300000); // 5 menit = 300000 ms
 
@@ -581,14 +574,12 @@ export default function Formasi() {
                               {prediksi[item.title]
                                 ?.slice(0, 4)
                                 .map((p: any, i: number) => {
-
                                   const totalKuota = item.kuota;
                                   const filled = p.aktif;
                                   const empty = p.sisaKuota;
 
                                   return (
                                     <div key={i} className="space-y-1 py-2">
-
                                       {/* Header */}
                                       <div className="flex justify-between items-center text-sm">
                                         <span className="font-medium text-gray-700">
@@ -607,13 +598,13 @@ export default function Formasi() {
                                             p.sisaKuota === 0
                                               ? "bg-red-500"
                                               : p.sisaKuota <= 2
-                                              ? "bg-yellow-500"
-                                              : "bg-green-500"
+                                                ? "bg-yellow-500"
+                                                : "bg-green-500"
                                           }`}
                                           style={{
                                             width: `${Math.min(
                                               100,
-                                              (p.aktif / item.kuota) * 100
+                                              (p.aktif / item.kuota) * 100,
                                             )}%`,
                                           }}
                                         />
@@ -623,10 +614,9 @@ export default function Formasi() {
                                       <div className="text-xs text-gray-500">
                                         {filled} terisi • {empty} tersedia
                                       </div>
-
                                     </div>
                                   );
-                              })}
+                                })}
                             </div>
                           </div>
                         </div>

@@ -163,24 +163,17 @@ export default function ViewLogbookSuperadmin() {
     const pesertaLogbooks = allLogbooks.filter(
       (logbook) => logbook.user && logbook.user._id === pesertaId,
     );
-
     const summary: LogbookSummary = {
       total: pesertaLogbooks.length,
 
-      hadir: pesertaLogbooks.filter(
-        (l) => l.status === "hadir" && l.approvalStatus === "disetujui",
-      ).length,
+      hadir: pesertaLogbooks.filter((l) => l.status === "hadir").length,
 
       tidakHadirDenganKeterangan: pesertaLogbooks.filter(
-        (l) =>
-          l.status === "tidak_hadir_keterangan" &&
-          l.approvalStatus === "disetujui",
+        (l) => l.status === "tidak_hadir_keterangan",
       ).length,
 
       tidakHadirTanpaKeterangan: pesertaLogbooks.filter(
-        (l) =>
-          l.status === "tidak_hadir_tanpa_keterangan" &&
-          l.approvalStatus === "disetujui",
+        (l) => l.status === "tidak_hadir_tanpa_keterangan",
       ).length,
 
       ditolakMentor: pesertaLogbooks.filter(

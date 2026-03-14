@@ -440,16 +440,16 @@ export default function SuperadminLaporanAkhirModal({
                     <button
                       onClick={handleDownloadPdf}
                       className="
-                        w-full sm:w-auto
-                        inline-flex items-center justify-center gap-2
-                        px-5 py-2.5
-                        rounded-xl
-                        text-sm font-semibold
-                        text-white
-                        bg-emerald-600 hover:bg-emerald-700
-                        shadow hover:shadow-lg
-                        transition
-                      "
+    w-full sm:w-auto
+    inline-flex items-center justify-center gap-2
+    px-5 py-2.5
+    rounded-xl
+    text-sm font-semibold
+    text-white
+    bg-emerald-600 hover:bg-emerald-700
+    shadow hover:shadow-lg
+    transition
+  "
                     >
                       <FiDownload className="w-4 h-4" />
                       Download PDF
@@ -458,21 +458,69 @@ export default function SuperadminLaporanAkhirModal({
                     <button
                       onClick={() => setShowPdf(!showPdf)}
                       className="
-                        w-full sm:w-auto
-                        inline-flex items-center justify-center gap-2
-                        px-5 py-2.5
-                        rounded-xl
-                        text-sm font-semibold
-                        text-slate-700 dark:text-white
-                        bg-slate-200 dark:bg-white/10
-                        hover:bg-slate-300 dark:hover:bg-white/20
-                        shadow hover:shadow-lg
-                        transition
-                      "
+    w-full sm:w-auto
+    inline-flex items-center justify-center gap-2
+    px-5 py-2.5
+    rounded-xl
+    text-sm font-semibold
+    text-slate-700 dark:text-white
+    bg-slate-200 dark:bg-white/10
+    hover:bg-slate-300 dark:hover:bg-white/20
+    shadow hover:shadow-lg
+    transition
+  "
                     >
                       <FiEye className="w-4 h-4" />
                       {showPdf ? "Sembunyikan PDF" : "Preview PDF"}
                     </button>
+
+                    {/* ===== LAMPIRAN 1 ===== */}
+                    {laporan?.lampiran1Pdf && (
+                      <button
+                        onClick={() =>
+                          window.open(
+                            `${process.env.NEXT_PUBLIC_API_URL}/${laporan.lampiran1Pdf}`,
+                            "_blank",
+                          )
+                        }
+                        className="
+  w-full sm:w-auto
+  inline-flex items-center justify-center gap-2
+  px-5 py-2.5
+  rounded-xl
+  text-sm font-semibold
+  text-white
+  bg-blue-600 hover:bg-blue-700
+"
+                      >
+                        <FiDownload className="w-4 h-4" />
+                        Download Lampiran 1
+                      </button>
+                    )}
+
+                    {/* ===== LAMPIRAN 2 ===== */}
+                    {laporan?.lampiran2Pdf && (
+                      <button
+                        onClick={() =>
+                          window.open(
+                            `${process.env.NEXT_PUBLIC_API_URL}/${laporan.lampiran2Pdf}`,
+                            "_blank",
+                          )
+                        }
+                        className="
+  w-full sm:w-auto
+  inline-flex items-center justify-center gap-2
+  px-5 py-2.5
+  rounded-xl
+  text-sm font-semibold
+  text-white
+  bg-indigo-600 hover:bg-indigo-700
+"
+                      >
+                        <FiDownload className="w-4 h-4" />
+                        Download Lampiran 2
+                      </button>
+                    )}
                   </div>
 
                   {/* PDF PREVIEW - SAMA SEPERTI DI MENTOR */}

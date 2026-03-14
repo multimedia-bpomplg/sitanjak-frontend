@@ -10,6 +10,8 @@ type LaporanAkhir = {
   _id: string;
   fileName: string;
   fileSize: number;
+  fileLampiran1Name?: string;
+  fileLampiran2Name?: string;
   status: string;
   submittedAt: string;
   approvedByMentor?: any;
@@ -237,6 +239,7 @@ export default function LaporanAkhirPage() {
   return (
     <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* ================= HEADER ================= */}
+
       <div className="space-y-3">
         <h1 className="flex items-center gap-3 tracking-tight mb-2">
           <span
@@ -256,6 +259,22 @@ export default function LaporanAkhirPage() {
           Upload laporan akhir dalam format PDF (maksimal 5MB). Laporan hanya
           dapat diunggah <b>satu kali</b> dan bersifat final.
         </p>
+
+        <div className="flex gap-3 mt-3">
+          <button
+            onClick={() => window.open("/template/template-laporan.pdf")}
+            className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm"
+          >
+            📄 Template Survei BPOM Regular
+          </button>
+
+          <button
+            onClick={() => window.open("/template/template-lampiran.pdf")}
+            className="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm"
+          >
+            📎 Template Survei BPOM TKPA
+          </button>
+        </div>
 
         {/* Informasi Status Feedback (Opsional) */}
         {feedback && (
