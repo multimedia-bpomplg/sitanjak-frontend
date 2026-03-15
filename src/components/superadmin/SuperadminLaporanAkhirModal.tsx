@@ -494,7 +494,7 @@ export default function SuperadminLaporanAkhirModal({
 "
                       >
                         <FiDownload className="w-4 h-4" />
-                        Download Lampiran 1
+                        Download Form Evaluasi Magang
                       </button>
                     )}
 
@@ -518,7 +518,7 @@ export default function SuperadminLaporanAkhirModal({
 "
                       >
                         <FiDownload className="w-4 h-4" />
-                        Download Lampiran 2
+                        Download Form Evaluasi PKPA
                       </button>
                     )}
                   </div>
@@ -528,7 +528,7 @@ export default function SuperadminLaporanAkhirModal({
                     <div className="rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
                       <iframe
                         src={`${getFileUrl(laporan.fileUrl)}#toolbar=0&navpanes=0`}
-                        className="w-full h-[500px] sm:h-[600px]"
+                        className="w-full h-125 sm:h-150"
                         title="PDF Preview"
                       />
                       <div className="p-2 text-center text-xs text-slate-500 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700">
@@ -954,7 +954,7 @@ export default function SuperadminLaporanAkhirModal({
               w-full
               px-6 py-2.5
               rounded-xl
-              bg-gradient-to-r
+              bg-linear-to-r
               from-[#F59E0B] via-[#B91C1C] to-[#7F1D1D]
               hover:from-amber-400 hover:via-[#DC2626] hover:to-[#991B1B]
               dark:from-indigo-600 dark:to-violet-500
@@ -971,7 +971,7 @@ export default function SuperadminLaporanAkhirModal({
 
       {/* CONFIRMATION MODAL */}
       {showConfirm && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div
             className="
               w-full max-w-sm
