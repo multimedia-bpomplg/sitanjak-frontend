@@ -133,7 +133,7 @@ export default function BuatAkunPesertaPage() {
       const returnTo = searchParams.get("returnTo");
       if (returnTo) {
         // Redirect kembali ke halaman viewpendaftaran
-        router.push(returnTo);
+        router.push(returnTo + "?created=true");
       } else {
         // Jika tidak ada, refresh data
         fetchPeserta();
@@ -303,7 +303,8 @@ export default function BuatAkunPesertaPage() {
       {/* HEADER */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         <div>
-          <h1 className="
+          <h1
+            className="
             text-3xl lg:text-4xl 
             font-extrabold 
             leading-tight
@@ -311,7 +312,8 @@ export default function BuatAkunPesertaPage() {
             bg-linear-to-r 
             from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
             dark:from-indigo-400 dark:via-violet-400 dark:to-purple-400
-          ">
+          "
+          >
             Manajemen Akun Peserta
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
