@@ -14,6 +14,12 @@ type PesertaAkun = {
   email: string;
   status: "Aktif" | "Nonaktif";
   periode: string;
+  statusMagang?:
+    | "Menunggu"
+    | "Belum Waktu Magang"
+    | "Sedang Magang"
+    | "Selesai Magang"
+    | "Tidak Magang";
 };
 
 /* ================= PAGE ================= */
@@ -65,6 +71,7 @@ export default function BuatAkunPesertaPage() {
         status: item.status || "Aktif",
         periode:
           item.periode || new Date(item.createdAt).getFullYear().toString(),
+        statusMagang: item.statusMagang || "Menunggu",
       }));
 
       setData(mapped);
@@ -107,7 +114,7 @@ export default function BuatAkunPesertaPage() {
 
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/admin/buat-peserta`, // ✅ Ganti dari /superadmin ke /admin
+        `${process.env.NEXT_PUBLIC_API_URL}/admin/buat-peserta`,
         {
           method: "POST",
           headers: {
@@ -129,13 +136,12 @@ export default function BuatAkunPesertaPage() {
       setOpen(false);
       setForm({ name: "", email: "", password: "" });
 
-      // Cek apakah ada parameter returnTo
+      // cek apakah ada returnTo
       const returnTo = searchParams.get("returnTo");
+
       if (returnTo) {
-        // Redirect kembali ke halaman viewpendaftaran
         router.push(returnTo + "?created=true");
       } else {
-        // Jika tidak ada, refresh data
         fetchPeserta();
       }
     } catch (error: any) {
@@ -145,13 +151,12 @@ export default function BuatAkunPesertaPage() {
     }
   };
 
-  /* ================= HANDLE CANCEL ================= */
   const handleCancel = () => {
     setOpen(false);
     setForm({ name: "", email: "", password: "" });
 
-    // Cek apakah ada parameter returnTo
     const returnTo = searchParams.get("returnTo");
+
     if (returnTo) {
       router.push(returnTo);
     }
@@ -255,7 +260,7 @@ export default function BuatAkunPesertaPage() {
   const pesertaNonaktif = data.filter((p) => p.status === "Nonaktif").length;
 
   const searchParams = useSearchParams();
-  const router = useRouter(); // Tambahkan ini
+  const router = useRouter();
 
   useEffect(() => {
     const email = searchParams.get("email");
@@ -448,9 +453,9 @@ export default function BuatAkunPesertaPage() {
                 <th className="w-[20%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
                   Periode
                 </th>
-                <th className="w-[20%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
-                  Status
-                </th>
+                <th className="w-[20%] py-4 px-6 text-center">Status</th>
+
+                <th className="w-[20%] py-4 px-6 text-center">Status Magang</th>
               </tr>
             </thead>
 
@@ -553,6 +558,12 @@ export default function BuatAkunPesertaPage() {
                         {item.status}
                       </span>
                     </td>
+                    {/* STATUS MAGANG */}
+                    <td className="py-4 px-6 text-center">
+                      <StatusMagangBadge
+                        status={item.statusMagang || "Menunggu"}
+                      />
+                    </td>
                   </tr>
                 ))
               )}
@@ -653,7 +664,7 @@ export default function BuatAkunPesertaPage() {
           <PasswordInput value={form.password} onGenerate={generatePassword} />
 
           <ModalAction
-            onCancel={() => setOpen(false)}
+            onCancel={handleCancel}
             onSubmit={handleCreate}
             submitText="Buat Akun Peserta"
           />
@@ -995,4 +1006,43 @@ function Detail({ label, value }: { label: string; value: string }) {
       </p>
     </div>
   );
+}
+
+function StatusMagangBadge({ status }: { status: string }) {
+  switch (status) {
+    case "Belum Waktu Magang":
+      return (
+        <span className="inline-flex px-2 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-700">
+          Belum Mulai
+        </span>
+      );
+
+    case "Sedang Magang":
+      return (
+        <span className="inline-flex px-2 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
+          Sedang Magang
+        </span>
+      );
+
+    case "Tidak Magang":
+      return (
+        <span className="inline-flex px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700">
+          Tidak
+        </span>
+      );
+
+    case "Selesai Magang":
+      return (
+        <span className="inline-flex px-2 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">
+          Selesai
+        </span>
+      );
+
+    default:
+      return (
+        <span className="inline-flex px-2 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700">
+          Menunggu
+        </span>
+      );
+  }
 }

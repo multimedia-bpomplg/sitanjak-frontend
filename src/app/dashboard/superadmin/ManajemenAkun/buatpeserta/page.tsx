@@ -4,7 +4,7 @@ import ProcessPopup from "@/components/ui/ProcessPopup";
 import { useState, useEffect } from "react";
 import { showToast } from "@/components/ui/toastDashboard";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { HiUser, HiUsers, HiCheck, HiX, HiSearch } from "react-icons/hi";
 
 /* ================= TYPE ================= */
@@ -135,11 +135,30 @@ export default function BuatAkunPesertaPage() {
 
       setOpen(false);
       setForm({ name: "", email: "", password: "" });
-      fetchPeserta();
+
+      // cek apakah ada returnTo
+      const returnTo = searchParams.get("returnTo");
+
+      if (returnTo) {
+        router.push(returnTo + "?created=true");
+      } else {
+        fetchPeserta();
+      }
     } catch (error: any) {
       showToast.error(error.message || "Terjadi kesalahan server");
     } finally {
       setLoadingPopup(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setOpen(false);
+    setForm({ name: "", email: "", password: "" });
+
+    const returnTo = searchParams.get("returnTo");
+
+    if (returnTo) {
+      router.push(returnTo);
     }
   };
 
@@ -241,6 +260,7 @@ export default function BuatAkunPesertaPage() {
   const pesertaNonaktif = data.filter((p) => p.status === "Nonaktif").length;
 
   const searchParams = useSearchParams();
+  const router = useRouter();
 
   useEffect(() => {
     const email = searchParams.get("email");
@@ -644,7 +664,7 @@ export default function BuatAkunPesertaPage() {
           <PasswordInput value={form.password} onGenerate={generatePassword} />
 
           <ModalAction
-            onCancel={() => setOpen(false)}
+            onCancel={handleCancel}
             onSubmit={handleCreate}
             submitText="Buat Akun Peserta"
           />
