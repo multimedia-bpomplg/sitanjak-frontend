@@ -45,7 +45,7 @@ export default function LaporanAkhirPage() {
   const hasShownPopupRef = useRef(false);
 
   const token =
-    typeof window !== "undefined" ? localStorage.getItem("token") : "";
+    typeof window !== "undefined" ? (localStorage.getItem("token") ?? "") : "";
 
   /* ================= CEK LAPORAN AKHIR ================= */
   const fetchLaporan = async () => {
@@ -129,7 +129,7 @@ export default function LaporanAkhirPage() {
     });
 
     // Kondisi popup harus muncul
-    if (laporan && laporan.status !== "Ditolak" && !isFeedbackFilled) {
+    if (laporan && laporan.status === "Menunggu" && !isFeedbackFilled) {
       // Cek apakah sudah pernah ditampilkan
       if (!hasShownPopupRef.current) {
         hasShownPopupRef.current = true;
@@ -260,209 +260,21 @@ export default function LaporanAkhirPage() {
           dapat diunggah <b>satu kali</b> dan bersifat final.
         </p>
 
-        <div className="mt-8 space-y-6">
-
-          {/* TEMPLATE GRID */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-          {/* TEMPLATE REGULAR */}
-          <div
-            className="
-            group
-            relative
-            p-6
-            rounded-2xl
-            border
-            border-amber-300
-            bg-white
-            dark:bg-indigo-950/40
-            dark:border-indigo-600
-            shadow-md
-            hover:shadow-xl
-            transition
-            "
-          >
-
-            <div className="flex items-center gap-4">
-
-              <div
-                className="
-                w-14 h-14
-                rounded-xl
-                flex items-center justify-center
-                text-xl
-                text-white
-                bg-linear-to-br
-                from-[#7F1D1D] to-[#F59E0B]
-                dark:from-indigo-500 dark:to-violet-500
-                "
-              >
-                📑
-              </div>
-
-              <div className="flex-1">
-
-                <p className="font-semibold text-[#7F1D1D] dark:text-indigo-300">
-                Template Survei Magang Regular
-                </p>
-
-                <p className="text-sm text-slate-500 dark:text-slate-400">
-                  Digunakan oleh seluruh peserta magang umum di BPOM
-                </p>
-
-              </div>
-
-              <button
-                onClick={() =>
-                  window.open(
-                    "https://docs.google.com/document/d/1YXq6zUrCv4OdKhV5m5ZoAZPzQ54vS02KG-5nb59U1yI/edit?usp=sharing",
-                    "_blank",
-                    "noopener,noreferrer"
-                  )
-                }
-                className="
-                text-sm
-                font-semibold
-                text-[#7F1D1D]
-                dark:text-indigo-300
-                hover:underline
-                "
-              >
-                Download
-              </button>
-
-            </div>
-
-          </div>
-
-
-
-        {/* TEMPLATE PKPA */}
-        <div
-          className="
-          group
-          relative
-          p-6
-          rounded-2xl
-          border
-          border-amber-300
-          bg-white
-          dark:bg-indigo-950/40
-          dark:border-indigo-600
-          shadow-md
-          hover:shadow-xl
-          transition
-          "
-        >
-
-         <div className="flex items-center gap-4">
-
-            <div
-              className="
-              w-14 h-14
-              rounded-xl
-              flex items-center justify-center
-              text-xl
-              text-white
-              bg-linear-to-br
-              from-[#B91C1C] to-[#F59E0B]
-              dark:from-indigo-500 dark:to-violet-500
-              "
-            >
-              📄
-            </div>
-
-            <div className="flex-1">
-
-            <p className="font-semibold text-[#7F1D1D] dark:text-indigo-300">
-            Template Survei PKPA
-            </p>
-
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-            Digunakan oleh mahasiswa Program Profesi Apoteker (PKPA)
-            </p>
-
-          </div>
-
+        <div className="flex gap-3 mt-3">
           <button
-            onClick={() =>
-            window.open(
-              "https://docs.google.com/document/d/1rZq-AMlUVEh9uk4jucyh09eopL87Bauis47OqT22i5M/edit?usp=sharing",
-              "_blank",
-              "noopener,noreferrer"
-            )
-          }
-            className="
-            text-sm
-            font-semibold
-            text-[#7F1D1D]
-            dark:text-indigo-300
-            hover:underline
-            "
+            onClick={() => window.open("/template/template-laporan.pdf")}
+            className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm"
           >
-            Download
+            📄 Template Survei BPOM Regular
           </button>
 
+          <button
+            onClick={() => window.open("/template/template-lampiran.pdf")}
+            className="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm"
+          >
+            📎 Template Survei BPOM TKPA
+          </button>
         </div>
-
-      </div>
-
-    </div>
-
-
-
-    {/* INFORMASI SURVEI */}
-    <div
-      className="
-      rounded-2xl
-      border
-      border-amber-300
-      bg-amber-50
-      dark:bg-indigo-900/30
-      dark:border-indigo-600
-      p-6
-      text-sm
-      text-amber-800
-      dark:text-indigo-200
-      leading-relaxed
-      shadow-sm
-      "
-    >
-
-      <p className="font-semibold text-base mb-3">
-      📋 Petunjuk Pengisian Survei
-      </p>
-
-      <ul className="space-y-2 list-disc pl-5">
-
-      <li>
-      Download template survei sesuai kategori Anda
-      <b> (Magang Regular atau PKPA)</b>.
-      </li>
-
-      <li>
-      Isi seluruh pertanyaan survei dengan lengkap dan benar.
-      </li>
-
-      <li>
-      Simpan hasil survei dalam format <b>PDF</b>.
-      </li>
-
-      <li>
-      Upload laporan akhir melalui tombol
-      <b> Upload Laporan</b> dan
-      <b> lampirkan file survei</b> pada slot lampiran.
-      </li>
-
-      </ul>
-
-      <p className="mt-3 text-xs opacity-80">
-      ⚠️ Survei bersifat <b>wajib</b> dan menjadi bagian penting yang harus dikumpulkan bersama laporan akhir magang.
-      </p>
-
-    </div>
-
-  </div>
 
         {/* Informasi Status Feedback (Opsional) */}
         {feedback && (
@@ -564,7 +376,7 @@ export default function LaporanAkhirPage() {
                 📥 Download PDF
               </button>
 
-              {laporan.status === "Disetujui" && feedback && (
+              {laporan.status === "Disetujui" && (
                 <button
                   onClick={() => setShowPenilaianModal(true)}
                   className="

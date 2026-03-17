@@ -260,205 +260,51 @@ export default function LaporanAkhirUploadModal({ onClose }: Props) {
             </div>
           )}
 
-          {/* ================= SLOT EVALUASI ================= */}
-            <div className="space-y-4">
-
-              {/* HEADER INFO */}
-              <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-700">
-                <p className="font-semibold mb-1">
-                  📋 Lampiran Evaluasi Magang
+          {/* ================= TEMPLATE UPLOAD ================= */}
+          {file && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* TEMPLATE WAJIB */}
+              <div className="rounded-xl border border-red-200 bg-red-50 p-4">
+                <p className="text-sm font-bold text-red-700 mb-2">
+                  Surat Evaluasi BPOM dan Surat Pernyataan diri
                 </p>
 
-                <p className="text-xs leading-relaxed">
-                  Upload <b>salah satu</b> file evaluasi sesuai jenis magang Anda.
+                <input
+                  type="file"
+                  accept="application/pdf"
+                  onChange={(e) => setLampiran1(e.target.files?.[0] || null)}
+                  className="w-full border rounded-lg p-2 text-sm"
+                />
+
+                <p className="text-xs mt-1 text-red-600">
+                  {lampiran1
+                    ? "✓ File siap dikirim"
+                    : "⚠ Wajib diupload • Maksimal 2MB"}
+                </p>
+              </div>
+
+              {/* TEMPLATE OPSIONAL */}
+              <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
+                <p className="text-sm font-bold text-blue-700 mb-2">
+                  Surat Evaluasi BPOM TKPA dan Surat Pernyataan diri
                 </p>
 
-                <ul className="list-disc pl-5 text-xs mt-2 space-y-1">
-                  <li>Mahasiswa magang reguler → upload Evaluasi Magang Regular</li>
-                  <li>Mahasiswa PKPA → upload Evaluasi PKPA</li>
-                </ul>
+                <input
+                  type="file"
+                  accept="application/pdf"
+                  onChange={(e) => setLampiran2(e.target.files?.[0] || null)}
+                  className="w-full border rounded-lg p-2 text-sm"
+                />
+
+                <p className="text-xs text-blue-600 mt-1">
+                  Opsional hanya untuk TKPA • Maksimal 2MB
+                </p>
               </div>
-
-
-              {/* SLOT GRID */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-
-  {/* ================= REGULAR ================= */}
-  <label
-    className={`
-    group
-    cursor-pointer
-    rounded-2xl
-    border
-    p-5
-    transition
-    flex flex-col gap-3
-    shadow-sm
-    hover:shadow-md
-
-    ${lampiran1
-      ? "border-emerald-400 bg-emerald-50 dark:bg-emerald-900/20"
-      : "border-slate-300 bg-white dark:bg-slate-800 dark:border-slate-700 hover:border-emerald-400"}
-  `}
-  >
-
-    <div className="flex items-center gap-3">
-
-      <div className="
-      w-10 h-10
-      flex items-center justify-center
-      rounded-xl
-      bg-slate-100
-      dark:bg-slate-700
-      text-lg
-      ">
-        📄
-      </div>
-
-      <div>
-        <p className="font-semibold text-slate-800 dark:text-slate-100">
-          Evaluasi Magang Regular
-        </p>
-
-        <p className="text-xs text-slate-500 dark:text-slate-400">
-          Digunakan oleh peserta magang BPOM
-        </p>
-      </div>
-
-    </div>
-
-    <div className="
-    border
-    border-dashed
-    rounded-xl
-    px-4 py-3
-    text-sm
-    text-center
-    text-slate-500
-    dark:text-slate-400
-    dark:border-slate-600
-    group-hover:border-emerald-400
-    transition
-    ">
-
-      {lampiran1 ? (
-        <span className="text-emerald-600 font-semibold">
-          ✓ {lampiran1.name}
-        </span>
-      ) : (
-        "Klik untuk upload file PDF"
-      )}
-
-    </div>
-
-    <input
-      type="file"
-      accept="application/pdf"
-      onChange={(e) => setLampiran1(e.target.files?.[0] || null)}
-      className="hidden"
-    />
-
-  </label>
-
-
-  {/* ================= PKPA ================= */}
-  <label
-    className={`
-    group
-    cursor-pointer
-    rounded-2xl
-    border
-    p-5
-    transition
-    flex flex-col gap-3
-    shadow-sm
-    hover:shadow-md
-
-    ${lampiran2
-      ? "border-indigo-400 bg-indigo-50 dark:bg-indigo-900/20"
-      : "border-slate-300 bg-white dark:bg-slate-800 dark:border-slate-700 hover:border-indigo-400"}
-  `}
-  >
-
-    <div className="flex items-center gap-3">
-
-      <div className="
-      w-10 h-10
-      flex items-center justify-center
-      rounded-xl
-      bg-slate-100
-      dark:bg-slate-700
-      text-lg
-      ">
-        📑
-      </div>
-
-      <div>
-        <p className="font-semibold text-slate-800 dark:text-slate-100">
-          Evaluasi PKPA
-        </p>
-
-        <p className="text-xs text-slate-500 dark:text-slate-400">
-          Digunakan oleh mahasiswa Program Profesi Apoteker
-        </p>
-      </div>
-
-    </div>
-
-    <div className="
-    border
-    border-dashed
-    rounded-xl
-    px-4 py-3
-    text-sm
-    text-center
-    text-slate-500
-    dark:text-slate-400
-    dark:border-slate-600
-    group-hover:border-indigo-400
-    transition
-    ">
-
-      {lampiran2 ? (
-        <span className="text-indigo-600 font-semibold">
-          ✓ {lampiran2.name}
-        </span>
-      ) : (
-        "Klik untuk upload file PDF"
-      )}
-
-    </div>
-
-    <input
-      type="file"
-      accept="application/pdf"
-      onChange={(e) => setLampiran2(e.target.files?.[0] || null)}
-      className="hidden"
-    />
-
-  </label>
-
-</div>
-
-
-              {/* STATUS VALIDASI */}
-              <div className="text-xs text-slate-500">
-
-                {lampiran1 || lampiran2 ? (
-                  <p className="text-emerald-600 font-semibold">
-                    ✓ Lampiran evaluasi sudah siap
-                  </p>
-                ) : (
-                  <p className="text-red-500 font-semibold">
-                    ⚠ Upload minimal salah satu evaluasi
-                  </p>
-                )}
-
-              </div>
-
             </div>
+          )}
 
           {/* AGREEMENT */}
+          {file && (
             <button
               type="button"
               onClick={() => setAgree(!agree)}
@@ -485,6 +331,7 @@ export default function LaporanAkhirUploadModal({ onClose }: Props) {
                 <b>benar</b> dan <b>asli</b>.
               </span>
             </button>
+          )}
         </div>
 
         {/* FOOTER */}
@@ -503,7 +350,7 @@ export default function LaporanAkhirUploadModal({ onClose }: Props) {
             }
             className={`w-full sm:w-auto px-6 py-2.5 rounded-full text-sm font-semibold text-white transition-all
             ${
-              !file || (!lampiran1 && !lampiran2) || !agree || uploading
+              !file || !agree || uploading
                 ? "bg-slate-400 cursor-not-allowed"
                 : "bg-emerald-600 hover:bg-emerald-700 shadow-md hover:shadow-lg"
             }`}
