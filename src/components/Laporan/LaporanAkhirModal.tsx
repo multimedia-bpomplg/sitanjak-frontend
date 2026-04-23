@@ -151,7 +151,7 @@ export default function LaporanAkhirUploadModal({ onClose }: Props) {
       onChange={(e) => setLampiran2(e.target.files?.[0] || null)}
       className="w-full border rounded-lg p-2"
     />
-  </div>;
+  </div>
 
   /* ================= FORMAT FILE SIZE ================= */
   const formatFileSize = (bytes: number) => {

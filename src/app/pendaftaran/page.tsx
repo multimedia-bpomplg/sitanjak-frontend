@@ -945,7 +945,7 @@ function PendaftaranForm() {
         </Link>
 
         {/* CARD SEKUNDER: TEMPLATE */}
-        <div
+        {/* <div
           className="
             bg-white/80 backdrop-blur
             rounded-2xl shadow-md
@@ -984,7 +984,7 @@ function PendaftaranForm() {
             <HiDocument className="text-lg" />
             Buka Template
           </a>
-        </div>
+        </div> */}
       </div>
 
       <form
@@ -1101,7 +1101,8 @@ function PendaftaranForm() {
             {/* TAMBAHAN: petunjuk klik card */}
             <p className="text-xs text-gray-500 mb-3 flex items-center gap-2">
               <HiCalendar className="text-gray-400" />
-              Klik card posisi untuk melihat jadwal ketersediaan magang pada kalender
+              Klik card posisi untuk melihat jadwal ketersediaan magang pada
+              kalender
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {formasiList.map((item) => {
@@ -1148,10 +1149,11 @@ function PendaftaranForm() {
                       ${status.card}
                     `}
                   >
-
                     {/* HEADER */}
                     <div className="flex items-start justify-between gap-2 mb-3">
-                      <h3 className="font-bold text-[#7F1D1D] leading-snug">{item.title}</h3>
+                      <h3 className="font-bold text-[#7F1D1D] leading-snug">
+                        {item.title}
+                      </h3>
 
                       <span
                         className={`text-[11px] px-3 py-1 rounded-full font-semibold whitespace-nowrap ${status.badge}`}
@@ -1204,7 +1206,9 @@ function PendaftaranForm() {
 
                     {/* PREDIKSI */}
 
-                    <div className={`rounded-xl p-3 text-black border ${status.card}`}>
+                    <div
+                      className={`rounded-xl p-3 text-black border ${status.card}`}
+                    >
                       <p className="text-sm font-bold text-[#7F1D1D] mb-2">
                         Prediksi Kuota
                       </p>
@@ -1956,12 +1960,12 @@ function PendaftaranForm() {
 
           <label
             className={`flex items-center justify-between px-4 py-4 border-2 border-dashed rounded-xl cursor-pointer
-                ${
-                  errors["surat"]
-                    ? "border-red-500 bg-red-50"
-                    : "border-gray-300 hover:border-[#F59E0B]"
-                }
-              `}
+      ${
+        errors["surat"]
+          ? "border-red-500 bg-red-50"
+          : "border-gray-300 hover:border-[#F59E0B]"
+      }
+    `}
           >
             <span className="text-gray-600">
               {surat ? surat.name : "Klik untuk upload surat pengantar"}
@@ -1970,10 +1974,45 @@ function PendaftaranForm() {
 
             <input
               type="file"
+              accept="application/pdf"
               hidden
               onChange={(e) => {
-                setSurat(e.target.files?.[0] || null);
+                const file = e.target.files?.[0];
+
+                if (!file) return;
+
+                // ❌ Validasi tipe file (PDF only)
+                const isPDF =
+                  file.type === "application/pdf" ||
+                  file.name.toLowerCase().endsWith(".pdf");
+
+                if (!isPDF) {
+                  toast.error("❌ Hanya file PDF yang diperbolehkan!", {
+                    autoClose: 3000,
+                  });
+                  e.target.value = "";
+                  setSurat(null);
+                  return;
+                }
+
+                // ❌ Validasi ukuran (max 1MB)
+                const maxSize = 1 * 1024 * 1024; // 1MB
+                if (file.size > maxSize) {
+                  toast.error("❌ Ukuran file maksimal 1 MB!", {
+                    autoClose: 3000,
+                  });
+                  e.target.value = "";
+                  setSurat(null);
+                  return;
+                }
+
+                // ✅ Success upload
+                setSurat(file);
                 setErrors((prev) => ({ ...prev, surat: false }));
+
+                toast.success("✅ File berhasil dipilih", {
+                  autoClose: 2000,
+                });
               }}
             />
           </label>
