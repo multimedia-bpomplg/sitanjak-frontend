@@ -1952,6 +1952,7 @@ function PendaftaranForm() {
         ))}
 
         {/* UPLOAD */}
+        {/* UPLOAD */}
         <div>
           <label className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
             <HiUpload />
@@ -1981,7 +1982,6 @@ function PendaftaranForm() {
 
                 if (!file) return;
 
-                // ❌ Validasi tipe file (PDF only)
                 const isPDF =
                   file.type === "application/pdf" ||
                   file.name.toLowerCase().endsWith(".pdf");
@@ -1995,8 +1995,7 @@ function PendaftaranForm() {
                   return;
                 }
 
-                // ❌ Validasi ukuran (max 1MB)
-                const maxSize = 1 * 1024 * 1024; // 1MB
+                const maxSize = 1 * 1024 * 1024;
                 if (file.size > maxSize) {
                   toast.error("❌ Ukuran file maksimal 1 MB!", {
                     autoClose: 3000,
@@ -2006,7 +2005,6 @@ function PendaftaranForm() {
                   return;
                 }
 
-                // ✅ Success upload
                 setSurat(file);
                 setErrors((prev) => ({ ...prev, surat: false }));
 
@@ -2016,6 +2014,12 @@ function PendaftaranForm() {
               }}
             />
           </label>
+
+          {/* 🔽 TAMBAHAN INFO */}
+          <p className="text-xs text-gray-500 mt-2">
+            Format file harus <span className="font-medium">PDF</span> dan
+            ukuran maksimal <span className="font-medium">1 MB</span>.
+          </p>
 
           {errors["surat"] && (
             <p className="text-sm text-red-500 mt-1">
