@@ -587,11 +587,11 @@ export default function Formasi() {
                                         </span>
 
                                         <span className="font-semibold text-green-600">
-                                          {empty} Slot
+                                          {empty} Orang
                                         </span>
                                       </div>
 
-                                      {/* Slot visual */}
+                                      {/* Orang visual */}
                                       <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
                                         <div
                                           className={`h-2 rounded-full ${

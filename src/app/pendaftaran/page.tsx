@@ -1219,7 +1219,7 @@ function PendaftaranForm() {
                             <div className="flex justify-between text-xs">
                               <span>{p.bulan}</span>
                               <span className="font-semibold text-black">
-                                {p.sisaKuota} Slot
+                                {p.sisaKuota} Orang
                               </span>
                             </div>
 
