@@ -262,15 +262,25 @@ export default function LaporanAkhirPage() {
 
         <div className="flex gap-3 mt-3">
           <button
-            onClick={() => window.open("/template/template-laporan.pdf")}
-            className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm"
+            onClick={() =>
+              window.open(
+                "https://docs.google.com/document/d/1YXq6zUrCv4OdKhV5m5ZoAZPzQ54vS02KG-5nb59U1yI/edit?usp=sharing",
+                "_blank",
+              )
+            }
+            className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm hover:bg-blue-700 transition-colors duration-200 flex items-center gap-2"
           >
             📄 Template Survei BPOM Regular
           </button>
 
           <button
-            onClick={() => window.open("/template/template-lampiran.pdf")}
-            className="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm"
+            onClick={() =>
+              window.open(
+                "https://docs.google.com/document/d/1rZq-AMlUVEh9uk4jucyh09eopL87Bauis47OqT22i5M/edit?usp=sharing",
+                "_blank",
+              )
+            }
+            className="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm hover:bg-indigo-700 transition-colors duration-200 flex items-center gap-2"
           >
             📎 Template Survei BPOM TKPA
           </button>
