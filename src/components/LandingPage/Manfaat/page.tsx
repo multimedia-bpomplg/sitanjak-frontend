@@ -24,8 +24,8 @@ const manfaatList = [
     color: "from-[#DC2626] to-[#7F1D1D]",
   },
   {
-    title: "Sertifikat Magang",
-    desc: "Peserta yang menyelesaikan magang akan mendapatkan sertifikat resmi dari instansi.",
+    title: "Surat Selesai Magang",
+    desc: "Peserta yang telah menyelesaikan kegiatan magang akan mendapatkan surat resmi sebagai bukti telah melaksanakan magang di instansi.",
     icon: HiBadgeCheck,
     color: "from-[#FB923C] to-[#C2410C]",
   },
@@ -64,7 +64,7 @@ export default function Manfaat() {
           observer.disconnect(); // ⛔ stop observer → ringan
         }
       },
-      { threshold: 0.25 }
+      { threshold: 0.25 },
     );
 
     if (sectionRef.current) observer.observe(sectionRef.current);
