@@ -297,22 +297,22 @@ export default function ViewPendaftaranUI() {
               {/* ================= HEAD ================= */}
               <thead>
                 <tr className="bg-slate-50 dark:bg-indigo-500/10 border-b border-slate-200 dark:border-indigo-500/30">
-                  <th className="w-[8%] py-4 px-6 text-center text-xs font-semibold text-slate-600 dark:text-indigo-200 uppercase">
+                  <th className="w-[6%] py-4 px-4 text-center text-xs font-semibold text-slate-600 dark:text-indigo-200 uppercase">
                     No
                   </th>
-                  <th className="w-[22%] py-4 px-6 text-center text-xs font-semibold text-slate-600 dark:text-indigo-200 uppercase">
+                  <th className="w-[30%] py-4 px-4 text-left text-xs font-semibold text-slate-600 dark:text-indigo-200 uppercase">
                     Peserta
                   </th>
-                  <th className="w-[22%] py-4 px-6 text-center text-xs font-semibold text-slate-600 dark:text-indigo-200 uppercase">
+                  <th className="w-[26%] py-4 px-4 text-left text-xs font-semibold text-slate-600 dark:text-indigo-200 uppercase">
                     Email
                   </th>
-                  <th className="w-[16%] py-4 px-6 text-center text-xs font-semibold text-slate-600 dark:text-indigo-200 uppercase">
+                  <th className="w-[16%] py-4 px-4 text-left text-xs font-semibold text-slate-600 dark:text-indigo-200 uppercase">
                     Posisi
                   </th>
-                  <th className="w-[14%] py-4 px-6 text-center text-xs font-semibold text-slate-600 dark:text-indigo-200 uppercase">
+                  <th className="w-[11%] py-4 px-4 text-center text-xs font-semibold text-slate-600 dark:text-indigo-200 uppercase">
                     Kategori
                   </th>
-                  <th className="w-[18%] py-4 px-6 text-center text-xs font-semibold text-slate-600 dark:text-indigo-200 uppercase">
+                  <th className="w-[11%] py-4 px-4 text-center text-xs font-semibold text-slate-600 dark:text-indigo-200 uppercase">
                     Status
                   </th>
                 </tr>
@@ -326,64 +326,60 @@ export default function ViewPendaftaranUI() {
                     className="hover:bg-[#FEF3C7]/40 dark:hover:bg-indigo-500/10 transition"
                   >
                     {/* NO */}
-                    <td className="py-4 px-6 text-center font-medium text-slate-500 dark:text-slate-300">
+                    <td className="py-4 px-4 text-center align-middle font-medium text-slate-500 dark:text-slate-300">
                       {i + 1}
                     </td>
 
                     {/* PESERTA */}
-                    <td className="py-4 px-6 text-center">
-                      <div className="flex justify-center">
+                    <td className="py-4 px-4 text-left align-middle">
+                      <div
+                        onClick={() => {
+                          setSelectedPeserta(p);
+                          setOpenModal(true);
+                        }}
+                        className="flex items-center gap-3 cursor-pointer group"
+                      >
                         <div
-                          onClick={() => {
-                            setSelectedPeserta(p);
-                            setOpenModal(true);
-                          }}
-                          className="flex items-center gap-3 cursor-pointer group"
+                          className="
+                            shrink-0 w-10 h-10 min-w-10 min-h-10
+                            rounded-full
+                            bg-linear-to-br from-[#7F1D1D] to-[#F59E0B]
+                            dark:from-indigo-600 dark:to-violet-500
+                            flex items-center justify-center
+                            text-white shadow
+                            group-hover:scale-110 transition
+                          "
                         >
-                          <div
-                            className="
-                              shrink-0 w-10 h-10 min-w-10 min-h-10
-                              rounded-full
-                              bg-linear-to-br from-[#7F1D1D] to-[#F59E0B]
-                              dark:from-indigo-600 dark:to-violet-500
-                              flex items-center justify-center
-                              text-white shadow
-                              group-hover:scale-110 transition
-                            "
-                          >
-                            <HiUser className="w-5 h-5" />
-                          </div>
-                          <div className="text-left">
-                            <p className="font-medium text-slate-800 dark:text-slate-100">
-                              {p.nama}
-                            </p>
-                            <p className="text-xs text-[#7F1D1D]">
-                              Klik untuk lihat detail
-                            </p>
-                          </div>
+                          <HiUser className="w-5 h-5" />
+                        </div>
+                        <div className="text-left">
+                          <p className="font-medium text-slate-800 dark:text-slate-100">
+                            {p.nama}
+                          </p>
+                          <p className="text-xs text-[#7F1D1D]">
+                            Klik untuk lihat detail
+                          </p>
                         </div>
                       </div>
                     </td>
 
                     {/* KONTAK */}
-                    <td className="py-4 px-6 text-center">
-                      <div className="flex justify-center items-center gap-2 text-slate-600 dark:text-slate-300">
-                        <MdEmail className="w-4 h-4" />
-                        <span className="truncate max-w-50">{p.email}</span>
+                    <td className="py-4 px-4 text-left align-middle">
+                      <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
+                        <MdEmail className="w-4 h-4 shrink-0 text-slate-400" />
+                        <span className="truncate max-w-56">{p.email}</span>
                       </div>
                     </td>
 
                     {/* POSISI */}
-                    <td className="py-4 px-6 text-center">
-                      <div className="flex justify-center">
-                        <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 dark:bg-indigo-500/20 dark:text-indigo-200">
-                          {p.posisi}
-                        </span>
-                      </div>
+                    <td className="py-4 px-4 text-left align-middle">
+                      <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                        {p.posisi}
+                      </span>
                     </td>
 
                     {/* KATEGORI */}
-                    <td className="py-4 px-6 text-center">
+                    <td className="py-4 px-4 text-center align-middle">
                       <div className="flex justify-center">
                         {(() => {
                           const kategori = (p.kategori || "").toLowerCase();
@@ -411,7 +407,7 @@ export default function ViewPendaftaranUI() {
                     </td>
 
                     {/* STATUS */}
-                    <td className="py-4 px-6 text-center">
+                    <td className="py-4 px-4 text-center align-middle">
                       <div className="flex flex-col items-center gap-1">
                         <StatusBadge />
                         {p.mentor ? (

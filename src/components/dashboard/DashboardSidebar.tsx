@@ -295,7 +295,7 @@ export default function DashboardSidebar({
         </div>
 
         {/* ===================== FOOTER CARD ===================== */}
-        <div className="p-3 border-t border-white/10 dark:border-slate-800/80 bg-black/15 dark:bg-slate-900/50">
+        {/* <div className="p-3 border-t border-white/10 dark:border-slate-800/80 bg-black/15 dark:bg-slate-900/50">
           {!collapsed ? (
             <div className="flex items-center justify-between px-2 py-1.5">
               <div className="flex flex-col">
@@ -327,7 +327,7 @@ export default function DashboardSidebar({
               </button>
             </div>
           )}
-        </div>
+        </div> */}
       </aside>
     </>
   );

@@ -19,6 +19,7 @@ import {
   FiUsers,
 } from "react-icons/fi";
 import AnnouncementBox from "@/components/AnnouncementBox";
+import { PesertaDashboardSkeleton } from "@/components/dashboard/skeletons";
 
 /* ================= TYPES ================= */
 
@@ -271,13 +272,7 @@ export default function PesertaDashboard() {
 
   // ================ CONDITIONAL RENDER (SETELAH SEMUA HOOKS) ================
   if (!pendaftaran) {
-    return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <span className="animate-pulse text-slate-400">
-          Memuat dashboard peserta...
-        </span>
-      </div>
-    );
+    return <PesertaDashboardSkeleton />;
   }
 
   if (!peserta) {

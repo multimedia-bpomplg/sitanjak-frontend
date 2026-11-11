@@ -728,28 +728,30 @@ export default function ViewLogbookSuperadmin() {
                   border-b border-slate-200 dark:border-indigo-500/30
                 "
               >
-                {[
-                  "No",
-                  "Peserta",
-                  "Status",
-                  "Logbook",
-                  "Disetujui",
-                  "Menunggu",
-                  "Ditolak",
-                  "Aksi",
-                ].map((h) => (
-                  <th
-                    key={h}
-                    className="
-                      py-4 px-6
-                      text-center
-                      text-xs font-semibold uppercase
-                      text-slate-600 dark:text-indigo-200
-                    "
-                  >
-                    {h}
-                  </th>
-                ))}
+                <th className="w-[5%] py-4 px-4 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
+                  No
+                </th>
+                <th className="w-[28%] py-4 px-4 text-left text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
+                  Peserta
+                </th>
+                <th className="w-[12%] py-4 px-4 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
+                  Status
+                </th>
+                <th className="w-[11%] py-4 px-4 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
+                  Logbook
+                </th>
+                <th className="w-[11%] py-4 px-4 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
+                  Disetujui
+                </th>
+                <th className="w-[11%] py-4 px-4 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
+                  Menunggu
+                </th>
+                <th className="w-[11%] py-4 px-4 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
+                  Ditolak
+                </th>
+                <th className="w-[11%] py-4 px-4 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
+                  Aksi
+                </th>
               </tr>
             </thead>
 
@@ -779,16 +781,16 @@ export default function ViewLogbookSuperadmin() {
                     className="hover:bg-[#FEF3C7]/40 dark:hover:bg-indigo-500/10 transition"
                   >
                     {/* NO */}
-                    <td className="py-4 px-6 text-center font-medium text-slate-500">
+                    <td className="py-4 px-4 text-center align-middle font-medium text-slate-500">
                       {indexOfFirstItem + index + 1}
                     </td>
 
                     {/* PESERTA */}
-                    <td className="py-4 px-6">
-                      <div className="flex items-center justify-center gap-3">
+                    <td className="py-4 px-4 text-left align-middle">
+                      <div className="flex items-center gap-3">
                         <div
                           className="
-                            w-10 h-10 rounded-full
+                            shrink-0 w-10 h-10 rounded-full
                             bg-linear-to-br from-[#7F1D1D] to-[#F59E0B]
                             dark:from-indigo-600 dark:to-violet-500
                             flex items-center justify-center
@@ -809,12 +811,12 @@ export default function ViewLogbookSuperadmin() {
                     </td>
 
                     {/* STATUS */}
-                    <td className="py-4 px-6 text-center">
+                    <td className="py-4 px-4 text-center align-middle">
                       {getStatusBadge(p.status)}
                     </td>
 
                     {/* TOTAL LOGBOOK */}
-                    <td className="py-4 px-6 text-center">
+                    <td className="py-4 px-4 text-center align-middle">
                       <div className="flex justify-center items-center gap-2">
                         <HiDocumentText className="w-4 h-4 text-slate-400" />
                         <span className="font-semibold">
@@ -824,7 +826,7 @@ export default function ViewLogbookSuperadmin() {
                     </td>
 
                     {/* DISETUJUI */}
-                    <td className="py-4 px-6 text-center">
+                    <td className="py-4 px-4 text-center align-middle">
                       <div className="flex justify-center items-center gap-2 text-emerald-600">
                         <HiCheckCircle className="w-4 h-4" />
                         <span className="font-semibold">
@@ -834,7 +836,7 @@ export default function ViewLogbookSuperadmin() {
                     </td>
 
                     {/* MENUNGGU */}
-                    <td className="py-4 px-6 text-center">
+                    <td className="py-4 px-4 text-center align-middle">
                       <div className="flex justify-center items-center gap-2 text-amber-600">
                         <HiClock className="w-4 h-4" />
                         <span className="font-semibold">
@@ -844,7 +846,7 @@ export default function ViewLogbookSuperadmin() {
                     </td>
 
                     {/* DITOLAK */}
-                    <td className="py-4 px-6 text-center">
+                    <td className="py-4 px-4 text-center align-middle">
                       <div className="flex justify-center items-center gap-2 text-red-600">
                         <HiXCircle className="w-4 h-4" />
                         <span className="font-semibold">
@@ -854,7 +856,7 @@ export default function ViewLogbookSuperadmin() {
                     </td>
 
                     {/* AKSI */}
-                    <td className="py-4 px-6 text-center">
+                    <td className="py-4 px-4 text-center align-middle">
                       <div className="flex justify-center gap-2 flex-wrap">
                         {/* LIHAT */}
                         <button

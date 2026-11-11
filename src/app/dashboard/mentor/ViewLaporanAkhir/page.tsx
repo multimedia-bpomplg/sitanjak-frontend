@@ -365,9 +365,9 @@ export default function ViewLaporanAkhirMentor() {
               <thead>
                 <tr className="bg-slate-50 dark:bg-indigo-500/10 border-b border-slate-200 dark:border-indigo-500/30">
                   <Th className="w-[6%]">No</Th>
-                  <Th className="w-[22%]">Peserta</Th>
-                  <Th className="w-[22%]">Email</Th>
-                  <Th className="w-[14%]">Posisi</Th>
+                  <Th className="w-[22%]" align="left">Peserta</Th>
+                  <Th className="w-[22%]" align="left">Email</Th>
+                  <Th className="w-[14%]" align="left">Posisi</Th>
                   <Th className="w-[16%]">Status Laporan Akhir</Th>
                   <Th className="w-[20%]">Aksi</Th>
                 </tr>
@@ -386,12 +386,12 @@ export default function ViewLaporanAkhirMentor() {
                       key={p.id}
                       className="hover:bg-[#FEF3C7]/40 dark:hover:bg-indigo-500/10 transition"
                     >
-                      <td className="py-4 px-6 text-center font-medium text-slate-500 dark:text-slate-300">
+                      <td className="py-4 px-6 text-center align-middle font-medium text-slate-500 dark:text-slate-300">
                         {i + 1}
                       </td>
 
-                      <td className="py-4 px-6">
-                        <div className="flex justify-center items-center gap-3">
+                      <td className="py-4 px-6 text-left align-middle">
+                        <div className="flex items-center gap-3">
                           <div
                             className="
                                 shrink-0 w-10 h-10
@@ -416,21 +416,15 @@ export default function ViewLaporanAkhirMentor() {
                         </div>
                       </td>
 
-                      <td className="py-4 px-6 text-center align-middle">
-                        <div className="flex justify-center items-center gap-2 text-slate-600 dark:text-slate-300">
-                          <MdEmail className="w-4 h-4" />
+                      <td className="py-4 px-6 text-left align-middle">
+                        <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
+                          <MdEmail className="w-4 h-4 shrink-0 text-slate-400" />
                           <span className="text-sm">{p.email}</span>
                         </div>
                       </td>
 
-                      <td className="py-4 px-6 text-center align-middle">
-                        <span
-                          className="
-                            inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold
-                            bg-blue-50 text-blue-700
-                            dark:bg-indigo-500/20 dark:text-indigo-200
-                          "
-                        >
+                      <td className="py-4 px-6 text-left align-middle">
+                        <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
                           {p.posisi}
                         </span>
                       </td>
@@ -534,11 +528,18 @@ export default function ViewLaporanAkhirMentor() {
 }
 
 /* ================= REUSABLE COMPONENTS ================= */
-function Th({ children, className = "" }: any) {
+function Th({ children, className = "", align = "center" }: any) {
+  const alignClass =
+    align === "left"
+      ? "text-left"
+      : align === "right"
+      ? "text-right"
+      : "text-center";
+
   return (
     <th
       className={`
-          py-4 px-6 text-center
+          py-4 px-6 ${alignClass}
           text-xs font-semibold uppercase
           text-slate-600 dark:text-indigo-200
           tracking-wider

@@ -500,14 +500,13 @@ export default function ViewLaporanAkhirSuperadmin() {
                   className={`
                     ${
                       i === 0
-                        ? "col-span-1"
+                        ? "col-span-1 text-center"
                         : i === 1
-                          ? "col-span-5"
+                          ? "col-span-5 text-left"
                           : i === 4
-                            ? "col-span-2"
-                            : "col-span-2"
+                            ? "col-span-2 text-center"
+                            : "col-span-2 text-center"
                     }
-                    text-center
                     text-xs font-semibold uppercase
                     text-slate-600 dark:text-indigo-200
                   `}
@@ -561,27 +560,25 @@ export default function ViewLaporanAkhirSuperadmin() {
                       </div>
 
                       {/* PESERTA */}
-                      <div className="col-span-5 flex justify-center">
-                        <div className="flex items-center gap-3 justify-center">
-                          <div
-                            className="
-                              w-10 h-10 rounded-full
-                              bg-linear-to-br from-[#7F1D1D] to-[#F59E0B]
-                              dark:from-indigo-600 dark:to-violet-500
-                              flex items-center justify-center
-                              text-white shadow
-                            "
-                          >
-                            <HiUser className="w-5 h-5" />
-                          </div>
-                          <div className="text-center leading-tight">
-                            <p className="font-medium text-slate-800 dark:text-slate-100 truncate">
-                              {peserta.name}
-                            </p>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                              {peserta.email}
-                            </p>
-                          </div>
+                      <div className="col-span-5 flex items-center gap-3 text-left">
+                        <div
+                          className="
+                            shrink-0 w-10 h-10 rounded-full
+                            bg-linear-to-br from-[#7F1D1D] to-[#F59E0B]
+                            dark:from-indigo-600 dark:to-violet-500
+                            flex items-center justify-center
+                            text-white shadow
+                          "
+                        >
+                          <HiUser className="w-5 h-5" />
+                        </div>
+                        <div className="text-left leading-tight min-w-0 flex-1">
+                          <p className="font-medium text-slate-800 dark:text-slate-100 truncate">
+                            {peserta.name}
+                          </p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                            {peserta.email}
+                          </p>
                         </div>
                       </div>
 

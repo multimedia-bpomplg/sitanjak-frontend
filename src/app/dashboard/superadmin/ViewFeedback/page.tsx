@@ -457,19 +457,19 @@ export default function ViewFeedbackSuperadmin() {
                     border-b border-slate-200 dark:border-indigo-500/30
                   "
                 >
-                  <th className="w-[6%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
+                  <th className="w-[6%] py-4 px-4 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
                     No
                   </th>
-                  <th className="w-[24%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
+                  <th className="w-[32%] py-4 px-4 text-left text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
                     Peserta
                   </th>
-                  <th className="w-[26%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
+                  <th className="w-[28%] py-4 px-4 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
                     Status Feedback
                   </th>
-                  <th className="w-[18%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
+                  <th className="w-[18%] py-4 px-4 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
                     Feedback Terakhir
                   </th>
-                  <th className="w-[16%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
+                  <th className="w-[16%] py-4 px-4 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
                     Aksi
                   </th>
                 </tr>
@@ -481,15 +481,15 @@ export default function ViewFeedbackSuperadmin() {
                     key={peserta._id}
                     className="hover:bg-[#FEF3C7]/40 dark:hover:bg-indigo-500/10 transition"
                   >
-                    <td className="py-4 px-6 text-center font-medium text-slate-500 dark:text-slate-300">
+                    <td className="py-4 px-4 text-center align-middle font-medium text-slate-500 dark:text-slate-300">
                       {indexOfFirstItem + index + 1}
                     </td>
 
-                    <td className="py-4 px-6">
-                      <div className="flex items-center justify-center gap-3">
+                    <td className="py-4 px-4 text-left align-middle">
+                      <div className="flex items-center gap-3">
                         <div
                           className="
-                            w-10 h-10
+                            shrink-0 w-10 h-10
                             rounded-full
                             bg-linear-to-br from-[#7F1D1D] to-[#F59E0B]
                             dark:from-indigo-600 dark:to-violet-500
@@ -510,7 +510,7 @@ export default function ViewFeedbackSuperadmin() {
                       </div>
                     </td>
 
-                    <td className="py-4 px-6">
+                    <td className="py-4 px-4 text-center align-middle">
                       <div className="space-y-2 text-sm">
                         <div className="flex justify-center flex-wrap gap-2">
                           {peserta.responded > 0 && (
@@ -535,7 +535,7 @@ export default function ViewFeedbackSuperadmin() {
                       </div>
                     </td>
 
-                    <td className="py-4 px-6 text-center">
+                    <td className="py-4 px-4 text-center align-middle">
                       {peserta.lastFeedbackDate ? (
                         <div className="flex justify-center items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
                           <HiCalendar className="w-4 h-4" />

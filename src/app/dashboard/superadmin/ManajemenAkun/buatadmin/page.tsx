@@ -415,19 +415,19 @@ export default function BuatAkunAdminPage() {
                   border-b border-slate-200 dark:border-indigo-500/30
                 "
               >
-                <th className="w-[8%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
+                <th className="w-[6%] py-4 px-4 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
                   No
                 </th>
-                <th className="w-[24%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
+                <th className="w-[32%] py-4 px-4 text-left text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
                   Nama
                 </th>
-                <th className="w-[28%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
+                <th className="w-[28%] py-4 px-4 text-left text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
                   Email
                 </th>
-                <th className="w-[20%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
+                <th className="w-[20%] py-4 px-4 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
                   Periode
                 </th>
-                <th className="w-[20%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
+                <th className="w-[14%] py-4 px-4 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
                   Status
                 </th>
               </tr>
@@ -454,48 +454,46 @@ export default function BuatAkunAdminPage() {
                       transition
                     "
                   >
-                    <td className="py-4 px-6 text-center font-medium text-slate-500">{index + 1}</td>
+                    <td className="py-4 px-4 text-center align-middle font-medium text-slate-500">{index + 1}</td>
 
-                    <td className="py-4 px-6 text-center">
-                      <div className="flex justify-center">
+                    <td className="py-4 px-4 text-left align-middle">
+                      <div
+                        onClick={() => {
+                          setSelected(item);
+                          setOpenAksi(true);
+                        }}
+                        className="flex items-center gap-3 cursor-pointer group"
+                      >
                         <div
-                          onClick={() => {
-                            setSelected(item);
-                            setOpenAksi(true);
-                          }}
-                          className="flex items-center gap-3 cursor-pointer group"
+                          className="
+                            shrink-0 w-10 h-10 min-w-10 min-h-10
+                            rounded-full
+                            bg-linear-to-br from-[#7F1D1D] to-[#F59E0B]
+                            dark:from-indigo-600 dark:to-violet-500
+                            flex items-center justify-center
+                            text-white shadow
+                            group-hover:scale-110 transition
+                          "
                         >
-                          <div
-                            className="
-                              shrink-0 w-10 h-10 min-w-10 min-h-10
-                              rounded-full
-                              bg-linear-to-br from-[#7F1D1D] to-[#F59E0B]
-                              dark:from-indigo-600 dark:to-violet-500
-                              flex items-center justify-center
-                              text-white shadow
-                              group-hover:scale-110 transition
-                            "
-                          >
-                            <HiUser className="w-5 h-5" />
-                          </div>
+                          <HiUser className="w-5 h-5" />
+                        </div>
 
-                          <div className="text-left">
-                            <p className="font-medium text-slate-800 dark:text-slate-100">
-                              {item.name}
-                            </p>
-                            <p className="text-xs text-[#7F1D1D]">
-                              Klik untuk lihat detail
-                            </p>
-                          </div>
+                        <div className="text-left">
+                          <p className="font-medium text-slate-800 dark:text-slate-100">
+                            {item.name}
+                          </p>
+                          <p className="text-xs text-[#7F1D1D]">
+                            Klik untuk lihat detail
+                          </p>
                         </div>
                       </div>
                     </td>
 
-                    <td className="py-4 px-6 text-center text-slate-600 dark:text-slate-300">
+                    <td className="py-4 px-4 text-left align-middle text-slate-600 dark:text-slate-300">
                       {item.email}
                     </td>
 
-                    <td className="py-4 px-6 text-center">
+                    <td className="py-4 px-4 text-center align-middle">
                       <span
                         className="
                           inline-flex items-center

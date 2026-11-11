@@ -9,6 +9,7 @@ import {
   HiAcademicCap,
 } from "react-icons/hi";
 import AnnouncementBox from "@/components/AnnouncementBox";
+import { MentorDashboardSkeleton } from "@/components/dashboard/skeletons";
 
 /* ================= TYPE ================= */
 type Peserta = {
@@ -115,11 +116,7 @@ export default function MentorDashboard() {
   const paginatedPeserta = pesertaBaru.slice((page - 1) * LIMIT, page * LIMIT);
 
   if (loading) {
-    return (
-      <div className="p-6 text-sm text-gray-500">
-        ⏳ Memuat dashboard mentor...
-      </div>
-    );
+    return <MentorDashboardSkeleton />;
   }
 
   return (

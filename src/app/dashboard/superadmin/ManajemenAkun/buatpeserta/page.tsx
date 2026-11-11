@@ -441,21 +441,25 @@ export default function BuatAkunPesertaPage() {
                   border-b border-slate-200 dark:border-indigo-500/30
                 "
               >
-                <th className="w-[8%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
+                <th className="w-[5%] py-4 px-4 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
                   No
                 </th>
-                <th className="w-[24%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
+                <th className="w-[27%] py-4 px-4 text-left text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
                   Nama
                 </th>
-                <th className="w-[28%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
+                <th className="w-[24%] py-4 px-4 text-left text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
                   Email
                 </th>
-                <th className="w-[20%] py-4 px-6 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
+                <th className="w-[16%] py-4 px-4 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
                   Periode
                 </th>
-                <th className="w-[20%] py-4 px-6 text-center">Status</th>
+                <th className="w-[14%] py-4 px-4 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
+                  Status
+                </th>
 
-                <th className="w-[20%] py-4 px-6 text-center">Status Magang</th>
+                <th className="w-[14%] py-4 px-4 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
+                  Status Magang
+                </th>
               </tr>
             </thead>
 
@@ -464,7 +468,7 @@ export default function BuatAkunPesertaPage() {
               {paginatedData.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={5}
+                    colSpan={6}
                     className="py-14 text-center text-slate-500 dark:text-slate-400"
                   >
                     Data tidak ditemukan
@@ -481,53 +485,51 @@ export default function BuatAkunPesertaPage() {
                     "
                   >
                     {/* NO */}
-                    <td className="py-4 px-6 text-center font-medium text-slate-500">
+                    <td className="py-4 px-4 text-center align-middle font-medium text-slate-500">
                       {startIndex + index + 1}
                     </td>
 
                     {/* NAMA */}
-                    <td className="py-4 px-6 text-center">
-                      <div className="flex justify-center">
+                    <td className="py-4 px-4 text-left align-middle">
+                      <div
+                        onClick={() => {
+                          setSelected(item);
+                          setOpenAksi(true);
+                        }}
+                        className="flex items-center gap-3 cursor-pointer group"
+                      >
                         <div
-                          onClick={() => {
-                            setSelected(item);
-                            setOpenAksi(true);
-                          }}
-                          className="flex items-center gap-3 cursor-pointer group"
+                          className="
+                            shrink-0 w-10 h-10 min-w-10 min-h-10
+                            rounded-full
+                            bg-linear-to-br from-[#7F1D1D] to-[#F59E0B]
+                            dark:from-indigo-600 dark:to-violet-500
+                            flex items-center justify-center
+                            text-white shadow
+                            group-hover:scale-110 transition
+                          "
                         >
-                          <div
-                            className="
-                              shrink-0 w-10 h-10 min-w-10 min-h-10
-                              rounded-full
-                              bg-linear-to-br from-[#7F1D1D] to-[#F59E0B]
-                              dark:from-indigo-600 dark:to-violet-500
-                              flex items-center justify-center
-                              text-white shadow
-                              group-hover:scale-110 transition
-                            "
-                          >
-                            <HiUser className="w-5 h-5" />
-                          </div>
+                          <HiUser className="w-5 h-5" />
+                        </div>
 
-                          <div className="text-left">
-                            <p className="font-medium text-slate-800 dark:text-slate-100">
-                              {item.name}
-                            </p>
-                            <p className="text-xs text-[#7F1D1D]">
-                              Klik untuk lihat detail
-                            </p>
-                          </div>
+                        <div className="text-left">
+                          <p className="font-medium text-slate-800 dark:text-slate-100">
+                            {item.name}
+                          </p>
+                          <p className="text-xs text-[#7F1D1D]">
+                            Klik untuk lihat detail
+                          </p>
                         </div>
                       </div>
                     </td>
 
                     {/* EMAIL */}
-                    <td className="py-4 px-6 text-center text-slate-600 dark:text-slate-300">
+                    <td className="py-4 px-4 text-left align-middle text-slate-600 dark:text-slate-300">
                       {item.email}
                     </td>
 
                     {/* PERIODE */}
-                    <td className="py-4 px-6 text-center">
+                    <td className="py-4 px-4 text-center align-middle">
                       <span
                         className="
                           inline-flex items-center
@@ -542,7 +544,7 @@ export default function BuatAkunPesertaPage() {
                     </td>
 
                     {/* STATUS */}
-                    <td className="py-4 px-6 text-center">
+                    <td className="py-4 px-4 text-center align-middle">
                       <span
                         className={`
                           inline-flex items-center justify-center
@@ -559,7 +561,7 @@ export default function BuatAkunPesertaPage() {
                       </span>
                     </td>
                     {/* STATUS MAGANG */}
-                    <td className="py-4 px-6 text-center">
+                    <td className="py-4 px-4 text-center align-middle">
                       <StatusMagangBadge
                         status={item.statusMagang || "Menunggu"}
                       />

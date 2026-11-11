@@ -62,6 +62,7 @@ import { id } from "date-fns/locale";
 
 // Register Chart.js components
 ChartJS.register(...registerables);
+import { SuperAdminDashboardSkeleton } from "@/components/dashboard/skeletons";
 
 /* ---------------------------
       Data Types
@@ -1001,6 +1002,10 @@ export default function OversistemDashboard() {
   };
 
   const isMobile = typeof window !== "undefined" && window.innerWidth < 640;
+
+  if (loading && !stats.lastUpdated) {
+    return <SuperAdminDashboardSkeleton />;
+  }
 
   /* ---------------------------
         Render - REAL TIME VERSION
@@ -2005,22 +2010,22 @@ export default function OversistemDashboard() {
             <table className="w-full">
               <thead className="bg-gray-50 dark:bg-gray-700">
                 <tr>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Tanggal
                   </th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Pendaftaran
                   </th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Logbook
                   </th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Peserta Aktif
                   </th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Mentor Aktif
                   </th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Admin Aktif
                   </th>
                 </tr>
@@ -2031,10 +2036,10 @@ export default function OversistemDashboard() {
                     key={index}
                     className="hover:bg-[#FEF3C7]/40 dark:hover:bg-indigo-500/10 transition-colors"
                   >
-                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900 dark:text-gray-300">
-                      {format(parseISO(row.date), "MMM yyyy", { locale: id })}
+                    <td className="px-6 py-4 whitespace-nowrap text-left align-middle text-sm font-medium text-gray-900 dark:text-gray-200">
+                      {format(parseISO(row.date), "MMMM yyyy", { locale: id })}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900 dark:text-gray-300">
+                    <td className="px-6 py-4 whitespace-nowrap text-center align-middle text-sm text-gray-900 dark:text-gray-300">
                       <span
                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                           row.pendaftaran > 0

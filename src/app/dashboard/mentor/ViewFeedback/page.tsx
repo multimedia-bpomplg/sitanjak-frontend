@@ -193,12 +193,12 @@ export default function ViewFeedbackMentor() {
             <table className="w-full">
               <thead>
                 <tr className="bg-slate-50 dark:bg-indigo-500/10 border-b border-slate-200 dark:border-indigo-500/30">
-                  <Th className="w-[6%]">No</Th>
-                  <Th className="w-[20%]">Peserta</Th>
-                  <Th className="w-[15%]">Periode</Th>
-                  <Th className="w-[30%]">Feedback untuk Mentor</Th>
-                  <Th className="w-[15%]">Status</Th>
-                  <Th className="w-[14%]">Aksi</Th>
+                  <Th className="w-[6%]" align="center">No</Th>
+                  <Th className="w-[22%]" align="left">Peserta</Th>
+                  <Th className="w-[14%]" align="center">Periode</Th>
+                  <Th className="w-[30%]" align="left">Feedback untuk Mentor</Th>
+                  <Th className="w-[14%]" align="center">Status</Th>
+                  <Th className="w-[14%]" align="center">Aksi</Th>
                 </tr>
               </thead>
 
@@ -208,16 +208,16 @@ export default function ViewFeedbackMentor() {
                     key={f._id}
                     className="hover:bg-[#FEF3C7]/40 dark:hover:bg-indigo-500/10 transition"
                   >
-                    <td className="py-4 px-6 text-center font-medium text-slate-500">
+                    <td className="py-4 px-4 text-center align-middle font-medium text-slate-500">
                       {i + 1}
                     </td>
 
-                    <td className="py-4 px-6">
+                    <td className="py-4 px-4 text-left align-middle">
                       <div className="flex items-center gap-3">
                         <div className="shrink-0 w-10 h-10 rounded-full bg-linear-to-br from-[#7F1D1D] to-[#F59E0B] dark:from-indigo-600 dark:to-violet-500 flex items-center justify-center text-white">
                           <HiUser className="w-5 h-5" />
                         </div>
-                        <div>
+                        <div className="text-left leading-tight">
                           <p className="font-medium text-slate-800 dark:text-slate-100">
                             {f.user?.name || "Unknown"}
                           </p>
@@ -228,13 +228,13 @@ export default function ViewFeedbackMentor() {
                       </div>
                     </td>
 
-                    <td className="py-4 px-6 text-center">
+                    <td className="py-4 px-4 text-center align-middle">
                       <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 dark:bg-indigo-500/20 dark:text-indigo-200">
                         {f.month}
                       </span>
                     </td>
 
-                    <td className="py-4 px-6">
+                    <td className="py-4 px-4 text-left align-middle">
                       <div className="max-w-xs line-clamp-2 text-sm text-slate-600 dark:text-slate-300">
                         {f.feedbackMentor}
                       </div>
@@ -245,7 +245,7 @@ export default function ViewFeedbackMentor() {
                       )}
                     </td>
 
-                    <td className="py-4 px-6 text-center">
+                    <td className="py-4 px-4 text-center align-middle">
                       <span
                         className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold
                           ${
@@ -259,7 +259,7 @@ export default function ViewFeedbackMentor() {
                       </span>
                     </td>
 
-                    <td className="py-4 px-6 text-center">
+                    <td className="py-4 px-4 text-center align-middle">
                       <button
                         onClick={() => setSelectedFeedback(f)}
                         className="
@@ -302,11 +302,12 @@ export default function ViewFeedbackMentor() {
   );
 }
 
-function Th({ children, className = "" }: any) {
+function Th({ children, className = "", align = "center" }: any) {
+  const alignClass = align === "left" ? "text-left" : align === "right" ? "text-right" : "text-center";
   return (
     <th
       className={`
-        py-4 px-6 text-center
+        py-4 px-4 ${alignClass}
         text-xs font-semibold uppercase
         text-slate-600 dark:text-indigo-200
         tracking-wider

@@ -265,52 +265,61 @@ export default function DashboardHeader({
 
             {/* Notification Popover */}
             {notificationOpen && (
-              <div
-                className="
-                  absolute right-0 mt-3 w-80 sm:w-96
-                  bg-white dark:bg-slate-900
-                  border border-slate-200 dark:border-slate-800
-                  rounded-2xl shadow-xl p-4 z-50
-                  animate-scaleIn
-                "
-              >
-                <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-sm text-slate-900 dark:text-white">
-                      Pusat Informasi
-                    </span>
-                    <span className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300">
-                      Sistem Aktif
-                    </span>
-                  </div>
-                </div>
+              <>
+                {/* Backdrop transparan untuk mobile */}
+                <div
+                  className="fixed inset-0 z-40 sm:hidden"
+                  onClick={() => setNotificationOpen(false)}
+                />
 
-                <div className="py-3 space-y-2.5 max-h-64 overflow-y-auto">
-                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 flex gap-3">
-                    <CheckCircle2 size={18} className="text-emerald-500 shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-xs font-medium text-slate-800 dark:text-slate-200">
-                        Sistem SI TANJAK Berjalan Normal
-                      </p>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                        Layanan pendaftaran & monitoring magang BBPOM Palembang siap digunakan.
-                      </p>
+                <div
+                  className="
+                    fixed inset-x-4 top-[74px] sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-3
+                    w-auto sm:w-96
+                    bg-white dark:bg-slate-900
+                    border border-slate-200 dark:border-slate-800
+                    rounded-2xl shadow-xl p-4 z-50
+                    animate-scaleIn
+                  "
+                >
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-sm text-slate-900 dark:text-white">
+                        Pusat Informasi
+                      </span>
+                      <span className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+                        Sistem Aktif
+                      </span>
                     </div>
                   </div>
 
-                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 flex gap-3">
-                    <AlertCircle size={18} className="text-blue-500 shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-xs font-medium text-slate-800 dark:text-slate-200">
-                        Panduan Penggunaan
-                      </p>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                        Pastikan Anda membaca panduan resmi pada menu dokumentasi samping.
-                      </p>
+                  <div className="py-3 space-y-2.5 max-h-64 overflow-y-auto">
+                    <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 flex gap-3">
+                      <CheckCircle2 size={18} className="text-emerald-500 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-xs font-medium text-slate-800 dark:text-slate-200">
+                          Sistem SI TANJAK Berjala
+                        </p>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                          Layanan pendaftaran & monitoring magang BBPOM Palembang siap digunakan.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 flex gap-3">
+                      <AlertCircle size={18} className="text-blue-500 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-xs font-medium text-slate-800 dark:text-slate-200">
+                          Panduan Penggunaan
+                        </p>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                          Pastikan Anda membaca panduan resmi pada menu dokumentasi samping.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              </>
             )}
           </div>
 
@@ -381,15 +390,22 @@ export default function DashboardHeader({
 
             {/* Profile Dropdown Menu */}
             {profileDropdownOpen && (
-              <div
-                className="
-                  absolute right-0 mt-3 w-72
-                  bg-white dark:bg-slate-900
-                  border border-slate-200 dark:border-slate-800
-                  rounded-2xl shadow-xl p-2 z-50
-                  animate-scaleIn
-                "
-              >
+              <>
+                {/* Backdrop transparan untuk mobile */}
+                <div
+                  className="fixed inset-0 z-40 sm:hidden"
+                  onClick={() => setProfileDropdownOpen(false)}
+                />
+
+                <div
+                  className="
+                    absolute right-0 mt-3 w-72 max-w-[calc(100vw-2rem)]
+                    bg-white dark:bg-slate-900
+                    border border-slate-200 dark:border-slate-800
+                    rounded-2xl shadow-xl p-2 z-50
+                    animate-scaleIn
+                  "
+                >
                 {/* Header Profile Card */}
                 <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl mb-2">
                   <div className="flex items-center gap-3">
@@ -470,7 +486,8 @@ export default function DashboardHeader({
                   <span>Keluar dari Akun</span>
                 </button>
               </div>
-            )}
+            </>
+          )}
           </div>
         </div>
       </div>

@@ -605,22 +605,22 @@ export default function ViewLogbookMentor() {
                   {/* ================= HEAD ================= */}
                   <thead>
                     <tr className="bg-slate-50 dark:bg-indigo-500/10 border-b border-slate-200 dark:border-indigo-500/30">
-                      <th className="w-[8%] py-4 px-6 text-center text-xs font-semibold text-slate-600 dark:text-indigo-200 uppercase">
+                      <th className="w-[6%] py-4 px-4 text-center text-xs font-semibold text-slate-600 dark:text-indigo-200 uppercase">
                         No
                       </th>
-                      <th className="w-[22%] py-4 px-6 text-center text-xs font-semibold text-slate-600 dark:text-indigo-200 uppercase">
+                      <th className="w-[30%] py-4 px-4 text-left text-xs font-semibold text-slate-600 dark:text-indigo-200 uppercase">
                         Peserta
                       </th>
-                      <th className="w-[22%] py-4 px-6 text-center text-xs font-semibold text-slate-600 dark:text-indigo-200 uppercase">
+                      <th className="w-[26%] py-4 px-4 text-left text-xs font-semibold text-slate-600 dark:text-indigo-200 uppercase">
                         Email
                       </th>
-                      <th className="w-[16%] py-4 px-6 text-center text-xs font-semibold text-slate-600 dark:text-indigo-200 uppercase">
+                      <th className="w-[16%] py-4 px-4 text-left text-xs font-semibold text-slate-600 dark:text-indigo-200 uppercase">
                         Posisi
                       </th>
-                      <th className="w-[14%] py-4 px-6 text-center text-xs font-semibold text-slate-600 dark:text-indigo-200 uppercase">
+                      <th className="w-[11%] py-4 px-4 text-center text-xs font-semibold text-slate-600 dark:text-indigo-200 uppercase">
                         Kategori
                       </th>
-                      <th className="w-[18%] py-4 px-6 text-center text-xs font-semibold text-slate-600 dark:text-indigo-200 uppercase">
+                      <th className="w-[11%] py-4 px-4 text-center text-xs font-semibold text-slate-600 dark:text-indigo-200 uppercase">
                         Aksi
                       </th>
                     </tr>
@@ -633,11 +633,11 @@ export default function ViewLogbookMentor() {
                         key={p.email}
                         className="hover:bg-[#FEF3C7]/40 dark:hover:bg-indigo-500/10 transition"
                       >
-                        <td className="py-4 px-6 text-center font-medium text-slate-500 dark:text-slate-300">
+                        <td className="py-4 px-4 text-center align-middle font-medium text-slate-500 dark:text-slate-300">
                           {i + 1}
                         </td>
-                        <td className="py-4 px-6 text-center">
-                          <div className="flex justify-center items-center gap-3">
+                        <td className="py-4 px-4 text-left align-middle">
+                          <div className="flex items-center gap-3">
                             <div
                               className="
                                   shrink-0 w-10 h-10 min-w-10 min-h-10
@@ -661,27 +661,23 @@ export default function ViewLogbookMentor() {
                             </div>
                           </div>
                         </td>
-                        <td className="py-4 px-6 text-center">
-                          <div className="flex justify-center items-center gap-2 text-slate-600 dark:text-slate-300">
-                            <MdEmail className="w-4 h-4" />
-                            <span className="truncate max-w-50">{p.email}</span>
+                        <td className="py-4 px-4 text-left align-middle">
+                          <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
+                            <MdEmail className="w-4 h-4 shrink-0 text-slate-400" />
+                            <span className="truncate max-w-56">{p.email}</span>
                           </div>
                         </td>
-                        <td className="py-4 px-6 text-center">
-                          <div className="flex justify-center">
-                            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 dark:bg-indigo-500/20 dark:text-indigo-200">
-                              {p.posisi}
-                            </span>
-                          </div>
+                        <td className="py-4 px-4 text-left align-middle">
+                          <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                            {p.posisi}
+                          </span>
                         </td>
-                        <td className="py-4 px-6 text-center">
-                          <div className="flex justify-center">
-                            <span className="px-3 py-1.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-100">
-                              {p.kategori}
-                            </span>
-                          </div>
+                        <td className="py-4 px-4 text-center align-middle">
+                          <span className="px-3 py-1.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-100">
+                            {p.kategori}
+                          </span>
                         </td>
-                        <td className="py-4 px-4 sm:px-6">
+                        <td className="py-4 px-4 text-center align-middle">
                           <div
                             className="
                                 flex flex-col sm:flex-row
