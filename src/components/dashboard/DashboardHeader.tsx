@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Menu,
   ChevronsLeft,
@@ -18,6 +18,9 @@ import {
   Shield,
   CheckCircle2,
   AlertCircle,
+  AlertTriangle,
+  Info,
+  Check,
   ExternalLink,
 } from "lucide-react";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
@@ -28,6 +31,16 @@ interface UserProfile {
   email: string;
   roles: string[];
   avatar?: string;
+}
+
+interface NotificationItem {
+  id: string;
+  title: string;
+  message: string;
+  type: "info" | "success" | "warning" | "alert";
+  linkUrl?: string;
+  createdAt: string;
+  isRead: boolean;
 }
 
 interface DashboardHeaderProps {
@@ -75,15 +88,115 @@ export default function DashboardHeader({
   onSignOut,
 }: DashboardHeaderProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const confirm = useConfirm();
   const config = ROLE_NAVIGATION_CONFIG[role];
 
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [unreadCount, setUnreadCount] = useState<number>(0);
   const [isDark, setIsDark] = useState(false);
 
   const profileRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
+
+  // Fetch real-time notifications
+  const fetchNotifications = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+      const res = await fetch(`${apiUrl}/notifications`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (res.ok) {
+        const result = await res.json();
+        if (result?.data) {
+          setNotifications(result.data.notifications || []);
+          setUnreadCount(result.data.unreadCount || 0);
+        }
+      }
+    } catch {
+      // Diamkan agar tidak mengganggu UI jika jaringan terputus
+    }
+  };
+
+  // Polling berkala setiap 20 detik
+  useEffect(() => {
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 20000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleNotificationClick = async (notif: NotificationItem) => {
+    try {
+      if (!notif.isRead) {
+        setNotifications((prev) =>
+          prev.map((n) => (n.id === notif.id ? { ...n, isRead: true } : n))
+        );
+        setUnreadCount((prev) => Math.max(0, prev - 1));
+
+        const token = localStorage.getItem("token");
+        if (token) {
+          const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+          fetch(`${apiUrl}/notifications/${notif.id}/read`, {
+            method: "PATCH",
+            headers: { Authorization: `Bearer ${token}` },
+          });
+        }
+      }
+
+      setNotificationOpen(false);
+
+      if (notif.linkUrl) {
+        router.push(notif.linkUrl);
+      }
+    } catch (err) {
+      console.error("Gagal memproses notifikasi:", err);
+    }
+  };
+
+  const handleMarkAllRead = async () => {
+    try {
+      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+      setUnreadCount(0);
+
+      const token = localStorage.getItem("token");
+      if (token) {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+        await fetch(`${apiUrl}/notifications/read-all`, {
+          method: "PATCH",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      }
+    } catch (err) {
+      console.error("Gagal tandai semua dibaca:", err);
+    }
+  };
+
+  const formatTimeAgo = (dateStr: string) => {
+    try {
+      const date = new Date(dateStr);
+      const now = new Date();
+      const diffSec = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+      if (diffSec < 60) return "Baru saja";
+      const diffMin = Math.floor(diffSec / 60);
+      if (diffMin < 60) return `${diffMin}m lalu`;
+      const diffHour = Math.floor(diffMin / 60);
+      if (diffHour < 24) return `${diffHour}j lalu`;
+      const diffDay = Math.floor(diffHour / 24);
+      if (diffDay < 7) return `${diffDay}h lalu`;
+      return date.toLocaleDateString("id-ID", { day: "numeric", month: "short" });
+    } catch {
+      return "";
+    }
+  };
 
   // Sync tema dark mode
   useEffect(() => {
@@ -227,8 +340,12 @@ export default function DashboardHeader({
               "
             >
               <Bell size={19} />
-              {/* Badge dot */}
-              <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-orange-500 ring-2 ring-white dark:ring-slate-900" />
+              {/* Badge unread count */}
+              {unreadCount > 0 && (
+                <span className="absolute top-1 right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center ring-2 ring-white dark:ring-slate-900 animate-pulse">
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              )}
             </button>
 
             {/* Notification Popover */}
@@ -250,41 +367,99 @@ export default function DashboardHeader({
                     animate-scaleIn
                   "
                 >
+                  {/* Header Popover */}
                   <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
                     <div className="flex items-center gap-2">
                       <span className="font-semibold text-sm text-slate-900 dark:text-white">
-                        Pusat Informasi
+                        Pemberitahuan
                       </span>
-                      <span className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300">
-                        Sistem Aktif
-                      </span>
+                      {unreadCount > 0 ? (
+                        <span className="px-2 py-0.5 text-[10px] font-semibold rounded-full bg-rose-50 text-rose-600 dark:bg-rose-950/60 dark:text-rose-300">
+                          {unreadCount} Baru
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-300">
+                          Semua Terbaca
+                        </span>
+                      )}
                     </div>
+                    {unreadCount > 0 && (
+                      <button
+                        type="button"
+                        onClick={handleMarkAllRead}
+                        className="text-[11px] font-medium text-orange-600 dark:text-orange-400 hover:underline transition"
+                      >
+                        Tandai dibaca
+                      </button>
+                    )}
                   </div>
 
-                  <div className="py-3 space-y-2.5 max-h-64 overflow-y-auto">
-                    <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 flex gap-3">
-                      <CheckCircle2 size={18} className="text-emerald-500 shrink-0 mt-0.5" />
-                      <div>
-                        <p className="text-xs font-medium text-slate-800 dark:text-slate-200">
-                          Sistem SI TANJAK Berjala
+                  {/* List Notifikasi */}
+                  <div className="py-2 space-y-2 max-h-80 overflow-y-auto">
+                    {notifications.length === 0 ? (
+                      <div className="py-8 text-center text-slate-400">
+                        <Bell size={28} className="mx-auto text-slate-300 dark:text-slate-600 mb-2 opacity-50" />
+                        <p className="text-xs font-medium text-slate-600 dark:text-slate-300">
+                          Belum ada notifikasi
                         </p>
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                          Layanan pendaftaran & monitoring magang BBPOM Palembang siap digunakan.
+                        <p className="text-[11px] text-slate-400 mt-0.5">
+                          Pemberitahuan aktivitas akan muncul di sini
                         </p>
                       </div>
-                    </div>
+                    ) : (
+                      notifications.map((n) => (
+                        <div
+                          key={n.id}
+                          onClick={() => handleNotificationClick(n)}
+                          className={`
+                            p-3 rounded-xl border flex gap-3 cursor-pointer transition-all duration-150
+                            ${
+                              !n.isRead
+                                ? "bg-orange-50/70 dark:bg-orange-950/25 border-orange-200/80 dark:border-orange-800/40 hover:bg-orange-100/60 dark:hover:bg-orange-950/40"
+                                : "bg-slate-50/60 dark:bg-slate-800/40 border-slate-100 dark:border-slate-800 hover:bg-slate-100/70 dark:hover:bg-slate-800/70 opacity-80 hover:opacity-100"
+                            }
+                          `}
+                        >
+                          {/* Icon Type */}
+                          <div className="shrink-0 mt-0.5">
+                            {n.type === "success" && (
+                              <CheckCircle2 size={17} className="text-emerald-500" />
+                            )}
+                            {n.type === "warning" && (
+                              <AlertTriangle size={17} className="text-amber-500" />
+                            )}
+                            {n.type === "alert" && (
+                              <AlertCircle size={17} className="text-rose-500" />
+                            )}
+                            {n.type === "info" && (
+                              <Info size={17} className="text-blue-500" />
+                            )}
+                          </div>
 
-                    <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 flex gap-3">
-                      <AlertCircle size={18} className="text-blue-500 shrink-0 mt-0.5" />
-                      <div>
-                        <p className="text-xs font-medium text-slate-800 dark:text-slate-200">
-                          Panduan Penggunaan
-                        </p>
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                          Pastikan Anda membaca panduan resmi pada menu dokumentasi samping.
-                        </p>
-                      </div>
-                    </div>
+                          {/* Content */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
+                                {n.title}
+                              </p>
+                              <span className="text-[10px] text-slate-400 shrink-0">
+                                {formatTimeAgo(n.createdAt)}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5 line-clamp-2">
+                              {n.message}
+                            </p>
+                          </div>
+
+                          {/* Dot Unread */}
+                          {!n.isRead && (
+                            <div className="shrink-0 flex items-center">
+                              <span className="w-2 h-2 rounded-full bg-orange-500" />
+                            </div>
+                          )}
+                        </div>
+                      ))
+                    )}
                   </div>
                 </div>
               </>
