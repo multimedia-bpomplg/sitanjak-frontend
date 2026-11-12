@@ -2,12 +2,11 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
   Menu,
   ChevronsLeft,
   ChevronsRight,
-  Search,
   Bell,
   Sun,
   Moon,
@@ -76,13 +75,11 @@ export default function DashboardHeader({
   onSignOut,
 }: DashboardHeaderProps) {
   const pathname = usePathname();
-  const router = useRouter();
   const confirm = useConfirm();
   const config = ROLE_NAVIGATION_CONFIG[role];
 
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
   const [isDark, setIsDark] = useState(false);
 
   const profileRef = useRef<HTMLDivElement>(null);
@@ -211,35 +208,6 @@ export default function DashboardHeader({
               </React.Fragment>
             ))}
           </nav>
-        </div>
-
-        {/* ================= SISI TENGAH: SEARCH BAR ================= */}
-        <div className="hidden xl:flex items-center flex-1 max-w-md mx-4">
-          <div className="relative w-full">
-            <Search
-              size={16}
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
-            />
-            <input
-              type="text"
-              placeholder="Cari menu atau fitur... (Ctrl + K)"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="
-                w-full pl-9 pr-14 py-2
-                bg-slate-100/70 dark:bg-slate-800/60
-                border border-transparent focus:border-orange-500/50
-                focus:bg-white dark:focus:bg-slate-900
-                rounded-xl text-xs text-slate-800 dark:text-slate-200
-                placeholder-slate-400
-                outline-hidden focus:ring-3 focus:ring-orange-500/15
-                transition-all duration-200
-              "
-            />
-            <kbd className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-slate-400 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md px-1.5 py-0.5">
-              ⌘K
-            </kbd>
-          </div>
         </div>
 
         {/* ================= SISI KANAN: ACTIONS & PROFILE ================= */}
