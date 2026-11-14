@@ -5,11 +5,12 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { useEffect, useState, useRef } from "react";
 import { toast } from "react-toastify";
+import { Plus_Jakarta_Sans } from "next/font/google";
+import Navbar from "@/components/layouts/Navbar";
 import {
   HiUser,
   HiMail,
   HiPhone,
-  HiBriefcase,
   HiUpload,
   HiUsers,
   HiLocationMarker,
@@ -17,11 +18,24 @@ import {
   HiClipboardList,
   HiCalendar,
   HiDocument,
+  HiCheckCircle,
+  HiOutlineOfficeBuilding,
+  HiOutlineBeaker,
+  HiOutlineShieldCheck,
+  HiOutlineSearchCircle,
+  HiOutlineSpeakerphone,
+  HiOutlineClipboardList,
+  HiOutlineCalendar,
+  HiOutlineExclamationCircle,
 } from "react-icons/hi";
 import { fetchFormasi, IFormasi } from "@/services/formasiService";
 import { useSearchParams } from "next/navigation";
 import CalendarPopup from "@/components/calendar/CalendarPopup";
-import { FaUserCheck } from "react-icons/fa";
+
+const plusJakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+});
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const waRegex = /^08[0-9]{8,11}$/;
@@ -34,6 +48,19 @@ const POSISI_MAGANG = [
   "Fungsi Informasi dan Komunikasi",
   "Bagian Tata Usaha",
 ];
+
+// Helper icon per fungsi
+const getFormasiIcon = (title: string) => {
+  const lower = title.toLowerCase();
+  if (lower.includes("pengujian")) return HiOutlineBeaker;
+  if (lower.includes("pemeriksaan") || lower.includes("inspeksi"))
+    return HiOutlineShieldCheck;
+  if (lower.includes("penindakan")) return HiOutlineSearchCircle;
+  if (lower.includes("informasi") || lower.includes("komunikasi"))
+    return HiOutlineSpeakerphone;
+  if (lower.includes("tata usaha")) return HiOutlineClipboardList;
+  return HiOutlineOfficeBuilding;
+};
 
 // ==================== ASAL INSTANSI UNIVERSITAS ====================
 const UNIVERSITAS_LIST = [
@@ -232,7 +259,7 @@ const buatPesertaKosong = (): Peserta => ({
   wa: "",
 });
 
-// Komponen utama yang menggunakan useSearchParams
+// Komponen utama form
 function PendaftaranForm() {
   const dateRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
@@ -258,8 +285,7 @@ function PendaftaranForm() {
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [selectedFormasi, setSelectedFormasi] = useState<IFormasi | null>(null);
   const [formasiList, setFormasiList] = useState<IFormasi[]>([]);
-  const [loadingFormasi, setLoadingFormasi] = useState(true);
-  const [warningKelompok, setWarningKelompok] = useState<string | null>(null);
+  const [, setLoadingFormasi] = useState(true);
   const [slotWarning, setSlotWarning] = useState<string | null>(null);
   const [slotPenuh, setSlotPenuh] = useState(false);
 
@@ -270,8 +296,9 @@ function PendaftaranForm() {
       .then(setProvinsi);
   }, []);
 
-  /* ==================  Slot Predisi maganng ================== */
+  /* ================== Slot Prediksi Magang ================== */
   useEffect(() => {
+    let warningFound = false;
     peserta.forEach((p) => {
       if (!p.posisi || !p.tanggalMulaiMagang || !p.tanggalSelesaiMagang) return;
 
@@ -286,21 +313,23 @@ function PendaftaranForm() {
 
       if (cek.penuh) {
         setSlotPenuh(true);
-
         setSlotWarning(
-          `❌ Posisi ${p.posisi} pada tanggal ${p.tanggalMulaiMagang} hingga ${p.tanggalSelesaiMagang} sudah penuh`,
+          `Posisi ${p.posisi} pada tanggal ${p.tanggalMulaiMagang} hingga ${p.tanggalSelesaiMagang} sudah penuh.`,
         );
+        warningFound = true;
       } else if (cek.aktif > 0) {
         setSlotPenuh(false);
-
         setSlotWarning(
-          `⚠️ Sudah ada ${cek.aktif} orang magang pada tanggal tersebut`,
+          `Informasi: Sudah ada ${cek.aktif} orang magang yang terjadwal pada rentang tanggal tersebut.`,
         );
-      } else {
-        setSlotPenuh(false);
-        setSlotWarning(null);
+        warningFound = true;
       }
     });
+
+    if (!warningFound) {
+      setSlotPenuh(false);
+      setSlotWarning(null);
+    }
   }, [peserta, formasiList]);
 
   /* ================== UPDATE DATA ================== */
@@ -407,40 +436,6 @@ function PendaftaranForm() {
     });
   };
 
-  const isValidNamaInstansi = (
-    jenis: "Universitas" | "SMK" | "Instansi",
-    text: string,
-  ) => {
-    const trimmed = text.trim();
-
-    if (jenis === "Universitas") {
-      return trimmed
-        .split(" ")
-        .every(
-          (word) =>
-            word[0] === word[0]?.toUpperCase() &&
-            word.slice(1) === word.slice(1)?.toLowerCase(),
-        );
-    }
-
-    if (jenis === "SMK") {
-      const parts = trimmed.split(" ");
-
-      if (parts.length < 2) return false;
-      if (parts[0] !== "SMK") return false;
-
-      return parts
-        .slice(1)
-        .every(
-          (word) =>
-            word[0] === word[0]?.toUpperCase() &&
-            word.slice(1) === word.slice(1)?.toLowerCase(),
-        );
-    }
-
-    return false;
-  };
-
   /* ================== VALIDASI ================== */
   const validateForm = () => {
     const newErrors: Record<string, boolean> = {};
@@ -455,7 +450,7 @@ function PendaftaranForm() {
       if (p.tanggalMulaiMagang && p.tanggalMulaiMagang < todayStr) {
         newErrors[`tanggalMulaiMagang-${i}`] = true;
         toast.error(
-          `❌ Tanggal mulai magang tidak boleh sebelum hari ini (Peserta ${i + 1})`,
+          `Tanggal mulai magang tidak boleh sebelum hari ini (Peserta ${i + 1})`,
         );
         hasSpecificError = true;
       }
@@ -470,7 +465,7 @@ function PendaftaranForm() {
       ) {
         newErrors[`tanggalSelesaiMagang-${i}`] = true;
         toast.error(
-          `❌ Tanggal selesai harus setelah tanggal mulai (Peserta ${i + 1})`,
+          `Tanggal selesai magang harus setelah tanggal mulai (Peserta ${i + 1})`,
         );
         hasSpecificError = true;
       }
@@ -480,21 +475,19 @@ function PendaftaranForm() {
       if (!p.jenisKelamin) newErrors[`jenisKelamin-${i}`] = true;
 
       if (!p.asalJenis) newErrors[`asalJenis-${i}`] = true;
-      if (!p.asalNama) newErrors[`asalNama-${i}`] = true;
+
+      if (!p.asalNama) {
+        newErrors[`asalNama-${i}`] = true;
+      }
+
       if (p.asalNama === "LAINNYA") {
         if (!p.asalNamaLainnya) {
           newErrors[`asalNamaLainnya-${i}`] = true;
-        } else if (
-          p.asalJenis &&
-          !isValidNamaInstansi(p.asalJenis, p.asalNamaLainnya)
-        ) {
+        } else if (!isCapitalizeEachWord(p.asalNamaLainnya)) {
           newErrors[`asalNamaLainnya-${i}`] = true;
-
           toast.error(
-            p.asalJenis === "Universitas"
-              ? "❌ Nama Universitas harus ditulis dengan huruf kapital di awal setiap kata.\n\nContoh: Universitas Indonesia"
-              : "❌ Penulisan SMK harus diawali dengan 'SMK' (huruf besar), dan kata setelahnya menggunakan huruf kapital.\n\nContoh: SMK Negeri 1",
-            { autoClose: 4500 },
+            `Nama instansi harus ditulis dengan huruf kapital di awal setiap kata.\n\nContoh: Universitas Indonesia`,
+            { autoClose: 4000 },
           );
           hasSpecificError = true;
         }
@@ -511,12 +504,10 @@ function PendaftaranForm() {
             newErrors[`jurusanLainnya-${i}`] = true;
           } else if (!isCapitalizeEachWord(p.jurusanLainnya)) {
             newErrors[`jurusanLainnya-${i}`] = true;
-
             toast.error(
-              `❌ Nama jurusan harus ditulis dengan huruf kapital di awal setiap kata.\n\nContoh: Teknik Informatika (S1)`,
+              `Nama jurusan harus ditulis dengan huruf kapital di awal setiap kata.\n\nContoh: Teknik Informatika (S1)`,
               { autoClose: 4000 },
             );
-
             hasSpecificError = true;
           }
         }
@@ -533,7 +524,7 @@ function PendaftaranForm() {
         newErrors[`email-${i}`] = true;
       } else if (!emailRegex.test(p.email)) {
         newErrors[`email-${i}`] = true;
-        toast.error(`❌ Email Peserta ${i + 1} tidak valid`);
+        toast.error(`Email Peserta ${i + 1} tidak valid`);
         hasSpecificError = true;
       }
 
@@ -542,7 +533,7 @@ function PendaftaranForm() {
       } else if (!waRegex.test(p.wa)) {
         newErrors[`wa-${i}`] = true;
         toast.error(
-          `❌ Nomor WhatsApp Peserta ${i + 1} harus diawali 08 & valid`,
+          `Nomor WhatsApp Peserta ${i + 1} harus diawali 08 & valid`,
         );
         hasSpecificError = true;
       }
@@ -558,10 +549,9 @@ function PendaftaranForm() {
       if (el instanceof HTMLElement) el.focus();
     }
 
-    // tampilkan warning umum jika ada field kosong
     if (Object.keys(newErrors).length > 0) {
       if (!hasSpecificError) {
-        toast.warning("❗ Mohon lengkapi semua kolom yang wajib diisi");
+        toast.warning("Mohon lengkapi semua kolom yang wajib diisi");
       }
       return false;
     }
@@ -597,7 +587,7 @@ function PendaftaranForm() {
     setLoading(true);
     setShowConfirm(false);
 
-    const toastId = toast.loading("⏳ Mengirim data pendaftaran...");
+    const toastId = toast.loading("Mengirim data pendaftaran...");
 
     try {
       const formData = new FormData();
@@ -615,13 +605,11 @@ function PendaftaranForm() {
         },
       );
 
-      const result = await res.json();
+      await res.json();
 
       if (res.ok) {
         toast.dismiss(toastId);
-
         setShowSuccess(true);
-
         setPeserta([buatPesertaKosong()]);
         setJumlah(1);
         setKategori("sendiri");
@@ -629,7 +617,7 @@ function PendaftaranForm() {
         setErrors({});
       } else {
         toast.update(toastId, {
-          render: "❌ Gagal mengirim pendaftaran",
+          render: "Gagal mengirim pendaftaran",
           type: "error",
           isLoading: false,
           autoClose: 3000,
@@ -637,7 +625,7 @@ function PendaftaranForm() {
       }
     } catch {
       toast.update(toastId, {
-        render: "⚠️ Terjadi kesalahan server",
+        render: "Terjadi kesalahan server",
         type: "error",
         isLoading: false,
         autoClose: 3000,
@@ -678,52 +666,49 @@ function PendaftaranForm() {
     }
   }, [searchParams]);
 
-  const getSisaKuota = (posisi: string) => {
-    const f = formasiList.find((x) => x.title === posisi);
-    return f ? f.sisaKuota : 0;
-  };
-
   const today = new Date().toISOString().split("T")[0];
 
   function simulasiKuotaBulanan(formasi: IFormasi) {
     const kuota = formasi.kuota;
-
     const mulaiList = formasi.tanggalMulaiMagang || [];
     const selesaiList = formasi.tanggalSelesaiMagang || [];
 
     const hasil: {
       bulan: string;
+      bulanSingkat: string;
       aktif: number;
       sisaKuota: number;
     }[] = [];
 
     const sekarang = new Date();
 
-    for (let i = 0; i < 4; i++) {
+    for (let idx = 0; idx < 4; idx++) {
       const bulanStart = new Date(
         sekarang.getFullYear(),
-        sekarang.getMonth() + i,
+        sekarang.getMonth() + idx,
         1,
       );
 
       const bulanEnd = new Date(
         sekarang.getFullYear(),
-        sekarang.getMonth() + i + 1,
+        sekarang.getMonth() + idx + 1,
         0,
       );
 
-      const aktif = mulaiList.reduce((acc, mulai, idx) => {
+      const aktif = mulaiList.reduce((acc, mulai, mIdx) => {
         const start = new Date(mulai);
-        const end = new Date(selesaiList[idx]);
-
+        const end = new Date(selesaiList[mIdx]);
         const overlap = start <= bulanEnd && end >= bulanStart;
-
         return overlap ? acc + 1 : acc;
       }, 0);
 
       hasil.push({
         bulan: bulanStart.toLocaleDateString("id-ID", {
           month: "long",
+          year: "numeric",
+        }),
+        bulanSingkat: bulanStart.toLocaleDateString("id-ID", {
+          month: "short",
           year: "numeric",
         }),
         aktif,
@@ -736,12 +721,10 @@ function PendaftaranForm() {
 
   function hitungKuotaBulanIni(formasi: IFormasi) {
     const kuota = formasi.kuota;
-
     const mulaiList = formasi.tanggalMulaiMagang || [];
     const selesaiList = formasi.tanggalSelesaiMagang || [];
 
     const now = new Date();
-
     const bulanStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const bulanEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
@@ -750,25 +733,18 @@ function PendaftaranForm() {
     mulaiList.forEach((mulai, idx) => {
       const start = new Date(mulai);
       const end = new Date(selesaiList[idx]);
-
       const overlap = start <= bulanEnd && end >= bulanStart;
-
       if (overlap) aktif++;
     });
 
     const sisa = Math.max(0, kuota - aktif);
-
-    return {
-      aktif,
-      sisa,
-    };
+    return { aktif, sisa };
   }
 
   function cekSlotMagang(formasi: IFormasi, mulai: string, selesai: string) {
     if (!mulai || !selesai) return { penuh: false, aktif: 0 };
 
     const kuota = formasi.kuota;
-
     const mulaiList = formasi.tanggalMulaiMagang || [];
     const selesaiList = formasi.tanggalSelesaiMagang || [];
 
@@ -777,12 +753,10 @@ function PendaftaranForm() {
     mulaiList.forEach((m, idx) => {
       const start = new Date(m);
       const end = new Date(selesaiList[idx]);
-
       const newStart = new Date(mulai);
       const newEnd = new Date(selesai);
 
       const overlap = newStart <= end && newEnd >= start;
-
       if (overlap) aktif++;
     });
 
@@ -796,1295 +770,1420 @@ function PendaftaranForm() {
     if (sisa <= 0) {
       return {
         label: "Kuota Penuh",
-        badge: "bg-red-500 text-white",
-        card: "border-red-300 bg-red-50",
-        text: "text-red-600",
-        progress: "bg-red-500",
+        badge: "bg-rose-50 text-rose-700 border border-rose-200",
+        card: "border-rose-200 bg-rose-50/20",
+        text: "text-rose-600",
+        progress: "bg-rose-500",
       };
     }
 
     if (sisa <= Math.ceil(total * 0.3)) {
       return {
         label: "Hampir Penuh",
-        badge: "bg-yellow-400 text-black",
-        card: "border-yellow-300 bg-yellow-50",
-        text: "text-yellow-600",
-        progress: "bg-yellow-500",
+        badge: "bg-amber-50 text-amber-700 border border-amber-200",
+        card: "border-amber-200 bg-amber-50/20",
+        text: "text-amber-600",
+        progress: "bg-amber-500",
       };
     }
 
     return {
       label: "Tersedia",
-      badge: "bg-green-500 text-white",
-      card: "border-green-300 bg-green-50",
-      text: "text-green-600",
-      progress: "bg-green-500",
+      badge: "bg-emerald-50 text-emerald-700 border border-emerald-200",
+      card: "border-slate-200 bg-white",
+      text: "text-emerald-600",
+      progress: "bg-[#0088FF]",
     };
-  }
-
-  function getStatusKuotaPrediksi(sisa: number, total: number) {
-    if (sisa <= 0) {
-      return "bg-red-500";
-    }
-
-    if (sisa <= Math.ceil(total * 0.3)) {
-      return "bg-yellow-500";
-    }
-
-    return "bg-green-500";
   }
 
   return (
     <>
-      {/* BACK TO HOME BUTTON */}
-      <div className="mb-8">
-        <Link
-          href="/"
-          className="
-              inline-flex items-center gap-3
-              px-5 py-2.5
-              rounded-xl  
-              bg-white/80 backdrop-blur
-              border border-gray-200
-              text-gray-700 font-medium
-              shadow-sm
-              hover:bg-white 
-              hover:border-[#F59E0B]
-              hover:text-[#7F1D1D]
-              hover:shadow-md
-              transition-all duration-200
-            "
-        >
-          <span
-            className="
-              flex items-center justify-center
-              w-8 h-8
-              rounded-lg
-              bg-[#FEF3C7] text-[#7F1D1D]
-            "
-          >
-            <HiArrowLeft className="text-lg" />
-          </span>
+      <Navbar />
+      <div className={`min-h-screen bg-[#F8FAFC] relative overflow-hidden pt-28 md:pt-36 pb-12 md:pb-20 px-4 sm:px-6 lg:px-8 ${plusJakarta.className}`}>
+        {/* Ambient Glow Ornaments */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-96 bg-gradient-to-b from-[#EBF5FF]/70 via-[#F8FAFC]/40 to-transparent pointer-events-none -z-10" />
+        <div className="absolute -top-32 left-1/4 w-96 h-96 bg-[#0088FF]/5 rounded-full blur-3xl pointer-events-none -z-10" />
+        <div className="absolute -top-32 right-1/4 w-96 h-96 bg-[#38BDF8]/5 rounded-full blur-3xl pointer-events-none -z-10" />
 
-          <span>Kembali ke Beranda</span>
-        </Link>
-      </div>
-
-      {/* HEADER */}
-      <div className="text-center mb-14">
-        <h1 className="text-4xl md:text-5xl font-extrabold text-[#7F1D1D] tracking-tight">
-          Form Pendaftaran Magang
-        </h1>
-
-        <p className="text-gray-600 mt-3 text-lg">
-          Silakan lengkapi data di bawah ini dengan informasi yang benar dan
-          dapat dipertanggungjawabkan.
-        </p>
-
-        <p className="text-sm text-gray-500 mt-2 max-w-2xl mx-auto">
-          Pastikan seluruh kolom wajib <span className="text-red-500">*</span>{" "}
-          telah diisi.
-        </p>
-      </div>
-
-      {/* ================= CEK RIWAYAT & DOWNLOAD TEMPLATE ================= */}
-      <div className="max-w-4xl mx-auto mb-10 md:mb-12 space-y-4 md:space-y-6">
-        {/* CARD UTAMA RIWAYAT */}
-        <Link
-          href="/pendaftaran/riwayat"
-          className="
-            block rounded-3xl
-            bg-linear-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
-            text-white
-            p-5 sm:p-6 md:p-8
-            shadow-xl
-            hover:scale-[1.01]
-            transition
-          "
-        >
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
-            <div className="flex items-start gap-3 sm:gap-4">
-              <div
-                className="
-                  w-12 h-12 sm:w-14 sm:h-14
-                  rounded-2xl
-                  bg-white/20
-                  flex items-center justify-center
-                  backdrop-blur
-                "
-              >
-                <HiClipboardList className="text-2xl sm:text-3xl" />
-              </div>
-
-              <div>
-                <h3 className="text-lg sm:text-xl md:text-2xl font-bold leading-tight">
-                  Cek Riwayat Pendaftaran Anda
-                </h3>
-                <p className="text-white/90 mt-1 text-sm sm:text-base">
-                  Lihat status pengajuan magang dan hasil seleksi di sini.
-                </p>
-              </div>
+        <div className="max-w-4xl mx-auto">
+          {/* HEADER SECTION */}
+          <div className="text-center mb-10 md:mb-12">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-200/60 text-[#0088FF] text-xs font-semibold tracking-wide uppercase mb-3.5 shadow-xs">
+              <span className="w-2 h-2 rounded-full bg-[#0088FF] animate-pulse" />
+              Portal Pendaftaran Resmi
             </div>
-
-            <div className="w-full md:w-auto">
-              <span
-                className="
-                  inline-flex items-center justify-center
-                  w-full md:w-auto
-                  bg-white text-[#7F1D1D]
-                  px-5 py-3
-                  rounded-xl
-                  font-semibold
-                  shadow
-                "
-              >
-                Lihat Riwayat
-              </span>
-            </div>
-          </div>
-        </Link>
-
-        {/* CARD SEKUNDER: TEMPLATE */}
-        {/* <div
-          className="
-            bg-white/80 backdrop-blur
-            rounded-2xl shadow-md
-            px-5 py-5 sm:px-6
-            flex flex-col md:flex-row
-            md:items-center md:justify-between
-            gap-4
-            border border-gray-200
-          "
-        >
-          <div>
-            <h3 className="text-sm sm:text-base font-semibold text-gray-800">
-              Contoh Surat Pengantar
-            </h3>
-            <p className="text-xs sm:text-sm text-gray-500">
-              Tersedia sebagai referensi, penggunaan bersifat opsional.
+            <h1 className="text-3xl md:text-5xl font-extrabold text-[#0B1B3D] tracking-tight leading-tight">
+              Formulir Pendaftaran Magang{" "}
+              <span className="text-[#0088FF]">BBPOM di Palembang</span>
+            </h1>
+            <p className="text-slate-600 mt-3 text-base md:text-lg max-w-2xl mx-auto leading-relaxed">
+              Silakan lengkapi seluruh isian data di bawah ini dengan informasi yang benar, akurat, dan dapat dipertanggungjawabkan.
+            </p>
+            <p className="text-xs text-slate-500 mt-2">
+              Seluruh kolom bertanda bintang (<span className="text-rose-500 font-bold">*</span>) wajib diisi.
             </p>
           </div>
 
-          <a
-            href="https://docs.google.com/document/d/1JiVL8Sg6XiHHs8RBlX5pZZ9zFQTBNWepQfTSwcsa1YU/edit?usp=sharing"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="
-              inline-flex items-center justify-center gap-2
-              w-full md:w-auto
-              px-5 py-2.5
-              rounded-xl
-              text-sm font-semibold
-              bg-linear-to-r from-[#F59E0B] to-[#FACC15]
-              text-white
-              hover:brightness-110
-              transition
-            "
-          >
-            <HiDocument className="text-lg" />
-            Buka Template
-          </a>
-        </div> */}
-      </div>
-
-      <form
-        onSubmit={handleSubmit}
-        noValidate
-        className="space-y-10 bg-white/70 backdrop-blur-xl rounded-3xl shadow-xl p-10"
-      >
-        {/* INFORMASI PERMOHONAN */}
-        <div className="bg-white rounded-2xl shadow-md p-8 space-y-6">
-          <h2 className="text-lg font-semibold text-[#7F1D1D]">
-            Informasi Permohonan
-          </h2>
-
-          <p className="text-sm text-gray-500">
-            Pilih kategori pendaftaran dan jumlah peserta yang akan mengikuti
-            program magang.
-          </p>
-
-          <div className="grid md:grid-cols-2 gap-6">
-            {/* Kategori Pemohon */}
-            <div>
-              <label className="text-sm font-medium text-gray-700 mb-1 block">
-                Kategori Pemohon <span className="text-red-500">*</span>
-              </label>
-
-              <div className="form-field">
-                <select
-                  value={kategori}
-                  onChange={(e) => {
-                    const value = e.target.value as "sendiri" | "bersama";
-
-                    setKategori(value);
-
-                    if (value === "sendiri") {
-                      ubahJumlah(1);
-                    } else {
-                      ubahJumlah(2);
-                    }
-                  }}
-                >
-                  <option value="sendiri">Sendiri</option>
-                  <option value="bersama">Bersama (Kelompok)</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Jumlah Peserta */}
-            {kategori === "bersama" && (
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-1 block">
-                  Jumlah Peserta <span className="text-red-500">*</span>
-                </label>
-
-                <div className="form-field">
-                  <select
-                    value={jumlah}
-                    onChange={(e) => ubahJumlah(Number(e.target.value))}
-                  >
-                    {[2, 3, 4, 5].map((n) => (
-                      <option key={n} value={n}>
-                        {n} Orang
-                      </option>
-                    ))}
-                  </select>
+          {/* ================= CEK RIWAYAT BANNER ================= */}
+          <div className="mb-10">
+            <Link
+              href="/pendaftaran/riwayat"
+              className="relative group block overflow-hidden rounded-2xl bg-gradient-to-r from-[#071531] via-[#0B1B3D] to-[#08306B] border border-blue-900/40 p-6 sm:p-7 shadow-lg hover:shadow-xl transition-all duration-300"
+            >
+              <div className="absolute top-0 right-0 w-64 h-64 bg-[#0088FF]/10 rounded-full blur-2xl group-hover:bg-[#0088FF]/20 transition-all pointer-events-none" />
+              <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-5">
+                <div className="flex items-start sm:items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center text-blue-300 shrink-0 backdrop-blur-sm group-hover:scale-105 transition-transform">
+                    <HiClipboardList className="text-2xl" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-lg sm:text-xl font-bold text-white tracking-tight">
+                        Cek Riwayat Pendaftaran Anda
+                      </h3>
+                      <span className="hidden sm:inline-flex text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-blue-500/30 text-blue-200 border border-blue-400/30">
+                        Tracking
+                      </span>
+                    </div>
+                    <p className="text-slate-300 text-sm mt-1">
+                      Sudah pernah mendaftar? Pantau proses verifikasi dan hasil seleksi pengajuan magang Anda di sini.
+                    </p>
+                  </div>
                 </div>
 
-                <p className="text-xs text-gray-500 mt-1">
-                  Maksimal 5 peserta dalam satu pendaftaran
-                </p>
+                <div className="shrink-0">
+                  <span className="inline-flex items-center justify-center gap-2 w-full md:w-auto bg-[#0088FF] hover:bg-[#0073E6] text-white px-5 py-2.5 rounded-xl font-semibold text-sm shadow-md transition-colors group-hover:translate-x-0.5">
+                    <span>Lihat Riwayat</span>
+                    <HiArrowLeft className="rotate-180 text-sm" />
+                  </span>
+                </div>
               </div>
-            )}
+            </Link>
           </div>
-        </div>
 
-        {/* PESERTA */}
-        {peserta.map((_, i) => (
-          <div key={i} className="bg-white rounded-2xl shadow-md p-8 space-y-4">
-            <h2 className="text-xl font-bold text-[#7F1D1D]">
-              Data Peserta {i + 1}
-            </h2>
-
-            <div>
-              <label className="text-sm font-medium text-gray-700 mb-1 block">
-                Nama Lengkap <span className="text-red-500">*</span>
-              </label>
-
-              <div
-                className={`form-field ${
-                  errors[`nama-${i}`] ? "form-error" : ""
-                }`}
-              >
-                <HiUser className="form-icon" />
-                <input
-                  value={peserta[i].nama}
-                  placeholder="Masukkan nama lengkap"
-                  onChange={(e) => {
-                    update(i, "nama", e.target.value);
-                    setErrors((prev) => ({ ...prev, [`nama-${i}`]: false }));
-                  }}
-                />
+          {/* ================= FORM PENDAFTARAN UTAMA ================= */}
+          <form onSubmit={handleSubmit} noValidate className="space-y-8">
+            {/* 1. INFORMASI PERMOHONAN */}
+            <div className="bg-white border border-slate-200/80 rounded-2xl shadow-xs p-6 sm:p-8 space-y-6">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                <div>
+                  <h2 className="text-lg font-bold text-[#0B1B3D] flex items-center gap-2.5">
+                    <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-blue-50 text-[#0088FF] text-sm font-extrabold">
+                      1
+                    </span>
+                    Tipe Permohonan Magang
+                  </h2>
+                  <p className="text-xs sm:text-sm text-slate-500 mt-1">
+                    Tentukan kategori pendaftaran magang Anda (mandiri atau kelompok).
+                  </p>
+                </div>
               </div>
 
-              {errors[`nama-${i}`] && (
-                <p className="text-xs text-red-500 mt-1">
-                  Nama lengkap wajib diisi
-                </p>
+              {/* Pilihan Kategori Berbasis Kartu Radio */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setKategori("sendiri");
+                    ubahJumlah(1);
+                  }}
+                  className={`text-left p-4 rounded-xl border-2 transition-all ${
+                    kategori === "sendiri"
+                      ? "border-[#0088FF] bg-blue-50/30 shadow-xs"
+                      : "border-slate-200 hover:border-slate-300 bg-white"
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2.5">
+                      <div
+                        className={`w-8 h-8 rounded-lg flex items-center justify-center text-lg ${
+                          kategori === "sendiri"
+                            ? "bg-[#0088FF] text-white"
+                            : "bg-slate-100 text-slate-500"
+                        }`}
+                      >
+                        <HiUser />
+                      </div>
+                      <span className="font-bold text-slate-800 text-sm sm:text-base">
+                        Individu / Sendiri
+                      </span>
+                    </div>
+                    <span
+                      className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                        kategori === "sendiri"
+                          ? "border-[#0088FF]"
+                          : "border-slate-300"
+                      }`}
+                    >
+                      {kategori === "sendiri" && (
+                        <span className="w-2 h-2 rounded-full bg-[#0088FF]" />
+                      )}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 pl-10">
+                    Pendaftaran untuk 1 orang peserta perseorangan secara mandiri.
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setKategori("bersama");
+                    ubahJumlah(2);
+                  }}
+                  className={`text-left p-4 rounded-xl border-2 transition-all ${
+                    kategori === "bersama"
+                      ? "border-[#0088FF] bg-blue-50/30 shadow-xs"
+                      : "border-slate-200 hover:border-slate-300 bg-white"
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2.5">
+                      <div
+                        className={`w-8 h-8 rounded-lg flex items-center justify-center text-lg ${
+                          kategori === "bersama"
+                            ? "bg-[#0088FF] text-white"
+                            : "bg-slate-100 text-slate-500"
+                        }`}
+                      >
+                        <HiUsers />
+                      </div>
+                      <span className="font-bold text-slate-800 text-sm sm:text-base">
+                        Kelompok / Bersama
+                      </span>
+                    </div>
+                    <span
+                      className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                        kategori === "bersama"
+                          ? "border-[#0088FF]"
+                          : "border-slate-300"
+                      }`}
+                    >
+                      {kategori === "bersama" && (
+                        <span className="w-2 h-2 rounded-full bg-[#0088FF]" />
+                      )}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 pl-10">
+                    Pendaftaran kolektif dari kampus/instansi yang sama (2 - 5 orang).
+                  </p>
+                </button>
+              </div>
+
+              {/* Selector Jumlah Peserta jika bersama */}
+              {kategori === "bersama" && (
+                <div className="pt-4 border-t border-slate-100">
+                  <label className="text-xs font-semibold text-slate-700 mb-2 block uppercase tracking-wider">
+                    Pilih Jumlah Anggota Kelompok <span className="text-rose-500">*</span>
+                  </label>
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    {[2, 3, 4, 5].map((n) => (
+                      <button
+                        key={n}
+                        type="button"
+                        onClick={() => ubahJumlah(n)}
+                        className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
+                          jumlah === n
+                            ? "bg-[#0088FF] text-white shadow-xs"
+                            : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                        }`}
+                      >
+                        {n} Orang Peserta
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-xs text-slate-400 mt-2">
+                    Maksimal 5 peserta dalam satu pengajuan kelompok. Lengkapi data seluruh anggota di bawah.
+                  </p>
+                </div>
               )}
             </div>
 
-            <label className="text-sm font-medium text-gray-700 mb-3 block">
-              Posisi Magang <span className="text-red-500">*</span>
-            </label>
-
-            {/* TAMBAHAN: petunjuk klik card */}
-            <p className="text-xs text-gray-500 mb-3 flex items-center gap-2">
-              <HiCalendar className="text-gray-400" />
-              Klik card posisi untuk melihat jadwal ketersediaan magang pada
-              kalender
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {formasiList.map((item) => {
-                const kuota = item.kuota;
-
-                const kuotaRealtime = hitungKuotaBulanIni(item);
-
-                const aktif = kuotaRealtime.aktif;
-                const sisa = kuotaRealtime.sisa;
-
-                const prediksi = simulasiKuotaBulanan(item);
-
-                const penuh = false;
-                const status = getStatusKuota(sisa, kuota);
-
-                const selected = peserta[i].posisi === item.title;
-
-                return (
-                  <div
-                    key={item._id}
-                    onClick={() => {
-                      if (penuh) {
-                        toast.error("❌ Kuota formasi ini sudah penuh");
-                        return;
-                      }
-
-                      setSelectedFormasi(item);
-                      setCalendarOpen(true);
-                    }}
-                    className={`
-                      relative group
-                      rounded-3xl
-                      shadow-lg
-                      p-6
-                      cursor-pointer
-                      transition-all
-                      hover:-translate-y-2
-                      hover:shadow-xl
-                      border
-                      hover:border-[#7F1D1D]
-
-                      ${selected ? "ring-2 ring-[#7F1D1D]" : ""}
-
-                      ${status.card}
-                    `}
-                  >
-                    {/* HEADER */}
-                    <div className="flex items-start justify-between gap-2 mb-3">
-                      <h3 className="font-bold text-[#7F1D1D] leading-snug">
-                        {item.title}
-                      </h3>
-
-                      <span
-                        className={`text-[11px] px-3 py-1 rounded-full font-semibold whitespace-nowrap ${status.badge}`}
-                      >
-                        {status.label}
-                      </span>
+            {/* 2. DATA PESERTA (PESERTA 1..N) */}
+            {peserta.map((_, i) => (
+              <div
+                key={i}
+                className="bg-white border border-slate-200/80 rounded-2xl shadow-xs p-6 sm:p-8 space-y-8"
+              >
+                {/* Header Peserta */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-100 gap-2">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#0088FF] flex items-center justify-center font-bold text-base border border-blue-100">
+                      {i + 1}
                     </div>
-
-                    {/* KUOTA */}
-
-                    <div className="text-center mb-4">
-                      <p className="text-xs text-gray-600 text-center mb-2 tracking-wide">
-                        SISA KUOTA BULAN{" "}
-                        {new Date()
-                          .toLocaleDateString("id-ID", { month: "long" })
-                          .toUpperCase()}
+                    <div>
+                      <h2 className="text-lg font-bold text-[#0B1B3D]">
+                        {i === 0 && kategori === "bersama"
+                          ? "Data Peserta 1 (Ketua Kelompok)"
+                          : `Data Peserta ${i + 1}`}
+                      </h2>
+                      <p className="text-xs text-slate-500">
+                        {i === 0
+                          ? "Ketua kelompok atau peserta utama yang mewakili permohonan magang."
+                          : `Anggota kelompok peserta ke-${i + 1}.`}
                       </p>
-
-                      <p
-                        className={`text-5xl font-extrabold
-                        ${status.text}`}
-                      >
-                        {sisa}
-                      </p>
-
-                      <p className="text-sm text-gray-500">orang</p>
                     </div>
+                  </div>
+                  <span className="text-[11px] font-semibold text-slate-400 bg-slate-50 px-3 py-1 rounded-full border border-slate-200 self-start sm:self-auto">
+                    Peserta {i + 1} dari {peserta.length}
+                  </span>
+                </div>
 
-                    {/* INFO */}
+                {/* SUB-SEKSI A: POSISI MAGANG */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-sm font-bold text-slate-800">
+                      Pilihan Posisi / Bidang Magang <span className="text-rose-500">*</span>
+                    </label>
+                    <span className="text-xs text-[#0088FF] font-medium flex items-center gap-1">
+                      <HiCalendar className="text-sm" /> Klik kartu untuk cek kalender
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mb-4">
+                    Pilih unit kerja atau fungsi yang Anda minati di BBPOM Palembang. Kuota disesuaikan secara realtime.
+                  </p>
 
-                    <div className="text-sm space-y-2 mb-4 text-black">
-                      <div className="flex justify-between">
-                        <span className="flex items-center gap-1 text-black">
-                          <HiUsers className="text-yellow-500" />
-                          Total Kuota
-                        </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {formasiList.map((item) => {
+                      const kuota = item.kuota;
+                      const kuotaRealtime = hitungKuotaBulanIni(item);
+                      const aktif = kuotaRealtime.aktif;
+                      const sisa = kuotaRealtime.sisa;
+                      const status = getStatusKuota(sisa, kuota);
+                      const isSelected = peserta[i].posisi === item.title;
+                      const Icon = getFormasiIcon(item.title);
 
-                        <span className="font-semibold">{kuota}</span>
-                      </div>
-
-                      <div className="flex justify-between">
-                        <span className="flex items-center gap-1 text-black">
-                          <FaUserCheck className="text-blue-500" />
-                          Sudah Magang
-                        </span>
-
-                        <span className="font-semibold">{aktif}</span>
-                      </div>
-                    </div>
-
-                    {/* PREDIKSI */}
-
-                    <div
-                      className={`rounded-xl p-3 text-black border ${status.card}`}
-                    >
-                      <p className="text-sm font-bold text-[#7F1D1D] mb-2">
-                        Prediksi Kuota
-                      </p>
-
-                      {prediksi.slice(0, 4).map((p, idx) => {
-                        return (
-                          <div key={idx} className="mb-2">
-                            <div className="flex justify-between text-xs">
-                              <span>{p.bulan}</span>
-                              <span className="font-semibold text-black">
-                                {p.sisaKuota} Orang
+                      return (
+                        <div
+                          key={item._id}
+                          onClick={() => {
+                            setSelectedFormasi(item);
+                            setCalendarOpen(true);
+                          }}
+                          className={`group relative rounded-2xl p-4 sm:p-5 border transition-all cursor-pointer flex flex-col justify-between ${
+                            isSelected
+                              ? "border-[#0088FF] bg-blue-50/30 ring-2 ring-[#0088FF] shadow-sm"
+                              : "border-slate-200 hover:border-slate-300 bg-white hover:shadow-sm"
+                          }`}
+                        >
+                          <div>
+                            {/* Header Kartu: Ikon & Badge */}
+                            <div className="flex items-start justify-between gap-2 mb-3">
+                              <div
+                                className={`w-9 h-9 rounded-xl flex items-center justify-center text-lg ${
+                                  isSelected
+                                    ? "bg-[#0088FF] text-white"
+                                    : "bg-blue-50 text-[#0088FF]"
+                                }`}
+                              >
+                                <Icon />
+                              </div>
+                              <span
+                                className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full ${status.badge}`}
+                              >
+                                {status.label}
                               </span>
                             </div>
 
-                            <div className="w-full bg-gray-200 h-2 rounded-full mt-1">
-                              <div
-                                className={`${getStatusKuotaPrediksi(p.sisaKuota, item.kuota)} h-2 rounded-full`}
-                                style={{
-                                  width: `${(p.aktif / item.kuota) * 100}%`,
-                                }}
-                              />
+                            {/* Nama Posisi */}
+                            <h3 className="font-bold text-slate-800 text-sm leading-snug mb-2 group-hover:text-[#0088FF] transition-colors">
+                              {item.title}
+                            </h3>
+
+                            {/* Sisa Kuota Bar */}
+                            <div className="bg-slate-50 border border-slate-100 rounded-xl p-2.5 mb-3">
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="text-slate-500">Sisa Kuota:</span>
+                                <span className="font-bold text-slate-800">
+                                  <span
+                                    className={`text-base font-extrabold ${
+                                      sisa === 0
+                                        ? "text-rose-600"
+                                        : "text-[#0088FF]"
+                                    }`}
+                                  >
+                                    {sisa}
+                                  </span>
+                                  <span className="text-slate-400 font-normal">
+                                    {" "}
+                                    / {kuota} kursi
+                                  </span>
+                                </span>
+                              </div>
+                              <div className="w-full bg-slate-200 h-1.5 rounded-full mt-1.5 overflow-hidden">
+                                <div
+                                  className={`h-full rounded-full transition-all duration-300 ${
+                                    sisa === 0
+                                      ? "bg-rose-500"
+                                      : sisa <= 2
+                                        ? "bg-amber-500"
+                                        : "bg-[#0088FF]"
+                                  }`}
+                                  style={{
+                                    width: `${Math.min(
+                                      100,
+                                      kuota > 0 ? (aktif / kuota) * 100 : 0,
+                                    )}%`,
+                                  }}
+                                />
+                              </div>
                             </div>
 
-                            <div className="text-xs text-black">
-                              {p.aktif} terisi • {p.sisaKuota} tersedia
+                            {/* ESTIMASI KUOTA 4 BULAN KE DEPAN (2x2 GRID) */}
+                            <div className="mb-3">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="flex items-center gap-1.5 text-xs font-bold text-[#0B1B3D]">
+                                  <HiOutlineCalendar className="text-[#0088FF] text-sm" />
+                                  Estimasi Kuota 4 Bulan Ke Depan
+                                </span>
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-2">
+                                {simulasiKuotaBulanan(item).map((p, idx) => {
+                                  const empty = p.sisaKuota;
+                                  const pFull = empty === 0;
+                                  const pWarn = !pFull && empty <= 2;
+
+                                  return (
+                                    <div
+                                      key={idx}
+                                      className="bg-white border border-slate-200/80 rounded-xl px-2.5 py-1.5 flex items-center justify-between shadow-2xs"
+                                    >
+                                      <span className="text-[11px] font-semibold text-[#475569] truncate">
+                                        {p.bulanSingkat || p.bulan}
+                                      </span>
+
+                                      <span
+                                        className={`text-[10.5px] font-extrabold px-2 py-0.5 rounded-md shrink-0 ${
+                                          pFull
+                                            ? "bg-rose-50 text-rose-600"
+                                            : pWarn
+                                              ? "bg-amber-50 text-amber-600"
+                                              : "bg-[#EBF5FF] text-[#0088FF]"
+                                        }`}
+                                      >
+                                        {pFull ? "Penuh" : `${empty} Kursi`}
+                                      </span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
                             </div>
                           </div>
-                        );
-                      })}
-                    </div>
 
-                    <div className="flex items-center justify-center gap-1 text-[11px] text-gray-500 mb-2">
-                      <HiCalendar className="text-gray-400" />
-                      <span>Lihat jadwal magang di kalender</span>
-                    </div>
+                          {/* Action Buttons */}
+                          <div className="space-y-2 pt-2 border-t border-slate-100">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                update(i, "posisi", item.title);
+                                setErrors((p) => ({
+                                  ...p,
+                                  [`posisi-${i}`]: false,
+                                }));
+                              }}
+                              className={`w-full py-2 rounded-xl text-xs font-semibold transition-all ${
+                                isSelected
+                                  ? "bg-[#0088FF] text-white shadow-xs"
+                                  : "bg-slate-100 hover:bg-slate-200 text-slate-700"
+                              }`}
+                            >
+                              {isSelected ? "✓ Posisi Terpilih" : "Pilih Posisi Ini"}
+                            </button>
 
-                    {/* TAMBAHAN: jika kuota penuh */}
-                    {sisa === 0 && (
-                      <div className="text-xs text-red-600 text-center mb-2 font-medium">
-                        Kuota bulan ini penuh • Cek tanggal lain di kalender
-                      </div>
-                    )}
-
-                    <div className="mt-4">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-
-                          if (penuh) {
-                            toast.error("❌ Kuota formasi ini sudah penuh");
-                            return;
-                          }
-
-                          update(i, "posisi", item.title);
-                        }}
-                        className={`
-    w-full py-2.5 rounded-xl text-sm font-semibold transition
-    ${
-      penuh
-        ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-        : selected
-          ? "bg-green-600 text-white"
-          : "bg-linear-to-r from-[#F59E0B] to-[#FACC15] text-white hover:brightness-110"
-    }
-  `}
-                      >
-                        {penuh
-                          ? "Kuota Penuh"
-                          : selected
-                            ? "Posisi Dipilih"
-                            : "Pilih Posisi"}
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Notifikasi Waring tanggal magang */}
-
-            {slotWarning && (
-              <div
-                className={`mb-3 p-3 rounded-lg text-sm font-medium
-    ${
-      slotPenuh
-        ? "bg-red-100 text-red-700 border border-red-300"
-        : "bg-yellow-100 text-yellow-700 border border-yellow-300"
-    }`}
-              >
-                {slotWarning}
-              </div>
-            )}
-
-            <div className="grid md:grid-cols-2 gap-6">
-              {/* Tanggal Mulai Magang */}
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-1 block">
-                  Tanggal Mulai Magang <span className="text-red-500">*</span>
-                </label>
-
-                <div
-                  className={`form-field pr-10 relative ${
-                    errors[`tanggalMulaiMagang-${i}`] ? "form-error" : ""
-                  }`}
-                >
-                  <input
-                    type="date"
-                    min={today}
-                    ref={(el) => {
-                      dateRefs.current[`mulai-${i}`] = el;
-                    }}
-                    value={peserta[i].tanggalMulaiMagang}
-                    onChange={(e) => {
-                      update(i, "tanggalMulaiMagang", e.target.value);
-                      setErrors((p) => ({
-                        ...p,
-                        [`tanggalMulaiMagang-${i}`]: false,
-                      }));
-                    }}
-                  />
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      dateRefs.current[`mulai-${i}`]?.showPicker?.() ||
-                      dateRefs.current[`mulai-${i}`]?.focus()
-                    }
-                    className="absolute right-3 top-1/2 -translate-y-1/2
-                                text-[#B91C1C] hover:text-[#7F1D1D]
-                                p-1 rounded-md hover:bg-[#FEF3C7] transition"
-                  >
-                    <HiCalendar />
-                  </button>
-                </div>
-              </div>
-
-              {/* Tanggal Perkiraan Selesai */}
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-1 block">
-                  Tanggal Perkiraan Selesai{" "}
-                  <span className="text-red-500">*</span>
-                </label>
-
-                <div
-                  className={`form-field pr-10 relative ${
-                    errors[`tanggalSelesaiMagang-${i}`] ? "form-error" : ""
-                  }`}
-                >
-                  <input
-                    type="date"
-                    ref={(el) => {
-                      dateRefs.current[`selesai-${i}`] = el;
-                    }}
-                    value={peserta[i].tanggalSelesaiMagang}
-                    onChange={(e) => {
-                      update(i, "tanggalSelesaiMagang", e.target.value);
-                      setErrors((p) => ({
-                        ...p,
-                        [`tanggalSelesaiMagang-${i}`]: false,
-                      }));
-                    }}
-                  />
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      dateRefs.current[`selesai-${i}`]?.showPicker?.() ||
-                      dateRefs.current[`selesai-${i}`]?.focus()
-                    }
-                    className="absolute right-3 top-1/2 -translate-y-1/2
-                                text-[#B91C1C] hover:text-[#7F1D1D]
-                                p-1 rounded-md hover:bg-[#FEF3C7] transition"
-                  >
-                    <HiCalendar />
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-6">
-              {/* Tempat Lahir */}
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-1 block">
-                  Tempat Lahir <span className="text-red-500">*</span>
-                </label>
-
-                <div
-                  className={`form-field ${
-                    errors[`tempatLahir-${i}`] ? "form-error" : ""
-                  }`}
-                >
-                  <HiLocationMarker className="form-icon" />
-                  <input
-                    value={peserta[i].tempatLahir}
-                    placeholder="Tempat lahir"
-                    onChange={(e) => {
-                      update(i, "tempatLahir", e.target.value);
-                      setErrors((p) => ({
-                        ...p,
-                        [`tempatLahir-${i}`]: false,
-                      }));
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* Tanggal Lahir */}
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-1 block">
-                  Tanggal Lahir <span className="text-red-500">*</span>
-                </label>
-
-                <div
-                  className={`form-field pr-10 relative ${
-                    errors[`tanggalLahir-${i}`] ? "form-error" : ""
-                  }`}
-                >
-                  <input
-                    type="date"
-                    ref={(el) => {
-                      dateRefs.current[`lahir-${i}`] = el;
-                    }}
-                    value={peserta[i].tanggalLahir}
-                    onChange={(e) => {
-                      update(i, "tanggalLahir", e.target.value);
-                      setErrors((p) => ({
-                        ...p,
-                        [`tanggalLahir-${i}`]: false,
-                      }));
-                    }}
-                  />
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      dateRefs.current[`lahir-${i}`]?.showPicker?.() ||
-                      dateRefs.current[`lahir-${i}`]?.focus()
-                    }
-                    className="absolute right-3 top-1/2 -translate-y-1/2
-                                text-[#B91C1C] hover:text-[#7F1D1D]
-                                p-1 rounded-md hover:bg-[#FEF3C7] transition"
-                  >
-                    <HiCalendar />
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <label className="text-sm font-medium text-gray-700 mb-1 block">
-                Jenis Kelamin <span className="text-red-500">*</span>
-              </label>
-
-              <div
-                className={`form-field ${
-                  errors[`jenisKelamin-${i}`] ? "form-error" : ""
-                }`}
-              >
-                <select
-                  value={peserta[i].jenisKelamin}
-                  onChange={(e) => {
-                    update(i, "jenisKelamin", e.target.value);
-                    setErrors((p) => ({
-                      ...p,
-                      [`jenisKelamin-${i}`]: false,
-                    }));
-                  }}
-                >
-                  <option value="">Pilih Jenis Kelamin</option>
-                  <option value="Laki-laki">Laki-laki</option>
-                  <option value="Perempuan">Perempuan</option>
-                </select>
-              </div>
-            </div>
-
-            {/* JENIS ASAL */}
-            <div>
-              <label className="text-sm font-medium text-gray-700 mb-1 block">
-                Asal Instansi <span className="text-red-500">*</span>
-              </label>
-
-              <div
-                className={`form-field ${
-                  errors[`asalJenis-${i}`] ? "form-error" : ""
-                }`}
-              >
-                <select
-                  value={peserta[i].asalJenis}
-                  onChange={(e) => {
-                    const jenis = e.target.value as
-                      | "Universitas"
-                      | "SMK"
-                      | "Instansi"
-                      | "";
-
-                    update(i, "asalJenis", jenis);
-                    update(i, "asalNama", "");
-                    update(i, "asalNamaLainnya", "");
-
-                    if (jenis === "Instansi") {
-                      update(i, "jurusan", "");
-                      update(i, "jurusanLainnya", "");
-                    }
-
-                    setErrors((p) => ({
-                      ...p,
-                      [`asalJenis-${i}`]: false,
-                    }));
-                  }}
-                >
-                  <option value="">Pilih Instansi</option>
-                  <option value="Universitas">Universitas</option>
-                  <option value="SMK">SMK</option>
-                  <option value="Instansi">Instansi</option>
-                </select>
-              </div>
-
-              {errors[`asalJenis-${i}`] && (
-                <p className="text-xs text-red-500 mt-1">
-                  Asal instansi wajib dipilih
-                </p>
-              )}
-            </div>
-
-            {/* ================= NAMA INSTANSI ================= */}
-
-            {/* INSTANSI PEMERINTAH */}
-            {peserta[i].asalJenis === "Instansi" && (
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-1 block">
-                  Nama Instansi Pemerintah{" "}
-                  <span className="text-red-500">*</span>
-                </label>
-
-                <div
-                  className={`form-field ${
-                    errors[`asalNama-${i}`] ? "form-error" : ""
-                  }`}
-                >
-                  <input
-                    value={peserta[i].asalNama}
-                    placeholder="Contoh: Dinas Kesehatan Provinsi Sumatera Selatan"
-                    onChange={(e) => {
-                      update(i, "asalNama", e.target.value);
-                      setErrors((p) => ({
-                        ...p,
-                        [`asalNama-${i}`]: false,
-                      }));
-                    }}
-                  />
-                </div>
-
-                {errors[`asalNama-${i}`] && (
-                  <p className="text-xs text-red-500 mt-1">
-                    Nama instansi wajib diisi
-                  </p>
-                )}
-              </div>
-            )}
-
-            {/* UNIVERSITAS / SMK */}
-            {peserta[i].asalJenis && peserta[i].asalJenis !== "Instansi" && (
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-1 block">
-                  Nama {peserta[i].asalJenis}{" "}
-                  <span className="text-red-500">*</span>
-                </label>
-
-                <div
-                  className={`form-field ${
-                    errors[`asalNama-${i}`] ? "form-error" : ""
-                  }`}
-                >
-                  <select
-                    value={peserta[i].asalNama}
-                    onChange={(e) => {
-                      update(i, "asalNama", e.target.value);
-                      update(i, "asalNamaLainnya", "");
-                      setErrors((p) => ({
-                        ...p,
-                        [`asalNama-${i}`]: false,
-                      }));
-                    }}
-                  >
-                    <option value="">Pilih {peserta[i].asalJenis}</option>
-
-                    {(peserta[i].asalJenis === "Universitas"
-                      ? UNIVERSITAS_LIST
-                      : SMK_LIST
-                    ).map((item) => (
-                      <option key={item} value={item}>
-                        {item}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {errors[`asalNama-${i}`] && (
-                  <p className="text-xs text-red-500 mt-1">
-                    Nama {peserta[i].asalJenis} wajib dipilih
-                  </p>
-                )}
-              </div>
-            )}
-
-            {peserta[i].asalNama === "LAINNYA" && (
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-1 block">
-                  Nama {peserta[i].asalJenis}{" "}
-                  <span className="text-red-500">*</span>
-                </label>
-
-                <div
-                  className={`form-field ${
-                    errors[`asalNamaLainnya-${i}`] ? "form-error" : ""
-                  }`}
-                >
-                  <input
-                    value={peserta[i].asalNamaLainnya}
-                    placeholder={`Masukkan nama ${peserta[i].asalJenis}`}
-                    onChange={(e) => {
-                      const val = e.target.value;
-
-                      update(i, "asalNamaLainnya", val);
-
-                      if (isCapitalizeEachWord(val)) {
-                        setErrors((p) => ({
-                          ...p,
-                          [`asalNamaLainnya-${i}`]: false,
-                        }));
-                      }
-                    }}
-                  />
-                </div>
-
-                {errors[`asalNamaLainnya-${i}`] && (
-                  <p className="text-xs text-red-500 mt-1">
-                    Gunakan huruf kapital di awal setiap kata
-                  </p>
-                )}
-
-                <p className="text-xs text-gray-400 mt-1">
-                  Contoh penulisan yang benar: <b>Universitas Indonesia</b>
-                </p>
-              </div>
-            )}
-
-            {/* ================= JURUSAN ================= */}
-            {peserta[i].asalJenis !== "Instansi" && peserta[i].asalNama && (
-              <>
-                {/* ===== SELECT JURUSAN ===== */}
-                <div>
-                  <label className="text-sm font-medium text-gray-700 mb-1 block">
-                    Jurusan <span className="text-red-500">*</span>
-                  </label>
-
-                  <div
-                    className={`form-field ${
-                      errors[`jurusan-${i}`] ? "form-error" : ""
-                    }`}
-                  >
-                    <select
-                      value={peserta[i].jurusan}
-                      onChange={(e) => {
-                        update(i, "jurusan", e.target.value);
-                        update(i, "jurusanLainnya", "");
-                        setErrors((p) => ({ ...p, [`jurusan-${i}`]: false }));
-                      }}
-                    >
-                      <option value="">Pilih Jurusan</option>
-
-                      {(peserta[i].asalJenis === "Universitas"
-                        ? JURUSAN_BY_UNIVERSITAS[peserta[i].asalNama] || [
-                            "LAINNYA",
-                          ]
-                        : JURUSAN_SMK[peserta[i].asalNama] || ["LAINNYA"]
-                      ).map((j) => (
-                        <option key={j} value={j}>
-                          {j}
-                        </option>
-                      ))}
-                    </select>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedFormasi(item);
+                                setCalendarOpen(true);
+                              }}
+                              className="w-full py-1 text-[11px] text-slate-500 hover:text-[#0088FF] flex items-center justify-center gap-1 transition-colors"
+                            >
+                              <HiOutlineCalendar className="text-xs" />
+                              <span>Lihat Kalender Jadwal</span>
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
 
-                  {errors[`jurusan-${i}`] && (
-                    <p className="text-xs text-red-500 mt-1">
-                      Jurusan wajib dipilih
+                  {errors[`posisi-${i}`] && (
+                    <p className="text-xs text-rose-500 mt-2 font-medium">
+                      * Posisi magang wajib dipilih untuk Peserta {i + 1}
                     </p>
                   )}
                 </div>
 
-                {/* ===== INPUT JURUSAN LAINNYA ===== */}
-                {peserta[i].jurusan === "LAINNYA" && (
-                  <div>
-                    <label className="text-sm font-medium text-gray-700 mb-1 block">
-                      Nama Jurusan <span className="text-red-500">*</span>
-                    </label>
+                {/* SUB-SEKSI B: PERIODE MAGANG */}
+                <div className="pt-2 border-t border-slate-100">
+                  <h3 className="text-sm font-bold text-slate-800 mb-1">
+                    Periode Pelaksanaan Magang <span className="text-rose-500">*</span>
+                  </h3>
+                  <p className="text-xs text-slate-500 mb-4">
+                    Tentukan tanggal perkiraan mulai dan selesai magang.
+                  </p>
 
-                    <div
-                      className={`form-field ${
-                        errors[`jurusanLainnya-${i}`] ? "form-error" : ""
-                      }`}
-                    >
-                      <input
-                        value={peserta[i].jurusanLainnya}
-                        placeholder="Masukkan nama jurusan"
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          update(i, "jurusanLainnya", val);
-
-                          if (isCapitalizeEachWord(val)) {
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Tanggal Mulai */}
+                    <div>
+                      <label className="text-xs font-semibold text-slate-700 mb-1.5 block">
+                        Tanggal Mulai Magang <span className="text-rose-500">*</span>
+                      </label>
+                      <div
+                        className={`form-field pr-10 relative ${
+                          errors[`tanggalMulaiMagang-${i}`] ? "form-error" : ""
+                        }`}
+                      >
+                        <input
+                          type="date"
+                          min={today}
+                          ref={(el) => {
+                            dateRefs.current[`mulai-${i}`] = el;
+                          }}
+                          value={peserta[i].tanggalMulaiMagang}
+                          onChange={(e) => {
+                            update(i, "tanggalMulaiMagang", e.target.value);
                             setErrors((p) => ({
                               ...p,
-                              [`jurusanLainnya-${i}`]: false,
+                              [`tanggalMulaiMagang-${i}`]: false,
                             }));
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            dateRefs.current[`mulai-${i}`]?.showPicker?.() ||
+                            dateRefs.current[`mulai-${i}`]?.focus()
                           }
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-[#0088FF] hover:text-[#0073E6] p-1.5 rounded-lg hover:bg-blue-50 transition"
+                        >
+                          <HiCalendar className="text-lg" />
+                        </button>
+                      </div>
+                      {errors[`tanggalMulaiMagang-${i}`] && (
+                        <p className="text-xs text-rose-500 mt-1">
+                          Tanggal mulai wajib diisi (minimal hari ini)
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Tanggal Selesai */}
+                    <div>
+                      <label className="text-xs font-semibold text-slate-700 mb-1.5 block">
+                        Tanggal Perkiraan Selesai <span className="text-rose-500">*</span>
+                      </label>
+                      <div
+                        className={`form-field pr-10 relative ${
+                          errors[`tanggalSelesaiMagang-${i}`] ? "form-error" : ""
+                        }`}
+                      >
+                        <input
+                          type="date"
+                          min={peserta[i].tanggalMulaiMagang || today}
+                          ref={(el) => {
+                            dateRefs.current[`selesai-${i}`] = el;
+                          }}
+                          value={peserta[i].tanggalSelesaiMagang}
+                          onChange={(e) => {
+                            update(i, "tanggalSelesaiMagang", e.target.value);
+                            setErrors((p) => ({
+                              ...p,
+                              [`tanggalSelesaiMagang-${i}`]: false,
+                            }));
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            dateRefs.current[`selesai-${i}`]?.showPicker?.() ||
+                            dateRefs.current[`selesai-${i}`]?.focus()
+                          }
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-[#0088FF] hover:text-[#0073E6] p-1.5 rounded-lg hover:bg-blue-50 transition"
+                        >
+                          <HiCalendar className="text-lg" />
+                        </button>
+                      </div>
+                      {errors[`tanggalSelesaiMagang-${i}`] && (
+                        <p className="text-xs text-rose-500 mt-1">
+                          Tanggal selesai harus setelah tanggal mulai magang
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Slot Warning Alert */}
+                  {slotWarning && (
+                    <div
+                      className={`mt-4 p-3.5 rounded-xl text-xs sm:text-sm font-medium flex items-center gap-2.5 ${
+                        slotPenuh
+                          ? "bg-rose-50 text-rose-700 border border-rose-200"
+                          : "bg-amber-50 text-amber-800 border border-amber-200"
+                      }`}
+                    >
+                      <HiOutlineExclamationCircle className="text-base shrink-0" />
+                      <span>{slotWarning}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* SUB-SEKSI C: IDENTITAS DIRI */}
+                <div className="pt-2 border-t border-slate-100 space-y-4">
+                  <h3 className="text-sm font-bold text-slate-800">
+                    Identitas Diri Peserta
+                  </h3>
+
+                  {/* Nama Lengkap */}
+                  <div>
+                    <label className="text-xs font-semibold text-slate-700 mb-1.5 block">
+                      Nama Lengkap <span className="text-rose-500">*</span>
+                    </label>
+                    <div
+                      className={`form-field ${
+                        errors[`nama-${i}`] ? "form-error" : ""
+                      }`}
+                    >
+                      <HiUser className="form-icon" />
+                      <input
+                        value={peserta[i].nama}
+                        placeholder="Masukkan nama lengkap sesuai KTP / KTM"
+                        onChange={(e) => {
+                          update(i, "nama", e.target.value);
+                          setErrors((prev) => ({
+                            ...prev,
+                            [`nama-${i}`]: false,
+                          }));
                         }}
                       />
                     </div>
-
-                    {errors[`jurusanLainnya-${i}`] && (
-                      <p className="text-xs text-red-500 mt-1">
-                        Gunakan huruf kapital di awal setiap kata
+                    {errors[`nama-${i}`] && (
+                      <p className="text-xs text-rose-500 mt-1">
+                        Nama lengkap wajib diisi
                       </p>
                     )}
-
-                    <p className="text-xs text-gray-400 mt-1">
-                      Contoh penulisan yang benar:{" "}
-                      <b>Teknik Informatika (S1)</b>
-                    </p>
                   </div>
-                )}
-              </>
-            )}
 
-            <div>
-              <label className="text-sm font-medium text-gray-700 mb-1 block">
-                Alamat Lengkap <span className="text-red-500">*</span>
-              </label>
+                  {/* Tempat & Tanggal Lahir */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs font-semibold text-slate-700 mb-1.5 block">
+                        Tempat Lahir <span className="text-rose-500">*</span>
+                      </label>
+                      <div
+                        className={`form-field ${
+                          errors[`tempatLahir-${i}`] ? "form-error" : ""
+                        }`}
+                      >
+                        <HiLocationMarker className="form-icon" />
+                        <input
+                          value={peserta[i].tempatLahir}
+                          placeholder="Kota tempat lahir"
+                          onChange={(e) => {
+                            update(i, "tempatLahir", e.target.value);
+                            setErrors((p) => ({
+                              ...p,
+                              [`tempatLahir-${i}`]: false,
+                            }));
+                          }}
+                        />
+                      </div>
+                      {errors[`tempatLahir-${i}`] && (
+                        <p className="text-xs text-rose-500 mt-1">
+                          Tempat lahir wajib diisi
+                        </p>
+                      )}
+                    </div>
 
-              <div
-                className={`form-field ${
-                  errors[`alamat-${i}`] ? "form-error" : ""
-                }`}
-              >
-                <textarea
-                  rows={3}
-                  placeholder="Alamat lengkap sesuai domisili"
-                  value={peserta[i].alamatLengkap}
-                  onChange={(e) => {
-                    update(i, "alamatLengkap", e.target.value);
-                    setErrors((p) => ({ ...p, [`alamat-${i}`]: false }));
-                  }}
-                />
+                    <div>
+                      <label className="text-xs font-semibold text-slate-700 mb-1.5 block">
+                        Tanggal Lahir <span className="text-rose-500">*</span>
+                      </label>
+                      <div
+                        className={`form-field pr-10 relative ${
+                          errors[`tanggalLahir-${i}`] ? "form-error" : ""
+                        }`}
+                      >
+                        <input
+                          type="date"
+                          ref={(el) => {
+                            dateRefs.current[`lahir-${i}`] = el;
+                          }}
+                          value={peserta[i].tanggalLahir}
+                          onChange={(e) => {
+                            update(i, "tanggalLahir", e.target.value);
+                            setErrors((p) => ({
+                              ...p,
+                              [`tanggalLahir-${i}`]: false,
+                            }));
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            dateRefs.current[`lahir-${i}`]?.showPicker?.() ||
+                            dateRefs.current[`lahir-${i}`]?.focus()
+                          }
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-[#0088FF] hover:text-[#0073E6] p-1.5 rounded-lg hover:bg-blue-50 transition"
+                        >
+                          <HiCalendar className="text-lg" />
+                        </button>
+                      </div>
+                      {errors[`tanggalLahir-${i}`] && (
+                        <p className="text-xs text-rose-500 mt-1">
+                          Tanggal lahir wajib diisi
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Jenis Kelamin */}
+                  <div>
+                    <label className="text-xs font-semibold text-slate-700 mb-1.5 block">
+                      Jenis Kelamin <span className="text-rose-500">*</span>
+                    </label>
+                    <div
+                      className={`form-field ${
+                        errors[`jenisKelamin-${i}`] ? "form-error" : ""
+                      }`}
+                    >
+                      <select
+                        value={peserta[i].jenisKelamin}
+                        onChange={(e) => {
+                          update(i, "jenisKelamin", e.target.value);
+                          setErrors((p) => ({
+                            ...p,
+                            [`jenisKelamin-${i}`]: false,
+                          }));
+                        }}
+                      >
+                        <option value="">-- Pilih Jenis Kelamin --</option>
+                        <option value="Laki-laki">Laki-laki</option>
+                        <option value="Perempuan">Perempuan</option>
+                      </select>
+                    </div>
+                    {errors[`jenisKelamin-${i}`] && (
+                      <p className="text-xs text-rose-500 mt-1">
+                        Jenis kelamin wajib dipilih
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* SUB-SEKSI D: ASAL PENDIDIKAN / INSTANSI */}
+                <div className="pt-2 border-t border-slate-100 space-y-4">
+                  <h3 className="text-sm font-bold text-slate-800">
+                    Asal Instansi & Pendidikan
+                  </h3>
+
+                  {/* Kategori Instansi */}
+                  <div>
+                    <label className="text-xs font-semibold text-slate-700 mb-1.5 block">
+                      Jenis Instansi Asal <span className="text-rose-500">*</span>
+                    </label>
+                    <div
+                      className={`form-field ${
+                        errors[`asalJenis-${i}`] ? "form-error" : ""
+                      }`}
+                    >
+                      <select
+                        value={peserta[i].asalJenis}
+                        onChange={(e) => {
+                          const jenis = e.target.value as
+                            | "Universitas"
+                            | "SMK"
+                            | "Instansi"
+                            | "";
+
+                          update(i, "asalJenis", jenis);
+                          update(i, "asalNama", "");
+                          update(i, "asalNamaLainnya", "");
+
+                          if (jenis === "Instansi") {
+                            update(i, "jurusan", "");
+                            update(i, "jurusanLainnya", "");
+                          }
+
+                          setErrors((p) => ({
+                            ...p,
+                            [`asalJenis-${i}`]: false,
+                          }));
+                        }}
+                      >
+                        <option value="">-- Pilih Jenis Instansi --</option>
+                        <option value="Universitas">
+                          Universitas / Perguruan Tinggi
+                        </option>
+                        <option value="SMK">
+                          Sekolah Menengah Kejuruan (SMK)
+                        </option>
+                        <option value="Instansi">
+                          Instansi Pemerintah / Lembaga Lainnya
+                        </option>
+                      </select>
+                    </div>
+                    {errors[`asalJenis-${i}`] && (
+                      <p className="text-xs text-rose-500 mt-1">
+                        Jenis instansi asal wajib dipilih
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Nama Instansi Pemerintah */}
+                  {peserta[i].asalJenis === "Instansi" && (
+                    <div>
+                      <label className="text-xs font-semibold text-slate-700 mb-1.5 block">
+                        Nama Instansi Pemerintah / Lembaga{" "}
+                        <span className="text-rose-500">*</span>
+                      </label>
+                      <div
+                        className={`form-field ${
+                          errors[`asalNama-${i}`] ? "form-error" : ""
+                        }`}
+                      >
+                        <input
+                          value={peserta[i].asalNama}
+                          placeholder="Contoh: Dinas Kesehatan Provinsi Sumatera Selatan"
+                          onChange={(e) => {
+                            update(i, "asalNama", e.target.value);
+                            setErrors((p) => ({
+                              ...p,
+                              [`asalNama-${i}`]: false,
+                            }));
+                          }}
+                        />
+                      </div>
+                      {errors[`asalNama-${i}`] && (
+                        <p className="text-xs text-rose-500 mt-1">
+                          Nama instansi wajib diisi
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Dropdown Universitas / SMK */}
+                  {peserta[i].asalJenis &&
+                    peserta[i].asalJenis !== "Instansi" && (
+                      <div>
+                        <label className="text-xs font-semibold text-slate-700 mb-1.5 block">
+                          Nama {peserta[i].asalJenis}{" "}
+                          <span className="text-rose-500">*</span>
+                        </label>
+                        <div
+                          className={`form-field ${
+                            errors[`asalNama-${i}`] ? "form-error" : ""
+                          }`}
+                        >
+                          <select
+                            value={peserta[i].asalNama}
+                            onChange={(e) => {
+                              update(i, "asalNama", e.target.value);
+                              update(i, "asalNamaLainnya", "");
+                              setErrors((p) => ({
+                                ...p,
+                                [`asalNama-${i}`]: false,
+                              }));
+                            }}
+                          >
+                            <option value="">
+                              -- Pilih {peserta[i].asalJenis} --
+                            </option>
+                            {(peserta[i].asalJenis === "Universitas"
+                              ? UNIVERSITAS_LIST
+                              : SMK_LIST
+                            ).map((item) => (
+                              <option key={item} value={item}>
+                                {item}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        {errors[`asalNama-${i}`] && (
+                          <p className="text-xs text-rose-500 mt-1">
+                            Nama {peserta[i].asalJenis} wajib dipilih
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                  {/* Input Custom jika LAINNYA */}
+                  {peserta[i].asalNama === "LAINNYA" && (
+                    <div>
+                      <label className="text-xs font-semibold text-slate-700 mb-1.5 block">
+                        Tuliskan Nama Lengkap {peserta[i].asalJenis}{" "}
+                        <span className="text-rose-500">*</span>
+                      </label>
+                      <div
+                        className={`form-field ${
+                          errors[`asalNamaLainnya-${i}`] ? "form-error" : ""
+                        }`}
+                      >
+                        <input
+                          value={peserta[i].asalNamaLainnya}
+                          placeholder={`Masukkan nama ${peserta[i].asalJenis} Anda`}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            update(i, "asalNamaLainnya", val);
+                            if (isCapitalizeEachWord(val)) {
+                              setErrors((p) => ({
+                                ...p,
+                                [`asalNamaLainnya-${i}`]: false,
+                              }));
+                            }
+                          }}
+                        />
+                      </div>
+                      {errors[`asalNamaLainnya-${i}`] ? (
+                        <p className="text-xs text-rose-500 mt-1">
+                          Gunakan huruf kapital di awal setiap kata
+                        </p>
+                      ) : (
+                        <p className="text-xs text-slate-400 mt-1">
+                          Contoh format: <b>Universitas Indonesia</b> atau{" "}
+                          <b>SMK Negeri 1 Palembang</b>
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Pilihan Jurusan */}
+                  {peserta[i].asalJenis !== "Instansi" &&
+                    peserta[i].asalNama && (
+                      <>
+                        <div>
+                          <label className="text-xs font-semibold text-slate-700 mb-1.5 block">
+                            Jurusan / Program Studi{" "}
+                            <span className="text-rose-500">*</span>
+                          </label>
+                          <div
+                            className={`form-field ${
+                              errors[`jurusan-${i}`] ? "form-error" : ""
+                            }`}
+                          >
+                            <select
+                              value={peserta[i].jurusan}
+                              onChange={(e) => {
+                                update(i, "jurusan", e.target.value);
+                                update(i, "jurusanLainnya", "");
+                                setErrors((p) => ({
+                                  ...p,
+                                  [`jurusan-${i}`]: false,
+                                }));
+                              }}
+                            >
+                              <option value="">-- Pilih Jurusan --</option>
+                              {(peserta[i].asalJenis === "Universitas"
+                                ? JURUSAN_BY_UNIVERSITAS[
+                                    peserta[i].asalNama
+                                  ] || ["LAINNYA"]
+                                : JURUSAN_SMK[peserta[i].asalNama] || [
+                                    "LAINNYA",
+                                  ]
+                              ).map((j) => (
+                                <option key={j} value={j}>
+                                  {j}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          {errors[`jurusan-${i}`] && (
+                            <p className="text-xs text-rose-500 mt-1">
+                              Jurusan wajib dipilih
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Input Jurusan jika LAINNYA */}
+                        {peserta[i].jurusan === "LAINNYA" && (
+                          <div>
+                            <label className="text-xs font-semibold text-slate-700 mb-1.5 block">
+                              Tuliskan Nama Jurusan{" "}
+                              <span className="text-rose-500">*</span>
+                            </label>
+                            <div
+                              className={`form-field ${
+                                errors[`jurusanLainnya-${i}`]
+                                  ? "form-error"
+                                  : ""
+                              }`}
+                            >
+                              <input
+                                value={peserta[i].jurusanLainnya}
+                                placeholder="Masukkan nama jurusan Anda"
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  update(i, "jurusanLainnya", val);
+                                  if (isCapitalizeEachWord(val)) {
+                                    setErrors((p) => ({
+                                      ...p,
+                                      [`jurusanLainnya-${i}`]: false,
+                                    }));
+                                  }
+                                }}
+                              />
+                            </div>
+                            {errors[`jurusanLainnya-${i}`] ? (
+                              <p className="text-xs text-rose-500 mt-1">
+                                Gunakan huruf kapital di awal setiap kata
+                              </p>
+                            ) : (
+                              <p className="text-xs text-slate-400 mt-1">
+                                Contoh penulisan: <b>Teknik Informatika (S1)</b>
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </>
+                    )}
+                </div>
+
+                {/* SUB-SEKSI E: DOMISILI & ALAMAT */}
+                <div className="pt-2 border-t border-slate-100 space-y-4">
+                  <h3 className="text-sm font-bold text-slate-800">
+                    Alamat & Domisili
+                  </h3>
+
+                  {/* Provinsi & Kota */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs font-semibold text-slate-700 mb-1.5 block">
+                        Provinsi <span className="text-rose-500">*</span>
+                      </label>
+                      <div
+                        className={`form-field ${
+                          errors[`provinsi-${i}`] ? "form-error" : ""
+                        }`}
+                      >
+                        <select
+                          value={peserta[i].provinsiId}
+                          onChange={(e) => {
+                            const o = provinsi.find(
+                              (x) => x.id === e.target.value,
+                            );
+                            if (o) update(i, "provinsi", o.name, o.id);
+                            setErrors((p) => ({
+                              ...p,
+                              [`provinsi-${i}`]: false,
+                            }));
+                          }}
+                        >
+                          <option value="">-- Pilih Provinsi --</option>
+                          {provinsi.map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      {errors[`provinsi-${i}`] && (
+                        <p className="text-xs text-rose-500 mt-1">
+                          Provinsi wajib dipilih
+                        </p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-semibold text-slate-700 mb-1.5 block">
+                        Kota / Kabupaten <span className="text-rose-500">*</span>
+                      </label>
+                      <div
+                        className={`form-field ${
+                          errors[`kota-${i}`] ? "form-error" : ""
+                        }`}
+                      >
+                        <select
+                          value={peserta[i].kotaId}
+                          onChange={(e) => {
+                            const o = wilayah[i]?.kota.find(
+                              (x) => x.id === e.target.value,
+                            );
+                            if (o) update(i, "kota", o.name, o.id);
+                            setErrors((p) => ({
+                              ...p,
+                              [`kota-${i}`]: false,
+                            }));
+                          }}
+                          disabled={!peserta[i].provinsiId}
+                        >
+                          <option value="">-- Pilih Kota / Kabupaten --</option>
+                          {wilayah[i]?.kota.map((k) => (
+                            <option key={k.id} value={k.id}>
+                              {k.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      {errors[`kota-${i}`] && (
+                        <p className="text-xs text-rose-500 mt-1">
+                          Kota/Kabupaten wajib dipilih
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Kecamatan & Kelurahan */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs font-semibold text-slate-700 mb-1.5 block">
+                        Kecamatan <span className="text-rose-500">*</span>
+                      </label>
+                      <div
+                        className={`form-field ${
+                          errors[`kecamatan-${i}`] ? "form-error" : ""
+                        }`}
+                      >
+                        <select
+                          value={peserta[i].kecamatanId}
+                          onChange={(e) => {
+                            const o = wilayah[i]?.kecamatan.find(
+                              (x) => x.id === e.target.value,
+                            );
+                            if (o) update(i, "kecamatan", o.name, o.id);
+                            setErrors((p) => ({
+                              ...p,
+                              [`kecamatan-${i}`]: false,
+                            }));
+                          }}
+                          disabled={!peserta[i].kotaId}
+                        >
+                          <option value="">-- Pilih Kecamatan --</option>
+                          {wilayah[i]?.kecamatan.map((k) => (
+                            <option key={k.id} value={k.id}>
+                              {k.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      {errors[`kecamatan-${i}`] && (
+                        <p className="text-xs text-rose-500 mt-1">
+                          Kecamatan wajib dipilih
+                        </p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-semibold text-slate-700 mb-1.5 block">
+                        Kelurahan / Desa <span className="text-rose-500">*</span>
+                      </label>
+                      <div
+                        className={`form-field ${
+                          errors[`kelurahan-${i}`] ? "form-error" : ""
+                        }`}
+                      >
+                        <select
+                          value={peserta[i].kelurahan}
+                          onChange={(e) => {
+                            update(i, "kelurahan", e.target.value);
+                            setErrors((p) => ({
+                              ...p,
+                              [`kelurahan-${i}`]: false,
+                            }));
+                          }}
+                          disabled={!peserta[i].kecamatanId}
+                        >
+                          <option value="">-- Pilih Kelurahan --</option>
+                          {wilayah[i]?.kelurahan.map((k) => (
+                            <option key={k.id} value={k.name}>
+                              {k.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      {errors[`kelurahan-${i}`] && (
+                        <p className="text-xs text-rose-500 mt-1">
+                          Kelurahan wajib dipilih
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Alamat Lengkap */}
+                  <div>
+                    <label className="text-xs font-semibold text-slate-700 mb-1.5 block">
+                      Alamat Lengkap Domisili{" "}
+                      <span className="text-rose-500">*</span>
+                    </label>
+                    <div
+                      className={`form-field ${
+                        errors[`alamat-${i}`] ? "form-error" : ""
+                      }`}
+                    >
+                      <textarea
+                        rows={3}
+                        placeholder="Tuliskan nama jalan, RT/RW, nomor rumah, dan keterangan lainnya"
+                        value={peserta[i].alamatLengkap}
+                        onChange={(e) => {
+                          update(i, "alamatLengkap", e.target.value);
+                          setErrors((p) => ({
+                            ...p,
+                            [`alamat-${i}`]: false,
+                          }));
+                        }}
+                      />
+                    </div>
+                    {errors[`alamat-${i}`] && (
+                      <p className="text-xs text-rose-500 mt-1">
+                        Alamat lengkap wajib diisi
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* SUB-SEKSI F: KONTAK PESERTA */}
+                <div className="pt-2 border-t border-slate-100 space-y-4">
+                  <h3 className="text-sm font-bold text-slate-800">
+                    Kontak & Informasi Komunikasi
+                  </h3>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Email */}
+                    <div>
+                      <label className="text-xs font-semibold text-slate-700 mb-1.5 block">
+                        Alamat Email Aktif <span className="text-rose-500">*</span>
+                      </label>
+                      <div
+                        className={`form-field ${
+                          errors[`email-${i}`] ? "form-error" : ""
+                        }`}
+                      >
+                        <HiMail className="form-icon" />
+                        <input
+                          type="email"
+                          value={peserta[i].email}
+                          placeholder="contoh@domain.com"
+                          onChange={(e) => {
+                            update(i, "email", e.target.value);
+                            setErrors((prev) => ({
+                              ...prev,
+                              [`email-${i}`]: false,
+                            }));
+                          }}
+                        />
+                      </div>
+                      {errors[`email-${i}`] && (
+                        <p className="text-xs text-rose-500 mt-1">
+                          Format email tidak valid atau belum diisi
+                        </p>
+                      )}
+                    </div>
+
+                    {/* No WhatsApp */}
+                    <div>
+                      <label className="text-xs font-semibold text-slate-700 mb-1.5 block">
+                        Nomor WhatsApp Aktif <span className="text-rose-500">*</span>
+                      </label>
+                      <div
+                        className={`form-field ${
+                          errors[`wa-${i}`] ? "form-error" : ""
+                        }`}
+                      >
+                        <HiPhone className="form-icon" />
+                        <input
+                          type="tel"
+                          value={peserta[i].wa}
+                          placeholder="Contoh: 081234567890"
+                          onChange={(e) => {
+                            update(i, "wa", e.target.value);
+                            setErrors((prev) => ({
+                              ...prev,
+                              [`wa-${i}`]: false,
+                            }));
+                          }}
+                        />
+                      </div>
+                      {errors[`wa-${i}`] ? (
+                        <p className="text-xs text-rose-500 mt-1">
+                          Nomor WA harus valid & diawali dengan 08
+                        </p>
+                      ) : (
+                        <p className="text-xs text-slate-400 mt-1">
+                          Pastikan nomor terhubung dengan WhatsApp aktif.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
+            ))}
 
-            {/* WILAYAH */}
-            <div className="grid md:grid-cols-2 gap-6">
-              {/* Provinsi */}
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-1 block">
-                  Provinsi <span className="text-red-500">*</span>
-                </label>
-
-                <div
-                  className={`form-field ${
-                    errors[`provinsi-${i}`] ? "form-error" : ""
-                  }`}
-                >
-                  <select
-                    value={peserta[i].provinsiId}
-                    onChange={(e) => {
-                      const o = provinsi.find((x) => x.id === e.target.value);
-                      if (o) update(i, "provinsi", o.name, o.id);
-                      setErrors((p) => ({ ...p, [`provinsi-${i}`]: false }));
-                    }}
-                  >
-                    <option value="">Pilih Provinsi</option>
-                    {provinsi.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
-                      </option>
-                    ))}
-                  </select>
+            {/* 3. UPLOAD SURAT PENGANTAR */}
+            <div className="bg-white border border-slate-200/80 rounded-2xl shadow-xs p-6 sm:p-8 space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                <div>
+                  <h2 className="text-lg font-bold text-[#0B1B3D] flex items-center gap-2.5">
+                    <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-blue-50 text-[#0088FF] text-sm font-extrabold">
+                      {kategori === "bersama" ? peserta.length + 1 : 2}
+                    </span>
+                    Upload Surat Pengantar Magang
+                  </h2>
+                  <p className="text-xs sm:text-sm text-slate-500 mt-1">
+                    Lampirkan surat permohonan resmi bertanda tangan dari pihak kampus/sekolah/instansi asal.
+                  </p>
                 </div>
               </div>
 
-              {/* Kota */}
               <div>
-                <label className="text-sm font-medium text-gray-700 mb-1 block">
-                  Kota / Kabupaten <span className="text-red-500">*</span>
-                </label>
-
-                <div
-                  className={`form-field ${
-                    errors[`kota-${i}`] ? "form-error" : ""
+                <label
+                  className={`relative group flex flex-col items-center justify-center border-2 border-dashed rounded-2xl p-6 sm:p-8 cursor-pointer transition-all ${
+                    errors["surat"]
+                      ? "border-rose-400 bg-rose-50/50"
+                      : surat
+                        ? "border-emerald-400 bg-emerald-50/30"
+                        : "border-slate-300 hover:border-[#0088FF] bg-slate-50/60 hover:bg-blue-50/20"
                   }`}
                 >
-                  <select
-                    value={peserta[i].kotaId}
+                  <input
+                    type="file"
+                    accept="application/pdf"
+                    hidden
                     onChange={(e) => {
-                      const o = wilayah[i]?.kota.find(
-                        (x) => x.id === e.target.value,
-                      );
-                      if (o) update(i, "kota", o.name, o.id);
-                      setErrors((p) => ({ ...p, [`kota-${i}`]: false }));
-                    }}
-                  >
-                    <option value="">Pilih Kota / Kabupaten</option>
-                    {wilayah[i]?.kota.map((k) => (
-                      <option key={k.id} value={k.id}>
-                        {k.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            </div>
+                      const file = e.target.files?.[0];
+                      if (!file) return;
 
-            <div className="grid md:grid-cols-2 gap-6">
-              {/* Kecamatan */}
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-1 block">
-                  Kecamatan <span className="text-red-500">*</span>
+                      const isPDF =
+                        file.type === "application/pdf" ||
+                        file.name.toLowerCase().endsWith(".pdf");
+
+                      if (!isPDF) {
+                        toast.error("Hanya file PDF yang diperbolehkan!", {
+                          autoClose: 3000,
+                        });
+                        e.target.value = "";
+                        setSurat(null);
+                        return;
+                      }
+
+                      const maxSize = 1 * 1024 * 1024;
+                      if (file.size > maxSize) {
+                        toast.error("Ukuran file maksimal 1 MB!", {
+                          autoClose: 3000,
+                        });
+                        e.target.value = "";
+                        setSurat(null);
+                        return;
+                      }
+
+                      setSurat(file);
+                      setErrors((prev) => ({ ...prev, surat: false }));
+                      toast.success("File surat berhasil dipilih", {
+                        autoClose: 2000,
+                      });
+                    }}
+                  />
+
+                  {surat ? (
+                    <div className="flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
+                      <div className="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-2xl shrink-0">
+                        <HiDocument />
+                      </div>
+                      <div>
+                        <div className="flex items-center justify-center sm:justify-start gap-2">
+                          <p className="font-bold text-slate-800 text-sm sm:text-base break-all">
+                            {surat.name}
+                          </p>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                            PDF
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          {(surat.size / 1024).toFixed(1)} KB • Klik untuk mengganti dokumen
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center space-y-2">
+                      <div className="w-12 h-12 rounded-2xl bg-blue-50 text-[#0088FF] mx-auto flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
+                        <HiUpload />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-slate-700">
+                          <span className="text-[#0088FF] hover:underline">
+                            Pilih file PDF
+                          </span>{" "}
+                          atau seret file ke area ini
+                        </p>
+                        <p className="text-xs text-slate-400 mt-1">
+                          Format dokumen wajib <b>PDF</b> dengan ukuran maksimal <b>1 MB</b>
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </label>
 
-                <div
-                  className={`form-field ${
-                    errors[`kecamatan-${i}`] ? "form-error" : ""
-                  }`}
-                >
-                  <select
-                    value={peserta[i].kecamatanId}
-                    onChange={(e) => {
-                      const o = wilayah[i]?.kecamatan.find(
-                        (x) => x.id === e.target.value,
-                      );
-                      if (o) update(i, "kecamatan", o.name, o.id);
-                      setErrors((p) => ({ ...p, [`kecamatan-${i}`]: false }));
-                    }}
-                  >
-                    <option value="">Pilih Kecamatan</option>
-                    {wilayah[i]?.kecamatan.map((k) => (
-                      <option key={k.id} value={k.id}>
-                        {k.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {errors[`kecamatan-${i}`] && (
-                  <p className="text-xs text-red-500 mt-1">
-                    Kecamatan wajib dipilih
+                {errors["surat"] && (
+                  <p className="text-xs text-rose-500 mt-2 font-medium">
+                    * Surat pengantar resmi wajib diunggah
                   </p>
                 )}
               </div>
+            </div>
 
-              {/* Kelurahan */}
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-1 block">
-                  Kelurahan <span className="text-red-500">*</span>
-                </label>
-
-                <div
-                  className={`form-field ${
-                    errors[`kelurahan-${i}`] ? "form-error" : ""
-                  }`}
-                >
-                  <select
-                    value={peserta[i].kelurahan}
-                    onChange={(e) => {
-                      update(i, "kelurahan", e.target.value);
-                      setErrors((p) => ({ ...p, [`kelurahan-${i}`]: false }));
-                    }}
-                  >
-                    <option value="">Pilih Kelurahan</option>
-                    {wilayah[i]?.kelurahan.map((k) => (
-                      <option key={k.id} value={k.name}>
-                        {k.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {errors[`kelurahan-${i}`] && (
-                  <p className="text-xs text-red-500 mt-1">
-                    Kelurahan wajib dipilih
-                  </p>
+            {/* 4. TOMBOL SUBMIT */}
+            <div className="pt-2">
+              <button
+                type="submit"
+                disabled={loading || slotPenuh}
+                className="w-full py-4 px-6 rounded-xl text-white font-bold text-base sm:text-lg bg-[#0088FF] hover:bg-[#0073E6] shadow-lg shadow-blue-500/25 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-3"
+              >
+                {loading ? (
+                  <>
+                    <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <span>Sedang Mengirim Pendaftaran...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Kirim Formulir Pendaftaran</span>
+                    <HiArrowLeft className="rotate-180 text-xl" />
+                  </>
                 )}
-              </div>
+              </button>
+
+              {slotPenuh && (
+                <div className="mt-3 p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs sm:text-sm text-center font-medium">
+                  Pendaftaran tidak dapat dikirim karena kuota magang pada tanggal yang Anda pilih telah penuh. Silakan sesuaikan tanggal magang pada form di atas.
+                </div>
+              )}
             </div>
-
-            <div>
-              <label className="text-sm font-medium text-gray-700 mb-1 block">
-                Email <span className="text-red-500">*</span>
-              </label>
-
-              <div
-                className={`form-field ${
-                  errors[`email-${i}`] ? "form-error" : ""
-                }`}
-              >
-                <HiMail className="form-icon" />
-                <input
-                  value={peserta[i].email}
-                  placeholder="contoh@gmail.com"
-                  onChange={(e) => {
-                    update(i, "email", e.target.value);
-                    setErrors((prev) => ({ ...prev, [`email-${i}`]: false }));
-                  }}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="text-sm font-medium text-gray-700 mb-1 block">
-                No WhatsApp <span className="text-red-500">*</span>
-              </label>
-
-              <div
-                className={`form-field ${
-                  errors[`wa-${i}`] ? "form-error" : ""
-                }`}
-              >
-                <HiPhone className="form-icon" />
-                <input
-                  value={peserta[i].wa}
-                  placeholder="08xxxxxxxxxx"
-                  onChange={(e) => {
-                    update(i, "wa", e.target.value);
-                    setErrors((prev) => ({ ...prev, [`wa-${i}`]: false }));
-                  }}
-                />
-              </div>
-
-              <p className="text-xs text-gray-400 mt-1">Contoh: 081234567890</p>
-            </div>
-          </div>
-        ))}
-
-        {/* UPLOAD */}
-        {/* UPLOAD */}
-        <div>
-          <label className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-            <HiUpload />
-            Surat Pengantar <span className="text-red-500">*</span>
-          </label>
-
-          <label
-            className={`flex items-center justify-between px-4 py-4 border-2 border-dashed rounded-xl cursor-pointer
-      ${
-        errors["surat"]
-          ? "border-red-500 bg-red-50"
-          : "border-gray-300 hover:border-[#F59E0B]"
-      }
-    `}
-          >
-            <span className="text-gray-600">
-              {surat ? surat.name : "Klik untuk upload surat pengantar"}
-            </span>
-            <span className="text-sm text-[#7F1D1D] font-medium">Browse</span>
-
-            <input
-              type="file"
-              accept="application/pdf"
-              hidden
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-
-                if (!file) return;
-
-                const isPDF =
-                  file.type === "application/pdf" ||
-                  file.name.toLowerCase().endsWith(".pdf");
-
-                if (!isPDF) {
-                  toast.error("❌ Hanya file PDF yang diperbolehkan!", {
-                    autoClose: 3000,
-                  });
-                  e.target.value = "";
-                  setSurat(null);
-                  return;
-                }
-
-                const maxSize = 1 * 1024 * 1024;
-                if (file.size > maxSize) {
-                  toast.error("❌ Ukuran file maksimal 1 MB!", {
-                    autoClose: 3000,
-                  });
-                  e.target.value = "";
-                  setSurat(null);
-                  return;
-                }
-
-                setSurat(file);
-                setErrors((prev) => ({ ...prev, surat: false }));
-
-                toast.success("✅ File berhasil dipilih", {
-                  autoClose: 2000,
-                });
-              }}
-            />
-          </label>
-
-          {/* 🔽 TAMBAHAN INFO */}
-          <p className="text-xs text-gray-500 mt-2">
-            Format file harus <span className="font-medium">PDF</span> dan
-            ukuran maksimal <span className="font-medium">1 MB</span>.
-          </p>
-
-          {errors["surat"] && (
-            <p className="text-sm text-red-500 mt-1">
-              Surat pengantar wajib diupload
-            </p>
-          )}
+          </form>
         </div>
-
-        <button
-          type="submit"
-          disabled={loading || slotPenuh}
-          className="w-full py-4 rounded-xl text-white font-semibold text-lg
-              bg-linear-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
-              hover:scale-[1.02] transition disabled:opacity-60"
-        >
-          {loading ? "Mengirim..." : "Kirim Pendaftaran"}
-        </button>
-        {slotPenuh && (
-          <p className="text-center text-red-600 text-sm mt-3 font-medium">
-            Pendaftaran tidak dapat dilakukan karena kuota magang pada tanggal
-            tersebut sudah penuh.
-          </p>
-        )}
-      </form>
+      </div>
 
       {/* ================= MODAL KONFIRMASI ================= */}
       {showConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            className="absolute inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
             onClick={() => setShowConfirm(false)}
           />
-          <div className="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md animate-scaleIn">
-            <h3 className="text-lg font-bold text-gray-800 mb-2">
-              Konfirmasi Pendaftaran
+          <div className="relative bg-white rounded-2xl shadow-2xl p-6 sm:p-8 w-full max-w-md animate-scaleIn border border-slate-100">
+            <div className="w-12 h-12 rounded-xl bg-blue-50 text-[#0088FF] flex items-center justify-center text-2xl mb-4">
+              <HiClipboardList />
+            </div>
+            <h3 className="text-xl font-bold text-[#0B1B3D] mb-2">
+              Konfirmasi Pengiriman Formulir
             </h3>
-            <p className="text-sm text-gray-600 mb-6">
-              Apakah Anda yakin semua data yang diinput sudah benar?
-              <br />
-              <span className="text-gray-500">
-                Data tidak dapat diubah setelah dikirim.
+            <p className="text-sm text-slate-600 mb-6 leading-relaxed">
+              Apakah Anda yakin seluruh data yang telah diinput sudah benar dan sesuai?
+              <span className="block mt-2 text-xs text-slate-400">
+                * Data yang telah terkirim tidak dapat diubah secara langsung dan akan diproses ke tahap seleksi admin.
               </span>
             </p>
 
-            <div className="flex justify-end gap-3">
+            <div className="flex items-center justify-end gap-3">
               <button
+                type="button"
                 onClick={() => setShowConfirm(false)}
-                className="
-                    px-4 py-2
-                    rounded-lg
-                    border border-gray-300
-                    bg-white
-                    text-gray-700 font-medium
-                    hover:bg-gray-100
-                    hover:text-gray-900
-                    transition
-                  "
+                className="px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 text-sm font-semibold hover:bg-slate-50 transition"
               >
-                Cek Ulang
+                Cek Kembali
               </button>
               <button
+                type="button"
                 onClick={submitConfirmed}
-                className="px-5 py-2 rounded-lg bg-linear-to-r from-[#7F1D1D] to-[#B91C1C] text-white font-semibold hover:opacity-90"
+                className="px-5 py-2.5 rounded-xl bg-[#0088FF] hover:bg-[#0073E6] text-white text-sm font-semibold shadow-md transition"
               >
-                Ya, Kirim
+                Ya, Kirim Sekarang
               </button>
             </div>
           </div>
@@ -2093,72 +2192,44 @@ function PendaftaranForm() {
 
       {/* ================= MODAL SUKSES ================= */}
       {showSuccess && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          {/* BACKDROP */}
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            className="absolute inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
             onClick={() => setShowSuccess(false)}
           />
-
-          {/* CARD */}
-          <div className="relative bg-white rounded-3xl shadow-2xl p-8 w-full max-w-md animate-scaleIn text-center">
-            {/* ICON */}
-            <div
-              className="mx-auto mb-4 w-20 h-20 rounded-full
-                            bg-linear-to-br from-[#F59E0B] to-[#FACC15]
-                            flex items-center justify-center shadow-lg"
-            >
-              <svg
-                className="w-10 h-10 text-white"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="3"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
+          <div className="relative bg-white rounded-3xl shadow-2xl p-6 sm:p-8 w-full max-w-md animate-scaleIn text-center border border-slate-100">
+            <div className="mx-auto mb-4 w-16 h-16 rounded-2xl bg-gradient-to-br from-[#0088FF] to-[#38BDF8] flex items-center justify-center shadow-lg shadow-blue-500/30 text-white text-3xl">
+              <HiCheckCircle />
             </div>
 
-            {/* TITLE */}
-            <h3 className="text-2xl font-extrabold text-gray-800 mb-2">
-              Pendaftaran Berhasil 🎉
+            <h3 className="text-2xl font-extrabold text-[#0B1B3D] mb-2 tracking-tight">
+              Pendaftaran Berhasil Dikirim! 🎉
             </h3>
 
-            {/* DESC */}
-            <p className="text-gray-600 mb-6 text-sm leading-relaxed">
-              Data pendaftaran magang Anda telah berhasil dikirim.
-              <br />
-              Silakan menunggu proses verifikasi dari admin.
+            <p className="text-slate-600 mb-6 text-sm leading-relaxed">
+              Terima kasih, data permohonan magang Anda telah berhasil kami terima. Silakan menunggu proses verifikasi dan seleksi dari tim admin BBPOM di Palembang.
             </p>
 
-            {/* ACTION */}
             <div className="flex flex-col gap-3">
-              <button
-                onClick={() => setShowSuccess(false)}
-                className="
-                  w-full py-3 rounded-xl
-                  bg-linear-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
-                  text-white font-semibold
-                  hover:scale-[1.02] transition
-                "
-              >
-                OK, Mengerti
-              </button>
-
               <Link
                 href="/pendaftaran/riwayat"
-                className="text-sm text-[#7F1D1D] hover:underline"
+                className="w-full py-3.5 rounded-xl bg-[#0088FF] hover:bg-[#0073E6] text-white font-semibold text-sm shadow-md transition-colors"
               >
-                Lihat Riwayat Pendaftaran
+                Cek Riwayat Pendaftaran
               </Link>
+              <button
+                type="button"
+                onClick={() => setShowSuccess(false)}
+                className="w-full py-2.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-medium text-sm transition-colors"
+              >
+                Tutup
+              </button>
             </div>
           </div>
         </div>
       )}
+
+      {/* POPUP KALENDER KETERSEDIAAN */}
       <CalendarPopup
         isOpen={calendarOpen}
         onClose={() => setCalendarOpen(false)}
@@ -2168,31 +2239,24 @@ function PendaftaranForm() {
   );
 }
 
-// Loading fallback untuk Suspense
+// Loading Fallback untuk Suspense
 function PendaftaranLoading() {
   return (
-    <div className="min-h-screen bg-linear-to-br from-[#FFF7ED] via-[#FEF3C7] to-[#FFFFFF] py-16 px-4">
-      <div className="max-w-6xl mx-auto">
-        <div className="mb-8">
-          <div className="inline-flex items-center gap-3 px-5 py-2.5 rounded-xl bg-white/80">
-            <span className="w-8 h-8 rounded-lg bg-gray-200 animate-pulse"></span>
-            <span className="w-32 h-4 bg-gray-200 rounded animate-pulse"></span>
-          </div>
+    <div className="min-h-screen bg-[#F8FAFC] pt-28 md:pt-36 pb-16 px-4">
+      <Navbar />
+      <div className="max-w-4xl mx-auto space-y-8 animate-pulse">
+        <div className="w-44 h-10 bg-slate-200 rounded-xl" />
+        <div className="text-center space-y-3">
+          <div className="w-32 h-6 bg-slate-200 rounded-full mx-auto" />
+          <div className="w-3/4 max-w-md h-10 bg-slate-200 rounded-xl mx-auto" />
+          <div className="w-1/2 h-4 bg-slate-200 rounded-lg mx-auto" />
         </div>
-
-        <div className="text-center mb-14">
-          <div className="w-96 h-12 bg-gray-200 rounded-lg animate-pulse mx-auto mb-3"></div>
-          <div className="w-64 h-4 bg-gray-200 rounded animate-pulse mx-auto"></div>
-        </div>
-
-        <div className="bg-white/70 backdrop-blur-xl rounded-3xl shadow-xl p-10">
-          <div className="space-y-4">
-            {[...Array(5)].map((_, i) => (
-              <div
-                key={i}
-                className="h-16 bg-gray-200 rounded-lg animate-pulse"
-              ></div>
-            ))}
+        <div className="h-28 bg-slate-200 rounded-2xl" />
+        <div className="bg-white rounded-2xl p-8 border border-slate-200 space-y-6">
+          <div className="w-48 h-6 bg-slate-200 rounded" />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="h-20 bg-slate-100 rounded-xl" />
+            <div className="h-20 bg-slate-100 rounded-xl" />
           </div>
         </div>
       </div>
@@ -2200,15 +2264,11 @@ function PendaftaranLoading() {
   );
 }
 
-// Komponen utama yang diekspor
+// Komponen Halaman Pendaftaran Utama
 export default function PendaftaranPage() {
   return (
     <Suspense fallback={<PendaftaranLoading />}>
-      <div className="min-h-screen bg-linear-to-br from-[#FFF7ED] via-[#FEF3C7] to-[#FFFFFF] py-16 px-4">
-        <div className="max-w-6xl mx-auto">
-          <PendaftaranForm />
-        </div>
-      </div>
+      <PendaftaranForm />
     </Suspense>
   );
 }

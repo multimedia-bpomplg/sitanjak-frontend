@@ -92,11 +92,8 @@ export default function HomePage() {
       <div
         className="
           min-h-screen
-          bg-linear-to-br 
-          from-[#FFF7E6] 
-          via-[#F3FDFB] 
-          to-[#FFFFFF]
-          pt-23
+          bg-white
+          pt-20
         "
       >
         <Navbar />

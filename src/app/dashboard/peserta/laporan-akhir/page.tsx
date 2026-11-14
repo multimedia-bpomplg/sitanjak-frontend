@@ -1,10 +1,24 @@
-// dashboard/peserta/laporan-akhir/page.tsx
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
+import {
+  FileText,
+  ClipboardCheck,
+  ChevronRight,
+  Download,
+  Award,
+  Upload,
+  Clock,
+  CheckCircle2,
+  AlertCircle,
+  ExternalLink,
+  MessageSquare,
+} from "lucide-react";
 import LaporanAkhirUploadModal from "@/components/Laporan/LaporanAkhirModal";
 import PenilaianModal from "@/components/Laporan/PenilaianModal";
+import FeedbackModal from "@/components/Laporan/FeedbackModal";
 import { showToast } from "@/components/ui/toastDashboard";
+import { PesertaDashboardSkeleton } from "@/components/dashboard/skeletons";
 
 type LaporanAkhir = {
   _id: string;
@@ -33,23 +47,30 @@ type Feedback = {
 };
 
 export default function LaporanAkhirPage() {
-  const [showUploadModal, setShowUploadModal] = useState(false);
-  const [showPenilaianModal, setShowPenilaianModal] = useState(false);
   const [laporan, setLaporan] = useState<LaporanAkhir | null>(null);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
-  const [showFeedbackPopup, setShowFeedbackPopup] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [dataLoaded, setDataLoaded] = useState(false); // Track if all data is loaded
+  const [dataLoaded, setDataLoaded] = useState(false);
 
-  // Ref untuk mencegah popup muncul terus menerus
+  // Accordion expand state for cards
+  const [openLaporanSection, setOpenLaporanSection] = useState(false);
+  const [openSurveiSection, setOpenSurveiSection] = useState(false);
+
+  // Modals
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showPenilaianModal, setShowPenilaianModal] = useState(false);
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [feedbackModalMode, setFeedbackModalMode] = useState<"create" | "view">(
+    "create",
+  );
+  const [selectedMonth, setSelectedMonth] = useState("");
+  const [showFeedbackPopup, setShowFeedbackPopup] = useState(false);
+
   const hasShownPopupRef = useRef(false);
 
-  const token =
-    typeof window !== "undefined" ? (localStorage.getItem("token") ?? "") : "";
-
-  /* ================= CEK LAPORAN AKHIR ================= */
-  const fetchLaporan = async () => {
+  const fetchLaporan = useCallback(async () => {
     try {
+      const token = localStorage.getItem("token") ?? "";
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/laporan-akhir`,
         {
@@ -69,11 +90,11 @@ export default function LaporanAkhirPage() {
     } catch (error) {
       console.error("Gagal mengambil laporan akhir", error);
     }
-  };
+  }, []);
 
-  /* ================= CEK FEEDBACK ================= */
-  const checkFeedback = async () => {
+  const checkFeedback = useCallback(async () => {
     try {
+      const token = localStorage.getItem("token") ?? "";
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/feedback/riwayat`,
         {
@@ -82,9 +103,7 @@ export default function LaporanAkhirPage() {
       );
 
       const data = await res.json();
-
       if (Array.isArray(data) && data.length > 0) {
-        // Feedback sudah diisi jika ada data
         setFeedback(data[0]);
       } else {
         setFeedback(null);
@@ -93,77 +112,52 @@ export default function LaporanAkhirPage() {
       console.error("Gagal cek feedback", error);
       setFeedback(null);
     }
-  };
-
-  // Load all data
-  const loadAllData = async () => {
-    setLoading(true);
-    setDataLoaded(false);
-
-    await Promise.all([fetchLaporan(), checkFeedback()]);
-
-    setLoading(false);
-    setDataLoaded(true);
-  };
-
-  // Refresh data ketika komponen mount
-  useEffect(() => {
-    loadAllData();
-    // Reset ref ketika komponen di-mount
-    hasShownPopupRef.current = false;
   }, []);
 
-  // Single effect untuk mengelola popup - hanya berjalan ketika semua data sudah terload
-  useEffect(() => {
-    // Hanya proses jika data sudah lengkap terload
-    if (!dataLoaded) return;
+  const loadAllData = useCallback(async () => {
+    setLoading(true);
+    setDataLoaded(false);
+    await Promise.all([fetchLaporan(), checkFeedback()]);
+    setLoading(false);
+    setDataLoaded(true);
+  }, [fetchLaporan, checkFeedback]);
 
+  useEffect(() => {
+    loadAllData();
+    hasShownPopupRef.current = false;
+  }, [loadAllData]);
+
+  // Prompt to fill feedback if laporan is uploaded and feedback is not yet filled
+  useEffect(() => {
+    if (!dataLoaded) return;
     const isFeedbackFilled = feedback !== null;
 
-    // Log untuk debugging (bisa dihapus setelah production)
-    console.log("Popup check:", {
-      laporanExists: !!laporan,
-      status: laporan?.status,
-      isFeedbackFilled,
-      hasShown: hasShownPopupRef.current,
-    });
-
-    // Kondisi popup harus muncul
     if (laporan && laporan.status === "Menunggu" && !isFeedbackFilled) {
-      // Cek apakah sudah pernah ditampilkan
       if (!hasShownPopupRef.current) {
         hasShownPopupRef.current = true;
         setShowFeedbackPopup(true);
       }
     } else {
-      // Jika kondisi tidak terpenuhi, pastikan popup tidak muncul
       setShowFeedbackPopup(false);
     }
   }, [dataLoaded, laporan, feedback]);
 
-  // Effect untuk cek ulang feedback setelah user kembali dari halaman feedback
-  useEffect(() => {
-    const checkFeedbackOnReturn = async () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const fromFeedback = urlParams.get("from") === "feedback";
+  const handleOpenFeedbackModal = () => {
+    if (feedback) {
+      setSelectedMonth(feedback.month);
+      setFeedbackModalMode("view");
+    } else {
+      const now = new Date();
+      const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+      setSelectedMonth(month);
+      setFeedbackModalMode("create");
+    }
+    setShowFeedbackModal(true);
+  };
 
-      if (fromFeedback) {
-        // Refresh data feedback
-        await checkFeedback();
-        // Hapus parameter dari URL
-        window.history.replaceState({}, "", "/dashboard/peserta/laporan-akhir");
-
-        // Reset hasShownPopupRef agar popup bisa muncul lagi jika diperlukan
-        hasShownPopupRef.current = false;
-      }
-    };
-
-    checkFeedbackOnReturn();
-  }, []);
-
-  /* ================= DOWNLOAD PDF ================= */
   const downloadPdf = async () => {
     try {
+      const token = localStorage.getItem("token") ?? "";
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/laporan-akhir/download`,
         {
@@ -182,456 +176,307 @@ export default function LaporanAkhirPage() {
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
-    } catch (error) {
+    } catch {
       showToast.error("Gagal mengunduh laporan");
     }
   };
 
-  /* ================= FORMAT FILE SIZE ================= */
   const formatFileSize = (bytes: number) => {
     if (bytes < 1024) return bytes + " B";
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
     return (bytes / (1024 * 1024)).toFixed(1) + " MB";
   };
 
-  /* ================= GET STATUS COLOR ================= */
-  const getStatusColor = (status: string) => {
+  const getStatusBadge = (status: string) => {
     switch (status) {
       case "Disetujui":
-        return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300";
+        return "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800";
       case "Ditolak":
-        return "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300";
+        return "bg-red-50 text-red-600 border-red-200 dark:bg-red-950/60 dark:text-red-300 dark:border-red-800";
       default:
-        return "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300";
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "Disetujui":
-        return "✅";
-      case "Ditolak":
-        return "❌";
-      default:
-        return "⏳";
-    }
-  };
-
-  const getStatusAccent = (status: string) => {
-    switch (status) {
-      case "Disetujui":
-        return "from-emerald-400 via-emerald-500 to-emerald-600";
-      case "Ditolak":
-        return "from-rose-400 via-rose-500 to-rose-600";
-      default:
-        return "from-amber-400 via-amber-500 to-amber-600";
+        return "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800";
     }
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-      </div>
-    );
+    return <PesertaDashboardSkeleton />;
   }
 
   return (
-    <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-      {/* ================= HEADER ================= */}
-
-      <div className="space-y-3">
-        <h1 className="flex items-center gap-3 tracking-tight mb-2">
-          <span
-            className="
-                text-2xl sm:text-3xl lg:text-4xl
-                font-extrabold leading-tight
-                bg-clip-text text-transparent
-                bg-linear-to-r
-                from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
-                dark:from-indigo-400 dark:via-violet-400 dark:to-purple-400
-              "
-          >
-            Laporan Akhir Magang
-          </span>
+    <div className="space-y-5 sm:space-y-6">
+      {/* ================= 1. HEADER ================= */}
+      <div className="pt-1">
+        <h1 className="text-xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+          Perkembangan Magang
         </h1>
-        <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 max-w-2xl">
-          Upload laporan akhir dalam format PDF (maksimal 5MB). Laporan hanya
-          dapat diunggah <b>satu kali</b> dan bersifat final.
+        <p className="text-xs sm:text-base text-slate-500 dark:text-slate-400 mt-1">
+          Lihat laporan akhir, evaluasi penilaian mentor, dan survei program
+          Anda.
         </p>
-
-        <div className="flex gap-3 mt-3">
-          <button
-            onClick={() =>
-              window.open(
-                "https://docs.google.com/document/d/1YXq6zUrCv4OdKhV5m5ZoAZPzQ54vS02KG-5nb59U1yI/edit?usp=sharing",
-                "_blank",
-              )
-            }
-            className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm hover:bg-blue-700 transition-colors duration-200 flex items-center gap-2"
-          >
-            📄 Template Survei BPOM Regular
-          </button>
-
-          <button
-            onClick={() =>
-              window.open(
-                "https://docs.google.com/document/d/1rZq-AMlUVEh9uk4jucyh09eopL87Bauis47OqT22i5M/edit?usp=sharing",
-                "_blank",
-              )
-            }
-            className="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm hover:bg-indigo-700 transition-colors duration-200 flex items-center gap-2"
-          >
-            📎 Template Survei BPOM TKPA
-          </button>
-        </div>
-
-        {/* Informasi Status Feedback (Opsional) */}
-        {feedback && (
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300">
-            ✅ Feedback sudah diisi
-          </div>
-        )}
       </div>
 
-      {/* ================= KONTEN ================= */}
-      {laporan ? (
-        <div
-          className="
-              relative
-              rounded-3xl
-              bg-white dark:bg-slate-900
-              border border-slate-200 dark:border-slate-800
-              shadow-xl
-              overflow-hidden
-            "
-        >
-          {/* Accent bar */}
-          <div
-            className={`
-                h-1 w-full
-                bg-linear-to-r
-                ${getStatusAccent(laporan.status)}
-              `}
-          />
-
-          {/* File info */}
-          <div className="p-5 sm:p-7 space-y-6">
-            {/* HEADER FILE */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              {/* File info */}
-              <div className="flex items-start gap-4">
-                <div
-                  className="
-                      w-12 h-12
-                      rounded-2xl
-                      flex items-center justify-center
-                      text-xl
-                      bg-slate-100 dark:bg-slate-800
-                    "
-                >
-                  📄
+      {/* ================= 2. CHEVRON CARDS LIST ================= */}
+      <div className="space-y-3.5 sm:space-y-4">
+        {/* CARD 1: LAPORAN AKHIR & EVALUASI */}
+        <div className="rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setOpenLaporanSection((v) => !v)}
+            className="w-full p-4 sm:p-5 text-left hover:bg-slate-50/70 dark:hover:bg-slate-700/40 transition"
+          >
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 sm:gap-3.5">
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-[#1D64F2] dark:text-blue-400 flex items-center justify-center shrink-0">
+                  <FileText className="w-5 h-5" />
                 </div>
-
-                <div className="min-w-0">
-                  <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white truncate">
-                    {laporan.fileName}
-                  </h2>
-                  <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-                    {formatFileSize(laporan.fileSize)} • Dikirim{" "}
-                    {new Date(laporan.submittedAt).toLocaleDateString("id-ID")}
-                  </p>
-                </div>
+                <span className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
+                  Laporan Akhir & Evaluasi
+                </span>
               </div>
-
-              {/* Status badge */}
-              <span
-                className={`
-                    inline-flex items-center justify-center gap-2
-                    px-4 py-2
-                    rounded-full
-                    text-xs sm:text-sm font-semibold
-                    whitespace-nowrap
-                    ${getStatusColor(laporan.status)}
-                  `}
-              >
-                {getStatusIcon(laporan.status)}
-                {laporan.status}
-              </span>
+              <ChevronRight
+                className={`w-4 h-4 sm:w-5 sm:h-5 text-slate-400 transition-transform duration-200 ${
+                  openLaporanSection ? "rotate-90" : ""
+                }`}
+              />
             </div>
 
-            {/* ACTION BUTTONS */}
-            <div className="flex flex-col sm:flex-row gap-3">
-              <button
-                onClick={downloadPdf}
-                className="
-                    w-full sm:w-auto
-                    inline-flex items-center justify-center gap-2
-                    px-5 py-3
-                    rounded-xl
-                    text-sm font-semibold
-                    text-white
-                    transition-all
-                    shadow-md hover:shadow-xl
-                    hover:-translate-y-0.5
-
-                    bg-linear-to-r
-                    from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
-                    hover:from-[#991B1B] hover:via-[#DC2626] hover:to-[#FBBF24]
-
-                    dark:from-indigo-600 dark:to-violet-500
-                    dark:hover:from-indigo-500 dark:hover:to-violet-400
-                  "
-              >
-                📥 Download PDF
-              </button>
-
-              {laporan.status === "Disetujui" && (
-                <button
-                  onClick={() => setShowPenilaianModal(true)}
-                  className="
-                      w-full sm:w-auto
-                      inline-flex items-center justify-center gap-2
-                      px-5 py-3
-                      rounded-xl
-                      text-sm font-semibold
-                      border
-                      border-amber-300
-                      text-amber-700
-                      hover:bg-amber-50
-                      dark:border-amber-600 dark:text-amber-300 dark:hover:bg-amber-900/20
-                      transition
-                    "
+            <div className="mt-3 sm:mt-3.5 pt-2.5 sm:pt-3 border-t border-slate-100 dark:border-slate-700/70 flex items-center justify-between gap-2 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+              <div className="flex items-center gap-1.5 truncate">
+                <Award className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 shrink-0" />
+                <span className="truncate">
+                  {laporan
+                    ? `Laporan Akhir (${laporan.status})`
+                    : "Penilaian Mentor & Unggah Laporan Akhir"}
+                </span>
+              </div>
+              {laporan && (
+                <span
+                  className={`px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold border shrink-0 ${getStatusBadge(
+                    laporan.status,
+                  )}`}
                 >
-                  ⭐ Lihat Penilaian
-                </button>
+                  {laporan.status}
+                </span>
               )}
             </div>
+          </button>
 
-            {/* Mentor Note */}
-            {laporan.mentorNote && (
-              <div
-                className="
-                    relative
-                    rounded-2xl
-                    border
-                    border-[#FCA5A5]/40 dark:border-indigo-500/30
-                    bg-linear-to-br
-                    from-[#FFF7ED] via-white to-[#FEF3C7]
-                    dark:from-indigo-950 dark:via-slate-900 dark:to-indigo-900
-                    p-5 sm:p-6
-                    shadow-sm
-                  "
-              >
-                {/* Judul */}
-                <p className="text-xs font-semibold uppercase tracking-wide text-[#7F1D1D] dark:text-indigo-300 mb-6">
-                  Timeline Review Mentor
+          {/* Expanded Laporan Akhir Content */}
+          {openLaporanSection && (
+            <div className="px-4 sm:px-5 pb-4 sm:pb-5 pt-2.5 border-t border-slate-100 dark:border-slate-700/70 space-y-4 bg-slate-50/40 dark:bg-slate-800/40">
+              {/* Template Survei Links */}
+              <div className="space-y-2">
+                <p className="text-[11px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400">
+                  Dokumen Template Survei BBPOM:
                 </p>
-
-                <div className="relative">
-                  {/* Garis timeline */}
-                  <div
-                    className="
-                        absolute left-3 top-2 bottom-2
-                        w-0.5
-                        bg-linear-to-b
-                        from-[#B91C1C] to-[#F59E0B]
-                        dark:from-indigo-500 dark:to-violet-500
-                      "
-                  />
-
-                  <div className="space-y-6">
-                    {/* STEP 1 */}
-                    <div className="grid grid-cols-[24px_1fr] gap-3 items-start">
-                      {/* Titik */}
-                      <div className="relative flex justify-center">
-                        <div
-                          className="
-                              w-4 h-4
-                              rounded-full
-                              bg-emerald-500
-                              ring-4 ring-white
-                              dark:ring-slate-900
-                            "
-                        />
-                      </div>
-
-                      {/* Konten */}
-                      <div>
-                        <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
-                          Laporan dikirim
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          {new Date(laporan.submittedAt).toLocaleDateString(
-                            "id-ID",
-                            {
-                              day: "numeric",
-                              month: "long",
-                              year: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            },
-                          )}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* STEP 2 */}
-                    <div className="grid grid-cols-[24px_1fr] gap-3 items-start">
-                      {/* Titik */}
-                      <div className="relative flex justify-center">
-                        <div
-                          className="
-                              w-4 h-4
-                              rounded-full
-                              bg-linear-to-br
-                              from-[#B91C1C] to-[#F59E0B]
-                              dark:from-indigo-500 dark:to-violet-500
-                              ring-4 ring-white
-                              dark:ring-slate-900
-                            "
-                        />
-                      </div>
-
-                      {/* Konten */}
-                      <div className="space-y-2">
-                        <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
-                          Review mentor
-                        </p>
-
-                        <div
-                          className="
-                              rounded-xl
-                              bg-white/80 dark:bg-white/5
-                              border border-[#FED7AA] dark:border-indigo-500/30
-                              px-4 py-3
-                              text-sm
-                              text-slate-700 dark:text-slate-200
-                              leading-relaxed
-                              whitespace-pre-line
-                            "
-                        >
-                          {laporan.mentorNote}
-                        </div>
-
-                        {laporan.approvedAt && (
-                          <p className="text-xs text-slate-500">
-                            {laporan.status} pada{" "}
-                            {new Date(laporan.approvedAt).toLocaleDateString(
-                              "id-ID",
-                              {
-                                day: "numeric",
-                                month: "long",
-                                year: "numeric",
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              },
-                            )}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <a
+                    href="https://docs.google.com/document/d/1YXq6zUrCv4OdKhV5m5ZoAZPzQ54vS02KG-5nb59U1yI/edit?usp=sharing"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200 hover:border-[#1D64F2] hover:text-[#1D64F2] flex items-center justify-between gap-2 transition"
+                  >
+                    <span>Template Survei Regular</span>
+                    <ExternalLink className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 text-slate-400" />
+                  </a>
+                  <a
+                    href="https://docs.google.com/document/d/1rZq-AMlUVEh9uk4jucyh09eopL87Bauis47OqT22i5M/edit?usp=sharing"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200 hover:border-[#1D64F2] hover:text-[#1D64F2] flex items-center justify-between gap-2 transition"
+                  >
+                    <span>Template Survei TKPA</span>
+                    <ExternalLink className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 text-slate-400" />
+                  </a>
                 </div>
               </div>
-            )}
-          </div>
+
+              {laporan ? (
+                <div className="rounded-xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 p-4 space-y-3.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">
+                        {laporan.fileName}
+                      </p>
+                      <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        {formatFileSize(laporan.fileSize)} • Dikirim{" "}
+                        {new Date(laporan.submittedAt).toLocaleDateString(
+                          "id-ID",
+                          {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          },
+                        )}
+                      </p>
+                    </div>
+                    <span
+                      className={`px-2.5 py-0.5 rounded-full text-[11px] sm:text-xs font-semibold border shrink-0 ${getStatusBadge(
+                        laporan.status,
+                      )}`}
+                    >
+                      {laporan.status}
+                    </span>
+                  </div>
+
+                  {/* Catatan Mentor */}
+                  {laporan.mentorNote && (
+                    <div className="rounded-xl bg-[#FFFBEB] dark:bg-amber-950/40 border border-[#FDE68A] dark:border-amber-800/70 p-3.5 space-y-1">
+                      <div className="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-amber-900 dark:text-amber-200">
+                        <AlertCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-600 shrink-0" />
+                        <span>Catatan Review Mentor</span>
+                      </div>
+                      <p className="text-xs sm:text-sm text-amber-900 dark:text-amber-100 pl-5 whitespace-pre-line break-words [overflow-wrap:anywhere]">
+                        {laporan.mentorNote}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Action Buttons */}
+                  <div className="flex flex-wrap gap-2.5 pt-1">
+                    <button
+                      type="button"
+                      onClick={downloadPdf}
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white text-xs sm:text-sm font-bold transition"
+                    >
+                      <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      <span>Unduh PDF</span>
+                    </button>
+
+                    {laporan.status === "Disetujui" && (
+                      <button
+                        type="button"
+                        onClick={() => setShowPenilaianModal(true)}
+                        className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-[#1D64F2] hover:bg-blue-700 text-white text-xs sm:text-sm font-bold transition"
+                      >
+                        <Award className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        <span>Lihat Penilaian</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 p-4 sm:p-5 text-center space-y-3">
+                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                    Unggah laporan akhir magang dalam format PDF (maksimal 5MB).
+                    Laporan hanya dapat diunggah <b>1 kali</b> dan bersifat
+                    final.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setShowUploadModal(true)}
+                    className="w-full py-2.5 sm:py-3 px-4 rounded-xl bg-[#1D64F2] hover:bg-blue-700 text-white text-xs sm:text-sm font-bold inline-flex items-center justify-center gap-2 shadow-xs transition"
+                  >
+                    <Upload className="w-4 h-4" />
+                    <span>Unggah Laporan Akhir</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
-      ) : (
-        <div
-          className="
-              relative
-              rounded-3xl
-              border
-              border-[#FCA5A5]/40 dark:border-indigo-500/30
-              bg-linear-to-br
-              from-[#FFF7ED] via-white to-[#FEF3C7]
-              dark:from-indigo-950 dark:via-indigo-900 dark:to-indigo-800
-              shadow-xl
-              p-8 sm:p-12
-              text-center
-              space-y-7
-              overflow-hidden
-            "
-        >
-          {/* subtle glow */}
-          <div
-            className="
-                absolute inset-0
-                bg-linear-to-br
-                from-[#F97316] to-[#7F1D1D]
-                dark:from-indigo-600 dark:to-violet-500
-                opacity-10 blur-2xl
-                pointer-events-none
-              "
-          />
 
-          <div className="relative text-5xl">📤</div>
-
-          <div className="relative space-y-2">
-            <h3 className="text-xl font-bold text-[#7F1D1D] dark:text-white">
-              Upload Laporan Akhir
-            </h3>
-            <p className="text-sm text-slate-600 dark:text-slate-300 max-w-md mx-auto">
-              Upload file PDF laporan akhir magang. Pastikan file sudah lengkap
-              sebelum dikirim.
-            </p>
-          </div>
-
-          <div className="relative flex flex-col items-center gap-4 mt-2">
-            {/* Warning */}
-            <div
-              className="
-                  inline-flex flex-wrap justify-center items-center gap-2
-                  rounded-full
-                  px-4 py-2
-                  text-xs font-semibold
-                  bg-amber-50 text-amber-700
-                  dark:bg-indigo-900/40 dark:text-indigo-300
-                  border border-amber-300 dark:border-indigo-600
-                "
-            >
-              ⚠️ Upload sekali • Maks 5MB • Format PDF
+        {/* CARD 2: SURVEI */}
+        <div className="rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs overflow-hidden">
+          <button
+            type="button"
+            onClick={() => {
+              if (!feedback) {
+                handleOpenFeedbackModal();
+              } else {
+                setOpenSurveiSection((v) => !v);
+              }
+            }}
+            className="w-full p-4 sm:p-5 text-left hover:bg-slate-50/70 dark:hover:bg-slate-700/40 transition"
+          >
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 sm:gap-3.5">
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                  <ClipboardCheck className="w-5 h-5" />
+                </div>
+                <span className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
+                  Survei
+                </span>
+              </div>
+              <ChevronRight
+                className={`w-4 h-4 sm:w-5 sm:h-5 text-slate-400 transition-transform duration-200 ${
+                  openSurveiSection ? "rotate-90" : ""
+                }`}
+              />
             </div>
 
-            {/* Button */}
-            <button
-              onClick={() => setShowUploadModal(true)}
-              className="
-                  w-full sm:w-[320px]
-                  inline-flex items-center justify-center gap-3
-                  px-10 py-4
-                  rounded-2xl
-                  text-lg font-bold
-                  text-white
-                  shadow-lg hover:shadow-2xl
-                  hover:-translate-y-0.5
-                  transition-all
-
-                  bg-linear-to-r
-                  from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
-                  hover:from-[#991B1B] hover:via-[#DC2626] hover:to-[#FBBF24]
-
-                  dark:from-indigo-600 dark:to-violet-500
-                  dark:hover:from-indigo-500 dark:hover:to-violet-400
-                "
-            >
-              Upload Laporan
-            </button>
-          </div>
-
-          {/* Requirements */}
-          <div className="relative pt-6 border-t border-slate-200 dark:border-indigo-700/40">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs text-slate-600 dark:text-slate-300">
-              <div>✓ Format PDF</div>
-              <div>✓ Maksimal 5MB</div>
-              <div>✓ Upload sekali</div>
+            <div className="mt-3 sm:mt-3.5 pt-2.5 sm:pt-3 border-t border-slate-100 dark:border-slate-700/70 flex items-center justify-between gap-2 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+              <div className="flex items-center gap-1.5">
+                {feedback ? (
+                  <>
+                    <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600 shrink-0" />
+                    <span>
+                      Sudah dikirim •{" "}
+                      {feedback.mentorResponse
+                        ? "Sudah direspon Mentor"
+                        : "Menunggu respon Mentor"}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 shrink-0" />
+                    <span>Belum diisi • Ketuk untuk mengisi survei program</span>
+                  </>
+                )}
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </button>
 
-      {/* ================= MODAL UPLOAD ================= */}
+          {/* Expanded Survei Detail when already filled */}
+          {feedback && openSurveiSection && (
+            <div className="px-4 sm:px-5 pb-4 sm:pb-5 pt-2.5 border-t border-slate-100 dark:border-slate-700/70 space-y-3 bg-slate-50/40 dark:bg-slate-800/40">
+              <div className="rounded-xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 p-4 space-y-3">
+                <div className="flex items-center justify-between text-xs sm:text-sm">
+                  <span className="text-slate-500">Periode Survei</span>
+                  <span className="font-bold text-slate-900 dark:text-white">
+                    {feedback.month}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-xs sm:text-sm">
+                  <span className="text-slate-500">Tanggal Kirim</span>
+                  <span className="font-bold text-slate-900 dark:text-white">
+                    {new Date(feedback.createdAt).toLocaleDateString("id-ID", {
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    })}
+                  </span>
+                </div>
+
+                {feedback.mentorResponse && (
+                  <div className="rounded-xl bg-[#FFFBEB] dark:bg-amber-950/40 border border-[#FDE68A] dark:border-amber-800/70 p-3.5 space-y-1">
+                    <div className="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-amber-900 dark:text-amber-200">
+                      <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-600 shrink-0" />
+                      <span>
+                        Tanggapan Mentor (
+                        {feedback.mentorRespondedBy?.name || "Mentor"})
+                      </span>
+                    </div>
+                    <p className="text-xs sm:text-sm text-amber-900 dark:text-amber-100 pl-5 whitespace-pre-line break-words [overflow-wrap:anywhere]">
+                      {feedback.mentorResponse}
+                    </p>
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={handleOpenFeedbackModal}
+                  className="w-full py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white text-xs sm:text-sm font-bold transition"
+                >
+                  Lihat Detail Isian Survei
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ================= MODAL UPLOAD LAPORAN AKHIR ================= */}
       {showUploadModal && (
         <LaporanAkhirUploadModal
           onClose={async (success) => {
@@ -640,53 +485,70 @@ export default function LaporanAkhirPage() {
               setLoading(true);
               await Promise.all([fetchLaporan(), checkFeedback()]);
               setLoading(false);
-              // Reset popup state ketika upload baru
               hasShownPopupRef.current = false;
             }
           }}
         />
       )}
 
-      {/* ================= MODAL PENILAIAN ================= */}
+      {/* ================= MODAL PENILAIAN MENTOR ================= */}
       {showPenilaianModal && (
         <PenilaianModal onClose={() => setShowPenilaianModal(false)} />
       )}
 
-      {/* ================= POPUP WAJIB FEEDBACK ================= */}
+      {/* ================= MODAL FEEDBACK / SURVEI ================= */}
+      {showFeedbackModal && selectedMonth && (
+        <FeedbackModal
+          month={selectedMonth}
+          mode={feedbackModalMode}
+          onClose={(submitted) => {
+            setShowFeedbackModal(false);
+            if (submitted) {
+              checkFeedback();
+              setShowFeedbackPopup(false);
+            }
+          }}
+        />
+      )}
+
+      {/* ================= POPUP WAJIB SURVEI ================= */}
       {showFeedbackPopup && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl p-8 max-w-md w-full text-center space-y-4 shadow-2xl">
-            <div className="text-4xl">📝</div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 max-w-sm w-full text-center space-y-4 shadow-2xl">
+            <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto">
+              <ClipboardCheck className="w-6 h-6" />
+            </div>
 
-            <h3 className="text-lg font-bold text-slate-800 dark:text-white">
-              Isi Survei & Feedback
-            </h3>
+            <div className="space-y-1.5">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                Isi Survei & Feedback
+              </h3>
+              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                Laporan akhir Anda telah berhasil diunggah. Silakan lengkapi{" "}
+                <b>Survei dan Feedback Program</b> untuk melihat status review
+                dan nilai akhir magang Anda.
+              </p>
+            </div>
 
-            <p className="text-sm text-slate-600 dark:text-slate-300">
-              Laporan akhir Anda telah berhasil diunggah. Untuk melihat status
-              laporan akhir dan nilai magang, Anda diwajibkan mengisi{" "}
-              <b>Survei dan Feedback untuk BPOM</b> terlebih dahulu.
-            </p>
-
-            <button
-              onClick={() => {
-                // Navigasi ke halaman feedback dengan parameter return URL
-                window.location.href =
-                  "/dashboard/peserta/feedback?from=laporan-akhir";
-              }}
-              className="
-                w-full
-                py-3
-                rounded-xl
-                font-semibold
-                text-white
-                bg-linear-to-r
-                from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
-                hover:from-[#991B1B] hover:via-[#DC2626] hover:to-[#FBBF24]
-              "
-            >
-              Isi Survei Sekarang
-            </button>
+            <div className="flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowFeedbackPopup(false);
+                  handleOpenFeedbackModal();
+                }}
+                className="w-full py-2.5 rounded-xl text-xs font-bold text-white bg-[#1D64F2] hover:bg-blue-700 transition"
+              >
+                Isi Survei Sekarang
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowFeedbackPopup(false)}
+                className="w-full py-2 rounded-xl text-xs font-medium text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+              >
+                Nanti Saja
+              </button>
+            </div>
           </div>
         </div>
       )}

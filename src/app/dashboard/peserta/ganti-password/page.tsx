@@ -1,21 +1,200 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { useRouter } from "next/navigation";
+import {
+  Mail,
+  Phone,
+  BookOpen,
+  Bell,
+  LogOut,
+  ChevronRight,
+  KeyRound,
+  FileText,
+  ExternalLink,
+  Eye,
+  EyeOff,
+} from "lucide-react";
 import { showToast } from "@/components/ui/toastDashboard";
-import { HiEye, HiEyeOff } from "react-icons/hi";
+import { useConfirm } from "@/components/ui/ConfirmProvider";
+import { PesertaDashboardSkeleton } from "@/components/dashboard/skeletons";
 
-export default function GantiPasswordPage() {
+type Peserta = {
+  idPeserta?: string;
+  nama: string;
+  email: string;
+  wa: string;
+  posisi: string;
+  tanggalMulaiMagang: string;
+  tanggalSelesaiMagang: string;
+  kota?: string;
+  mentor?: {
+    name: string;
+    email: string;
+    posisiMentor: string;
+  };
+  mentorNama?: string;
+  mentorEmail?: string;
+  mentorPosisi?: string;
+};
+
+type Pendaftaran = {
+  status: string;
+  kategori: string;
+  suratPengantar?: string;
+  suratBalasan?: string;
+  jawabanAdmin?: string;
+  peserta: Peserta[];
+};
+
+type SuratSelesai = {
+  email: string;
+  nama: string;
+  file: string;
+  tanggalKirim: string;
+};
+
+const GUIDE_URL =
+  "https://docs.google.com/document/d/1kBAVAJvKjtcx0jiZq1xnZ0nlhiGMcVJtobQeX6nQwWU/edit?usp=sharing";
+
+const getInitial = (nama = "-") =>
+  nama
+    .split(" ")
+    .filter(Boolean)
+    .map((n) => n[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
+function formatPeriodDate(dateStr?: string): string {
+  if (!dateStr) return "-";
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return dateStr;
+  return d.toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
+export default function AkunPesertaPage() {
+  const router = useRouter();
+  const confirm = useConfirm();
+
+  const [pendaftaran, setPendaftaran] = useState<Pendaftaran | null>(null);
+  const [suratSelesai, setSuratSelesai] = useState<SuratSelesai | null>(null);
+  const [emailLogin, setEmailLogin] = useState<string | null>(null);
+  const [loadingPage, setLoadingPage] = useState(true);
+
+  // Accordion states
+  const [openPasswordForm, setOpenPasswordForm] = useState(false);
+  const [openDokumen, setOpenDokumen] = useState(false);
+
+  // Notification toggle state
+  const [deviceNotif, setDeviceNotif] = useState(false);
+
+  // Password form states
   const [passwordLama, setPasswordLama] = useState("");
   const [passwordBaru, setPasswordBaru] = useState("");
   const [konfirmasi, setKonfirmasi] = useState("");
-  const [loading, setLoading] = useState(false);
-
+  const [submittingPassword, setSubmittingPassword] = useState(false);
   const [showOldPassword, setShowOldPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  const FILE_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  useEffect(() => {
+    try {
+      const savedNotif = localStorage.getItem("peserta_device_notif") === "1";
+      setDeviceNotif(savedNotif);
+
+      const token = localStorage.getItem("token");
+      if (token) {
+        const payload = JSON.parse(atob(token.split(".")[1]));
+        setEmailLogin(payload.email);
+      }
+    } catch (err) {
+      console.error("Gagal parse token", err);
+    }
+  }, []);
+
+  const fetchAccountData = useCallback(async () => {
+    if (!emailLogin) return;
+    setLoadingPage(true);
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+      const headers = { Authorization: `Bearer ${token}` };
+
+      const [pendRes, selesaiRes] = await Promise.all([
+        fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/pendaftaran/cek?email=${encodeURIComponent(emailLogin)}`,
+          { headers },
+        ).catch(() => null),
+        fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/surat-selesai/cek?email=${encodeURIComponent(emailLogin)}`,
+          { headers },
+        ).catch(() => null),
+      ]);
+
+      if (pendRes && pendRes.ok) {
+        const data = await pendRes.json();
+        setPendaftaran(data);
+      }
+      if (selesaiRes && selesaiRes.ok) {
+        const sData = await selesaiRes.json();
+        if (sData) setSuratSelesai(sData);
+      }
+    } catch (err) {
+      console.error("Gagal memuat data akun peserta", err);
+    } finally {
+      setLoadingPage(false);
+    }
+  }, [emailLogin]);
+
+  useEffect(() => {
+    if (emailLogin) {
+      fetchAccountData();
+    }
+  }, [emailLogin, fetchAccountData]);
+
+  const peserta = useMemo(() => {
+    if (!pendaftaran || !emailLogin) return null;
+    return pendaftaran.peserta.find(
+      (p) => p.email.toLowerCase() === emailLogin.toLowerCase(),
+    );
+  }, [pendaftaran, emailLogin]);
+
+  const mentorName = useMemo(() => {
+    return (
+      peserta?.mentor?.name || peserta?.mentorNama || "Belum Ditentukan"
+    );
+  }, [peserta]);
+
+  const handleToggleNotif = async () => {
+    const nextState = !deviceNotif;
+    if (
+      nextState &&
+      typeof window !== "undefined" &&
+      "Notification" in window
+    ) {
+      try {
+        await Notification.requestPermission();
+      } catch {
+        // ignore
+      }
+    }
+    setDeviceNotif(nextState);
+    localStorage.setItem("peserta_device_notif", nextState ? "1" : "0");
+    showToast.success(
+      nextState
+        ? "Notifikasi perangkat diaktifkan"
+        : "Notifikasi perangkat dinonaktifkan",
+    );
+  };
+
+  const handleSubmitPassword = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!passwordLama || !passwordBaru || !konfirmasi) {
@@ -33,18 +212,15 @@ export default function GantiPasswordPage() {
       return;
     }
 
-    setLoading(true);
-
-    // 🔔 LOADING TOAST
+    setSubmittingPassword(true);
     const toastId = showToast.loading("Menyimpan password...");
 
     try {
       const token = localStorage.getItem("token");
-
       if (!token) {
         showToast.updateError(
           toastId,
-          "Sesi login habis. Silakan login ulang."
+          "Sesi login habis. Silakan login ulang.",
         );
         return;
       }
@@ -62,227 +238,418 @@ export default function GantiPasswordPage() {
             passwordBaru,
             konfirmasiPassword: konfirmasi,
           }),
-        }
+        },
       );
 
       const data = await res.json();
 
       if (!res.ok) {
         if (res.status === 401) {
-          throw new Error("Sesi login Anda telah berakhir. Silakan login ulang.");
+          throw new Error(
+            "Sesi login Anda telah berakhir. Silakan login ulang.",
+          );
         }
         throw new Error(data?.message || "Gagal mengganti password");
       }
 
-      // ✅ UPDATE TOAST → SUCCESS
       showToast.updateSuccess(
         toastId,
-        "Password berhasil diganti. Silakan login ulang."
+        "Password berhasil diganti. Silakan login ulang.",
       );
 
-      // reset
       setPasswordLama("");
       setPasswordBaru("");
       setKonfirmasi("");
-
       localStorage.removeItem("token");
 
       setTimeout(() => {
         window.location.href = "/auth/login";
       }, 1500);
     } catch (err: any) {
-      // ❌ UPDATE TOAST → ERROR
       showToast.updateError(
         toastId,
-        err.message || "Terjadi kesalahan saat mengganti password"
+        err.message || "Terjadi kesalahan saat mengganti password",
       );
     } finally {
-      setLoading(false);
+      setSubmittingPassword(false);
     }
   };
 
+  const handleLogout = () => {
+    confirm({
+      title: "Keluar dari Akun",
+      message: "Apakah Anda yakin ingin keluar dari akun Peserta Magang?",
+      onConfirm: () => {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        router.replace("/auth/login");
+      },
+    });
+  };
+
+  if (loadingPage) {
+    return <PesertaDashboardSkeleton />;
+  }
+
   return (
-    <div className="min-h-[70vh] flex items-center justify-center px-4">
-      <div
-        className="
-          w-full max-w-md
-          rounded-3xl
-          bg-white dark:bg-slate-900
-          shadow-[0_30px_80px_-25px_rgba(0,0,0,0.35)]
-          border border-slate-200 dark:border-slate-800
-          overflow-hidden
-        "
-      >
-        {/* HEADER */}
-        <div
-          className="
-            px-6 py-6
-            bg-linear-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
-            dark:from-indigo-600 dark:to-violet-600
-            text-white
-          "
-        >
-          <h1 className="text-xl font-extrabold flex items-center gap-2">
-            🔐 Ganti Password
-          </h1>
-          <p className="text-sm text-white/80 mt-1">
-            Perbarui password akun Anda secara aman
-          </p>
+    <div className="space-y-5 sm:space-y-6">
+      {/* ================= 1. HEADER ================= */}
+      <div className="pt-1">
+        <h1 className="text-xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+          Akun Peserta
+        </h1>
+        <p className="text-xs sm:text-base text-slate-500 dark:text-slate-400 mt-1">
+          Kelola informasi akun, program magang, dan keamanan akun Anda.
+        </p>
+      </div>
+
+      {/* ================= 2. CARD PROFIL PESERTA ================= */}
+      <div className="rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 p-4 sm:p-6 shadow-2xs flex items-center gap-4 sm:gap-5">
+        <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-linear-to-br from-[#991B1B] to-[#DC2626] text-white font-extrabold text-lg sm:text-xl flex items-center justify-center shrink-0 ring-2 ring-slate-100 dark:ring-slate-700 shadow-xs">
+          {getInitial(peserta?.nama || "P")}
         </div>
 
-        {/* FORM */}
-        <form
-          onSubmit={handleSubmit}
-          className="p-6 space-y-5"
-        >
-          {/* PASSWORD LAMA */}
-          <div className="space-y-1">
-            <label className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-              Password Lama
-            </label>
+        <div className="min-w-0 space-y-0.5">
+          <h2 className="text-sm sm:text-lg font-bold text-slate-900 dark:text-white truncate">
+            {peserta?.nama || "Peserta Magang"}
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+            Peserta Magang
+          </p>
 
-            <div className="relative">
-              <input
-                type={showOldPassword ? "text" : "password"}
-                value={passwordLama}
-                onChange={(e) => setPasswordLama(e.target.value)}
-                className="
-                  w-full px-4 py-2.5 pr-12 rounded-xl
-                  bg-white dark:bg-slate-800
-                  border border-slate-300 dark:border-slate-700
-                  focus:outline-none focus:ring-2 focus:ring-emerald-500
-                  transition
-                "
-              />
-
-              <button
-                type="button"
-                onClick={() => setShowOldPassword((v) => !v)}
-                className="
-                  absolute right-4 top-1/2 -translate-y-1/2
-                  text-slate-500 hover:text-emerald-600 dark:hover:text-indigo-600
-                  transition
-                "
-              >
-                {showOldPassword ? <HiEyeOff size={20} /> : <HiEye size={20} />}
-              </button>
+          <div className="pt-1.5 space-y-1 text-xs sm:text-sm text-slate-600 dark:text-slate-300">
+            <div className="flex items-center gap-1.5 truncate">
+              <Mail className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 shrink-0" />
+              <span className="truncate">
+                {peserta?.email || emailLogin || "-"}
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Phone className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 shrink-0" />
+              <span>{peserta?.wa || "-"}</span>
             </div>
           </div>
+        </div>
+      </div>
 
-          {/* PASSWORD BARU */}
-          <div className="space-y-1">
-            <label className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-              Password Baru
-            </label>
+      {/* ================= 3. CARD INFORMASI MAGANG ================= */}
+      <div className="rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 p-4 sm:p-6 shadow-2xs">
+        <div className="flex items-center justify-between gap-2 pb-3 sm:pb-3.5 border-b border-slate-100 dark:border-slate-700/70">
+          <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
+            Informasi Magang
+          </h3>
+          <span className="px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full text-[11px] sm:text-xs font-semibold bg-emerald-50 text-emerald-600 border border-emerald-200/70 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800/60">
+            Aktif
+          </span>
+        </div>
 
-            <div className="relative">
-              <input
-                type={showNewPassword ? "text" : "password"}
-                value={passwordBaru}
-                onChange={(e) => setPasswordBaru(e.target.value)}
-                className="
-                  w-full px-4 py-2.5 pr-12 rounded-xl
-                  bg-white dark:bg-slate-800
-                  border border-slate-300 dark:border-slate-700
-                  focus:outline-none focus:ring-2 focus:ring-emerald-500
-                  transition
-                "
-              />
+        <div className="divide-y divide-slate-100 dark:divide-slate-700/70 text-xs sm:text-sm">
+          <div className="py-3 sm:py-3.5 flex items-center justify-between gap-4">
+            <span className="text-slate-500 dark:text-slate-400 shrink-0">
+              Perusahaan
+            </span>
+            <span className="font-bold text-slate-900 dark:text-white text-right">
+              Balai Besar POM di Palembang
+            </span>
+          </div>
 
-              <button
-                type="button"
-                onClick={() => setShowNewPassword((v) => !v)}
-                className="
-                  absolute right-4 top-1/2 -translate-y-1/2
-                  text-slate-500 hover:text-emerald-600 dark:hover:text-indigo-600
-                  transition
-                "
+          <div className="py-3 sm:py-3.5 flex items-center justify-between gap-4">
+            <span className="text-slate-500 dark:text-slate-400 shrink-0">
+              Posisi
+            </span>
+            <span className="font-bold text-slate-900 dark:text-white text-right">
+              {peserta?.posisi || "-"}
+            </span>
+          </div>
+
+          <div className="py-3 sm:py-3.5 flex items-center justify-between gap-4">
+            <span className="text-slate-500 dark:text-slate-400 shrink-0">
+              Mentor Pembimbing
+            </span>
+            <span className="font-bold text-slate-900 dark:text-white text-right">
+              {mentorName}
+            </span>
+          </div>
+
+          <div className="py-3 sm:py-3.5 flex items-center justify-between gap-4">
+            <span className="text-slate-500 dark:text-slate-400 shrink-0">
+              Lokasi Posisi
+            </span>
+            <span className="font-bold text-slate-900 dark:text-white text-right uppercase">
+              KOTA PALEMBANG
+            </span>
+          </div>
+
+          <div className="pt-3 sm:pt-3.5 flex items-center justify-between gap-4">
+            <span className="text-slate-500 dark:text-slate-400 shrink-0">
+              Periode Magang
+            </span>
+            <span className="font-bold text-slate-900 dark:text-white text-right">
+              {formatPeriodDate(peserta?.tanggalMulaiMagang)} -{" "}
+              {formatPeriodDate(peserta?.tanggalSelesaiMagang)}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* ================= 4. CARD DOKUMEN MAGANG ================= */}
+      <div className="rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setOpenDokumen((v) => !v)}
+          className="w-full p-4 sm:p-5 flex items-center justify-between gap-3 text-left hover:bg-slate-50/70 dark:hover:bg-slate-700/40 transition"
+        >
+          <div className="flex items-center gap-3 sm:gap-3.5">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-[#1D64F2] dark:text-blue-400 flex items-center justify-center shrink-0">
+              <FileText className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+            </div>
+            <div>
+              <p className="text-xs sm:text-base font-bold text-slate-900 dark:text-white">
+                Dokumen Resmi Magang
+              </p>
+              <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400">
+                Surat pengantar, surat balasan BBPOM, dan surat selesai.
+              </p>
+            </div>
+          </div>
+          <ChevronRight
+            className={`w-4 h-4 sm:w-5 sm:h-5 text-slate-400 transition-transform duration-200 ${
+              openDokumen ? "rotate-90" : ""
+            }`}
+          />
+        </button>
+
+        {openDokumen && (
+          <div className="px-4 sm:px-5 pb-4 sm:pb-5 pt-2.5 border-t border-slate-100 dark:border-slate-700/70 space-y-2 bg-slate-50/40 dark:bg-slate-800/40">
+            {[
+              {
+                label: "Surat Pengantar",
+                file: pendaftaran?.suratPengantar,
+              },
+              {
+                label: "Surat Balasan Resmi BBPOM",
+                file: pendaftaran?.suratBalasan,
+              },
+              {
+                label: "Surat Selesai Magang",
+                file: suratSelesai?.file,
+              },
+            ].map((doc, idx) => (
+              <div
+                key={idx}
+                className="rounded-xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 px-3.5 py-2.5 sm:py-3 flex items-center justify-between gap-2 text-xs sm:text-sm"
               >
-                {showNewPassword ? <HiEyeOff size={20} /> : <HiEye size={20} />}
-              </button>
+                <span className="font-semibold text-slate-800 dark:text-slate-200">
+                  {doc.label}
+                </span>
+                {doc.file ? (
+                  <a
+                    href={`${FILE_BASE_URL}/uploads/${doc.file}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 font-bold text-[#1D64F2] hover:underline"
+                  >
+                    <span>Lihat File</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                ) : (
+                  <span className="text-[11px] sm:text-xs text-slate-400">
+                    Belum tersedia
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ================= 5. CARD GANTI PASSWORD ================= */}
+      <div className="rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setOpenPasswordForm((v) => !v)}
+          className="w-full p-4 sm:p-5 flex items-center justify-between gap-3 text-left hover:bg-slate-50/70 dark:hover:bg-slate-700/40 transition"
+        >
+          <div className="flex items-center gap-3 sm:gap-3.5">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+              <KeyRound className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+            </div>
+            <div>
+              <p className="text-xs sm:text-base font-bold text-slate-900 dark:text-white">
+                Ganti Password
+              </p>
+              <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400">
+                Perbarui kata sandi keamanan akun Anda.
+              </p>
+            </div>
+          </div>
+          <ChevronRight
+            className={`w-4 h-4 sm:w-5 sm:h-5 text-slate-400 transition-transform duration-200 ${
+              openPasswordForm ? "rotate-90" : ""
+            }`}
+          />
+        </button>
+
+        {openPasswordForm && (
+          <form
+            onSubmit={handleSubmitPassword}
+            className="px-4 sm:px-5 pb-4 sm:pb-5 pt-3 border-t border-slate-100 dark:border-slate-700/70 space-y-3 sm:space-y-3.5 bg-slate-50/40 dark:bg-slate-800/40"
+          >
+            <div>
+              <label className="block text-[11px] sm:text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                Password Lama
+              </label>
+              <div className="relative">
+                <input
+                  type={showOldPassword ? "text" : "password"}
+                  value={passwordLama}
+                  onChange={(e) => setPasswordLama(e.target.value)}
+                  placeholder="Masukkan password lama"
+                  className="w-full rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-3.5 py-2 sm:py-2.5 pr-9 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[#1D64F2]"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowOldPassword(!showOldPassword)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                >
+                  {showOldPassword ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
             </div>
 
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Minimal 8 karakter
+            <div>
+              <label className="block text-[11px] sm:text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                Password Baru
+              </label>
+              <div className="relative">
+                <input
+                  type={showNewPassword ? "text" : "password"}
+                  value={passwordBaru}
+                  onChange={(e) => setPasswordBaru(e.target.value)}
+                  placeholder="Minimal 8 karakter"
+                  className="w-full rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-3.5 py-2 sm:py-2.5 pr-9 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[#1D64F2]"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                >
+                  {showNewPassword ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[11px] sm:text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                Konfirmasi Password Baru
+              </label>
+              <div className="relative">
+                <input
+                  type={showConfirmPassword ? "text" : "password"}
+                  value={konfirmasi}
+                  onChange={(e) => setKonfirmasi(e.target.value)}
+                  placeholder="Ulangi password baru"
+                  className="w-full rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-3.5 py-2 sm:py-2.5 pr-9 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[#1D64F2]"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                >
+                  {showConfirmPassword ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={submittingPassword}
+              className="w-full py-2.5 sm:py-3 rounded-xl bg-[#1D64F2] hover:bg-blue-700 text-white font-bold text-xs sm:text-sm shadow-xs transition disabled:opacity-50"
+            >
+              {submittingPassword ? "Menyimpan..." : "Simpan Password Baru"}
+            </button>
+          </form>
+        )}
+      </div>
+
+      {/* ================= 6. CARD PANDUAN PENGGUNA ================= */}
+      <a
+        href={GUIDE_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 p-4 sm:p-5 flex items-center justify-between gap-3 shadow-2xs hover:bg-slate-50/70 dark:hover:bg-slate-700/40 transition"
+      >
+        <div className="flex items-center gap-3 sm:gap-3.5">
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-[#1D64F2] dark:text-blue-400 flex items-center justify-center shrink-0">
+            <BookOpen className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+          </div>
+          <div>
+            <p className="text-xs sm:text-base font-bold text-slate-900 dark:text-white">
+              Panduan Pengguna
+            </p>
+            <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400">
+              Pelajari penggunaan SI TANJAK untuk Peserta.
             </p>
           </div>
+        </div>
+        <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400 shrink-0" />
+      </a>
 
-          {/* KONFIRMASI */}
-          <div className="space-y-1">
-            <label className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-              Konfirmasi Password Baru
-            </label>
-
-            <div className="relative">
-              <input
-                type={showConfirmPassword ? "text" : "password"}
-                value={konfirmasi}
-                onChange={(e) => setKonfirmasi(e.target.value)}
-                className="
-                  w-full px-4 py-2.5 pr-12 rounded-xl
-                  bg-white dark:bg-slate-800
-                  border border-slate-300 dark:border-slate-700
-                  focus:outline-none focus:ring-2 focus:ring-emerald-500
-                  transition
-                "
-              />
-
-              <button
-                type="button"
-                onClick={() => setShowConfirmPassword((v) => !v)}
-                className="
-                  absolute right-4 top-1/2 -translate-y-1/2
-                  text-slate-500 hover:text-emerald-600 dark:hover:text-indigo-600
-                  transition
-                "
-              >
-                {showConfirmPassword ? <HiEyeOff size={20} /> : <HiEye size={20} />}
-              </button>
-            </div>
+      {/* ================= 7. CARD NOTIFIKASI PERANGKAT ================= */}
+      <div className="rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 p-4 sm:p-5 flex items-center justify-between gap-3 shadow-2xs">
+        <div className="flex items-center gap-3 sm:gap-3.5 min-w-0">
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-[#1D64F2] dark:text-blue-400 flex items-center justify-center shrink-0">
+            <Bell className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
           </div>
-
-          {/* INFO */}
-          <div
-            className="
-              rounded-xl
-              border border-amber-300
-              bg-amber-50 dark:bg-amber-900/20
-              px-4 py-3
-              text-xs text-amber-800 dark:text-amber-200
-            "
-          >
-            ⚠️ Setelah password berhasil diganti, Anda akan
-            <b> otomatis logout</b> dan perlu login ulang.
+          <div className="min-w-0">
+            <p className="text-xs sm:text-base font-bold text-slate-900 dark:text-white">
+              Notifikasi perangkat
+            </p>
+            <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 leading-snug">
+              Aktifkan agar pemberitahuan penting tetap masuk walau aplikasi
+              sedang ditutup.
+            </p>
           </div>
+        </div>
 
-          {/* BUTTON */}
-          <button
-            disabled={loading}
-            className="
-              w-full
-              flex items-center justify-center gap-2
-              py-3 rounded-full
-              font-semibold text-white
-              bg-linear-to-r from-emerald-600 to-teal-600
-              hover:from-emerald-700 hover:to-teal-700
-              shadow-md hover:shadow-lg
-              transition
-              disabled:opacity-50 disabled:cursor-not-allowed
-            "
-          >
-            {loading ? (
-              <>
-                <span className="animate-spin">⏳</span>
-                Menyimpan...
-              </>
-            ) : (
-              <>
-                💾 Simpan Password
-              </>
-            )}
-          </button>
-        </form>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={deviceNotif}
+          onClick={handleToggleNotif}
+          className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
+            deviceNotif ? "bg-[#1D64F2]" : "bg-slate-300 dark:bg-slate-600"
+          }`}
+        >
+          <span
+            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+              deviceNotif ? "translate-x-5" : "translate-x-0"
+            }`}
+          />
+        </button>
       </div>
+
+      {/* ================= 8. TOMBOL KELUAR DARI AKUN ================= */}
+      <button
+        type="button"
+        onClick={handleLogout}
+        className="w-full rounded-2xl bg-white dark:bg-slate-800/90 hover:bg-red-50/70 dark:hover:bg-red-950/30 border border-slate-200/80 dark:border-slate-700/80 py-3.5 sm:py-4 px-4 flex items-center justify-center gap-2 text-red-600 dark:text-red-400 font-bold text-xs sm:text-base shadow-2xs transition"
+      >
+        <LogOut className="w-4 h-4 sm:w-5 sm:h-5" />
+        <span>Keluar dari akun</span>
+      </button>
     </div>
   );
 }

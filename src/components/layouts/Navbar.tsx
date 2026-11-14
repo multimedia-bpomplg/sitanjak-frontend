@@ -2,24 +2,35 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import { useState, useEffect } from "react";
-import {
-  HiMenu,
-  HiX,
-  HiOutlineLogin,
-  HiUserAdd,
-  HiDownload,
-} from "react-icons/hi";
+import { HiMenu, HiX } from "react-icons/hi";
+
+const plusJakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+});
+
+const navItems = [
+  { label: "Home", id: "home" },
+  { label: "Profil", id: "profil" },
+  { label: "Formasi", id: "formasi" },
+  { label: "Manfaat", id: "manfaat" },
+  { label: "Peraturan", id: "peraturan" },
+];
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
   const [hide, setHide] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const [lastY, setLastY] = useState(0);
-  const [downloading, setDownloading] = useState(false);
+  const [activeId, setActiveId] = useState("home");
 
   useEffect(() => {
     const onScroll = () => {
       const currentY = window.scrollY;
+
+      setScrolled(currentY > 20);
 
       if (currentY > lastY && currentY > 80) {
         setHide(true);
@@ -38,10 +49,14 @@ export default function Navbar() {
   // 🔥 FUNGSI SCROLL + ANIMASI
   // ===============================
   const scrollToSection = (id: string) => {
+    setActiveId(id);
     const el = document.getElementById(id);
-    if (!el) return;
+    if (!el) {
+      window.location.href = id === "home" ? "/" : `/#${id}`;
+      return;
+    }
 
-    const yOffset = -120;
+    const yOffset = -100;
     const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
 
     window.scrollTo({
@@ -52,113 +67,120 @@ export default function Navbar() {
     setOpen(false);
   };
 
-  // ===============================
-  // 📥 FUNGSI DOWNLOAD PDF dari public/pdf/
-  // ===============================
-  const handleDownloadPanduan = () => {
-    setDownloading(true);
-
-    // Nama file PDF yang ada di public/pdf/
-    const fileName = "Panduan_Pendaftaran_SIMAGGO_2024.pdf";
-
-    // Path ke file di public folder
-    const fileUrl = `/pdf/${fileName}`;
-
-    // Membuat link untuk download
-    const link = document.createElement("a");
-    link.href = fileUrl;
-    link.download = fileName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    // Simulasi loading untuk UX
-    setTimeout(() => {
-      setDownloading(false);
-    }, 500);
-  };
-
   return (
     <header
       className={`
+        ${plusJakarta.className}
         fixed left-0 right-0 top-0
         z-100
         flex justify-center
-        transition-transform duration-500 ease-in-out
-        ${hide ? "-translate-y-[140%]" : "translate-y-4"}
+        transition-all duration-500 ease-in-out
+        ${hide ? "-translate-y-full" : "translate-y-0"}
+        ${scrolled ? "bg-white/95 backdrop-blur-md shadow-sm" : "bg-white"}
       `}
     >
       <nav
         className="
-          max-w-6xl w-full
-          mx-4
-          bg-linear-to-r from-[#D4AF37] via-[#B91C1C] to-[#7F1D1D]
-          backdrop-blur-xl
-          rounded-full shadow-xl
-          px-6 py-3
+          max-w-7xl w-full
+          px-6 lg:px-12 py-4
           flex items-center justify-between
         "
       >
         {/* LOGO */}
-        <div className="flex items-center gap-3">
+        <button
+          onClick={() => scrollToSection("home")}
+          className="flex items-center gap-3 text-left focus:outline-none"
+        >
           <Image
             src="/images/icons/sitanjak.png"
             alt="Sitanjak Logo"
-            width={70}
-            height={70}
-            className="rounded-full object-contain"
+            width={56}
+            height={56}
+            className="object-contain"
           />
-        </div>
+          <div className="flex flex-col">
+            <span className="text-lg font-extrabold tracking-wide text-[#0B1B3D] leading-none">
+              SI TANJAK
+            </span>
+            <span className="text-[11px] font-medium tracking-[0.22em] text-[#475569] mt-1">
+              BBPOM PALEMBANG
+            </span>
+          </div>
+        </button>
 
         {/* MENU DESKTOP */}
-        <ul className="hidden md:flex gap-6 text-white font-semibold">
-          {[
-            { label: "Home", id: "home" },
-            { label: "Profil", id: "profil" },
-            { label: "Formasi", id: "formasi" },
-            { label: "Manfaat", id: "manfaat" },
-            { label: "Peraturan", id: "peraturan" },
-          ].map((item) => (
-            <button
-              key={item.id}
-              onClick={() => scrollToSection(item.id)}
-              className="hover:text-[#FFE08A] hover:-translate-y-px hover:scale-105 transition"
-            >
-              {item.label}
-            </button>
-          ))}
+        <ul className="hidden lg:flex items-center gap-8 text-[15px] font-normal">
+          {navItems.map((item) => {
+            const isActive = activeId === item.id;
+            return (
+              <li key={item.id}>
+                <button
+                  onClick={() => scrollToSection(item.id)}
+                  className={`
+                    relative py-1.5 transition-colors duration-200
+                    ${
+                      isActive
+                        ? "text-[#0088FF] font-medium"
+                        : "text-[#0B1B3D] hover:text-[#0088FF]"
+                    }
+                  `}
+                >
+                  {item.label}
+                  {isActive && (
+                    <span className="absolute left-0 right-0 bottom-0 h-[2px] bg-[#0088FF] rounded-full" />
+                  )}
+                </button>
+              </li>
+            );
+          })}
 
           {/* PANGGILAN PANDUAN */}
-          <a
-            href="https://docs.google.com/document/d/1d43jgfTZYD1oT6ePshn8NyMfkXxPQ7aGAePx3qDJ-9I/edit?usp=sharing"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 hover:text-[#FFE08A] hover:-translate-y-px hover:scale-105 transition"
-          >
-            Panduan Pendaftaran
-          </a>
+          <li>
+            <a
+              href="https://docs.google.com/document/d/1d43jgfTZYD1oT6ePshn8NyMfkXxPQ7aGAePx3qDJ-9I/edit?usp=sharing"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="py-1.5 text-[#0B1B3D] hover:text-[#0088FF] transition-colors duration-200"
+            >
+              Panduan Pendaftaran
+            </a>
+          </li>
         </ul>
 
-        {/* AUTH */}
-        <div className="hidden md:flex gap-3">
+        {/* AUTH DESKTOP */}
+        <div className="hidden lg:flex items-center gap-3">
           <Link
             href="/auth/login"
-            className="flex items-center gap-2 text-white/90 hover:text-[#FFE08A] transition font-semibold"
+            className="
+              px-7 py-2 rounded-full
+              border-[1.8px] border-[#0088FF]
+              text-[#0B1B3D] font-bold text-sm
+              hover:bg-[#0088FF]/5
+              transition
+            "
           >
-            <HiOutlineLogin /> Login
+            Login
           </Link>
           <Link
             href="/pendaftaran"
-            className="flex items-center gap-2 bg-[#FACC15] text-[#4A2C00] px-4 py-1.5 rounded-full hover:bg-[#EAB308] hover:text-white/70 hover:shadow-md transition font-semibold"
+            className="
+              px-7 py-2 rounded-full
+              bg-[#0088FF] text-white
+              font-bold text-sm
+              shadow-md shadow-[#0088FF]/25
+              hover:bg-[#0073E6] hover:shadow-lg
+              transition
+            "
           >
-            <HiUserAdd /> Daftar
+            Daftar
           </Link>
         </div>
 
         {/* MOBILE BUTTON */}
         <button
           onClick={() => setOpen(!open)}
-          className="md:hidden text-white text-3xl"
+          className="lg:hidden text-[#0B1B3D] text-3xl focus:outline-none"
+          aria-label="Toggle Menu"
         >
           {open ? <HiX /> : <HiMenu />}
         </button>
@@ -166,49 +188,51 @@ export default function Navbar() {
 
       {/* MOBILE MENU */}
       {open && (
-        <div className="absolute top-22.5 w-[90%] bg-linear-to-r from-[#D4AF37] via-[#B91C1C] to-[#7F1D1D] rounded-2xl p-6 text-white shadow-xl">
-          <ul className="flex flex-col space-y-4 font-semibold">
-            {[
-              { label: "Home", id: "home" },
-              { label: "Profil", id: "profil" },
-              { label: "Formasi", id: "formasi" },
-              { label: "Manfaat", id: "manfaat" },
-              { label: "Peraturan", id: "peraturan" },
-            ].map((item) => (
-              <button
-                key={item.id}
-                onClick={() => scrollToSection(item.id)}
-                className="text-left transition hover:text-[#FFE08A] hover:pl-2"
-              >
-                {item.label}
-              </button>
-            ))}
+        <div className="lg:hidden absolute top-full left-0 right-0 bg-white border-t border-slate-100 px-6 py-6 shadow-xl">
+          <ul className="flex flex-col space-y-4 font-normal text-[#0B1B3D]">
+            {navItems.map((item) => {
+              const isActive = activeId === item.id;
+              return (
+                <li key={item.id}>
+                  <button
+                    onClick={() => scrollToSection(item.id)}
+                    className={`text-left w-full py-1 transition ${
+                      isActive
+                        ? "text-[#0088FF] font-medium"
+                        : "hover:text-[#0088FF]"
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                </li>
+              );
+            })}
 
             {/* PANGGILAN PANDUAN - MOBILE */}
-            <a
-              href="https://docs.google.com/document/d/1d43jgfTZYD1oT6ePshn8NyMfkXxPQ7aGAePx3qDJ-9I/edit?usp=sharing"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 text-left transition hover:text-[#FFE08A] hover:pl-2"
-            >
-              Panduan Pendaftaran
-            </a>
+            <li>
+              <a
+                href="https://docs.google.com/document/d/1d43jgfTZYD1oT6ePshn8NyMfkXxPQ7aGAePx3qDJ-9I/edit?usp=sharing"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block py-1 text-left transition hover:text-[#0088FF]"
+              >
+                Panduan Pendaftaran
+              </a>
+            </li>
           </ul>
 
-          <div className="flex space-x-3 mt-6">
+          <div className="flex gap-3 mt-6">
             <Link
               href="/auth/login"
-              className="flex items-center justify-center gap-2 border border-white px-4 py-2 rounded-md w-full hover:bg-white hover:text-[#7F1D1D] transition font-semibold"
+              className="flex items-center justify-center border-[1.8px] border-[#0088FF] text-[#0B1B3D] px-4 py-2.5 rounded-full w-full hover:bg-[#0088FF]/5 transition font-bold text-sm"
             >
-              <HiOutlineLogin size={18} />
               Login
             </Link>
 
             <Link
               href="/pendaftaran"
-              className="flex items-center justify-center gap-2 bg-[#FACC15] px-4 py-2 rounded-md w-full text-[#4A2C00] hover:bg-[#EAB308] hover:text-white transition font-semibold"
+              className="flex items-center justify-center bg-[#0088FF] text-white px-4 py-2.5 rounded-full w-full hover:bg-[#0073E6] shadow-md shadow-[#0088FF]/25 transition font-bold text-sm"
             >
-              <HiUserAdd size={18} />
               Daftar
             </Link>
           </div>

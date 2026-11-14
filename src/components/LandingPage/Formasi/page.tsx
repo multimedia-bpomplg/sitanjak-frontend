@@ -1,35 +1,40 @@
-// components/landinpage/formasi/page.tsx
+// components/LandingPage/Formasi/page.tsx
 "use client";
 
-import Link from "next/link";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import {
   HiOutlineOfficeBuilding,
-  HiUsers,
-  HiCalendar,
-  HiCheckCircle,
-  HiInformationCircle,
-  HiRefresh,
+  HiOutlineUsers,
+  HiOutlineCalendar,
+  HiOutlineRefresh,
+  HiOutlineBeaker,
+  HiOutlineShieldCheck,
+  HiOutlineSearchCircle,
+  HiOutlineSpeakerphone,
+  HiOutlineClipboardList,
+  HiArrowRight,
+  HiOutlineCheckCircle,
 } from "react-icons/hi";
 import { useEffect, useRef, useState, useCallback } from "react";
-import {
-  fetchFormasi,
-  IFormasi,
-  fetchPrediksi,
-} from "@/services/formasiService";
-import { FaUserCheck } from "react-icons/fa";
+import { fetchFormasi, IFormasi } from "@/services/formasiService";
 import CalendarPopup from "@/components/calendar/CalendarPopup";
 
-// Fungsi untuk membuat slug yang konsisten (lowercase)
-const createSlug = (title: string): string => {
-  const slugMap: { [key: string]: string } = {
-    "Fungsi Penindakan": "penindakan",
-    "Fungsi Pengujian": "pengujian",
-    "Fungsi Pemeriksaan (Inspeksi dan Sertifikasi)": "pemeriksaan",
-    "Fungsi Informasi dan Komunikasi": "infokom",
-    "Bagian Tata Usaha": "tata-usaha",
-  };
+const plusJakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+});
 
-  return slugMap[title] || title.toLowerCase().replace(/\s+/g, "-");
+// Fungsi untuk mendapatkan ikon sesuai nama formasi
+const getFormasiIcon = (title: string) => {
+  const lower = title.toLowerCase();
+  if (lower.includes("pengujian")) return HiOutlineBeaker;
+  if (lower.includes("pemeriksaan") || lower.includes("inspeksi"))
+    return HiOutlineShieldCheck;
+  if (lower.includes("penindakan")) return HiOutlineSearchCircle;
+  if (lower.includes("informasi") || lower.includes("komunikasi"))
+    return HiOutlineSpeakerphone;
+  if (lower.includes("tata usaha")) return HiOutlineClipboardList;
+  return HiOutlineOfficeBuilding;
 };
 
 export default function Formasi() {
@@ -40,22 +45,12 @@ export default function Formasi() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [prediksi, setPrediksi] = useState<any>({});
+  const [prediksi, setPrediksi] = useState<Record<string, any[]>>({});
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [selectedFormasi, setSelectedFormasi] = useState<IFormasi | null>(null);
 
-  // Ref untuk menyimpan interval
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-
-  const formatDate = (date: string | Date) => {
-    const d = new Date(date);
-    return d.toLocaleDateString("id-ID", {
-      day: "2-digit",
-      month: "long",
-      year: "numeric",
-    });
-  };
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString("id-ID", {
@@ -67,12 +62,12 @@ export default function Formasi() {
 
   function simulasiKuotaBulanan(formasi: IFormasi) {
     const kuota = formasi.kuota;
-
     const mulaiList = formasi.tanggalMulaiMagang || [];
     const selesaiList = formasi.tanggalSelesaiMagang || [];
 
     const hasil: {
       bulan: string;
+      bulanSingkat: string;
       aktif: number;
       sisaKuota: number;
     }[] = [];
@@ -95,9 +90,7 @@ export default function Formasi() {
       const aktif = mulaiList.reduce((acc, mulai, idx) => {
         const start = new Date(mulai);
         const end = new Date(selesaiList[idx]);
-
         const overlap = start <= bulanEnd && end >= bulanStart;
-
         return overlap ? acc + 1 : acc;
       }, 0);
 
@@ -106,45 +99,8 @@ export default function Formasi() {
           month: "long",
           year: "numeric",
         }),
-        aktif,
-        sisaKuota: Math.max(0, kuota - aktif),
-      });
-    }
-
-    return hasil;
-  }
-
-  function hitungPrediksiKuota(formasi: IFormasi) {
-    const kuota = formasi.kuota;
-
-    const mulaiList = formasi.tanggalMulaiMagang || [];
-    const selesaiList = formasi.tanggalSelesaiMagang || [];
-
-    const sekarang = new Date();
-
-    const hasil: any[] = [];
-
-    for (let i = 0; i < 6; i++) {
-      const bulan = new Date(
-        sekarang.getFullYear(),
-        sekarang.getMonth() + i,
-        1,
-      );
-
-      const aktif = mulaiList.reduce((total, mulai, idx) => {
-        const start = new Date(mulai);
-        const end = new Date(selesaiList[idx]);
-
-        if (bulan >= start && bulan <= end) {
-          return total + 1;
-        }
-
-        return total;
-      }, 0);
-
-      hasil.push({
-        bulan: bulan.toLocaleDateString("id-ID", {
-          month: "long",
+        bulanSingkat: bulanStart.toLocaleDateString("id-ID", {
+          month: "short",
           year: "numeric",
         }),
         aktif,
@@ -155,9 +111,7 @@ export default function Formasi() {
     return hasil;
   }
 
-  // Fungsi untuk memuat data
   const loadFormasi = useCallback(async (isAutoRefresh = false) => {
-    // Jika auto refresh, set status refreshing, bukan loading
     if (isAutoRefresh) {
       setRefreshing(true);
     } else {
@@ -170,20 +124,15 @@ export default function Formasi() {
       setFormasiList(formasiData);
       setLastUpdated(new Date());
 
-      // 🔥 hitung prediksi kuota otomatis
       const simulasi: Record<string, any> = {};
-
       formasiData.forEach((f: IFormasi) => {
         simulasi[f.title] = simulasiKuotaBulanan(f);
       });
 
       setPrediksi(simulasi);
-
-      // 🔥 DATA TAMBAHAN FORMASI (tidak ditampilkan di UI)
-      formasiData.forEach((f: IFormasi) => {});
       setError(null);
-    } catch (err) {
-      setError("Gagal memuat data");
+    } catch {
+      setError("Gagal memuat data formasi. Silakan coba muat ulang.");
     } finally {
       if (isAutoRefresh) {
         setRefreshing(false);
@@ -193,17 +142,13 @@ export default function Formasi() {
     }
   }, []);
 
-  // Setup auto refresh setiap 5 menit
   useEffect(() => {
-    // Load data pertama kali
     loadFormasi();
 
-    // Setup interval untuk refresh setiap 5 menit (300000 ms)
     intervalRef.current = setInterval(() => {
       loadFormasi(true);
-    }, 300000); // 5 menit = 300000 ms
+    }, 300000);
 
-    // Cleanup interval saat komponen unmount
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
@@ -211,7 +156,6 @@ export default function Formasi() {
     };
   }, [loadFormasi]);
 
-  // 🔥 ANIMASI HANYA SEKALI
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -221,26 +165,23 @@ export default function Formasi() {
           observer.disconnect();
         }
       },
-      { threshold: 0.25 },
+      { threshold: 0.15 },
     );
 
     if (sectionRef.current) observer.observe(sectionRef.current);
     return () => observer.disconnect();
   }, [hasAnimated]);
 
-  // Handler untuk refresh manual
   const handleManualRefresh = () => {
     loadFormasi(true);
   };
 
   function getKuotaBulanIni(formasi: IFormasi) {
     const kuota = formasi.kuota;
-
     const mulaiList = formasi.tanggalMulaiMagang || [];
     const selesaiList = formasi.tanggalSelesaiMagang || [];
 
     const sekarang = new Date();
-
     const awalBulan = new Date(sekarang.getFullYear(), sekarang.getMonth(), 1);
     const akhirBulan = new Date(
       sekarang.getFullYear(),
@@ -251,9 +192,7 @@ export default function Formasi() {
     const aktif = mulaiList.reduce((total, mulai, idx) => {
       const start = new Date(mulai);
       const end = new Date(selesaiList[idx]);
-
       const overlap = start <= akhirBulan && end >= awalBulan;
-
       return overlap ? total + 1 : total;
     }, 0);
 
@@ -268,7 +207,6 @@ export default function Formasi() {
     const selesaiList = formasi.tanggalSelesaiMagang || [];
 
     const sekarang = new Date();
-
     const awalBulan = new Date(sekarang.getFullYear(), sekarang.getMonth(), 1);
     const akhirBulan = new Date(
       sekarang.getFullYear(),
@@ -276,120 +214,230 @@ export default function Formasi() {
       0,
     );
 
-    const jumlah = mulaiList.reduce((total, mulai, idx) => {
+    return mulaiList.reduce((total, mulai, idx) => {
       const start = new Date(mulai);
       const end = new Date(selesaiList[idx]);
-
       const overlap = start <= akhirBulan && end >= awalBulan;
-
       return overlap ? total + 1 : total;
     }, 0);
-
-    return jumlah;
   }
+
+  // Hitung statistik ringkasan atas
+  const totalBidang = formasiList.length;
+  const totalDayaTampung = formasiList.reduce(
+    (sum, item) => sum + (item.kuota || 0),
+    0,
+  );
+  const totalSisaBulanIni = formasiList.reduce(
+    (sum, item) => sum + getKuotaBulanIni(item).sisaKuota,
+    0,
+  );
+
+  const namaBulanIni = new Date().toLocaleDateString("id-ID", {
+    month: "long",
+    year: "numeric",
+  });
 
   return (
     <section
       id="formasi"
       ref={sectionRef}
-      className="w-full flex justify-center px-4 mt-13"
+      className={`${plusJakarta.className} relative w-full bg-[#F8FAFC] py-16 lg:py-24 overflow-hidden`}
     >
+      {/* Ornamen Latar Halus */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 w-[800px] h-[300px] rounded-full bg-linear-to-b from-[#E0F2FE]/60 to-transparent blur-3xl"
+      />
+
       <div
         className={`
-                max-w-6xl w-full
-                px-8 lg:px-14 py-10
-                transition-all duration-700 ease-out
-                ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}
-              `}
+          relative z-10 max-w-7xl mx-auto w-full px-6 lg:px-12
+          transition-all duration-700 ease-out
+          ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}
+        `}
       >
-        {/* HEADER */}
-        <div
-          className={`
-                  text-center mb-8
-                  transition-all duration-700 delay-100
-                  ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}
-                `}
-        >
-          <h2 className="text-3xl lg:text-4xl font-extrabold text-[#7F1D1D]">
-            Formasi Magang
-          </h2>
-          <p className="text-gray-700 mt-3 max-w-2xl mx-auto">
-            Berikut adalah daftar formasi magang yang tersedia di Balai Besar
-            POM Palembang. Pilih formasi sesuai dengan jurusan dan minat Anda.
-          </p>
+        {/* ================= SPLIT HEADER ================= */}
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-10">
+          <div className="max-w-2xl space-y-3">
+            <div className="flex items-center gap-3">
+              <span className="w-8 h-[2px] bg-[#0088FF] rounded-full" />
+              <span className="text-xs font-bold tracking-[0.18em] text-[#0088FF] uppercase">
+                KUOTA & BIDANG MAGANG
+              </span>
+            </div>
 
-          {/* Status Bar */}
-          <div className="mt-4 flex items-center justify-center gap-4 text-sm">
-            {lastUpdated && (
-              <div className="text-gray-500">
-                Terakhir diperbarui: {formatTime(lastUpdated)}
-              </div>
-            )}
+            <h2 className="text-3xl sm:text-4xl xl:text-[42px] font-extrabold text-[#0B1B3D] leading-[1.18] tracking-[-0.02em]">
+              Formasi Magang{" "}
+              <span className="text-[#0088FF]">BBPOM di Palembang</span>
+            </h2>
+
+            <p className="text-[#475569] text-sm sm:text-base leading-relaxed">
+              Pantau ketersediaan kuota secara <i>real-time</i> dan pilih bidang
+              formasi yang sesuai dengan latar belakang jurusan serta minat
+              karier Anda.
+            </p>
+          </div>
+
+          {/* Live Status & Tombol Refresh */}
+          <div className="flex flex-wrap items-center gap-3 self-start lg:self-end">
+            <div className="flex items-center gap-2.5 bg-white border border-slate-200/80 px-4 py-2 rounded-full shadow-xs">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+              </span>
+              <span className="text-xs font-medium text-[#475569]">
+                {lastUpdated
+                  ? `Diperbarui ${formatTime(lastUpdated)}`
+                  : "Memuat data..."}
+              </span>
+            </div>
+
             <button
               onClick={handleManualRefresh}
               disabled={refreshing}
               className={`
-                      flex items-center gap-2 px-3 py-1 rounded-full
-                      bg-white/80 hover:bg-white
-                      text-[#7F1D1D] border border-[#7F1D1D]/20
-                      transition-all duration-300
-                      ${refreshing ? "opacity-50 cursor-not-allowed" : "hover:scale-105"}
-                    `}
+                inline-flex items-center gap-2 px-4 py-2 rounded-full
+                bg-white hover:bg-[#F0F7FF]
+                text-[#0B1B3D] hover:text-[#0088FF]
+                border border-slate-200/90 hover:border-[#0088FF]/40
+                text-xs font-bold shadow-xs
+                transition-all duration-200
+                ${refreshing ? "opacity-60 cursor-not-allowed" : ""}
+              `}
             >
-              <HiRefresh
-                className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`}
+              <HiOutlineRefresh
+                className={`w-4 h-4 text-[#0088FF] ${
+                  refreshing ? "animate-spin" : ""
+                }`}
               />
-              {refreshing ? "Memperbarui..." : "Refresh"}
+              <span>{refreshing ? "Memperbarui..." : "Refresh Kuota"}</span>
             </button>
           </div>
-
-          {error && (
-            <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg max-w-2xl mx-auto">
-              <p className="text-yellow-800 text-sm">{error}</p>
-            </div>
-          )}
         </div>
 
-        {/* LOADING STATE (hanya untuk loading pertama) */}
+        {/* Error Alert */}
+        {error && (
+          <div className="mb-8 p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-center justify-between">
+            <p className="text-amber-800 text-sm font-medium">{error}</p>
+            <button
+              onClick={handleManualRefresh}
+              className="text-xs font-bold text-amber-900 underline"
+            >
+              Coba Lagi
+            </button>
+          </div>
+        )}
+
+        {/* ================= SUMMARY STRIP (3 MINI CARDS) ================= */}
+        {!loading && formasiList.length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
+            <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/70 shadow-xs flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-[#EBF5FF] text-[#0088FF] flex items-center justify-center shrink-0">
+                <HiOutlineOfficeBuilding className="text-2xl" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-[#64748B] uppercase tracking-wider">
+                  Total Bidang Formasi
+                </p>
+                <p className="text-2xl font-extrabold text-[#0B1B3D] mt-0.5">
+                  {totalBidang}{" "}
+                  <span className="text-sm font-medium text-[#64748B]">
+                    Fungsi / Bagian
+                  </span>
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/70 shadow-xs flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-[#EBF5FF] text-[#0088FF] flex items-center justify-center shrink-0">
+                <HiOutlineUsers className="text-2xl" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-[#64748B] uppercase tracking-wider">
+                  Total Daya Tampung
+                </p>
+                <p className="text-2xl font-extrabold text-[#0B1B3D] mt-0.5">
+                  {totalDayaTampung}{" "}
+                  <span className="text-sm font-medium text-[#64748B]">
+                    Peserta / Bulan
+                  </span>
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/70 shadow-xs flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                <HiOutlineCheckCircle className="text-2xl" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-[#64748B] uppercase tracking-wider">
+                  Tersedia ({namaBulanIni})
+                </p>
+                <p className="text-2xl font-extrabold text-emerald-600 mt-0.5">
+                  {totalSisaBulanIni}{" "}
+                  <span className="text-sm font-medium text-[#64748B]">
+                    Kursi Kosong
+                  </span>
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ================= LOADING SKELETON ================= */}
         {loading && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-7">
             {[...Array(5)].map((_, i) => (
               <div
                 key={i}
-                className="bg-white/45 backdrop-blur-lg border border-white/60 rounded-3xl p-6 shadow-md animate-pulse"
+                className="bg-white border border-slate-200/70 rounded-3xl p-6 shadow-xs animate-pulse space-y-5"
               >
-                <div className="h-6 bg-gray-200 rounded w-3/4 mb-4"></div>
-                <div className="space-y-3">
-                  <div className="h-4 bg-gray-200 rounded w-full"></div>
-                  <div className="h-4 bg-gray-200 rounded w-2/3"></div>
-                  <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+                <div className="flex items-center justify-between">
+                  <div className="w-12 h-12 bg-slate-200 rounded-2xl" />
+                  <div className="w-24 h-6 bg-slate-200 rounded-full" />
                 </div>
-                <div className="h-10 bg-gray-200 rounded-xl mt-6"></div>
+                <div className="h-6 bg-slate-200 rounded-lg w-3/4" />
+                <div className="h-24 bg-slate-100 rounded-2xl w-full" />
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div className="h-14 bg-slate-100 rounded-xl" />
+                  <div className="h-14 bg-slate-100 rounded-xl" />
+                  <div className="h-14 bg-slate-100 rounded-xl" />
+                  <div className="h-14 bg-slate-100 rounded-xl" />
+                </div>
+                <div className="h-11 bg-slate-200 rounded-xl w-full" />
               </div>
             ))}
           </div>
         )}
 
-        {/* FORMASI GRID */}
+        {/* ================= FORMASI CARDS GRID ================= */}
         {!loading && (
           <>
-            {/* Overlay refreshing */}
+            {/* Toast Indikator Refreshing */}
             {refreshing && (
-              <div className="fixed top-4 right-4 z-50">
-                <div className="bg-white/90 backdrop-blur rounded-full px-4 py-2 shadow-lg flex items-center gap-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#7F1D1D]"></div>
-                  <span className="text-sm text-gray-600">
-                    Memperbarui data...
+              <div className="fixed top-24 right-6 z-50">
+                <div className="bg-white border border-slate-200 rounded-full px-4 py-2 shadow-lg flex items-center gap-2.5">
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-[#0088FF] border-t-transparent" />
+                  <span className="text-xs font-bold text-[#0B1B3D]">
+                    Memperbarui kuota...
                   </span>
                 </div>
               </div>
             )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-              {formasiList.map((item, i) => {
-                const slug = createSlug(item.title);
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-7">
+              {formasiList.map((item) => {
+                const IconComponent = getFormasiIcon(item.title);
                 const kuotaBulanIni = getKuotaBulanIni(item);
+                const terisiBulanIni = getPendaftarBulanIni(item);
                 const isFull = kuotaBulanIni.sisaKuota === 0;
+                const isAlmostFull =
+                  !isFull && kuotaBulanIni.sisaKuota <= 2;
+                const fillPercentage = Math.min(
+                  100,
+                  item.kuota > 0 ? (terisiBulanIni / item.kuota) * 100 : 0,
+                );
 
                 return (
                   <div
@@ -401,241 +449,201 @@ export default function Formasi() {
                         tanggalMulaiMagang: item.tanggalMulaiMagang || [],
                         tanggalSelesaiMagang: item.tanggalSelesaiMagang || [],
                       });
-
                       setCalendarOpen(true);
                     }}
-                    className={`
-          relative group
-          rounded-3xl
-          overflow-hidden
-          shadow-lg
-          transition-all duration-500
-          hover:-translate-y-3
-          hover:shadow-2xl
-          cursor-pointer
-        `}
+                    className="
+                      group relative
+                      bg-white rounded-3xl
+                      border border-slate-200/85
+                      hover:border-[#0088FF]/50
+                      p-6 flex flex-col justify-between
+                      shadow-[0_4px_20px_rgba(11,27,61,0.04)]
+                      hover:shadow-[0_18px_40px_rgba(0,136,255,0.12)]
+                      hover:-translate-y-1.5
+                      transition-all duration-300
+                      cursor-pointer
+                    "
                   >
-                    {/* Soft Gradient Glow */}
-                    <div className="absolute inset-0 bg-linear-to-br from-red-200/20 to-transparent opacity-0 group-hover:opacity-100 transition duration-500" />
-
-                    <div className="relative p-6">
-                      {/* ================= HEADER ================= */}
-                      <div className="flex justify-between items-start mb-4">
-                        <h3 className="text-lg font-bold text-[#7F1D1D]">
-                          {item.title}
-                        </h3>
+                    <div>
+                      {/* 1. TOP BAR: IKON & STATUS BADGE */}
+                      <div className="flex items-center justify-between gap-3 mb-5">
+                        <div className="w-12 h-12 rounded-2xl bg-[#EBF5FF] text-[#0088FF] group-hover:bg-[#0088FF] group-hover:text-white flex items-center justify-center transition-colors duration-300 shadow-xs">
+                          <IconComponent className="text-2xl" />
+                        </div>
 
                         <span
-                          className={`text-xs px-3 py-1 rounded-full backdrop-blur-md font-semibold
-                                ${
-                                  isFull
-                                    ? "bg-red-500/80 text-white"
-                                    : kuotaBulanIni.sisaKuota <= 2
-                                      ? "bg-yellow-400/80 text-black"
-                                      : "bg-green-500/80 text-white"
-                                }`}
+                          className={`
+                            inline-flex items-center gap-1.5 text-xs font-bold px-3.5 py-1.5 rounded-full border
+                            ${
+                              isFull
+                                ? "bg-rose-50 text-rose-700 border-rose-200"
+                                : isAlmostFull
+                                  ? "bg-amber-50 text-amber-700 border-amber-200"
+                                  : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                            }
+                          `}
                         >
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${
+                              isFull
+                                ? "bg-rose-500"
+                                : isAlmostFull
+                                  ? "bg-amber-500"
+                                  : "bg-emerald-500"
+                            }`}
+                          />
                           {isFull
-                            ? "Penuh"
-                            : kuotaBulanIni.sisaKuota <= 2
+                            ? "Kuota Penuh"
+                            : isAlmostFull
                               ? "Hampir Penuh"
                               : "Tersedia"}
                         </span>
                       </div>
 
-                      {/* Lokasi */}
-                      <p className="flex items-center gap-2 text-sm text-gray-600 mb-4">
-                        <HiOutlineOfficeBuilding className="text-red-500" />
-                        Balai Besar POM Palembang
-                      </p>
-
-                      {/* ================= SISA KUOTA ================= */}
-                      <p className="text-xs text-gray-600 text-center mb-2 tracking-wide">
-                        SISA KUOTA BULAN{" "}
-                        {new Date()
-                          .toLocaleDateString("id-ID", { month: "long" })
-                          .toUpperCase()}
-                      </p>
-
-                      <div className="flex flex-col items-center justify-center my-4">
-                        <p
-                          className={`text-6xl font-extrabold tracking-tight ${
-                            isFull
-                              ? "text-red-500"
-                              : kuotaBulanIni.sisaKuota <= 2
-                                ? "text-yellow-500"
-                                : "text-green-500"
-                          }`}
-                        >
-                          {kuotaBulanIni.sisaKuota}
+                      {/* NAMA FORMASI & LOKASI */}
+                      <div className="mb-5">
+                        <h3 className="text-lg font-extrabold text-[#0B1B3D] group-hover:text-[#0088FF] transition-colors leading-snug line-clamp-2 min-h-[50px]">
+                          {item.title}
+                        </h3>
+                        <p className="flex items-center gap-1.5 text-xs font-medium text-[#64748B] mt-1">
+                          <HiOutlineOfficeBuilding className="text-[#0088FF] text-sm shrink-0" />
+                          <span>Balai Besar POM di Palembang</span>
                         </p>
-
-                        <p className="text-sm text-gray-500 mt-1">orang</p>
                       </div>
 
-                      {/* ================= INFO ================= */}
-                      <div className="text-sm text-gray-700 space-y-3 mb-4">
-                        <div className="flex justify-between">
-                          <span className="flex items-center gap-1">
-                            <HiUsers className="text-yellow-500" />
-                            Total Kuota
-                          </span>
-                          <span className="font-semibold">{item.kuota}</span>
-                        </div>
-
-                        <div className="flex justify-between">
-                          <span className="flex items-center gap-1">
-                            <FaUserCheck className="text-blue-500" />
-                            Sudah Magang Bulan Ini
-                          </span>
-                          <span className="font-semibold">
-                            {getPendaftarBulanIni(item)}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Progress */}
-                      <div className="w-full bg-gray-200 rounded-full h-2 mb-6">
-                        <div
-                          className={`h-2 rounded-full ${
-                            isFull
-                              ? "bg-red-500"
-                              : kuotaBulanIni.sisaKuota <= 2
-                                ? "bg-yellow-500"
-                                : "bg-green-500"
-                          }`}
-                          style={{
-                            width: `${Math.min(
-                              100,
-                              (getPendaftarBulanIni(item) / item.kuota) * 100,
-                            )}%`,
-                          }}
-                        />
-                      </div>
-
-                      {/* 🔥 PREDIKSI */}
-                      {prediksi[item.title] && (
-                        <div
-                          className={`
-                          mt-4
-                          rounded-2xl
-                          shadow-md
-                          p-4
-                          relative
-                          overflow-hidden
-                          ${
-                            isFull
-                              ? "bg-linear-to-br from-red-50 via-white to-red-100 border border-red-200"
-                              : kuotaBulanIni.sisaKuota <= 2
-                                ? "bg-linear-to-br from-yellow-50 via-white to-yellow-100 border border-yellow-200"
-                                : "bg-linear-to-br from-green-50 via-white to-green-100 border border-green-200"
-                          }
-                        `}
-                        >
-                          {/* Accent Line */}
-                          <div
-                            className={`absolute left-0 top-0 bottom-0 w-1 ${
-                              isFull
-                                ? "bg-linear-to-b from-red-500 to-red-700"
-                                : kuotaBulanIni.sisaKuota <= 2
-                                  ? "bg-linear-to-b from-yellow-400 to-yellow-600"
-                                  : "bg-linear-to-b from-green-400 to-green-600"
-                            }`}
-                          />
-
-                          <div className="flex items-start gap-3">
-                            {/* Icon */}
-                            <div
-                              className={`p-2 rounded-xl ${
-                                isFull
-                                  ? "bg-red-100"
-                                  : kuotaBulanIni.sisaKuota <= 2
-                                    ? "bg-yellow-100"
-                                    : "bg-green-100"
-                              }`}
-                            >
-                              <HiCalendar
-                                className={`w-4 h-4 ${
+                      {/* 2. PANEL UTAMA KUOTA BULAN INI */}
+                      <div className="bg-[#F8FAFC] border border-slate-200/70 rounded-2xl p-4 mb-5">
+                        <div className="flex items-end justify-between mb-3">
+                          <div>
+                            <p className="text-[11px] font-bold tracking-wider text-[#64748B] uppercase">
+                              Sisa Kuota Bulan Ini
+                            </p>
+                            <div className="flex items-baseline gap-1.5 mt-1">
+                              <span
+                                className={`text-4xl font-extrabold tracking-tight leading-none ${
                                   isFull
-                                    ? "text-red-600"
-                                    : kuotaBulanIni.sisaKuota <= 2
-                                      ? "text-yellow-600"
-                                      : "text-green-600"
+                                    ? "text-rose-600"
+                                    : isAlmostFull
+                                      ? "text-amber-600"
+                                      : "text-[#0B1B3D]"
                                 }`}
-                              />
+                              >
+                                {kuotaBulanIni.sisaKuota}
+                              </span>
+                              <span className="text-xs font-semibold text-[#64748B]">
+                                kursi tersedia
+                              </span>
                             </div>
+                          </div>
 
-                            {/* Content */}
-                            <div className="flex-1 text-sm space-y-2">
-                              <p className="font-bold text-[#7F1D1D]">
-                                Prediksi Kuota
-                              </p>
+                          <div className="text-right">
+                            <p className="text-[11px] font-semibold text-[#64748B]">
+                              Terisi / Total
+                            </p>
+                            <p className="text-sm font-extrabold text-[#0B1B3D] mt-0.5">
+                              {terisiBulanIni}{" "}
+                              <span className="text-[#94A3B8] font-normal">
+                                /
+                              </span>{" "}
+                              {item.kuota}
+                            </p>
+                          </div>
+                        </div>
 
-                              {prediksi[item.title]
-                                ?.slice(0, 4)
-                                .map((p: any, i: number) => {
-                                  const totalKuota = item.kuota;
-                                  const filled = p.aktif;
-                                  const empty = p.sisaKuota;
+                        {/* Progress Bar */}
+                        <div className="w-full bg-slate-200/80 rounded-full h-2 overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all duration-500 ${
+                              isFull
+                                ? "bg-rose-500"
+                                : isAlmostFull
+                                  ? "bg-amber-500"
+                                  : "bg-[#0088FF]"
+                            }`}
+                            style={{ width: `${fillPercentage}%` }}
+                          />
+                        </div>
+                      </div>
 
-                                  return (
-                                    <div key={i} className="space-y-1 py-2">
-                                      {/* Header */}
-                                      <div className="flex justify-between items-center text-sm">
-                                        <span className="font-medium text-gray-700">
-                                          {p.bulan}
-                                        </span>
+                      {/* 3. PREDIKSI KUOTA 4 BULAN (COMPACT 2x2 MINI-GRID) */}
+                      {prediksi[item.title] && (
+                        <div className="mb-6">
+                          <div className="flex items-center justify-between mb-2.5">
+                            <span className="flex items-center gap-1.5 text-xs font-bold text-[#0B1B3D]">
+                              <HiOutlineCalendar className="text-[#0088FF] text-sm" />
+                              Estimasi Kuota 4 Bulan Ke Depan
+                            </span>
+                          </div>
 
-                                        <span className="font-semibold text-green-600">
-                                          {empty} Orang
-                                        </span>
-                                      </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            {prediksi[item.title]
+                              .slice(0, 4)
+                              .map((p: any, idx: number) => {
+                                const empty = p.sisaKuota;
+                                const pFull = empty === 0;
+                                const pWarn = !pFull && empty <= 2;
 
-                                      {/* Orang visual */}
-                                      <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
-                                        <div
-                                          className={`h-2 rounded-full ${
-                                            p.sisaKuota === 0
-                                              ? "bg-red-500"
-                                              : p.sisaKuota <= 2
-                                                ? "bg-yellow-500"
-                                                : "bg-green-500"
-                                          }`}
-                                          style={{
-                                            width: `${Math.min(
-                                              100,
-                                              (p.aktif / item.kuota) * 100,
-                                            )}%`,
-                                          }}
-                                        />
-                                      </div>
+                                return (
+                                  <div
+                                    key={idx}
+                                    className="bg-white border border-slate-200/80 rounded-xl px-3 py-2 flex items-center justify-between"
+                                  >
+                                    <span className="text-[11.5px] font-semibold text-[#475569] truncate">
+                                      {p.bulanSingkat || p.bulan}
+                                    </span>
 
-                                      {/* Info */}
-                                      <div className="text-xs text-gray-500">
-                                        {filled} terisi • {empty} tersedia
-                                      </div>
-                                    </div>
-                                  );
-                                })}
-                            </div>
+                                    <span
+                                      className={`text-[11px] font-extrabold px-2 py-0.5 rounded-md shrink-0 ${
+                                        pFull
+                                          ? "bg-rose-50 text-rose-600"
+                                          : pWarn
+                                            ? "bg-amber-50 text-amber-600"
+                                            : "bg-[#EBF5FF] text-[#0088FF]"
+                                      }`}
+                                    >
+                                      {pFull ? "Penuh" : `${empty} Kursi`}
+                                    </span>
+                                  </div>
+                                );
+                              })}
                           </div>
                         </div>
                       )}
+                    </div>
+
+                    {/* 4. CARD FOOTER: TOMBOL BUKA KALENDER */}
+                    <div className="pt-3 border-t border-slate-100">
+                      <div
+                        className="
+                          w-full py-2.5 px-4 rounded-xl
+                          bg-[#F0F7FF] group-hover:bg-[#0088FF]
+                          text-[#0088FF] group-hover:text-white
+                          font-bold text-xs sm:text-sm
+                          flex items-center justify-center gap-2
+                          transition-colors duration-300
+                        "
+                      >
+                        <HiOutlineCalendar className="text-base" />
+                        <span>Lihat Kalender & Detail Jadwal</span>
+                        <HiArrowRight className="text-sm group-hover:translate-x-1 transition-transform" />
+                      </div>
                     </div>
                   </div>
                 );
               })}
             </div>
 
-            {/* Auto-refresh indicator */}
-            <div className="mt-8 text-center">
-              <p className="text-xs text-gray-400">
-                Data diperbarui secara otomatis setiap 5 menit
+            {/* Catatan Auto-refresh */}
+            <div className="mt-10 text-center">
+              <p className="text-xs font-medium text-[#64748B]">
+                Klik pada salah satu kartu formasi untuk melihat detail kalender
+                tanggal ketersediaan • Data diperbarui otomatis setiap 5 menit
               </p>
             </div>
           </>
         )}
       </div>
+
       <CalendarPopup
         isOpen={calendarOpen}
         onClose={() => setCalendarOpen(false)}

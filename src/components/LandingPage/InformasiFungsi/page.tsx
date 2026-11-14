@@ -1,28 +1,47 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import {
-  HiOfficeBuilding,
-  HiShieldCheck,
-  HiBeaker,
-  HiSearch,
-  HiSpeakerphone,
-  HiAcademicCap,
+  HiOutlineOfficeBuilding,
+  HiOutlineShieldCheck,
+  HiOutlineBeaker,
+  HiOutlineSearchCircle,
+  HiOutlineSpeakerphone,
+  HiOutlineAcademicCap,
   HiOutlineChevronDown,
 } from "react-icons/hi";
 import { motion } from "framer-motion";
 import { useInView } from "react-intersection-observer";
 
+const plusJakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+});
+
 const API = process.env.NEXT_PUBLIC_API_URL;
 
-const iconMap: any = {
-  HiOfficeBuilding: <HiOfficeBuilding />,
-  HiShieldCheck: <HiShieldCheck />,
-  HiBeaker: <HiBeaker />,
-  HiSearch: <HiSearch />,
-  HiSpeakerphone: <HiSpeakerphone />,
-  HiAcademicCap: <HiAcademicCap />,
+const iconMap: Record<string, React.ReactNode> = {
+  HiOfficeBuilding: <HiOutlineOfficeBuilding />,
+  HiShieldCheck: <HiOutlineShieldCheck />,
+  HiBeaker: <HiOutlineBeaker />,
+  HiSearch: <HiOutlineSearchCircle />,
+  HiSpeakerphone: <HiOutlineSpeakerphone />,
+  HiAcademicCap: <HiOutlineAcademicCap />,
 };
+
+// Fallback ikon berdasarkan judul jika iconName tidak cocok
+const getFallbackIcon = (title = "") => {
+  const lower = title.toLowerCase();
+  if (lower.includes("pengujian")) return <HiOutlineBeaker />;
+  if (lower.includes("pemeriksaan") || lower.includes("inspeksi"))
+    return <HiOutlineShieldCheck />;
+  if (lower.includes("penindakan")) return <HiOutlineSearchCircle />;
+  if (lower.includes("informasi") || lower.includes("komunikasi"))
+    return <HiOutlineSpeakerphone />;
+  return <HiOutlineOfficeBuilding />;
+};
+
 /* ================= CARD ================= */
 
 function InformasiFungsiCard({
@@ -37,150 +56,135 @@ function InformasiFungsiCard({
   });
 
   const isOpen = expandedIndex === index;
+  const jurusanList: string[] = Array.isArray(item.jurusan)
+    ? item.jurusan
+    : [];
 
   return (
     <motion.div
       ref={ref}
-      initial={{ opacity: 0, y: 60 }}
+      initial={{ opacity: 0, y: 36 }}
       animate={inView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.7, ease: "easeOut" }}
-      className="group"
+      transition={{ duration: 0.55, delay: index * 0.08, ease: "easeOut" }}
+      className="group h-full"
     >
       <div
-        className={`
-        relative h-full
-        rounded-3xl
-        overflow-hidden
-        bg-white/90 backdrop-blur
-        shadow-lg
-        transition-all duration-500
-        hover:shadow-2xl
-        hover:-translate-y-3
-      `}
+        className="
+          relative h-full
+          rounded-3xl
+          overflow-hidden
+          bg-white
+          border border-slate-200/85
+          hover:border-[#0088FF]/50
+          shadow-[0_4px_20px_rgba(11,27,61,0.04)]
+          hover:shadow-[0_18px_40px_rgba(0,136,255,0.12)]
+          hover:-translate-y-1.5
+          transition-all duration-300
+          flex flex-col justify-between
+          p-6 sm:p-7
+        "
       >
-        {/* Soft Gradient Glow */}
-        <div
-          className={`
-          absolute inset-0 opacity-0
-          group-hover:opacity-10
-          transition duration-500
-          bg-linear-to-br ${item.gradient}
-        `}
-        />
+        <div className="min-w-0">
+          {/* TOP BAR: ICON & NUMBER BADGE */}
+          <div className="flex items-center justify-between gap-3 mb-6">
+            <div
+              className="
+                w-13 h-13
+                rounded-2xl
+                bg-[#EBF5FF] text-[#0088FF]
+                group-hover:bg-[#0088FF] group-hover:text-white
+                flex items-center justify-center
+                text-2xl
+                shadow-xs
+                transition-all duration-300
+              "
+            >
+              {iconMap[item.iconName] || getFallbackIcon(item.title)}
+            </div>
 
-        {/* Top Accent */}
-        <div
-          className={`
-          absolute top-0 left-0 w-full h-1
-          bg-linear-to-r ${item.gradient}
-        `}
-        />
-
-        <div className="relative z-10 p-6 sm:p-8 flex flex-col h-full">
-          {/* ICON */}
-          <div
-            className={`
-            mb-6
-            w-14 h-14 sm:w-16 sm:h-16
-            rounded-2xl
-            bg-linear-to-br ${item.gradient}
-            text-white
-            flex items-center justify-center
-            text-xl sm:text-2xl
-            shadow-xl
-            transition-all duration-500
-            group-hover:scale-110 group-hover:rotate-6
-          `}
-          >
-            {iconMap[item.iconName] || <HiOfficeBuilding />}
+            <span className="text-xs font-extrabold tracking-widest text-[#94A3B8] bg-[#F8FAFC] border border-slate-200/70 px-3 py-1 rounded-full">
+              FUNGSI {String(index + 1).padStart(2, "0")}
+            </span>
           </div>
 
           {/* TITLE */}
-          <h3 className="text-xl sm:text-2xl font-bold text-slate-800 mb-3">
+          <h3 className="text-lg sm:text-xl font-extrabold text-[#0B1B3D] group-hover:text-[#0088FF] transition-colors leading-snug mb-3 capitalize break-words">
             {item.title}
           </h3>
 
-          <p className="text-sm sm:text-base text-slate-600 leading-relaxed grow">
+          {/* DESCRIPTION */}
+          <p className="text-sm text-[#475569] leading-relaxed break-words">
             {item.desc}
           </p>
+        </div>
 
-          {/* Divider */}
-          <div className="mt-6 pt-6 border-t border-slate-100">
-            <button
-              onClick={() => setExpandedIndex(isOpen ? null : index)}
-              className="w-full flex items-center justify-between"
-            >
-              <div className="flex items-center gap-3">
-                <span
-                  className={`
-                  text-sm font-semibold
-                  bg-linear-to-r ${item.gradient}
-                  bg-clip-text text-transparent
-                `}
-                >
-                  Jurusan yang Diterima
-                </span>
+        {/* ACCORDION JURUSAN */}
+        <div className="mt-6 pt-5 border-t border-slate-100">
+          <button
+            type="button"
+            onClick={() => setExpandedIndex(isOpen ? null : index)}
+            className={`
+              w-full flex items-center justify-between
+              px-4 py-3 rounded-2xl
+              border transition-all duration-200
+              ${
+                isOpen
+                  ? "bg-[#F0F7FF] border-[#0088FF]/30 text-[#0088FF]"
+                  : "bg-[#F8FAFC] hover:bg-[#F0F7FF]/60 border-slate-200/80 text-[#0B1B3D]"
+              }
+            `}
+          >
+            <div className="flex items-center gap-2.5">
+              <HiOutlineAcademicCap className="text-lg text-[#0088FF] shrink-0" />
+              <span className="text-xs sm:text-sm font-bold">
+                Kualifikasi Jurusan
+              </span>
+            </div>
 
-                <span
-                  className="
-                    text-xs font-semibold
-                    px-2.5 py-1
-                    rounded-full
-                    bg-slate-100
-                    text-slate-700
-                    border border-slate-200
-                  "
-                >
-                  {item.jurusan.length}
-                </span>
-              </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-white text-[#0088FF] border border-[#D6EEFF]">
+                {jurusanList.length} Jurusan
+              </span>
 
               <motion.div
                 animate={{ rotate: isOpen ? 180 : 0 }}
-                transition={{ duration: 0.3 }}
-                className="text-slate-400"
+                transition={{ duration: 0.25 }}
+                className="text-[#64748B]"
               >
-                <HiOutlineChevronDown className="text-lg" />
+                <HiOutlineChevronDown className="text-base" />
               </motion.div>
-            </button>
+            </div>
+          </button>
 
-            <motion.div
-              initial={false}
-              animate={{
-                height: isOpen ? "auto" : 0,
-                opacity: isOpen ? 1 : 0,
-              }}
-              transition={{ duration: 0.4 }}
-              className="overflow-hidden"
-            >
-              <div className="mt-5 flex flex-wrap gap-2">
-                {item.jurusan.map((j: string, i: number) => (
-                  <motion.span
-                    key={i}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.05 }}
-                    whileHover={{ scale: 1.08 }}
-                    className={`
-                      px-4 py-1.5
-                      text-xs sm:text-sm
-                      font-medium
-                      rounded-full
-                      bg-slate-50
-                      border border-slate-300
-                      text-slate-700
-                      transition-all duration-300
-                      hover:text-white
-                      hover:border-transparent
-                      hover:bg-linear-to-r ${item.gradient}
-                    `}
-                  >
-                    {j}
-                  </motion.span>
-                ))}
-              </div>
-            </motion.div>
-          </div>
+          <motion.div
+            initial={false}
+            animate={{
+              height: isOpen ? "auto" : 0,
+              opacity: isOpen ? 1 : 0,
+            }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+            className="overflow-hidden"
+          >
+            <div className="pt-4 flex flex-wrap gap-2">
+              {jurusanList.map((j: string, i: number) => (
+                <span
+                  key={i}
+                  className="
+                    px-3 py-1.5
+                    text-xs font-semibold
+                    rounded-xl
+                    bg-[#F0F7FF]
+                    border border-[#D6EEFF]
+                    text-[#0B1B3D]
+                    hover:bg-[#0088FF] hover:text-white hover:border-[#0088FF]
+                    transition-colors duration-200
+                  "
+                >
+                  {j}
+                </span>
+              ))}
+            </div>
+          </motion.div>
         </div>
       </div>
     </motion.div>
@@ -191,57 +195,91 @@ function InformasiFungsiCard({
 
 export default function InformasiFungsi() {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
-
   const [data, setData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetch(`${API}/informasi-fungsi`)
       .then((res) => res.json())
       .then((json) => {
-        // 🔥 pastikan ambil array
         if (Array.isArray(json)) {
           setData(json);
-        } else if (Array.isArray(json.data)) {
+        } else if (Array.isArray(json?.data)) {
           setData(json.data);
         } else {
-          console.error("Response bukan array:", json);
           setData([]);
         }
       })
-      .catch(console.error);
+      .catch(console.error)
+      .finally(() => setLoading(false));
   }, []);
 
   return (
-    <section id="informasi" className="w-full flex justify-center px-4 mt-24">
-      <div className="max-w-6xl w-full px-6 lg:px-14 py-16">
-        {/* HEADER */}
-        <div className="text-center mb-14">
-          <h2 className="text-3xl lg:text-4xl font-extrabold text-[#7F1D1D]">
-            Informasi Fungsi Formasi Magang
-            <span className="block text-2xl md:text-xl text-slate-700 font-bold mt-1">
-              Balai Besar POM di Palembang
+    <section
+      id="informasi"
+      className={`${plusJakarta.className} relative w-full bg-white py-16 lg:py-24 overflow-hidden`}
+    >
+      <div className="max-w-7xl mx-auto w-full px-6 lg:px-12">
+        {/* ================= HEADER ================= */}
+        <div className="text-center max-w-3xl mx-auto mb-14 space-y-3">
+          <div className="inline-flex items-center justify-center gap-2.5">
+            <span className="w-6 h-[2px] bg-[#0088FF] rounded-full" />
+            <span className="text-xs font-bold tracking-[0.18em] text-[#0088FF] uppercase">
+              PANDUAN BIDANG & KOMPETENSI
             </span>
+            <span className="w-6 h-[2px] bg-[#0088FF] rounded-full" />
+          </div>
+
+          <h2 className="text-3xl sm:text-4xl xl:text-[42px] font-extrabold text-[#0B1B3D] leading-[1.18] tracking-[-0.02em]">
+            Informasi Fungsi{" "}
+            <span className="text-[#0088FF]">Formasi Magang</span>
           </h2>
 
-          <p className="text-gray-600 mt-3 max-w-2xl mx-auto leading-relaxed">
-            Berikut adalah informasi mengenai fungsi dan peran di Balai Besar
-            POM di Palembang yang dapat menjadi pilihan bidang magang sesuai
-            minat dan latar belakang pendidikan Anda.
+          <p className="text-[#475569] text-sm sm:text-base leading-relaxed">
+            Kenali tugas dari masing-masing fungsi dan bagian di Balai Besar POM
+            di Palembang untuk memilih penempatan magang yang paling sesuai
+            dengan latar belakang jurusan Anda.
           </p>
         </div>
 
-        {/* GRID */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {data.map((item, index) => (
-            <InformasiFungsiCard
-              key={item._id || index}
-              item={item}
-              index={index}
-              expandedIndex={expandedIndex}
-              setExpandedIndex={setExpandedIndex}
-            />
-          ))}
-        </div>
+        {/* ================= LOADING SKELETON ================= */}
+        {loading && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-7">
+            {[...Array(5)].map((_, i) => (
+              <div
+                key={i}
+                className="bg-white border border-slate-200/80 rounded-3xl p-7 space-y-4 animate-pulse"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="w-13 h-13 rounded-2xl bg-slate-200" />
+                  <div className="w-20 h-6 rounded-full bg-slate-100" />
+                </div>
+                <div className="h-6 bg-slate-200 rounded-lg w-3/4" />
+                <div className="space-y-2">
+                  <div className="h-4 bg-slate-100 rounded w-full" />
+                  <div className="h-4 bg-slate-100 rounded w-5/6" />
+                  <div className="h-4 bg-slate-100 rounded w-2/3" />
+                </div>
+                <div className="h-11 bg-slate-100 rounded-2xl mt-4" />
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ================= GRID CARDS ================= */}
+        {!loading && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-7 items-stretch">
+            {data.map((item, index) => (
+              <InformasiFungsiCard
+                key={item._id || index}
+                item={item}
+                index={index}
+                expandedIndex={expandedIndex}
+                setExpandedIndex={setExpandedIndex}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );
