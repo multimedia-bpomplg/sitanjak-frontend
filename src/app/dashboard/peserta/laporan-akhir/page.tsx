@@ -13,6 +13,9 @@ import {
   AlertCircle,
   ExternalLink,
   MessageSquare,
+  Eye,
+  X,
+  BadgeCheck,
 } from "lucide-react";
 import LaporanAkhirUploadModal from "@/components/Laporan/LaporanAkhirModal";
 import PenilaianModal from "@/components/Laporan/PenilaianModal";
@@ -55,11 +58,24 @@ export default function LaporanAkhirPage() {
   // Accordion expand state for cards
   const [openLaporanSection, setOpenLaporanSection] = useState(false);
   const [openSurveiSection, setOpenSurveiSection] = useState(false);
+  const [openSertifikatSection, setOpenSertifikatSection] = useState(false);
 
   // Modals
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showPenilaianModal, setShowPenilaianModal] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [showSertifikatModal, setShowSertifikatModal] = useState(false);
+  const [pesertaInfo, setPesertaInfo] = useState<{
+    nama: string;
+    posisi: string;
+    mulai: string;
+    selesai: string;
+  }>({
+    nama: "Peserta Magang",
+    posisi: "Peserta Magang BBPOM",
+    mulai: "-",
+    selesai: "-",
+  });
   const [feedbackModalMode, setFeedbackModalMode] = useState<"create" | "view">(
     "create",
   );
@@ -114,13 +130,49 @@ export default function LaporanAkhirPage() {
     }
   }, []);
 
+  const fetchPesertaProfile = useCallback(async () => {
+    try {
+      const token = localStorage.getItem("token") ?? "";
+      if (!token) return;
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      const email = payload?.email;
+      if (!email) return;
+
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/pendaftaran/cek?email=${encodeURIComponent(email)}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+      if (!res.ok) return;
+      const data = await res.json();
+      const found = data?.peserta?.find(
+        (p: any) => p.email?.toLowerCase() === email.toLowerCase(),
+      );
+      if (found) {
+        setPesertaInfo({
+          nama: found.nama || "Peserta Magang",
+          posisi: found.posisi || "Peserta Magang BBPOM",
+          mulai: found.tanggalMulaiMagang || "-",
+          selesai: found.tanggalSelesaiMagang || "-",
+        });
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
   const loadAllData = useCallback(async () => {
     setLoading(true);
     setDataLoaded(false);
-    await Promise.all([fetchLaporan(), checkFeedback()]);
+    await Promise.all([
+      fetchLaporan(),
+      checkFeedback(),
+      fetchPesertaProfile(),
+    ]);
     setLoading(false);
     setDataLoaded(true);
-  }, [fetchLaporan, checkFeedback]);
+  }, [fetchLaporan, checkFeedback, fetchPesertaProfile]);
 
   useEffect(() => {
     loadAllData();
@@ -198,6 +250,12 @@ export default function LaporanAkhirPage() {
     }
   };
 
+  const handleDownloadSertifikat = () => {
+    showToast.success(
+      "Mengunduh Sertifikat Magang (Integrasi backend segera hadir)",
+    );
+  };
+
   if (loading) {
     return <PesertaDashboardSkeleton />;
   }
@@ -210,8 +268,8 @@ export default function LaporanAkhirPage() {
           Perkembangan Magang
         </h1>
         <p className="text-xs sm:text-base text-slate-500 dark:text-slate-400 mt-1">
-          Lihat laporan akhir, evaluasi penilaian mentor, dan survei program
-          Anda.
+          Lihat laporan akhir, evaluasi penilaian mentor, survei program, dan
+          sertifikat magang Anda.
         </p>
       </div>
 
@@ -474,6 +532,111 @@ export default function LaporanAkhirPage() {
             </div>
           )}
         </div>
+
+        {/* CARD 3: SERTIFIKAT */}
+        <div className="rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setOpenSertifikatSection((v) => !v)}
+            className="w-full p-4 sm:p-5 text-left hover:bg-slate-50/70 dark:hover:bg-slate-700/40 transition"
+          >
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 sm:gap-3.5">
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                  <Award className="w-5 h-5" />
+                </div>
+                <span className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
+                  Sertifikat
+                </span>
+              </div>
+              <ChevronRight
+                className={`w-4 h-4 sm:w-5 sm:h-5 text-slate-400 transition-transform duration-200 ${
+                  openSertifikatSection ? "rotate-90" : ""
+                }`}
+              />
+            </div>
+
+            <div className="mt-3 sm:mt-3.5 pt-2.5 sm:pt-3 border-t border-slate-100 dark:border-slate-700/70 flex items-center justify-between gap-2 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+              <div className="flex items-center gap-1.5 truncate">
+                <BadgeCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600 shrink-0" />
+                <span className="truncate">
+                  Sertifikat Kelulusan Magang BBPOM di Palembang
+                </span>
+              </div>
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold border shrink-0 bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800">
+                Siap Diunduh
+              </span>
+            </div>
+          </button>
+
+          {/* Expanded Sertifikat Content */}
+          {openSertifikatSection && (
+            <div className="px-4 sm:px-5 pb-4 sm:pb-5 pt-2.5 border-t border-slate-100 dark:border-slate-700/70 space-y-3 bg-slate-50/40 dark:bg-slate-800/40">
+              <div className="rounded-xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 p-4 space-y-3.5">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-[#1D64F2] dark:text-blue-400 flex items-center justify-center shrink-0">
+                      <Award className="w-5 h-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <p
+                        className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate"
+                        style={{ fontWeight: 700 }}
+                      >
+                        Sertifikat_{pesertaInfo.nama.replace(/\s+/g, "_")}.pdf
+                      </p>
+                      <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        No: B-KP.04.01/BBPOM-PLG/2026/001 • PDF Resmi
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-700/70 p-3 space-y-1.5 text-xs">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-slate-500">Nama Peserta</span>
+                    <span className="font-bold text-slate-800 dark:text-slate-200 text-right">
+                      {pesertaInfo.nama}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-slate-500">Bidang / Posisi</span>
+                    <span className="font-bold text-slate-800 dark:text-slate-200 text-right">
+                      {pesertaInfo.posisi}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-slate-500">Status Dokumen</span>
+                    <span className="font-bold text-emerald-600 dark:text-emerald-400 text-right">
+                      Terverifikasi
+                    </span>
+                  </div>
+                </div>
+
+                {/* Action Buttons: Review & Download */}
+                <div className="flex flex-col sm:flex-row gap-2.5 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowSertifikatModal(true)}
+                    className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white text-xs sm:text-sm font-bold transition"
+                  >
+                    <Eye className="w-4 h-4 text-[#1D64F2] dark:text-blue-400" />
+                    <span>Lihat / Review Sertifikat</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleDownloadSertifikat}
+                    className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-3.5 rounded-xl bg-[#1D64F2] hover:bg-blue-700 text-white text-xs sm:text-sm font-bold shadow-2xs transition"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>Unduh Sertifikat</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* ================= MODAL UPLOAD LAPORAN AKHIR ================= */}
@@ -509,6 +672,140 @@ export default function LaporanAkhirPage() {
             }
           }}
         />
+      )}
+
+      {/* ================= MODAL REVIEW SERTIFIKAT ================= */}
+      {showSertifikatModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/55 backdrop-blur-xs p-3 sm:p-5">
+          <div className="w-full max-w-2xl rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
+            {/* Header */}
+            <div className="px-5 sm:px-6 py-4 border-b border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-[#1D64F2] dark:text-blue-400 flex items-center justify-center shrink-0">
+                  <Award className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <h2
+                    className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white leading-tight"
+                    style={{ fontWeight: 800 }}
+                  >
+                    Review Sertifikat Magang
+                  </h2>
+                  <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5 truncate">
+                    Pratinjau sertifikat kelulusan magang Balai Besar POM di
+                    Palembang
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowSertifikatModal(false)}
+                className="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center transition shrink-0"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body: Visual Certificate Preview */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-[#F8FAFC] dark:bg-slate-950/50 space-y-4">
+              <div className="relative rounded-2xl border-2 border-[#1D64F2]/25 dark:border-blue-500/30 bg-white dark:bg-slate-900 p-6 sm:p-8 shadow-sm overflow-hidden text-center space-y-4">
+                {/* Decorative corner accents */}
+                <div className="absolute top-0 left-0 w-20 h-20 border-t-4 border-l-4 border-[#1D64F2] rounded-tl-2xl pointer-events-none" />
+                <div className="absolute bottom-0 right-0 w-20 h-20 border-b-4 border-r-4 border-[#1D64F2] rounded-br-2xl pointer-events-none" />
+
+                <div className="space-y-1">
+                  <p className="text-[10px] sm:text-xs font-extrabold tracking-widest uppercase text-[#1D64F2] dark:text-blue-400">
+                    Badan Pengawas Obat dan Makanan
+                  </p>
+                  <p className="text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-300">
+                    Balai Besar POM di Palembang
+                  </p>
+                </div>
+
+                <div className="py-2">
+                  <h3
+                    className="text-xl sm:text-2xl font-extrabold tracking-wide text-slate-900 dark:text-white uppercase"
+                    style={{ fontWeight: 800 }}
+                  >
+                    Sertifikat Magang
+                  </h3>
+                  <p className="text-[11px] sm:text-xs text-slate-400 mt-1">
+                    Nomor: B-KP.04.01/BBPOM-PLG/2026/001
+                  </p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Diberikan kepada:
+                  </p>
+                  <p
+                    className="text-lg sm:text-2xl font-extrabold text-[#1D64F2] dark:text-blue-400 underline decoration-blue-200 dark:decoration-blue-800 underline-offset-8"
+                    style={{ fontWeight: 800 }}
+                  >
+                    {pesertaInfo.nama}
+                  </p>
+                </div>
+
+                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 max-w-md mx-auto leading-relaxed pt-1">
+                  Telah menyelesaikan program Praktik Kerja Lapangan / Magang
+                  pada bidang <b>{pesertaInfo.posisi}</b> di{" "}
+                  <b>Balai Besar POM di Palembang</b> dengan hasil{" "}
+                  <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                    Sangat Baik
+                  </span>
+                  .
+                </p>
+
+                <div className="pt-4 flex items-end justify-between text-left border-t border-slate-100 dark:border-slate-800 text-[11px] sm:text-xs text-slate-500 dark:text-slate-400">
+                  <div>
+                    <p className="font-semibold text-slate-700 dark:text-slate-300">
+                      Periode Pelaksanaan:
+                    </p>
+                    <p>
+                      {pesertaInfo.mulai} s/d {pesertaInfo.selesai}
+                    </p>
+                  </div>
+
+                  <div className="text-right">
+                    <p>Palembang, {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</p>
+                    <p className="font-bold text-slate-800 dark:text-slate-200 mt-4">
+                      Kepala Balai Besar POM di Palembang
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-xl bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200/80 dark:border-blue-800/70 px-3.5 py-2.5 text-xs text-slate-600 dark:text-slate-300 flex items-center gap-2">
+                <BadgeCheck className="w-4 h-4 text-[#1D64F2] dark:text-blue-400 shrink-0" />
+                <span>
+                  Periksa kesesuaian ejaan nama dan bidang magang Anda sebelum
+                  mengunduh sertifikat.
+                </span>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-5 sm:px-6 py-4 border-t border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2.5">
+              <button
+                type="button"
+                onClick={() => setShowSertifikatModal(false)}
+                className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition"
+              >
+                Tutup
+              </button>
+
+              <button
+                type="button"
+                onClick={handleDownloadSertifikat}
+                className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-[#1D64F2] hover:bg-blue-700 shadow-2xs transition inline-flex items-center justify-center gap-2"
+              >
+                <Download className="w-4 h-4" />
+                <span>Unduh Sertifikat (PDF)</span>
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* ================= POPUP WAJIB SURVEI ================= */}

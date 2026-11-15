@@ -1,7 +1,12 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { HiMail, HiArrowLeft, HiOutlineLogin } from "react-icons/hi";
+import {
+  HiMail,
+  HiArrowLeft,
+  HiOutlineLogin,
+  HiOutlineInformationCircle,
+} from "react-icons/hi";
 import { loginWithOtpApi, verifyOtpLoginApi } from "@/app/lib/api";
 import Image from "next/image";
 
@@ -14,7 +19,12 @@ interface OtpLoginProps {
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export default function OtpLogin({ onBack, onLoginSuccess, setToast, setSuccessPopup, }: OtpLoginProps) {
+export default function OtpLogin({
+  onBack,
+  onLoginSuccess,
+  setToast,
+  setSuccessPopup,
+}: OtpLoginProps) {
   const [step, setStep] = useState<"email" | "otp">("email");
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
@@ -25,7 +35,7 @@ export default function OtpLogin({ onBack, onLoginSuccess, setToast, setSuccessP
 
   const otpLength = 6;
   const [otpValues, setOtpValues] = useState<string[]>(
-    Array(otpLength).fill("")
+    Array(otpLength).fill(""),
   );
 
   const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
@@ -51,7 +61,7 @@ export default function OtpLogin({ onBack, onLoginSuccess, setToast, setSuccessP
     });
 
     try {
-      const response = await loginWithOtpApi({ email });
+      await loginWithOtpApi({ email });
 
       setToast({
         show: true,
@@ -169,8 +179,15 @@ export default function OtpLogin({ onBack, onLoginSuccess, setToast, setSuccessP
     try {
       await loginWithOtpApi({ email });
 
-      setToast({ show: false, type: "loading", message: "" });
-      setSuccessPopup(true);
+      setToast({
+        show: true,
+        type: "loading",
+        message: "Kode OTP baru berhasil dikirim",
+      });
+
+      setTimeout(() => {
+        setToast({ show: false, type: "loading", message: "" });
+      }, 900);
 
       setCountdown(60);
 
@@ -231,52 +248,65 @@ export default function OtpLogin({ onBack, onLoginSuccess, setToast, setSuccessP
   };
 
   return (
-    <div className="w-full space-y-6 animate-fadeIn">
-      <h1 className="text-3xl font-extrabold text-center text-[#7F1D1D] mb-2">
-        Login Email OTP
-      </h1>
-
-      <div className="flex justify-center my-4">
-        <Image
-          src="/images/icons/sitanjak.png"
-          alt="Logo"
-          width={100}
-          height={100}
-        />
+    <div className="w-full space-y-4 animate-fadeIn">
+      {/* Brand Identity */}
+      <div className="flex flex-col items-center text-center">
+        <div className="w-12 h-12 xl:w-14 xl:h-14 rounded-2xl bg-[#F0F7FF] border border-[#D6EEFF] flex items-center justify-center p-2 shadow-xs mb-2">
+          <Image
+            src="/images/icons/sitanjak.png"
+            alt="Logo SI TANJAK"
+            width={44}
+            height={44}
+            className="object-contain"
+          />
+        </div>
+        <span className="text-[10px] font-bold tracking-[0.2em] text-[#0088FF] uppercase">
+          SI TANJAK • BBPOM PALEMBANG
+        </span>
+        <h1 className="text-xl sm:text-2xl font-extrabold text-[#0B1B3D] mt-0.5 tracking-[-0.02em]">
+          Login Email OTP
+        </h1>
+        <p className="text-xs text-[#64748B] mt-0.5">
+          {step === "email"
+            ? "Masukkan email terdaftar untuk menerima kode OTP"
+            : "Masukkan 6 digit kode verifikasi yang dikirim ke email Anda"}
+        </p>
       </div>
-
-      <p className="text-center text-gray-600 mb-8">
-        Masukkan email untuk menerima kode OTP
-      </p>
-      
 
       {step === "email" ? (
         // FORM EMAIL
-        <form onSubmit={handleRequestOtp} noValidate className="space-y-5">
-          <div className="relative">
-            <HiMail
-              className="absolute left-4 top-3.5 text-[#B91C1C]"
-              size={20}
-            />
-            <input
-              type="text"
-              inputMode="email"
-              placeholder="Masukkan email Anda"
-              className="
-                w-full pl-12 pr-4 py-3
-                rounded-xl
-                bg-white
-                border border-gray-300
-                text-gray-800
-                placeholder:text-gray-400
-                focus:outline-none 
-                focus:ring-2 focus:ring-[#FACC15] 
-                focus:border-[#F59E0B]
-              "
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              disabled={loading}
-            />
+        <form onSubmit={handleRequestOtp} noValidate className="space-y-3.5">
+          <div>
+            <label className="block text-[11px] font-bold text-[#0B1B3D] uppercase tracking-wider mb-1">
+              Alamat Email
+            </label>
+            <div className="relative group">
+              <HiMail
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#64748B] group-focus-within:text-[#0088FF] transition-colors"
+                size={18}
+              />
+              <input
+                type="text"
+                inputMode="email"
+                placeholder="nama@email.com"
+                className="
+                  w-full pl-10 pr-4 py-2.5
+                  rounded-xl
+                  bg-[#F8FAFC]
+                  border border-slate-200
+                  text-[#0B1B3D] text-sm font-medium
+                  placeholder:text-[#94A3B8] placeholder:font-normal
+                  focus:bg-white
+                  focus:outline-none
+                  focus:ring-4 focus:ring-[#0088FF]/15
+                  focus:border-[#0088FF]
+                  transition-all
+                "
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={loading}
+              />
+            </div>
           </div>
 
           <button
@@ -284,41 +314,44 @@ export default function OtpLogin({ onBack, onLoginSuccess, setToast, setSuccessP
             disabled={loading}
             className="
               w-full flex items-center justify-center gap-2
-              py-3 rounded-xl
-              font-semibold text-white
-              bg-linear-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
-              hover:brightness-110
-              transition
+              py-2.5 xl:py-3 rounded-xl
+              font-bold text-sm text-white
+              bg-[#0088FF]
+              shadow-lg shadow-[#0088FF]/25
+              hover:bg-[#0073E6] hover:shadow-xl hover:shadow-[#0088FF]/30
+              transition-all duration-200
               disabled:opacity-60
             "
           >
             {loading ? (
               <>
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                Mengirim OTP...
+                <span>Mengirim OTP...</span>
               </>
             ) : (
               <>
-                <HiOutlineLogin size={20} />
-                Kirim Kode OTP
+                <HiOutlineLogin size={19} />
+                <span>Kirim Kode OTP</span>
               </>
             )}
           </button>
         </form>
       ) : (
         // FORM OTP
-        <form onSubmit={handleVerifyOtp} className="space-y-5">
-          <div className="bg-[#FFF7ED] border border-[#FACC15]/40 rounded-xl p-3 text-center">
-            <p className="text-sm text-gray-600">Kode OTP dikirim ke:</p>
-            <p className="font-semibold text-[#7F1D1D]">{email}</p>
+        <form onSubmit={handleVerifyOtp} className="space-y-4">
+          <div className="bg-[#F0F7FF] border border-[#D6EEFF] rounded-xl p-2.5 text-center">
+            <p className="text-[11px] text-[#64748B]">Kode OTP dikirim ke:</p>
+            <p className="font-bold text-xs sm:text-sm text-[#0B1B3D]">
+              {email}
+            </p>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-[11px] font-bold text-[#0B1B3D] uppercase tracking-wider text-center mb-2">
               Masukkan Kode OTP (6 digit)
             </label>
             <div
-              className="flex justify-center gap-3"
+              className="flex justify-center gap-2"
               onPaste={handleOtpPaste}
             >
               {otpValues.map((digit, index) => (
@@ -331,51 +364,57 @@ export default function OtpLogin({ onBack, onLoginSuccess, setToast, setSuccessP
                   inputMode="numeric"
                   maxLength={1}
                   value={digit}
-                  onChange={(e) =>
-                    handleOtpChange(e.target.value, index)
-                  }
+                  onChange={(e) => handleOtpChange(e.target.value, index)}
                   onKeyDown={(e) => handleOtpKeyDown(e, index)}
                   disabled={loading}
                   className="
-                    w-12 h-14
-                    text-black
-                    text-center text-xl font-bold
+                    w-10 sm:w-11 h-12
+                    text-[#0B1B3D]
+                    text-center text-lg font-extrabold
                     rounded-xl
-                    border border-gray-300
-                    bg-white
+                    border border-slate-200
+                    bg-[#F8FAFC]
+                    focus:bg-white
                     focus:outline-none
-                    focus:ring-2 focus:ring-[#FACC15]
-                    focus:border-[#F59E0B]
+                    focus:ring-4 focus:ring-[#0088FF]/15
+                    focus:border-[#0088FF]
                     transition-all
-                    shadow-sm
+                    shadow-xs
                   "
                 />
               ))}
             </div>
           </div>
 
+          {verifyBlocked && (
+            <p className="text-xs text-center font-semibold text-rose-600">
+              Silakan tunggu {blockCountdown} detik sebelum mencoba kembali.
+            </p>
+          )}
+
           <button
             type="submit"
-            disabled={loading || otp.length !== 6}
+            disabled={loading || otp.length !== 6 || verifyBlocked}
             className="
               w-full flex items-center justify-center gap-2
-              py-3 rounded-xl
-              font-semibold text-white
-              bg-linear-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
-              hover:brightness-110
-              transition
+              py-2.5 xl:py-3 rounded-xl
+              font-bold text-sm text-white
+              bg-[#0088FF]
+              shadow-lg shadow-[#0088FF]/25
+              hover:bg-[#0073E6] hover:shadow-xl hover:shadow-[#0088FF]/30
+              transition-all duration-200
               disabled:opacity-60
             "
           >
             {loading ? (
               <>
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                Verifikasi...
+                <span>Verifikasi...</span>
               </>
             ) : (
               <>
-                <HiOutlineLogin size={20} />
-                Verifikasi & Login
+                <HiOutlineLogin size={19} />
+                <span>Verifikasi & Login</span>
               </>
             )}
           </button>
@@ -386,11 +425,11 @@ export default function OtpLogin({ onBack, onLoginSuccess, setToast, setSuccessP
               onClick={handleResendOtp}
               disabled={loading || countdown > 0}
               className={`
-                text-sm font-medium
+                text-xs font-bold
                 ${
                   countdown > 0
-                    ? "text-gray-400 cursor-not-allowed"
-                    : "text-[#7F1D1D] hover:underline"
+                    ? "text-[#94A3B8] cursor-not-allowed"
+                    : "text-[#0088FF] hover:text-[#0073E6] hover:underline"
                 }
               `}
             >
@@ -403,12 +442,30 @@ export default function OtpLogin({ onBack, onLoginSuccess, setToast, setSuccessP
       )}
 
       {/* Informasi */}
-      <div className="mt-6 p-3 bg-blue-50 rounded-lg">
-        <p className="text-xs text-blue-800">
-          ℹ️ Kode OTP akan dikirim ke email Anda dan berlaku selama 5 menit.
-          Jika tidak menerima email, cek folder spam.
+      <div className="p-3 bg-[#F0F7FF] border border-[#D6EEFF] rounded-xl flex items-start gap-2">
+        <HiOutlineInformationCircle className="text-[#0088FF] text-base shrink-0 mt-0.5" />
+        <p className="text-[11.5px] text-[#475569] leading-relaxed">
+          Kode OTP dikirim ke email Anda dan berlaku selama{" "}
+          <span className="font-bold text-[#0B1B3D]">5 menit</span>. Jika tidak
+          menerima email, silakan periksa folder spam.
         </p>
       </div>
+
+      {/* Tombol Kembali ke Login Password */}
+      <button
+        type="button"
+        onClick={onBack}
+        className="
+          w-full flex items-center justify-center gap-2
+          py-2 rounded-xl
+          text-xs font-bold text-[#475569]
+          hover:text-[#0B1B3D] hover:bg-slate-100
+          transition-colors
+        "
+      >
+        <HiArrowLeft className="text-sm" />
+        <span>Kembali ke Login Password</span>
+      </button>
     </div>
   );
 }

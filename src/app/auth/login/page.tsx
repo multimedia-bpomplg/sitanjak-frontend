@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import {
   HiMail,
   HiLockClosed,
@@ -12,11 +13,18 @@ import {
   HiEyeOff,
   HiArrowLeft,
   HiMailOpen,
+  HiOutlineShieldCheck,
+  HiOutlineCheckCircle,
 } from "react-icons/hi";
 
 import TurnstileCaptcha from "@/components/TurnstileCaptcha";
 import { loginApi } from "@/app/lib/api";
 import OtpLogin from "./components/OtpLogin";
+
+const plusJakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+});
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -26,6 +34,167 @@ const redirectByRole = (roles: string[], router: any) => {
   if (roles.includes("admin")) return router.push("/dashboard/admin");
   if (roles.includes("mentor")) return router.push("/dashboard/mentor");
   return router.push("/dashboard/peserta");
+};
+
+/* ===================== OVERLAY & POPUP COMPONENTS ===================== */
+const AuthOverlay = ({
+  type,
+  message,
+  onClose,
+}: {
+  type: "loading" | "error";
+  message: string;
+  onClose?: () => void;
+}) => {
+  const isLoading = type === "loading";
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+      <div className="absolute inset-0 bg-[#0B1B3D]/45 backdrop-blur-md" />
+      <div
+        className="
+          relative w-full max-w-sm
+          rounded-3xl
+          bg-white
+          border border-slate-100
+          shadow-[0_24px_60px_rgba(11,27,61,0.25)]
+          px-8 py-10
+          text-center
+          animate-scaleIn
+        "
+      >
+        {isLoading ? (
+          <div className="relative mx-auto mb-6 w-24 h-24">
+            <div
+              className="
+                absolute inset-0
+                rounded-full
+                border-4 border-transparent
+                border-t-[#0088FF]
+                border-l-[#0B1B3D]
+                animate-orbitFast
+              "
+            />
+            <div
+              className="
+                absolute inset-3
+                rounded-full
+                border-4 border-transparent
+                border-b-[#38BDF8]
+                border-r-[#0088FF]
+                animate-orbitSlow
+              "
+            />
+            <div
+              className="
+                absolute inset-6
+                rounded-full
+                bg-[#EBF5FF]
+                shadow-inner
+                flex items-center justify-center
+                text-2xl
+                text-[#0088FF]
+                font-bold
+              "
+            >
+              ⏳
+            </div>
+          </div>
+        ) : (
+          <div
+            className="
+              mx-auto mb-6
+              w-20 h-20
+              rounded-full
+              bg-linear-to-br from-rose-500 to-red-600
+              text-white
+              flex items-center justify-center
+              text-3xl
+              shadow-lg shadow-red-500/25
+            "
+          >
+            ✕
+          </div>
+        )}
+
+        <h3 className="text-xl font-extrabold text-[#0B1B3D]">
+          {isLoading ? "Memproses Login" : "Login Gagal"}
+        </h3>
+
+        <p className="mt-2 text-sm text-[#475569] leading-relaxed">{message}</p>
+
+        {!isLoading && (
+          <button
+            onClick={onClose}
+            className="
+              mt-6 w-full py-3 rounded-xl
+              font-bold text-white text-sm
+              bg-[#0B1B3D]
+              hover:bg-[#162d5c]
+              transition-all duration-200
+            "
+          >
+            Tutup
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const SuccessPopup = () => {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+      <div className="absolute inset-0 bg-[#0B1B3D]/45 backdrop-blur-md" />
+      <div
+        className="
+          relative
+          w-full max-w-sm
+          rounded-3xl
+          bg-white
+          border border-slate-100
+          px-8 py-10
+          shadow-[0_25px_70px_rgba(11,27,61,0.28)]
+          text-center
+          animate-scaleIn
+        "
+      >
+        <div className="relative mx-auto mb-6 w-24 h-24">
+          <div
+            className="
+              absolute inset-0
+              rounded-full
+              border-4 border-transparent
+              border-t-[#0088FF]
+              border-r-emerald-400
+              animate-orbitSlow
+            "
+          />
+          <div
+            className="
+              absolute inset-4
+              rounded-full
+              bg-linear-to-br from-[#0088FF] to-emerald-500
+              text-white
+              flex items-center justify-center
+              text-4xl
+              shadow-lg shadow-[#0088FF]/25
+            "
+          >
+            ✓
+          </div>
+        </div>
+
+        <h3 className="text-xl font-extrabold text-[#0B1B3D]">
+          Login Berhasil
+        </h3>
+
+        <p className="mt-2 text-sm text-[#64748B]">
+          Mengarahkan ke dashboard Anda…
+        </p>
+      </div>
+    </div>
+  );
 };
 
 export default function LoginPage() {
@@ -142,412 +311,385 @@ export default function LoginPage() {
     }
   };
 
-  /* ===================== COMPONENTS ===================== */
-  const AuthOverlay = ({
-    type,
-    message,
-    onClose,
-  }: {
-    type: "loading" | "error";
-    message: string;
-    onClose?: () => void;
-  }) => {
-    const isLoading = type === "loading";
-
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center">
-        <div className="absolute inset-0 bg-black/40 backdrop-blur-md" />
-        <div
-          className="
-            relative w-full max-w-sm
-            rounded-3xl
-            bg-white/90 backdrop-blur-xl
-            shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)]
-            px-8 py-10
-            text-center
-            animate-scaleIn
-          "
-        >
-          {isLoading ? (
-            <div className="relative mx-auto mb-6 w-24 h-24">
-              <div
-                className="
-                absolute inset-0
-                rounded-full
-                border-4 border-transparent
-                border-t-[#7F1D1D]   
-                border-l-[#B91C1C]  
-                animate-orbitFast
-              "
-              />
-              <div
-                className="
-                absolute inset-3
-                rounded-full
-                border-4 border-transparent
-                border-b-[#F59E0B]  
-                border-r-[#15803D]   
-                animate-orbitSlow
-              "
-              />
-              <div
-                className="
-                absolute inset-6
-                rounded-full
-                bg-linear-to-br from-[#FEF3C7] to-[#FFF7ED]
-                shadow
-                flex items-center justify-center
-                text-2xl
-                text-[#7F1D1D]
-                font-bold
-              "
-              >
-                ⏳
-              </div>
-            </div>
-          ) : (
-            <div
-              className="
-                mx-auto mb-6
-                w-20 h-20
-                rounded-full
-                bg-linear-to-br from-[#B91C1C] to-[#7F1D1D]
-                text-white
-                flex items-center justify-center
-                text-3xl
-                shadow-lg
-              "
-            >
-              ✕
-            </div>
-          )}
-
-          <h3 className="text-xl font-extrabold text-gray-800">
-            {isLoading ? "Memproses Login" : "Login Gagal"}
-          </h3>
-
-          <p className="mt-2 text-sm text-gray-600">{message}</p>
-
-          {!isLoading && (
-            <button
-              onClick={onClose}
-              className="
-                mt-6 w-full py-3 rounded-xl
-                font-semibold text-white
-                bg-linear-to-r from-gray-800 to-gray-900
-                hover:scale-[1.02] transition
-              "
-            >
-              Tutup
-            </button>
-          )}
-        </div>
-      </div>
-    );
-  };
-
-  const SuccessPopup = () => {
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center">
-        <div className="absolute inset-0 bg-black/40 backdrop-blur-md" />
-        <div
-          className="
-            relative
-            w-full max-w-sm
-            rounded-3xl
-            bg-white/95 backdrop-blur-xl
-            px-8 py-10
-            shadow-[0_25px_70px_-20px_rgba(0,0,0,0.35)]
-            text-center
-            animate-scaleIn
-          "
-        >
-          <div className="relative mx-auto mb-6 w-24 h-24">
-            <div
-              className="
-              absolute inset-0
-              rounded-full
-              border-4 border-transparent
-              border-t-green-500
-              border-r-emerald-400
-              animate-orbitSlow
-            "
-            />
-            <div
-              className="
-              absolute inset-4
-              rounded-full
-              bg-linear-to-br from-green-500 to-emerald-500
-              text-white
-              flex items-center justify-center
-              text-4xl
-              shadow-lg
-            "
-            >
-              ✓
-            </div>
-          </div>
-
-          <h3 className="text-xl font-extrabold text-gray-800">
-            Login Berhasil
-          </h3>
-
-          <p className="mt-2 text-sm text-gray-500">
-            Mengarahkan ke dashboard Anda…
-          </p>
-        </div>
-      </div>
-    );
-  };
-
   return (
-    <div className="min-h-screen flex flex-col lg:grid lg:grid-cols-2">
-      {/* IMAGE ATAS */}
-      <div className="lg:hidden w-full relative aspect-video bg-linear-to-br from-[#FFFBF5] via-[#FFF7ED] to-[#FEF3C7] flex items-center justify-center">
+    <div
+      className={`${plusJakarta.className} min-h-screen lg:h-screen lg:max-h-screen lg:overflow-hidden flex flex-col lg:grid lg:grid-cols-12 bg-[#F8FAFC]`}
+    >
+      {/* ================= BANNER ATAS (MOBILE & TABLET) ================= */}
+      <div className="lg:hidden relative w-full h-56 sm:h-64 overflow-hidden shrink-0">
         <Image
-          src="/images/logins/sitanjak_login1.png"
-          alt="Login Background"
-          className="object-contain"
+          src="/images/assets-new/gedung-bpom2.png"
+          alt="Gedung BBPOM di Palembang"
+          fill
+          className="object-cover object-center"
           priority
-          width={350}
-          height={350}
+          sizes="100vw"
         />
-      </div>
+        <div className="absolute inset-0 bg-linear-to-t from-[#0B1B3D]/90 via-[#0B1B3D]/40 to-black/20" />
 
-      {/* FORM */}
-      <div className="relative flex items-center justify-center bg-linear-to-br from-[#FFFBF5] via-[#FFF7ED] to-[#FFFFFF] px-6 pt-24 pb-12">
-        {/* BUTTON KEMBALI */}
+        {/* Tombol Kembali (Mobile) */}
         <Link
           href="/"
           className="
-            absolute top-6 left-6
-            inline-flex items-center gap-3
-            px-4 py-2
-            rounded-xl
-            bg-white/80 backdrop-blur
-            border border-gray-200
-            text-gray-700 font-medium text-sm
-            shadow-sm
+            absolute top-4 left-4 z-20
+            inline-flex items-center gap-2.5
+            px-3.5 py-2
+            rounded-full
+            bg-white/90 backdrop-blur-md
+            text-[#0B1B3D] font-bold text-xs
+            shadow-md
             hover:bg-white
-            hover:border-[#F59E0B]
-            hover:text-[#7F1D1D]
-            hover:shadow-md
-            transition-all duration-200
+            transition
           "
         >
-          <span
-            className="
-              flex items-center justify-center
-              w-8 h-8
-              rounded-lg
-              bg-[#FEF3C7] 
-              text-[#7F1D1D]
-            "
-          >
-            <HiArrowLeft className="text-lg" />
+          <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#EBF5FF] text-[#0088FF]">
+            <HiArrowLeft className="text-sm" />
           </span>
           <span>Kembali</span>
         </Link>
 
-        <div className="w-full max-w-lg bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl p-10">
-          {showOtpLogin ? (
-            <OtpLogin
-              onBack={() => setShowOtpLogin(false)}
-              onLoginSuccess={handleLoginSuccess}
-              setToast={setToast}
-              setSuccessPopup={setSuccessPopup}
-            />
-          ) : (
-            <>
-              <h1 className="text-3xl font-extrabold text-center text-[#7F1D1D] mb-2">
-                Masuk ke Akun
-              </h1>
-
-              <div className="flex justify-center my-4">
-                <Image
-                  src="/images/icons/sitanjak.png"
-                  alt="Logo"
-                  width={100}
-                  height={100}
-                />
-              </div>
-
-              <p className="text-center text-gray-600 mb-6">
-                Silakan login untuk melanjutkan
-              </p>
-
-              <form onSubmit={handleSubmit} noValidate className="space-y-5">
-                {/* EMAIL */}
-                <div className="relative">
-                  <HiMail
-                    className="absolute left-4 top-3.5 text-[#B91C1C]"
-                    size={20}
-                  />
-                  <input
-                    type="email"
-                    placeholder="Email"
-                    className="
-                      w-full pl-12 pr-4 py-3
-                      rounded-xl
-                      bg-white
-                      border border-gray-300
-                      text-gray-800
-                      placeholder:text-gray-400
-                      focus:outline-none 
-                      focus:ring-2 focus:ring-[#FACC15] 
-                      focus:border-[#F59E0B]
-                    "
-                    value={form.email}
-                    onChange={(e) =>
-                      setForm({ ...form, email: e.target.value })
-                    }
-                    required
-                  />
-                </div>
-
-                {/* PASSWORD */}
-                <div className="relative">
-                  <HiLockClosed
-                    className="absolute left-4 top-3.5 text-[#B91C1C]"
-                    size={20}
-                  />
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Password"
-                    className="
-                      w-full pl-12 pr-12 py-3
-                      rounded-xl
-                      bg-white
-                      border border-gray-300
-                      text-gray-800
-                      placeholder:text-gray-400
-                      focus:outline-none 
-                      focus:ring-2 focus:ring-[#FACC15] 
-                      focus:border-[#F59E0B]
-                    "
-                    value={form.password}
-                    onChange={(e) =>
-                      setForm({ ...form, password: e.target.value })
-                    }
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((p) => !p)}
-                    className="absolute right-4 top-3.5 text-gray-500 hover:text-blue-600"
-                  >
-                    {showPassword ? (
-                      <HiEyeOff size={20} />
-                    ) : (
-                      <HiEye size={20} />
-                    )}
-                  </button>
-                </div>
-
-                {/* PASSWORD ACTIONS */}
-                <div className="flex justify-end text-sm text-gray-500">
-                  <Link
-                    href="/auth/lupa-password"
-                    className="
-                      font-medium
-                      text-[#7F1D1D]
-                      hover:text-[#B91C1C]
-                      hover:underline
-                    "
-                  >
-                    Lupa password?
-                  </Link>
-                </div>
-
-                {/* CAPTCHA */}
-                <div className="flex justify-center">
-                  <TurnstileCaptcha
-                    key={captchaKey}
-                    onVerify={setCaptchaToken}
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="
-                    w-full flex items-center justify-center gap-2
-                    py-3 rounded-xl
-                    font-semibold text-white
-                    bg-linear-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
-                    hover:brightness-110
-                    transition
-                    disabled:opacity-60
-                  "
-                >
-                  <HiOutlineLogin size={20} />
-                  Login
-                </button>
-              </form>
-
-              <p className="text-center text-black mt-6">
-                Belum melakukan pengajuan?{" "}
-                <Link
-                  href="/pendaftaran"
-                  className="text-blue-700 font-semibold hover:underline"
-                >
-                  Daftar
-                </Link>
-              </p>
-
-              {/* TOMBOL LOGIN DENGAN EMAIL OTP */}
-              <div className="relative my-4">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-300"></div>
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white text-gray-500">Atau</span>
-                </div>
-              </div>
-
-              <button
-                onClick={() => setShowOtpLogin(true)}
-                className="
-                  w-full flex items-center justify-center gap-2
-                  py-3 rounded-xl
-                  font-medium text-[#7F1D1D]
-                  bg-white
-                  border-2 border-[#7F1D1D]
-                  hover:bg-[#7F1D1D] hover:text-white
-                  transition-all duration-300
-                  group
-                "
-              >
-                <HiMailOpen
-                  size={20}
-                  className="group-hover:text-white transition-colors"
-                />
-                Login dengan Email OTP
-              </button>
-
-              <p className="mt-6 text-center text-xs text-gray-500">
-                © BPOM System • Role Based Access
-              </p>
-            </>
-          )}
+        {/* Caption Gedung (Mobile) */}
+        <div className="absolute bottom-5 left-5 right-5 z-10 text-white">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#0088FF]/80 backdrop-blur-sm text-[10px] font-bold tracking-wider uppercase mb-1.5">
+            <HiOutlineShieldCheck className="text-sm" />
+            <span>BBPOM di Palembang</span>
+          </div>
+          <h2 className="text-lg sm:text-xl font-extrabold leading-tight">
+            Portal Magang Akademik SI TANJAK
+          </h2>
         </div>
       </div>
 
-      {/* IMAGE KANAN */}
-      <div
-        className="
-        hidden lg:block relative w-full min-h-screen 
-        bg-linear-to-br from-[#FFFBF5] via-[#FFF7ED] to-[#FEF3C7]
-      "
-      >
-        <Image
-          src="/images/logins/sitanjak_login1.png"
-          alt="Login Background"
-          fill
-          className="object-contain"
-          priority
+      {/* ================= KOLOM KIRI: FORM LOGIN ================= */}
+      <div className="relative lg:col-span-6 xl:col-span-5 lg:h-full flex flex-col justify-center px-5 sm:px-8 lg:px-8 xl:px-12 pt-6 pb-10 sm:py-8 lg:py-4 overflow-hidden">
+        {/* Ornamen Latar Biru Muda Halus */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -top-24 -left-24 w-72 h-72 rounded-full bg-[#D6EEFF]/60 blur-3xl"
         />
-        <div className="absolute inset-0 bg-linear-to-tr from-[#7F1D1D]/10 via-transparent to-[#FACC15]/15" />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -bottom-24 -right-24 w-72 h-72 rounded-full bg-[#EBF5FF]/80 blur-3xl"
+        />
+
+        <div className="relative z-10 w-full max-w-[440px] mx-auto my-auto flex flex-col">
+          {/* Tombol Kembali (Desktop) — Sejajar garis kiri dengan Card */}
+          <div className="hidden lg:flex items-center justify-start mb-3 shrink-0">
+            <Link
+              href="/"
+              className="
+                inline-flex items-center gap-2.5
+                px-3.5 py-1.5
+                rounded-full
+                bg-white
+                border border-slate-200/90
+                text-[#0B1B3D] font-bold text-xs
+                shadow-xs
+                hover:border-[#0088FF]
+                hover:text-[#0088FF]
+                hover:shadow-md
+                transition-all duration-200
+                group
+              "
+            >
+              <span
+                className="
+                  flex items-center justify-center
+                  w-6 h-6
+                  rounded-full
+                  bg-[#EBF5FF]
+                  text-[#0088FF]
+                  group-hover:bg-[#0088FF]
+                  group-hover:text-white
+                  transition-colors
+                "
+              >
+                <HiArrowLeft className="text-sm" />
+              </span>
+              <span>Kembali ke Beranda</span>
+            </Link>
+          </div>
+
+          {/* Card Form Utama */}
+          <div className="w-full bg-white rounded-3xl shadow-[0_18px_50px_rgba(11,27,61,0.08)] border border-slate-100 p-6 sm:p-8 lg:px-7 lg:py-5 xl:p-7">
+            {showOtpLogin ? (
+              <OtpLogin
+                onBack={() => setShowOtpLogin(false)}
+                onLoginSuccess={handleLoginSuccess}
+                setToast={setToast}
+                setSuccessPopup={setSuccessPopup}
+              />
+            ) : (
+              <>
+                {/* Brand Identity */}
+                <div className="flex flex-col items-center text-center mb-4 xl:mb-5">
+                  <div className="w-12 h-12 xl:w-14 xl:h-14 rounded-2xl bg-[#F0F7FF] border border-[#D6EEFF] flex items-center justify-center p-2 shadow-xs mb-2">
+                    <Image
+                      src="/images/icons/sitanjak.png"
+                      alt="Logo SI TANJAK"
+                      width={44}
+                      height={44}
+                      className="object-contain"
+                    />
+                  </div>
+                  <span className="text-[10px] font-bold tracking-[0.2em] text-[#0088FF] uppercase">
+                    SI TANJAK • BBPOM PALEMBANG
+                  </span>
+                  <h1 className="text-xl sm:text-2xl font-extrabold text-[#0B1B3D] mt-0.5 tracking-[-0.02em]">
+                    Masuk ke Akun Anda
+                  </h1>
+                  <p className="text-xs text-[#64748B] mt-0.5">
+                    Silakan masukkan kredensial Anda untuk melanjutkan
+                  </p>
+                </div>
+
+                <form onSubmit={handleSubmit} noValidate className="space-y-3">
+                  {/* EMAIL */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#0B1B3D] uppercase tracking-wider mb-1">
+                      Alamat Email
+                    </label>
+                    <div className="relative group">
+                      <HiMail
+                        className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#64748B] group-focus-within:text-[#0088FF] transition-colors"
+                        size={18}
+                      />
+                      <input
+                        type="email"
+                        placeholder="nama@email.com"
+                        className="
+                          w-full pl-10 pr-4 py-2.5
+                          rounded-xl
+                          bg-[#F8FAFC]
+                          border border-slate-200
+                          text-[#0B1B3D] text-sm font-medium
+                          placeholder:text-[#94A3B8] placeholder:font-normal
+                          focus:bg-white
+                          focus:outline-none
+                          focus:ring-4 focus:ring-[#0088FF]/15
+                          focus:border-[#0088FF]
+                          transition-all
+                        "
+                        value={form.email}
+                        onChange={(e) =>
+                          setForm({ ...form, email: e.target.value })
+                        }
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {/* PASSWORD */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-[11px] font-bold text-[#0B1B3D] uppercase tracking-wider">
+                        Password
+                      </label>
+                      <Link
+                        href="/auth/lupa-password"
+                        className="text-xs font-bold text-[#0088FF] hover:text-[#0073E6] hover:underline transition"
+                      >
+                        Lupa password?
+                      </Link>
+                    </div>
+                    <div className="relative group">
+                      <HiLockClosed
+                        className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#64748B] group-focus-within:text-[#0088FF] transition-colors"
+                        size={18}
+                      />
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Masukkan password"
+                        className="
+                          w-full pl-10 pr-10 py-2.5
+                          rounded-xl
+                          bg-[#F8FAFC]
+                          border border-slate-200
+                          text-[#0B1B3D] text-sm font-medium
+                          placeholder:text-[#94A3B8] placeholder:font-normal
+                          focus:bg-white
+                          focus:outline-none
+                          focus:ring-4 focus:ring-[#0088FF]/15
+                          focus:border-[#0088FF]
+                          transition-all
+                        "
+                        value={form.password}
+                        onChange={(e) =>
+                          setForm({ ...form, password: e.target.value })
+                        }
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword((p) => !p)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#64748B] hover:text-[#0088FF] transition-colors p-1"
+                        aria-label="Tampilkan atau sembunyikan password"
+                      >
+                        {showPassword ? (
+                          <HiEyeOff size={18} />
+                        ) : (
+                          <HiEye size={18} />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* CAPTCHA */}
+                  <div className="flex justify-center lg:scale-[0.92] xl:scale-95 origin-center -my-1">
+                    <TurnstileCaptcha
+                      key={captchaKey}
+                      onVerify={setCaptchaToken}
+                    />
+                  </div>
+
+                  {/* TOMBOL LOGIN UTAMA */}
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="
+                      w-full flex items-center justify-center gap-2
+                      py-2.5 xl:py-3 rounded-xl
+                      font-bold text-sm text-white
+                      bg-[#0088FF]
+                      shadow-lg shadow-[#0088FF]/25
+                      hover:bg-[#0073E6] hover:shadow-xl hover:shadow-[#0088FF]/30
+                      active:scale-[0.99]
+                      transition-all duration-200
+                      disabled:opacity-60
+                    "
+                  >
+                    <HiOutlineLogin size={19} />
+                    <span>Masuk Sekarang</span>
+                  </button>
+                </form>
+
+                {/* DIVIDER ATAU */}
+                <div className="relative my-3.5">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-slate-200" />
+                  </div>
+                  <div className="relative flex justify-center text-xs">
+                    <span className="px-3 bg-white text-[#64748B] font-medium">
+                      Atau masuk dengan
+                    </span>
+                  </div>
+                </div>
+
+                {/* TOMBOL LOGIN DENGAN EMAIL OTP */}
+                <button
+                  type="button"
+                  onClick={() => setShowOtpLogin(true)}
+                  className="
+                    w-full flex items-center justify-center gap-2
+                    py-2.5 rounded-xl
+                    font-bold text-xs sm:text-sm text-[#0B1B3D]
+                    bg-[#F8FAFC]
+                    border-[1.5px] border-[#0088FF]/40
+                    hover:bg-[#EBF5FF] hover:border-[#0088FF] hover:text-[#0088FF]
+                    transition-all duration-200
+                    group
+                  "
+                >
+                  <HiMailOpen
+                    size={18}
+                    className="text-[#0088FF] transition-transform group-hover:scale-110"
+                  />
+                  <span>Login dengan Email OTP</span>
+                </button>
+
+                {/* LINK PENDAFTARAN */}
+                <p className="text-center text-xs sm:text-sm text-[#475569] mt-4">
+                  Belum melakukan pengajuan magang?{" "}
+                  <Link
+                    href="/pendaftaran"
+                    className="text-[#0088FF] font-bold hover:text-[#0073E6] hover:underline transition"
+                  >
+                    Daftar Sekarang
+                  </Link>
+                </p>
+              </>
+            )}
+          </div>
+
+          {/* Footer Kecil */}
+          <p className="mt-3 text-center text-[11px] text-[#64748B] shrink-0">
+            © {new Date().getFullYear()} BBPOM di Palembang • SI TANJAK Role
+            Based Access
+          </p>
+        </div>
+      </div>
+
+      {/* ================= KOLOM KANAN: SHOWCASE GEDUNG BPOM (DESKTOP) ================= */}
+      <div className="hidden lg:flex lg:col-span-6 xl:col-span-7 lg:h-full p-3 xl:p-5">
+        <div className="relative w-full h-full rounded-[28px] overflow-hidden shadow-[0_20px_60px_rgba(11,27,61,0.16)] flex flex-col justify-between p-8 xl:p-10">
+          {/* Gambar Gedung BBPOM 2 */}
+          <Image
+            src="/images/assets-new/gedung-bpom2.png"
+            alt="Gedung Balai Besar POM di Palembang"
+            fill
+            className="object-cover object-center scale-[1.01] hover:scale-105 transition-transform duration-1000"
+            priority
+            sizes="(max-width: 1280px) 50vw, 58vw"
+          />
+
+          {/* Overlay Gradasi Navy & Biru khas Landing Page */}
+          <div className="absolute inset-0 bg-linear-to-t from-[#0B1B3D]/95 via-[#0B1B3D]/35 to-[#0B1B3D]/15" />
+          <div className="absolute inset-0 bg-linear-to-tr from-[#0088FF]/20 via-transparent to-transparent" />
+
+          {/* Badge Atas & Logo BPOM */}
+          <div className="relative z-10 flex items-center gap-3.5">
+            <div className="flex items-center justify-center w-16 h-16 xl:w-20 xl:h-20 rounded-2xl bg-white/95 backdrop-blur-md border border-white/40 shadow-lg p-2 shrink-0">
+              <Image
+                src="/images/assets-new/logo-bpom.png"
+                alt="Logo Badan POM"
+                width={72}
+                height={72}
+                className="w-full h-full object-contain"
+              />
+            </div>
+
+            <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-white/15 backdrop-blur-md border border-white/25 text-white text-xs font-bold tracking-[0.14em] uppercase">
+              <span className="w-2 h-2 rounded-full bg-[#0088FF] animate-pulse" />
+              <span>Unit Pelaksana Teknis Badan POM RI</span>
+            </div>
+          </div>
+
+          {/* Kartu Informasi Bawah */}
+          <div className="relative z-10 max-w-2xl">
+            <div className="rounded-3xl bg-white/10 backdrop-blur-md border border-white/20 p-6 xl:p-7 text-white shadow-2xl">
+              <div className="flex items-center gap-3 mb-2">
+                <span className="w-8 h-[2px] bg-[#38BDF8] rounded-full" />
+                <span className="text-[11px] font-bold tracking-[0.18em] text-[#BAE6FD] uppercase">
+                  BALAI BESAR POM DI PALEMBANG
+                </span>
+              </div>
+
+              <h2 className="text-xl xl:text-2xl font-extrabold leading-snug tracking-[-0.02em]">
+                Sistem Informasi Tahapan dan Jangkauan Magang Akademik{" "}
+                <span className="text-[#38BDF8]">(SI TANJAK)</span>
+              </h2>
+
+              <p className="mt-2 text-xs xl:text-sm text-slate-200 leading-relaxed">
+                Wadah pembelajaran nyata dan terpadu bagi mahasiswa serta siswa
+                magang akademik dalam mengawal keamanan, mutu, dan khasiat Obat
+                serta Makanan bersama SDM profesional.
+              </p>
+
+              {/* 3 Poin Tagline BBPOM */}
+              <div className="mt-4 pt-4 border-t border-white/15 flex flex-wrap items-center gap-2.5">
+                {["Aman", "Bermutu", "Berdaya Saing"].map((item) => (
+                  <div
+                    key={item}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 text-xs font-bold text-white"
+                  >
+                    <HiOutlineCheckCircle className="text-[#38BDF8] text-sm" />
+                    <span>{item}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {toast.show && (

@@ -279,6 +279,7 @@ export default function AkunPesertaPage() {
     confirm({
       title: "Keluar dari Akun",
       message: "Apakah Anda yakin ingin keluar dari akun Peserta Magang?",
+      confirmText: "Ya, Keluar",
       onConfirm: () => {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
