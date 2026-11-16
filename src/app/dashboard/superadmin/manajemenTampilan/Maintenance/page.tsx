@@ -1,32 +1,31 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
-import axios from "axios";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Shield,
-  Clock,
-  Mail,
   AlertTriangle,
+  Calendar,
+  CheckCircle2,
+  Clock,
+  Download,
+  Filter,
+  Fingerprint,
+  History,
+  Mail,
   Power,
+  RefreshCw,
   Settings,
-  CheckCircle,
-  XCircle,
+  Shield,
+  Timer,
   ToggleLeft,
   ToggleRight,
-  History,
-  Calendar,
   User,
-  Filter,
-  RefreshCw,
-  Download,
-  ChevronLeft,
-  ChevronRight,
-  Timer,
-  Fingerprint,
+  X,
 } from "lucide-react";
+import PaginationFooter from "@/components/dashboard/PaginationFooter";
+import { TablePageSkeleton } from "@/components/dashboard/skeletons";
 import { showToast } from "@/components/ui/toastDashboard";
 
-const API = process.env.NEXT_PUBLIC_API_URL;
+/* ================= TYPES ================= */
 
 interface MaintenanceHistory {
   startTime: string;
@@ -45,39 +44,124 @@ interface MaintenanceData {
   history: MaintenanceHistory[];
 }
 
-export default function MaintenanceSuperadmin() {
-  const [duration, setDuration] = useState(30);
-  const [durationDays, setDurationDays] = useState(0);
-  const [durationHours, setDurationHours] = useState(0);
-  const [durationMinutes, setDurationMinutes] = useState(0);
-  const [email, setEmail] = useState("");
+type HistoryFilter = "ALL" | "ACTIVATE" | "DEACTIVATE";
+type DateRangeFilter = "all" | "today" | "week" | "month";
+
+/* ================= CONSTANTS & HELPERS ================= */
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
+const ITEMS_PER_PAGE = 10;
+
+const DURATION_PRESETS = [
+  { label: "15 Menit", days: 0, hours: 0, minutes: 15 },
+  { label: "30 Menit", days: 0, hours: 0, minutes: 30 },
+  { label: "1 Jam", days: 0, hours: 1, minutes: 0 },
+  { label: "3 Jam", days: 0, hours: 3, minutes: 0 },
+];
+
+function formatDate(dateString: string | null): string {
+  if (!dateString) return "-";
+  const d = new Date(dateString);
+  if (Number.isNaN(d.getTime())) return "-";
+  return d.toLocaleString("id-ID", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+}
+
+function formatDuration(minutes: number | null): string {
+  if (!minutes) return "Manual (Tanpa Batas)";
+  if (minutes < 60) return `${minutes} menit`;
+  const days = Math.floor(minutes / 1440);
+  const hours = Math.floor((minutes % 1440) / 60);
+  const mins = minutes % 60;
+  const parts: string[] = [];
+  if (days > 0) parts.push(`${days} hari`);
+  if (hours > 0) parts.push(`${hours} jam`);
+  if (mins > 0) parts.push(`${mins} menit`);
+  return parts.join(" ");
+}
+
+function formatCountdown(ms: number): string {
+  if (ms <= 0) return "00:00:00";
+  const totalSec = Math.floor(ms / 1000);
+  const days = Math.floor(totalSec / 86400);
+  const hours = Math.floor((totalSec % 86400) / 3600);
+  const mins = Math.floor((totalSec % 3600) / 60);
+  const secs = totalSec % 60;
+  const hms = [hours, mins, secs]
+    .map((v) => String(v).padStart(2, "0"))
+    .join(":");
+  return days > 0 ? `${days}h ${hms}` : hms;
+}
+
+function escapeCsvCell(value: string): string {
+  const safe = /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
+  return `"${safe.replace(/"/g, '""')}"`;
+}
+
+/* ================= PAGE ================= */
+
+export default function MaintenanceSuperadminPage() {
   const [maintenanceData, setMaintenanceData] =
     useState<MaintenanceData | null>(null);
-  const [confirmStep, setConfirmStep] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  /* ---------- Activation Controls ---------- */
+  const [durationDays, setDurationDays] = useState(0);
+  const [durationHours, setDurationHours] = useState(0);
+  const [durationMinutes, setDurationMinutes] = useState(30);
   const [manualMode, setManualMode] = useState(false);
-  const [loading, setLoading] = useState(false);
 
-  // State untuk riwayat
-  const [filter, setFilter] = useState<"ALL" | "ACTIVATE" | "DEACTIVATE">(
-    "ALL",
-  );
+  /* ---------- Confirmation Modals ---------- */
+  const [confirmStep, setConfirmStep] = useState<0 | 1 | 2>(0);
+  const [email, setEmail] = useState("");
+  const [confirmDeactivate, setConfirmDeactivate] = useState(false);
+
+  /* ---------- History Filtering & Pagination ---------- */
+  const [filter, setFilter] = useState<HistoryFilter>("ALL");
+  const [dateRange, setDateRange] = useState<DateRangeFilter>("all");
   const [currentPage, setCurrentPage] = useState(1);
-  const [dateRange, setDateRange] = useState<
-    "today" | "week" | "month" | "all"
-  >("all");
-  const [showFilters, setShowFilters] = useState(false);
-  const itemsPerPage = 10;
 
-  const token =
-    typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  /* ---------- Live Countdown State ---------- */
+  const [remainingMs, setRemainingMs] = useState<number | null>(null);
 
-  // Fetch data maintenance - pake useCallback biar stable
-  const fetchMaintenanceData = useCallback(async () => {
+  /* ================= FETCH ================= */
+
+  const fetchMaintenanceData = useCallback(async (isManual = false) => {
     try {
-      const res = await axios.get(`${API}/maintenance/status`);
-      setMaintenanceData(res.data);
-    } catch (error: any) {
-      console.error("Gagal fetch maintenance:", error.response?.data);
+      if (isManual) setRefreshing(true);
+      else setLoading(true);
+
+      const res = await fetch(`${API_BASE}/maintenance/status`, {
+        cache: "no-store",
+      });
+      const result = await res.json();
+      if (!res.ok) {
+        throw new Error(result?.message || "Gagal memuat status maintenance");
+      }
+
+      setMaintenanceData({
+        isActive: Boolean(result.isActive),
+        isManual: Boolean(result.isManual),
+        startTime: result.startTime ?? null,
+        endTime: result.endTime ?? null,
+        activatedBy: result.activatedBy ?? null,
+        history: Array.isArray(result.history) ? result.history : [],
+      });
+    } catch (err) {
+      showToast.error(
+        err instanceof Error ? err.message : "Gagal memuat status maintenance",
+      );
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
   }, []);
 
@@ -85,157 +169,207 @@ export default function MaintenanceSuperadmin() {
     fetchMaintenanceData();
   }, [fetchMaintenanceData]);
 
-  // Memoized filtered history - ini yang penting!
-  const filteredHistory = useMemo(() => {
-    if (!maintenanceData?.history) return [];
+  /* ================= COUNTDOWN TICKER ================= */
 
-    let filtered = [...maintenanceData.history];
-
-    // Filter by action
-    if (filter === "ACTIVATE") {
-      filtered = filtered.filter((item) => !item.endTime);
-    } else if (filter === "DEACTIVATE") {
-      filtered = filtered.filter((item) => item.endTime);
-    }
-
-    // Filter by date range
-    const now = new Date();
-    if (dateRange === "today") {
-      const today = new Date(now.setHours(0, 0, 0, 0));
-      filtered = filtered.filter((item) => new Date(item.startTime) >= today);
-    } else if (dateRange === "week") {
-      const weekAgo = new Date(now.setDate(now.getDate() - 7));
-      filtered = filtered.filter((item) => new Date(item.startTime) >= weekAgo);
-    } else if (dateRange === "month") {
-      const monthAgo = new Date(now.setMonth(now.getMonth() - 1));
-      filtered = filtered.filter(
-        (item) => new Date(item.startTime) >= monthAgo,
-      );
-    }
-
-    // Sort by startTime descending (newest first)
-    filtered.sort(
-      (a, b) =>
-        new Date(b.startTime).getTime() - new Date(a.startTime).getTime(),
-    );
-
-    return filtered;
-  }, [maintenanceData?.history, filter, dateRange]);
-
-  // Pagination - dihitung dari filteredHistory
-  const paginatedHistory = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage;
-    const end = start + itemsPerPage;
-    return filteredHistory.slice(start, end);
-  }, [filteredHistory, currentPage]);
-
-  const totalPages = useMemo(() => {
-    return Math.ceil(filteredHistory.length / itemsPerPage);
-  }, [filteredHistory]);
-
-  // Reset ke halaman 1 ketika filter berubah
   useEffect(() => {
-    setCurrentPage(1);
-  }, [filter, dateRange]);
+    if (
+      !maintenanceData?.isActive ||
+      maintenanceData.isManual ||
+      !maintenanceData.endTime
+    ) {
+      setRemainingMs(null);
+      return;
+    }
 
-  const activate = async () => {
-    setLoading(true);
+    const endMs = new Date(maintenanceData.endTime).getTime();
+    const update = () => {
+      const diff = endMs - Date.now();
+      if (diff <= 0) {
+        setRemainingMs(0);
+        fetchMaintenanceData(true);
+      } else {
+        setRemainingMs(diff);
+      }
+    };
 
-    const toastId = showToast.loading("Mengaktifkan maintenance...");
+    update();
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  }, [
+    maintenanceData?.isActive,
+    maintenanceData?.isManual,
+    maintenanceData?.endTime,
+    fetchMaintenanceData,
+  ]);
+
+  /* ================= ESCAPE KEY HANDLER ================= */
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || submitting) return;
+      if (confirmDeactivate) setConfirmDeactivate(false);
+      else if (confirmStep > 0) setConfirmStep(0);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [confirmDeactivate, confirmStep, submitting]);
+
+  /* ================= FILTERED & PAGINATED HISTORY ================= */
+
+  const filteredHistory = useMemo(() => {
+    const history = maintenanceData?.history ?? [];
+    const nowMs = Date.now();
+
+    return history
+      .filter((item) => {
+        const endMs = item.endTime ? new Date(item.endTime).getTime() : null;
+        const isOngoing =
+          endMs === null || (maintenanceData?.isActive && endMs > nowMs);
+
+        if (filter === "ACTIVATE" && !isOngoing) return false;
+        if (filter === "DEACTIVATE" && isOngoing) return false;
+
+        if (dateRange !== "all") {
+          const startMs = new Date(item.startTime).getTime();
+          const ref = new Date();
+          if (dateRange === "today") {
+            ref.setHours(0, 0, 0, 0);
+            if (startMs < ref.getTime()) return false;
+          } else if (dateRange === "week") {
+            if (startMs < nowMs - 7 * 86400000) return false;
+          } else if (dateRange === "month") {
+            if (startMs < nowMs - 30 * 86400000) return false;
+          }
+        }
+        return true;
+      })
+      .sort(
+        (a, b) =>
+          new Date(b.startTime).getTime() - new Date(a.startTime).getTime(),
+      );
+  }, [maintenanceData, filter, dateRange]);
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredHistory.length / ITEMS_PER_PAGE),
+  );
+  const safePage = Math.min(currentPage, totalPages);
+
+  const paginatedHistory = useMemo(() => {
+    const start = (safePage - 1) * ITEMS_PER_PAGE;
+    return filteredHistory.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredHistory, safePage]);
+
+  /* ================= ACTIONS ================= */
+
+  const totalConfiguredMinutes =
+    durationDays * 1440 + durationHours * 60 + durationMinutes;
+
+  const openActivateConfirmation = () => {
+    if (!manualMode && totalConfiguredMinutes <= 0) {
+      showToast.error(
+        "Atur durasi minimal 1 menit atau aktifkan Mode Manual",
+      );
+      return;
+    }
 
     try {
-      // hitung total menit dari hari / jam / menit
-      const totalMinutes =
-        durationDays * 1440 + durationHours * 60 + durationMinutes;
+      const rawUser = localStorage.getItem("user");
+      if (rawUser) {
+        const parsed = JSON.parse(rawUser) as { email?: string };
+        if (parsed?.email && !email) setEmail(parsed.email);
+      }
+    } catch {
+      // Ignore storage parse issue
+    }
 
-      // jika semua 0 maka dianggap manual
-      const isManual = manualMode || totalMinutes === 0;
+    setConfirmStep(1);
+  };
 
-      await axios.post(
-        `${API}/maintenance/activate`,
-        {
-          durationMinutes: isManual ? null : totalMinutes,
-          email,
+  const handleActivate = async () => {
+    if (!email.trim()) {
+      showToast.error("Email Superadmin wajib diisi untuk konfirmasi");
+      return;
+    }
+
+    const token = localStorage.getItem("token");
+    const isManual = manualMode || totalConfiguredMinutes <= 0;
+    const toastId = showToast.loading("Mengaktifkan mode maintenance...");
+
+    try {
+      setSubmitting(true);
+      const res = await fetch(`${API_BASE}/maintenance/activate`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          durationMinutes: isManual ? null : totalConfiguredMinutes,
+          email: email.trim().toLowerCase(),
           manual: isManual,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      );
+        }),
+      });
 
-      await fetchMaintenanceData();
+      const result = await res.json();
+      if (!res.ok) {
+        throw new Error(result?.message || "Gagal mengaktifkan maintenance");
+      }
 
+      showToast.updateSuccess(toastId, "Mode maintenance berhasil diaktifkan");
       setConfirmStep(0);
       setEmail("");
-
-      showToast.updateSuccess(toastId, "Maintenance berhasil diaktifkan");
-    } catch (error: any) {
+      await fetchMaintenanceData(true);
+    } catch (err) {
       showToast.updateError(
         toastId,
-        error.response?.data?.message || "Gagal mengaktifkan maintenance",
+        err instanceof Error ? err.message : "Gagal mengaktifkan maintenance",
       );
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
-  const deactivate = async () => {
-    setLoading(true);
-
-    const toastId = showToast.loading("Menonaktifkan maintenance...");
+  const handleDeactivate = async () => {
+    const token = localStorage.getItem("token");
+    const toastId = showToast.loading("Menonaktifkan mode maintenance...");
 
     try {
-      await axios.post(
-        `${API}/maintenance/deactivate`,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+      setSubmitting(true);
+      const res = await fetch(`${API_BASE}/maintenance/deactivate`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
         },
-      );
+      });
 
-      await fetchMaintenanceData();
+      const result = await res.json();
+      if (!res.ok) {
+        throw new Error(
+          result?.message || "Gagal menonaktifkan mode maintenance",
+        );
+      }
 
-      showToast.updateSuccess(toastId, "Maintenance berhasil dinonaktifkan");
-    } catch (error: any) {
+      showToast.updateSuccess(toastId, "Mode maintenance berhasil dinonaktifkan");
+      setConfirmDeactivate(false);
+      await fetchMaintenanceData(true);
+    } catch (err) {
       showToast.updateError(
         toastId,
-        error.response?.data?.message || "Gagal menonaktifkan maintenance",
+        err instanceof Error ? err.message : "Gagal menonaktifkan maintenance",
       );
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return "-";
-    return new Date(dateString).toLocaleString("id-ID", {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-    });
-  };
+  const handleExportCsv = () => {
+    if (!filteredHistory.length) {
+      showToast.error("Tidak ada riwayat untuk diekspor");
+      return;
+    }
 
-  const formatDuration = (minutes: number | null) => {
-    if (!minutes) return "Tidak terbatas";
-    if (minutes < 60) return `${minutes} menit`;
-    const hours = Math.floor(minutes / 60);
-    const remainingMinutes = minutes % 60;
-    return remainingMinutes > 0
-      ? `${hours} jam ${remainingMinutes} menit`
-      : `${hours} jam`;
-  };
-
-  const exportHistory = () => {
-    if (!maintenanceData?.history) return;
-
-    const csvContent = [
+    const rows = [
       [
         "Waktu Mulai",
         "Waktu Selesai",
@@ -243,1230 +377,650 @@ export default function MaintenanceSuperadmin() {
         "Durasi",
         "Mode",
         "Status",
-      ].join(","),
-      ...maintenanceData.history.map((item) =>
-        [
+      ].map(escapeCsvCell),
+      ...filteredHistory.map((item) => {
+        const ongoing =
+          !item.endTime ||
+          (Boolean(maintenanceData?.isActive) &&
+            new Date(item.endTime).getTime() > Date.now());
+        return [
           formatDate(item.startTime),
-          formatDate(item.endTime),
-          item.activatedBy,
+          item.endTime ? formatDate(item.endTime) : "-",
+          item.activatedBy || "-",
           formatDuration(item.durationMinutes),
-          item.isManual ? "Manual" : "Otomatis",
-          item.endTime ? "Selesai" : "Aktif",
-        ].join(","),
-      ),
-    ].join("\n");
+          item.isManual ? "Manual" : "Terjadwal",
+          ongoing ? "Sedang Berjalan" : "Selesai",
+        ].map(escapeCsvCell);
+      }),
+    ];
 
-    const blob = new Blob([csvContent], { type: "text/csv" });
-    const url = window.URL.createObjectURL(blob);
+    const csv = rows.map((r) => r.join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `maintenance-history-${new Date().toISOString().split("T")[0]}.csv`;
+    a.download = `riwayat-maintenance-${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
+    URL.revokeObjectURL(url);
+    showToast.success("Riwayat maintenance berhasil diekspor");
   };
 
-  const getStatusBadge = () => {
-    if (!maintenanceData?.isActive) {
-      return (
-        <span
-          className="inline-flex items-center
-          px-3 sm:px-4
-          py-1.5 sm:py-2
-          text-xs sm:text-sm rounded-xl font-medium bg-green-100 text-green-700 border border-green-200"
-        >
-          <span className="w-2 h-2 rounded-full bg-green-600 mr-2"></span>
-          INACTIVE
-        </span>
-      );
-    }
+  /* ================= RENDER ================= */
 
-    if (maintenanceData.isManual) {
-      return (
-        <span
-          className="inline-flex items-center
-          px-3 sm:px-4
-          py-1.5 sm:py-2
-          text-xs sm:text-sm rounded-xl font-medium bg-amber-100 text-amber-700 border border-amber-200"
-        >
-          <span className="w-2 h-2 rounded-full bg-amber-600 animate-pulse mr-2"></span>
-          MANUAL MODE
-        </span>
-      );
-    }
-
+  if (loading) {
     return (
-      <span
-        className="inline-flex items-center
-        px-3 sm:px-4
-        py-1.5 sm:py-2
-        text-xs sm:text-sm rounded-xl font-medium bg-red-100 text-red-700 border border-red-200"
-      >
-        <span className="w-2 h-2 rounded-full bg-red-600 animate-pulse mr-2"></span>
-        AUTO MODE
-      </span>
+      <TablePageSkeleton
+        title="Manajemen Maintenance Sistem"
+        subtitle="Memuat status dan riwayat pemeliharaan sistem..."
+        columnsCount={6}
+        rowsCount={6}
+      />
     );
-  };
+  }
+
+  const isActive = Boolean(maintenanceData?.isActive);
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-slate-50 via-white to-slate-100 dark:from-[#0B0614] dark:via-[#120A24] dark:to-[#1E0F3D] p-4 sm:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
-          {/* Left Section */}
-          <div className="flex items-start gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-red-500/20 dark:bg-indigo-600/20 flex items-center justify-center">
-              <Shield className="w-7 h-7 text-red-600 dark:text-indigo-400" />
+    <div className="space-y-6">
+      {/* ================= PAGE HEADER ================= */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-slate-100 dark:border-slate-800">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+            Manajemen Maintenance Sistem
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
+            Kontrol status pemeliharaan portal publik dan pantau riwayat aktivasi
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => fetchMaintenanceData(true)}
+          disabled={refreshing}
+          className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition disabled:opacity-50 self-start sm:self-auto"
+        >
+          <RefreshCw
+            className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`}
+          />
+          Segarkan Status
+        </button>
+      </div>
+
+      {/* ================= STATUS HERO BANNER ================= */}
+      <div
+        className={`rounded-2xl p-6 text-white shadow-sm flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5 ${
+          isActive
+            ? "bg-linear-to-r from-rose-600 via-red-600 to-amber-600"
+            : "bg-linear-to-r from-[#0284c7] via-sky-600 to-blue-700"
+        }`}
+      >
+        <div className="flex items-start gap-4">
+          <div className="p-3.5 rounded-2xl bg-white/15 backdrop-blur-xs shrink-0">
+            {isActive ? (
+              <AlertTriangle className="w-7 h-7" />
+            ) : (
+              <Shield className="w-7 h-7" />
+            )}
+          </div>
+          <div className="space-y-1.5">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="px-2.5 py-0.5 rounded-full bg-white/20 text-[11px] font-bold uppercase tracking-wider">
+                {isActive ? "MAINTENANCE AKTIF" : "SISTEM NORMAL"}
+              </span>
+              {isActive && (
+                <span className="px-2.5 py-0.5 rounded-full bg-white/20 text-[11px] font-semibold">
+                  {maintenanceData?.isManual
+                    ? "Mode Manual (Tanpa Batas)"
+                    : "Mode Terjadwal"}
+                </span>
+              )}
             </div>
 
-            <div>
-              <h1
-                className="
-                text-3xl lg:text-4xl 
-                font-extrabold 
-                leading-tight
-                bg-clip-text text-transparent 
-                bg-linear-to-r 
-                from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
-                dark:from-indigo-400 dark:via-violet-400 dark:to-purple-400
-              "
-              >
-                Maintenance Mode Control
-              </h1>
+            <h2 className="text-xl sm:text-2xl font-extrabold">
+              {isActive
+                ? "Portal Sedang Dalam Pemeliharaan"
+                : "Seluruh Layanan Berjalan Normal"}
+            </h2>
 
-              <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 mt-2">
-                Kelola mode pemeliharaan sistem dengan aman dan terkontrol
+            {isActive ? (
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-white/90 pt-1">
+                <span className="inline-flex items-center gap-1.5">
+                  <User className="w-3.5 h-3.5" />
+                  Diaktifkan oleh: {maintenanceData?.activatedBy || "-"}
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5" />
+                  Mulai: {formatDate(maintenanceData?.startTime ?? null)}
+                </span>
+                {!maintenanceData?.isManual && maintenanceData?.endTime && (
+                  <span className="inline-flex items-center gap-1.5 font-semibold">
+                    <Timer className="w-3.5 h-3.5" />
+                    Sisa Waktu:{" "}
+                    {remainingMs !== null ? formatCountdown(remainingMs) : "-"}
+                  </span>
+                )}
+              </div>
+            ) : (
+              <p className="text-xs sm:text-sm text-sky-100">
+                Pengunjung dan peserta dapat mengakses pendaftaran, logbook, dan
+                dashboard tanpa hambatan.
+              </p>
+            )}
+          </div>
+        </div>
+
+        {isActive && (
+          <button
+            type="button"
+            onClick={() => setConfirmDeactivate(true)}
+            className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-xs sm:text-sm font-bold bg-white text-rose-700 hover:bg-rose-50 shadow-sm transition cursor-pointer shrink-0"
+          >
+            <Power className="w-4 h-4" />
+            Nonaktifkan Maintenance Sekarang
+          </button>
+        )}
+      </div>
+
+      {/* ================= ACTIVATION PANEL + SUMMARY ================= */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        <div className="lg:col-span-2 rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 sm:p-6 shadow-2xs space-y-5">
+          <div className="flex items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-xl bg-sky-50 dark:bg-sky-950/60 text-[#0284c7] dark:text-sky-400">
+                <Settings className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
+                  Pengaturan Aktivasi Maintenance
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Pilih preset durasi, masukkan durasi khusus, atau gunakan mode
+                  manual
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setManualMode((v) => !v)}
+              className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                manualMode
+                  ? "bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800"
+                  : "bg-slate-100 text-slate-600 border border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700"
+              }`}
+            >
+              {manualMode ? (
+                <ToggleRight className="w-4 h-4" />
+              ) : (
+                <ToggleLeft className="w-4 h-4" />
+              )}
+              <span>Mode Manual</span>
+            </button>
+          </div>
+
+          {!manualMode ? (
+            <div className="space-y-4">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
+                  Preset Cepat
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {DURATION_PRESETS.map((preset) => {
+                    const isSelected =
+                      durationDays === preset.days &&
+                      durationHours === preset.hours &&
+                      durationMinutes === preset.minutes;
+                    return (
+                      <button
+                        key={preset.label}
+                        type="button"
+                        onClick={() => {
+                          setDurationDays(preset.days);
+                          setDurationHours(preset.hours);
+                          setDurationMinutes(preset.minutes);
+                        }}
+                        className={`px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+                          isSelected
+                            ? "bg-[#0284c7] text-white shadow-2xs"
+                            : "bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-sky-50 dark:hover:bg-slate-700"
+                        }`}
+                      >
+                        {preset.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                    Hari
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={30}
+                    value={durationDays}
+                    onChange={(e) =>
+                      setDurationDays(Math.max(0, Number(e.target.value) || 0))
+                    }
+                    className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40 focus:border-[#0284c7]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                    Jam
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={23}
+                    value={durationHours}
+                    onChange={(e) =>
+                      setDurationHours(Math.max(0, Number(e.target.value) || 0))
+                    }
+                    className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40 focus:border-[#0284c7]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                    Menit
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={59}
+                    value={durationMinutes}
+                    onChange={(e) =>
+                      setDurationMinutes(
+                        Math.max(0, Number(e.target.value) || 0),
+                      )
+                    }
+                    className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40 focus:border-[#0284c7]"
+                  />
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-sky-50/70 dark:bg-sky-950/30 border border-sky-200/80 dark:border-sky-800/60 flex items-center justify-between text-xs">
+                <span className="text-slate-600 dark:text-slate-300 font-medium">
+                  Total durasi yang dijadwalkan:
+                </span>
+                <span className="font-extrabold text-[#0284c7] dark:text-sky-400">
+                  {totalConfiguredMinutes > 0
+                    ? formatDuration(totalConfiguredMinutes)
+                    : "Belum diatur"}
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div className="p-4 rounded-xl bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200/80 dark:border-amber-800/60 text-xs text-amber-800 dark:text-amber-200 flex items-start gap-3">
+              <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-600" />
+              <div>
+                <p className="font-bold">Mode Manual Tanpa Batas Waktu</p>
+                <p className="mt-0.5 leading-relaxed opacity-90">
+                  Maintenance akan terus aktif sampai Superadmin menekan tombol
+                  nonaktifkan secara manual.
+                </p>
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-end pt-2">
+            <button
+              type="button"
+              disabled={submitting}
+              onClick={openActivateConfirmation}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-linear-to-r from-[#0284c7] to-blue-700 hover:from-[#0369a1] hover:to-blue-800 shadow-sm transition cursor-pointer disabled:opacity-50"
+            >
+              <Power className="w-4 h-4" />
+              {isActive ? "Perbarui & Aktifkan Maintenance" : "Aktifkan Maintenance"}
+            </button>
+          </div>
+        </div>
+
+        {/* Right Info Card */}
+        <div className="rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 sm:p-6 shadow-2xs space-y-4">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-sky-50 dark:bg-sky-950/60 text-[#0284c7] dark:text-sky-400">
+              <Fingerprint className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
+                Protokol Keamanan
+              </h3>
+              <p className="text-[11px] text-slate-400">
+                Validasi 2 langkah Superadmin
               </p>
             </div>
           </div>
 
-          {/* Right Section */}
-          <div className="flex items-center gap-3">
-            <button
-              onClick={fetchMaintenanceData}
-              className="
-                inline-flex items-center gap-2
-                px-4 py-2
-                rounded-lg
-                bg-linear-to-r
-                from-[#F59E0B] to-[#B91C1C]
-                dark:from-indigo-600 dark:to-indigo-800
-                text-white font-semibold text-sm
-                shadow-md shadow-[#B91C1C]/30
-                dark:shadow-indigo-600/30
-                hover:scale-[1.03]
-                transition
-              "
-            >
-              <RefreshCw className="w-4 h-4" />
-              Refresh
-            </button>
-
-            <button
-              onClick={exportHistory}
-              className="
-                inline-flex items-center gap-2
-                px-5 py-2
-                rounded-lg
-                bg-linear-to-r
-                from-[#7F1D1D] to-[#B91C1C]
-                dark:from-indigo-700 dark:to-indigo-600
-                text-white font-semibold text-sm
-                shadow-md shadow-[#7F1D1D]/30
-                dark:shadow-indigo-600/30
-                hover:scale-[1.03]
-                transition
-              "
-            >
-              <Download className="w-4 h-4" />
-              Export
-            </button>
-          </div>
-        </div>
-
-        {/* Main Content */}
-        <div className="max-w-7xl mx-auto px-4 py-8">
-          <div
-            className="grid grid-cols-1 
-            md:grid-cols-1 
-            lg:grid-cols-3 
-            xl:grid-cols-3 
-            gap-6 lg:gap-8"
-          >
-            {/* Left Column - Control Panel */}
-            <div
-              className="
-              lg:col-span-1
-              space-y-6
-              xl:sticky xl:top-24
-              h-fit
-            "
-            >
-              {/* Status Card */}
-              <div
-                className="rounded-2xl sm:rounded-3xl
-                border border-[#FCA5A5]/30 dark:border-indigo-500/30
-                bg-linear-to-br
-                from-white via-[#FFFDF8] to-[#FFF4EC]
-                dark:from-indigo-950 dark:via-indigo-900 dark:to-indigo-800
-                backdrop-blur
-                shadow-sm hover:shadow-xl
-                transition overflow-hidden"
-              >
-                <div className="p-6">
-                  <div
-                    className="
-                    flex flex-col sm:flex-row
-                    sm:items-center
-                    sm:justify-between
-                    gap-4
-                  "
-                  >
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={`p-2 rounded-lg ${
-                          maintenanceData?.isActive
-                            ? "bg-red-50"
-                            : "bg-green-50"
-                        }`}
-                      >
-                        {maintenanceData?.isActive ? (
-                          <AlertTriangle className="w-6 h-6 text-red-600" />
-                        ) : (
-                          <CheckCircle className="w-6 h-6 text-green-600" />
-                        )}
-                      </div>
-                      <div>
-                        <h2 className="text-lg font-semibold text-slate-700 dark:text-indigo-200">
-                          Status Sistem
-                        </h2>
-                        <p className="text-sm text-slate-500 dark:text-slate-300">
-                          {maintenanceData?.isActive
-                            ? "Sistem dalam pemeliharaan"
-                            : "Sistem beroperasi normal"}
-                        </p>
-                      </div>
-                    </div>
-
-                    {getStatusBadge()}
-                  </div>
-
-                  {/* Info tambahan jika maintenance aktif */}
-                  {maintenanceData?.isActive && (
-                    <div className="mt-4 pt-4 border-t border-slate-100 space-y-2">
-                      {maintenanceData.endTime && (
-                        <div className="flex items-center gap-2 text-sm text-slate-600">
-                          <Timer className="w-4 h-4 text-slate-400" />
-                          <span>
-                            Akan berakhir: {formatDate(maintenanceData.endTime)}
-                          </span>
-                        </div>
-                      )}
-                      <div className="flex items-center gap-2 text-sm">
-                        <Fingerprint className="w-4 h-4 text-slate-400" />
-                        <span
-                          className={`font-medium ${
-                            maintenanceData.isManual
-                              ? "text-amber-600"
-                              : "text-blue-600"
-                          }`}
-                        >
-                          Mode:{" "}
-                          {maintenanceData.isManual
-                            ? "Manual (Tanpa batas waktu)"
-                            : "Otomatis (Dengan timer)"}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Control Panel */}
-              <div
-                className="rounded-2xl sm:rounded-3xl
-                border border-[#FCA5A5]/30 dark:border-indigo-500/30
-                bg-linear-to-br
-                from-white via-[#FFFDF8] to-[#FFF4EC]
-                dark:from-indigo-950 dark:via-indigo-900 dark:to-indigo-800
-                backdrop-blur
-                shadow-sm hover:shadow-xl
-                transition"
-              >
-                <div className="border-b border-slate-200 dark:border-indigo-500/30 px-6 py-4">
-                  <div className="flex items-center gap-2">
-                    <Settings className="w-5 h-5 text-slate-500 dark:text-indigo-300" />
-                    <h3 className="font-semibold text-slate-700 dark:text-indigo-200">
-                      Panel Kontrol
-                    </h3>
-                  </div>
-                </div>
-
-                <div className="p-6">
-                  {!maintenanceData?.isActive ? (
-                    <div className="space-y-6">
-                      {/* Mode Manual Toggle */}
-                      <div
-                        className="
-                        rounded-xl p-4
-                        bg-slate-50 dark:bg-indigo-900/40
-                        border border-transparent dark:border-indigo-500/20
-                      "
-                      >
-                        <div
-                          className="
-                          flex flex-col sm:flex-row
-                          sm:items-center
-                          sm:justify-between
-                          gap-4
-                        "
-                        >
-                          <div>
-                            <label className="font-medium text-slate-700 dark:text-indigo-200">
-                              Mode Manual
-                            </label>
-                            <p className="text-sm text-slate-500 dark:text-indigo-300 mt-0.5">
-                              Aktifkan tanpa batas waktu
-                            </p>
-                          </div>
-                          <button
-                            onClick={() => setManualMode(!manualMode)}
-                            className="relative inline-flex items-center"
-                          >
-                            {manualMode ? (
-                              <ToggleRight className="w-10 h-10 text-red-600" />
-                            ) : (
-                              <ToggleLeft className="w-10 h-10 text-slate-400" />
-                            )}
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Input Durasi dengan Desain Lebih Baik */}
-                      {!manualMode && (
-                        <div className="space-y-4">
-                          <label className="block text-sm font-semibold text-slate-700 dark:text-white">
-                            ⏱️ Durasi Maintenance
-                          </label>
-
-                          {/* Card Container untuk Input */}
-                          <div
-                            className="
-      rounded-xl
-      bg-gradient-to-br from-slate-50 to-white
-      dark:from-indigo-900/40 dark:to-indigo-800/40
-      border border-slate-200 dark:border-indigo-500/30
-      p-5
-      shadow-inner
-    "
-                          >
-                            {/* Label untuk setiap field */}
-                            <div className="grid grid-cols-3 gap-3 mb-2">
-                              <div className="text-xs font-medium text-slate-500 dark:text-indigo-300 text-center">
-                                HARI
-                              </div>
-                              <div className="text-xs font-medium text-slate-500 dark:text-indigo-300 text-center">
-                                JAM
-                              </div>
-                              <div className="text-xs font-medium text-slate-500 dark:text-indigo-300 text-center">
-                                MENIT
-                              </div>
-                            </div>
-
-                            {/* Input Fields dengan Ikon */}
-                            <div className="grid grid-cols-3 gap-3">
-                              {/* Hari */}
-                              <div className="relative">
-                                <input
-                                  type="number"
-                                  min="0"
-                                  value={durationDays}
-                                  onChange={(e) =>
-                                    setDurationDays(
-                                      Math.max(
-                                        0,
-                                        parseInt(e.target.value) || 0,
-                                      ),
-                                    )
-                                  }
-                                  className="
-              w-full
-              pl-3 pr-8 py-3
-              text-lg font-semibold
-              text-center
-              rounded-xl
-              border-2 border-slate-200 dark:border-indigo-500/40
-              bg-white dark:bg-indigo-950/60
-              text-slate-800 dark:text-white
-              placeholder:text-slate-400
-              focus:border-red-400 dark:focus:border-indigo-400
-              focus:ring-2 focus:ring-red-200 dark:focus:ring-indigo-500/30
-              outline-none
-              transition-all
-              [appearance:textfield]
-              [&::-webkit-outer-spin-button]:appearance-none
-              [&::-webkit-inner-spin-button]:appearance-none
-            "
-                                  placeholder="0"
-                                />
-                                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-medium text-slate-400">
-                                  hr
-                                </span>
-                              </div>
-
-                              {/* Jam */}
-                              <div className="relative">
-                                <input
-                                  type="number"
-                                  min="0"
-                                  max="23"
-                                  value={durationHours}
-                                  onChange={(e) => {
-                                    const val = parseInt(e.target.value) || 0;
-                                    setDurationHours(
-                                      Math.min(23, Math.max(0, val)),
-                                    );
-                                  }}
-                                  className="
-              w-full
-              pl-3 pr-8 py-3
-              text-lg font-semibold
-              text-center
-              rounded-xl
-              border-2 border-slate-200 dark:border-indigo-500/40
-              bg-white dark:bg-indigo-950/60
-              text-slate-800 dark:text-white
-              placeholder:text-slate-400
-              focus:border-red-400 dark:focus:border-indigo-400
-              focus:ring-2 focus:ring-red-200 dark:focus:ring-indigo-500/30
-              outline-none
-              transition-all
-              [appearance:textfield]
-              [&::-webkit-outer-spin-button]:appearance-none
-              [&::-webkit-inner-spin-button]:appearance-none
-            "
-                                  placeholder="0"
-                                />
-                                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-medium text-slate-400">
-                                  jm
-                                </span>
-                              </div>
-
-                              {/* Menit */}
-                              <div className="relative">
-                                <input
-                                  type="number"
-                                  min="0"
-                                  max="59"
-                                  value={durationMinutes}
-                                  onChange={(e) => {
-                                    const val = parseInt(e.target.value) || 0;
-                                    setDurationMinutes(
-                                      Math.min(59, Math.max(0, val)),
-                                    );
-                                  }}
-                                  className="
-              w-full
-              pl-3 pr-8 py-3
-              text-lg font-semibold
-              text-center
-              rounded-xl
-              border-2 border-slate-200 dark:border-indigo-500/40
-              bg-white dark:bg-indigo-950/60
-              text-slate-800 dark:text-white
-              placeholder:text-slate-400
-              focus:border-red-400 dark:focus:border-indigo-400
-              focus:ring-2 focus:ring-red-200 dark:focus:ring-indigo-500/30
-              outline-none
-              transition-all
-              [appearance:textfield]
-              [&::-webkit-outer-spin-button]:appearance-none
-              [&::-webkit-inner-spin-button]:appearance-none
-            "
-                                  placeholder="0"
-                                />
-                                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-medium text-slate-400">
-                                  mnt
-                                </span>
-                              </div>
-                            </div>
-
-                            {/* Quick Select Buttons */}
-                            <div className="mt-4 flex flex-wrap gap-2 justify-center">
-                              <button
-                                onClick={() => {
-                                  setDurationDays(0);
-                                  setDurationHours(0);
-                                  setDurationMinutes(30);
-                                }}
-                                className="
-            px-3 py-1.5
-            text-xs font-medium
-            rounded-lg
-            bg-white dark:bg-indigo-900/60
-            border border-slate-200 dark:border-indigo-500/30
-            text-slate-600 dark:text-indigo-200
-            hover:bg-red-50 hover:border-red-200
-            dark:hover:bg-indigo-800 dark:hover:border-indigo-400
-            transition-all
-          "
-                              >
-                                30 Menit
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setDurationDays(0);
-                                  setDurationHours(1);
-                                  setDurationMinutes(0);
-                                }}
-                                className="
-            px-3 py-1.5
-            text-xs font-medium
-            rounded-lg
-            bg-white dark:bg-indigo-900/60
-            border border-slate-200 dark:border-indigo-500/30
-            text-slate-600 dark:text-indigo-200
-            hover:bg-red-50 hover:border-red-200
-            dark:hover:bg-indigo-800 dark:hover:border-indigo-400
-            transition-all
-          "
-                              >
-                                1 Jam
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setDurationDays(0);
-                                  setDurationHours(2);
-                                  setDurationMinutes(0);
-                                }}
-                                className="
-            px-3 py-1.5
-            text-xs font-medium
-            rounded-lg
-            bg-white dark:bg-indigo-900/60
-            border border-slate-200 dark:border-indigo-500/30
-            text-slate-600 dark:text-indigo-200
-            hover:bg-red-50 hover:border-red-200
-            dark:hover:bg-indigo-800 dark:hover:border-indigo-400
-            transition-all
-          "
-                              >
-                                2 Jam
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setDurationDays(1);
-                                  setDurationHours(0);
-                                  setDurationMinutes(0);
-                                }}
-                                className="
-            px-3 py-1.5
-            text-xs font-medium
-            rounded-lg
-            bg-white dark:bg-indigo-900/60
-            border border-slate-200 dark:border-indigo-500/30
-            text-slate-600 dark:text-indigo-200
-            hover:bg-red-50 hover:border-red-200
-            dark:hover:bg-indigo-800 dark:hover:border-indigo-400
-            transition-all
-          "
-                              >
-                                1 Hari
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setDurationDays(7);
-                                  setDurationHours(0);
-                                  setDurationMinutes(0);
-                                }}
-                                className="
-            px-3 py-1.5
-            text-xs font-medium
-            rounded-lg
-            bg-white dark:bg-indigo-900/60
-            border border-slate-200 dark:border-indigo-500/30
-            text-slate-600 dark:text-indigo-200
-            hover:bg-red-50 hover:border-red-200
-            dark:hover:bg-indigo-800 dark:hover:border-indigo-400
-            transition-all
-          "
-                              >
-                                7 Hari
-                              </button>
-                            </div>
-                          </div>
-
-                          {/* Info Durasi dengan Desain Menarik */}
-                          {durationDays > 0 ||
-                          durationHours > 0 ||
-                          durationMinutes > 0 ? (
-                            <div
-                              className="
-        flex items-center gap-3
-        p-4
-        rounded-xl
-        bg-gradient-to-r from-red-50 to-amber-50
-        dark:from-indigo-900/40 dark:to-purple-900/40
-        border border-red-200 dark:border-indigo-500/30
-      "
-                            >
-                              <div
-                                className="
-          w-10 h-10
-          rounded-full
-          bg-red-100 dark:bg-indigo-600
-          flex items-center justify-center
-          text-red-600 dark:text-white
-        "
-                              >
-                                <Clock className="w-5 h-5" />
-                              </div>
-                              <div>
-                                <p className="text-sm font-medium text-slate-700 dark:text-white">
-                                  Maintenance akan berakhir dalam:
-                                </p>
-                                <p className="text-base font-bold text-red-600 dark:text-indigo-300">
-                                  {durationDays > 0 && `${durationDays} hari `}
-                                  {durationHours > 0 && `${durationHours} jam `}
-                                  {durationMinutes > 0 &&
-                                    `${durationMinutes} menit`}
-                                  {durationDays === 0 &&
-                                    durationHours === 0 &&
-                                    durationMinutes === 0 &&
-                                    "0 menit"}
-                                </p>
-                              </div>
-                            </div>
-                          ) : (
-                            <div
-                              className="
-        flex items-center gap-2
-        p-3
-        rounded-lg
-        bg-amber-50 dark:bg-amber-900/20
-        border border-amber-200 dark:border-amber-700
-      "
-                            >
-                              <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                              <p className="text-xs text-amber-700 dark:text-amber-300">
-                                Masukkan durasi maintenance atau gunakan mode
-                                manual untuk tanpa batas waktu
-                              </p>
-                            </div>
-                          )}
-
-                          {/* Hint untuk Mode Manual */}
-                          <div
-                            className="
-      flex items-start gap-2
-      p-3
-      rounded-lg
-      bg-blue-50 dark:bg-blue-900/20
-      border border-blue-200 dark:border-blue-800
-    "
-                          >
-                            <span className="text-blue-600 dark:text-blue-400 text-lg">
-                              💡
-                            </span>
-                            <p className="text-xs text-blue-700 dark:text-blue-300">
-                              <span className="font-semibold">
-                                Mode Manual:
-                              </span>{" "}
-                              Aktifkan toggle di atas untuk maintenance tanpa
-                              batas waktu
-                            </p>
-                          </div>
-                        </div>
-                      )}
-
-                      {confirmStep === 0 ? (
-                        <button
-                          onClick={() => setConfirmStep(1)}
-                          className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 shadow-lg shadow-red-200 hover:shadow-red-300"
-                        >
-                          <Power className="w-5 h-5" />
-                          Aktifkan Maintenance
-                        </button>
-                      ) : (
-                        <div
-                          className="
-                          space-y-4
-                          bg-red-50 dark:bg-red-900/30
-                          border border-red-200 dark:border-red-500/40
-                          rounded-xl
-                          p-4
-                        "
-                        >
-                          <div className="flex items-start gap-3">
-                            <div className="p-1 bg-red-100 dark:bg-red-500/20 rounded-full">
-                              <AlertTriangle className="w-5 h-5 text-red-600" />
-                            </div>
-                            <div>
-                              <h4 className="font-medium text-red-800 dark:text-red-300">
-                                Konfirmasi Keamanan
-                              </h4>
-                              <p className="text-sm text-red-600 dark:text-red-400 mt-0.5">
-                                Masukkan email Superadmin untuk verifikasi
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="relative">
-                            <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400 dark:text-indigo-400" />
-                            <input
-                              type="email"
-                              placeholder="superadmin@example.com"
-                              value={email}
-                              onChange={(e) => setEmail(e.target.value)}
-                              className="
-                                w-full pl-10 pr-4 py-3
-                                border border-red-200 dark:border-red-500/40
-                                rounded-xl
-                                bg-white dark:bg-indigo-950/60
-                                text-slate-700 dark:text-white
-                                focus:ring-2 focus:ring-red-500 dark:focus:ring-indigo-500
-                                outline-none
-                              "
-                            />
-                          </div>
-
-                          <div
-                            className="
-                            flex flex-col sm:flex-row
-                            gap-3
-                          "
-                          >
-                            <button
-                              onClick={() => setConfirmStep(0)}
-                              className="
-                                flex-1
-                                bg-white dark:bg-indigo-900/40
-                                border border-slate-200 dark:border-indigo-500/30
-                                hover:bg-slate-50 dark:hover:bg-indigo-800/50
-                                text-slate-700 dark:text-indigo-200
-                                font-medium py-3 px-4 rounded-xl transition-all
-                              "
-                            >
-                              Batal
-                            </button>
-                            <button
-                              onClick={activate}
-                              disabled={!email || loading}
-                              className="flex-1 bg-red-700 hover:bg-red-800 text-white font-medium py-3 px-4 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                            >
-                              {loading ? (
-                                <>
-                                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                                  Memproses...
-                                </>
-                              ) : (
-                                "Konfirmasi"
-                              )}
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      <div
-                        className={`rounded-xl p-4 ${
-                          maintenanceData.isManual
-                            ? "bg-amber-50 border border-amber-100"
-                            : "bg-yellow-50 border border-yellow-100"
-                        }`}
-                      >
-                        <div className="flex items-start gap-3">
-                          <AlertTriangle
-                            className={`w-5 h-5 shrink-0 mt-0.5 ${
-                              maintenanceData.isManual
-                                ? "text-amber-600"
-                                : "text-yellow-600"
-                            }`}
-                          />
-                          <div>
-                            <h4
-                              className={`font-medium ${
-                                maintenanceData.isManual
-                                  ? "text-amber-800"
-                                  : "text-yellow-800"
-                              }`}
-                            >
-                              Maintenance Mode Aktif
-                            </h4>
-                            <p
-                              className={`text-sm mt-0.5 ${
-                                maintenanceData.isManual
-                                  ? "text-amber-700"
-                                  : "text-yellow-700"
-                              }`}
-                            >
-                              {maintenanceData.isManual
-                                ? "Mode manual - perlu dimatikan secara manual"
-                                : `Akan nonaktif otomatis pada ${formatDate(maintenanceData.endTime)}`}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      <button
-                        onClick={deactivate}
-                        disabled={loading}
-                        className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 shadow-lg shadow-green-200 hover:shadow-green-300 disabled:opacity-50"
-                      >
-                        {loading ? (
-                          <>
-                            <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                            Memproses...
-                          </>
-                        ) : (
-                          <>
-                            <XCircle className="w-5 h-5" />
-                            Nonaktifkan Maintenance
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Right Column - History */}
-            <div className="lg:col-span-2">
-              <div
-                className="rounded-2xl sm:rounded-3xl
-                border border-[#FCA5A5]/30 dark:border-indigo-500/30
-                bg-linear-to-br
-                from-white via-[#FFFDF8] to-[#FFF4EC]
-                dark:from-indigo-950 dark:via-indigo-900 dark:to-indigo-800
-                backdrop-blur
-                shadow-sm hover:shadow-xl
-                transition"
-              >
-                {/* History Header */}
-                <div className="border-b border-slate-100 px-6 py-4">
-                  <div
-                    className="
-                    flex flex-col sm:flex-row
-                    sm:items-center
-                    sm:justify-between
-                    gap-4
-                  "
-                  >
-                    <div className="flex items-center gap-2">
-                      <History className="w-5 h-5 text-slate-500" />
-                      <h3 className="font-semibold text-slate-700 dark:text-indigo-200">
-                        Riwayat Maintenance
-                      </h3>
-                      <span
-                        className="
-                        ml-2 px-2 py-0.5 rounded-full text-xs
-                        bg-slate-100 text-slate-600
-                        dark:bg-indigo-900/50 dark:text-indigo-300
-                        wrap-break-word
-                      "
-                      >
-                        Total {maintenanceData?.history?.length || 0} catatan
-                      </span>
-                    </div>
-
-                    {/* Filter Toggle */}
-                    <button
-                      onClick={() => setShowFilters(!showFilters)}
-                      className={`p-2 rounded-lg transition-all ${
-                        showFilters
-                          ? "bg-slate-100 text-slate-700"
-                          : "text-slate-400 hover:text-slate-600 hover:bg-slate-50"
-                      }`}
-                    >
-                      <Filter className="w-4 h-4" />
-                    </button>
-                  </div>
-
-                  {/* Filter Panel */}
-                  {showFilters && (
-                    <div className="mt-4 pt-4 border-t border-slate-100">
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        {/* Filter Aksi */}
-                        <div>
-                          <label className="block text-xs text-slate-500 mb-1">
-                            Status
-                          </label>
-                          <select
-                            value={filter}
-                            onChange={(e) => setFilter(e.target.value as any)}
-                            className="
-                              w-full text-sm
-                              border border-[#FCA5A5]/40 dark:border-indigo-500/40
-                              bg-white dark:bg-indigo-900
-                              text-slate-700 dark:text-slate-100
-                              rounded-lg p-2
-                              focus:ring-2 focus:ring-[#B91C1C]/60 dark:focus:ring-indigo-500/60
-                              outline-none
-                            "
-                          >
-                            <option value="ALL">Semua Status</option>
-                            <option value="ACTIVATE">Sedang Aktif</option>
-                            <option value="DEACTIVATE">Sudah Selesai</option>
-                          </select>
-                        </div>
-
-                        {/* Filter Tanggal */}
-                        <div>
-                          <label className="block text-xs text-slate-500 mb-1">
-                            Periode
-                          </label>
-                          <select
-                            value={dateRange}
-                            onChange={(e) =>
-                              setDateRange(e.target.value as any)
-                            }
-                            className="
-                              w-full text-sm
-                              border border-[#FCA5A5]/40 dark:border-indigo-500/40
-                              bg-white dark:bg-indigo-900
-                              text-slate-700 dark:text-slate-100
-                              rounded-lg p-2
-                              focus:ring-2 focus:ring-[#B91C1C]/60 dark:focus:ring-indigo-500/60
-                              outline-none
-                            "
-                          >
-                            <option value="all">Semua Waktu</option>
-                            <option value="today">Hari Ini</option>
-                            <option value="week">7 Hari Terakhir</option>
-                            <option value="month">30 Hari Terakhir</option>
-                          </select>
-                        </div>
-
-                        {/* Reset Filter */}
-                        <div className="flex items-end">
-                          <button
-                            onClick={() => {
-                              setFilter("ALL");
-                              setDateRange("all");
-                            }}
-                            className="w-full text-sm bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium py-2 px-3 rounded-lg transition-all"
-                          >
-                            Reset Filter
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* History Content */}
-                <div className="p-6">
-                  {!maintenanceData ? (
-                    <div className="flex flex-col items-center justify-center py-12">
-                      <div className="w-12 h-12 border-4 border-slate-200 border-t-red-600 rounded-full animate-spin"></div>
-                      <p className="mt-4 text-sm text-slate-500">
-                        Memuat data...
-                      </p>
-                    </div>
-                  ) : paginatedHistory.length === 0 ? (
-                    <div className="text-center py-12">
-                      <div className="w-16 h-16 mx-auto bg-slate-100 rounded-full flex items-center justify-center">
-                        <History className="w-8 h-8 text-slate-400" />
-                      </div>
-                      <h4 className="mt-4 text-sm font-medium text-slate-700">
-                        Tidak Ada Riwayat
-                      </h4>
-                      <p className="mt-1 text-xs text-slate-500">
-                        {maintenanceData.history?.length === 0
-                          ? "Belum pernah melakukan maintenance"
-                          : "Tidak ada riwayat dengan filter ini"}
-                      </p>
-                    </div>
-                  ) : (
-                    <>
-                      {/* Timeline History */}
-                      <div className="space-y-4">
-                        {paginatedHistory.map((item, index) => (
-                          <div
-                            key={`${item.startTime}-${index}`}
-                            className="
-                              relative
-                              pl-8
-                              pb-8
-                              border-l-2
-                              border-slate-200
-                              dark:border-indigo-500/40
-                            "
-                          >
-                            {/* Timeline Dot */}
-                            <div
-                              className={`
-                                absolute
-                                -left-2.25
-                                top-1
-                                w-4 h-4
-                                rounded-full
-                                border-4
-                                border-white
-                                dark:border-indigo-950
-                                ${!item.endTime ? "bg-red-500 animate-pulse" : "bg-green-500"}
-                              `}
-                            />
-                            {/* Content */}
-                            <div
-                              className="
-                              rounded-2xl
-                              border border-[#FCA5A5]/20
-                              bg-white/80
-                              dark:bg-indigo-950/60
-                              dark:border-indigo-500/30
-                              backdrop-blur
-                              p-4
-                              hover:shadow-lg
-                              transition
-                            "
-                            >
-                              <div className="space-y-3">
-                                {/* Header */}
-                                <div
-                                  className="
-                                  flex flex-col sm:flex-row
-                                  sm:items-center
-                                  sm:justify-between
-                                  gap-4
-                                "
-                                >
-                                  <div className="flex flex-wrap items-center gap-2">
-                                    {!item.endTime ? (
-                                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-red-600 mr-1"></span>
-                                        ACTIVE
-                                      </span>
-                                    ) : (
-                                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-green-600 mr-1"></span>
-                                        COMPLETED
-                                      </span>
-                                    )}
-                                    {item.isManual && (
-                                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 border border-amber-200">
-                                        <Settings className="w-3 h-3 mr-1" />
-                                        MANUAL
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-
-                                {/* Details Grid */}
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                                  <div className="flex items-start gap-2 text-slate-600 dark:text-indigo-200">
-                                    <Calendar className="w-4 h-4 text-slate-400 dark:text-indigo-400 mt-0.5" />
-                                    <span className="wrap-break-word">
-                                      Mulai: {formatDate(item.startTime)}
-                                    </span>
-                                  </div>
-
-                                  <div className="flex items-start gap-2 text-slate-600 dark:text-indigo-200">
-                                    <Timer className="w-4 h-4 text-slate-400 dark:text-indigo-400 mt-0.5" />
-                                    <span className="wrap-break-word">
-                                      Selesai: {formatDate(item.endTime)}
-                                    </span>
-                                  </div>
-
-                                  <div className="flex items-start gap-2 text-slate-600 dark:text-indigo-200">
-                                    <User className="w-4 h-4 text-slate-400 dark:text-indigo-400 mt-0.5" />
-                                    <span className="break-all">
-                                      Oleh: {item.activatedBy}
-                                    </span>
-                                  </div>
-
-                                  <div className="flex items-start gap-2 text-slate-600 dark:text-indigo-200">
-                                    <Clock className="w-4 h-4 text-slate-400 dark:text-indigo-400 mt-0.5" />
-                                    <span>
-                                      Durasi:{" "}
-                                      {formatDuration(item.durationMinutes)}
-                                    </span>
-                                  </div>
-                                </div>
-
-                                {/* Duration Info */}
-                                {item.endTime && (
-                                  <div
-                                    className="
-                                    mt-3
-                                    text-xs
-                                    text-slate-500 dark:text-indigo-200
-                                    bg-slate-100 dark:bg-indigo-900/50
-                                    p-2
-                                    rounded-lg
-                                  "
-                                  >
-                                    Total waktu:{" "}
-                                    {Math.round(
-                                      (new Date(item.endTime).getTime() -
-                                        new Date(item.startTime).getTime()) /
-                                        60000,
-                                    )}{" "}
-                                    menit
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* Pagination */}
-                      {totalPages > 1 && (
-                        <div className="mt-6 flex items-center justify-between border-t border-slate-100 pt-4">
-                          <div className="text-xs text-slate-500">
-                            Halaman {currentPage} dari {totalPages}
-                          </div>
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() =>
-                                setCurrentPage((p) => Math.max(1, p - 1))
-                              }
-                              disabled={currentPage === 1}
-                              className="p-2 rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                              <ChevronLeft className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() =>
-                                setCurrentPage((p) =>
-                                  Math.min(totalPages, p + 1),
-                                )
-                              }
-                              disabled={currentPage === totalPages}
-                              className="p-2 rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                              <ChevronRight className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Statistics Cards */}
-          {maintenanceData && (
-            <div
-              className="mt-6 grid grid-cols-1 
-              sm:grid-cols-2 
-              lg:grid-cols-4 
-              gap-4 lg:gap-6"
-            >
-              <div
-                className="rounded-2xl
-                border border-[#FCA5A5]/30 dark:border-indigo-500/30
-                bg-linear-to-br
-                from-[#FFFDF8] via-white to-[#FFF4EC]
-                dark:from-indigo-950 dark:via-indigo-900 dark:to-indigo-800
-                p-5
-                shadow-sm hover:shadow-xl
-                transition"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-blue-50 rounded-lg">
-                    <History className="w-4 h-4 text-blue-600" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500 dark:text-slate-300">
-                      Total Aktivasi
-                    </p>
-                    <p className="text-lg font-semibold text-slate-700 dark:text-white">
-                      {maintenanceData.history?.length || 0}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div
-                className="rounded-2xl
-                border border-[#FCA5A5]/30 dark:border-indigo-500/30
-                bg-linear-to-br
-                from-[#FFFDF8] via-white to-[#FFF4EC]
-                dark:from-indigo-950 dark:via-indigo-900 dark:to-indigo-800
-                p-5
-                shadow-sm hover:shadow-xl
-                transition"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-green-50 rounded-lg">
-                    <CheckCircle className="w-4 h-4 text-green-600" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500 dark:text-slate-300">
-                      Selesai
-                    </p>
-                    <p className="text-lg font-semibold text-slate-700 dark:text-white">
-                      {maintenanceData.history?.filter((h) => h.endTime)
-                        .length || 0}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div
-                className="rounded-2xl
-                border border-[#FCA5A5]/30 dark:border-indigo-500/30
-                bg-linear-to-br
-                from-[#FFFDF8] via-white to-[#FFF4EC]
-                dark:from-indigo-950 dark:via-indigo-900 dark:to-indigo-800
-                p-5
-                shadow-sm hover:shadow-xl
-                transition"
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className="
-                    p-2 rounded-lg
-                    bg-red-50 
-                  "
-                  >
-                    <AlertTriangle className="w-4 h-4 text-red-600" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500 dark:text-slate-300">
-                      Sedang Aktif
-                    </p>
-                    <p className="text-lg font-semibold text-slate-700 dark:text-white">
-                      {maintenanceData.history?.filter((h) => !h.endTime)
-                        .length || 0}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div
-                className="rounded-2xl
-                border border-[#FCA5A5]/30 dark:border-indigo-500/30
-                bg-linear-to-br
-                from-[#FFFDF8] via-white to-[#FFF4EC]
-                dark:from-indigo-950 dark:via-indigo-900 dark:to-indigo-800
-                p-5
-                shadow-sm hover:shadow-xl
-                transition"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-purple-50 rounded-lg">
-                    <Settings className="w-4 h-4 text-purple-600" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500 dark:text-slate-300">
-                      Mode Manual
-                    </p>
-                    <p className="text-lg font-semibold text-slate-700 dark:text-white">
-                      {maintenanceData.history?.filter((h) => h.isManual)
-                        .length || 0}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+          <ul className="space-y-2.5 text-xs text-slate-600 dark:text-slate-300">
+            <li className="flex items-start gap-2">
+              <CheckCircle2 className="w-4 h-4 text-[#0284c7] shrink-0 mt-0.5" />
+              <span>
+                Hanya akun <strong>Superadmin dengan Super Access</strong> yang
+                dapat mengaktifkan maintenance.
+              </span>
+            </li>
+            <li className="flex items-start gap-2">
+              <CheckCircle2 className="w-4 h-4 text-[#0284c7] shrink-0 mt-0.5" />
+              <span>
+                Semua aktivitas tercatat otomatis ke dalam riwayat beserta waktu
+                selesai aktual.
+              </span>
+            </li>
+            <li className="flex items-start gap-2">
+              <CheckCircle2 className="w-4 h-4 text-[#0284c7] shrink-0 mt-0.5" />
+              <span>
+                Mode terjadwal akan otomatis nonaktif kembali saat hitung mundur
+                habis.
+              </span>
+            </li>
+          </ul>
         </div>
       </div>
+
+      {/* ================= HISTORY SECTION ================= */}
+      <div className="rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs overflow-hidden">
+        <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <History className="w-5 h-5 text-[#0284c7]" />
+            <div>
+              <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
+                Riwayat Maintenance
+              </h3>
+              <p className="text-xs text-slate-400">
+                Total {filteredHistory.length} entri tercatat
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="inline-flex items-center gap-1 p-1 rounded-xl bg-slate-100 dark:bg-slate-800">
+              {(
+                [
+                  { id: "ALL", label: "Semua" },
+                  { id: "ACTIVATE", label: "Berjalan" },
+                  { id: "DEACTIVATE", label: "Selesai" },
+                ] as { id: HistoryFilter; label: string }[]
+              ).map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => {
+                    setFilter(tab.id);
+                    setCurrentPage(1);
+                  }}
+                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                    filter === tab.id
+                      ? "bg-[#0284c7] text-white"
+                      : "text-slate-600 dark:text-slate-300 hover:bg-white/60 dark:hover:bg-slate-700"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+              <Filter className="w-3.5 h-3.5 text-slate-400" />
+              <select
+                value={dateRange}
+                onChange={(e) => {
+                  setDateRange(e.target.value as DateRangeFilter);
+                  setCurrentPage(1);
+                }}
+                className="text-xs font-semibold bg-transparent text-slate-700 dark:text-slate-200 focus:outline-none"
+              >
+                <option value="all">Semua Waktu</option>
+                <option value="today">Hari Ini</option>
+                <option value="week">7 Hari Terakhir</option>
+                <option value="month">30 Hari Terakhir</option>
+              </select>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleExportCsv}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-sky-50 hover:bg-sky-100 text-[#0284c7] border border-sky-200 dark:bg-sky-950/60 dark:hover:bg-sky-900/60 dark:text-sky-300 dark:border-sky-800 transition cursor-pointer"
+            >
+              <Download className="w-3.5 h-3.5" />
+              Export CSV
+            </button>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left">
+            <thead>
+              <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/50 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <th className="py-3.5 px-4 text-center w-12">No</th>
+                <th className="py-3.5 px-4">Waktu Mulai</th>
+                <th className="py-3.5 px-4">Waktu Selesai</th>
+                <th className="py-3.5 px-4">Diaktifkan Oleh</th>
+                <th className="py-3.5 px-4">Durasi & Mode</th>
+                <th className="py-3.5 px-4 text-center">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              {paginatedHistory.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-14 text-center">
+                    <div className="flex flex-col items-center gap-2 text-slate-400">
+                      <Calendar className="w-9 h-9 opacity-40" />
+                      <p className="text-sm font-semibold text-slate-600 dark:text-slate-300">
+                        Belum ada riwayat maintenance
+                      </p>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                paginatedHistory.map((item, idx) => {
+                  const ongoing =
+                    !item.endTime ||
+                    (isActive &&
+                      new Date(item.endTime).getTime() > Date.now());
+                  return (
+                    <tr
+                      key={`${item.startTime}-${idx}`}
+                      className="hover:bg-sky-50/40 dark:hover:bg-slate-800/40 transition-colors"
+                    >
+                      <td className="py-3.5 px-4 text-center text-xs font-semibold text-slate-400 tabular-nums">
+                        {(safePage - 1) * ITEMS_PER_PAGE + idx + 1}
+                      </td>
+                      <td className="py-3.5 px-4 text-xs font-medium text-slate-700 dark:text-slate-200">
+                        {formatDate(item.startTime)}
+                      </td>
+                      <td className="py-3.5 px-4 text-xs text-slate-600 dark:text-slate-300">
+                        {item.endTime ? formatDate(item.endTime) : "-"}
+                      </td>
+                      <td className="py-3.5 px-4 text-xs text-slate-700 dark:text-slate-200">
+                        {item.activatedBy || "-"}
+                      </td>
+                      <td className="py-3.5 px-4 text-xs">
+                        <span className="font-semibold text-slate-800 dark:text-slate-100">
+                          {formatDuration(item.durationMinutes)}
+                        </span>
+                        <span className="ml-2 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                          {item.isManual ? "Manual" : "Terjadwal"}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 text-center">
+                        <span
+                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${
+                            ongoing
+                              ? "bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800"
+                              : "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800"
+                          }`}
+                        >
+                          {ongoing ? "Berjalan" : "Selesai"}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <PaginationFooter
+          currentPage={safePage}
+          totalItems={filteredHistory.length}
+          itemsPerPage={ITEMS_PER_PAGE}
+          itemLabel="riwayat"
+          onPageChange={setCurrentPage}
+        />
+      </div>
+
+      {/* ================= ACTIVATE 2-STEP MODAL ================= */}
+      {confirmStep > 0 && (
+        <div
+          className="fixed inset-0 z-50 bg-slate-900/65 backdrop-blur-xs flex items-center justify-center p-4"
+          onClick={() => !submitting && setConfirmStep(0)}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-6 py-4 bg-linear-to-r from-[#0284c7] to-blue-700 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5" />
+                <h3 className="text-base font-extrabold">
+                  {confirmStep === 1
+                    ? "Konfirmasi Mode Maintenance"
+                    : "Verifikasi Email Superadmin"}
+                </h3>
+              </div>
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={() => setConfirmStep(0)}
+                className="p-1.5 rounded-lg hover:bg-white/15"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {confirmStep === 1 ? (
+              <div className="p-6 space-y-4">
+                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                  Mengaktifkan maintenance akan membatasi akses portal publik dan
+                  peserta selama{" "}
+                  <strong className="text-slate-900 dark:text-white">
+                    {manualMode || totalConfiguredMinutes <= 0
+                      ? "mode manual tanpa batas waktu"
+                      : formatDuration(totalConfiguredMinutes)}
+                  </strong>
+                  . Lanjutkan ke verifikasi?
+                </p>
+
+                <div className="flex justify-end gap-2.5 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setConfirmStep(0)}
+                    className="px-4 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmStep(2)}
+                    className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#0284c7] hover:bg-sky-700 cursor-pointer"
+                  >
+                    Lanjutkan
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="p-6 space-y-4">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">
+                    Email Superadmin Aktif
+                  </label>
+                  <div className="relative">
+                    <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="superadmin@bpom.go.id"
+                      className="w-full pl-10 pr-3.5 py-2.5 rounded-xl text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40 focus:border-[#0284c7]"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-2.5 pt-2">
+                  <button
+                    type="button"
+                    disabled={submitting}
+                    onClick={() => setConfirmStep(1)}
+                    className="px-4 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100"
+                  >
+                    Kembali
+                  </button>
+                  <button
+                    type="button"
+                    disabled={submitting}
+                    onClick={handleActivate}
+                    className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 cursor-pointer disabled:opacity-50"
+                  >
+                    {submitting ? "Mengaktifkan..." : "Ya, Aktifkan Sekarang"}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ================= DEACTIVATE CONFIRM MODAL ================= */}
+      {confirmDeactivate && (
+        <div
+          className="fixed inset-0 z-50 bg-slate-900/65 backdrop-blur-xs flex items-center justify-center p-4"
+          onClick={() => !submitting && setConfirmDeactivate(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start gap-3">
+              <div className="p-2.5 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 shrink-0">
+                <Power className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
+                  Nonaktifkan Mode Maintenance?
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  Seluruh akses website dan dashboard akan segera dibuka kembali
+                  secara normal untuk semua pengguna.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={() => setConfirmDeactivate(false)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={handleDeactivate}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 cursor-pointer disabled:opacity-50"
+              >
+                {submitting ? "Memproses..." : "Ya, Nonaktifkan"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

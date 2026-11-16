@@ -1,1253 +1,896 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  HiX,
-  HiUser,
-  HiMail,
-  HiCalendar,
-  HiCheckCircle,
-  HiXCircle,
-  HiClock,
-  HiSearch,
-  HiDocumentText,
-} from "react-icons/hi";
-import { FiEye } from "react-icons/fi";
-import SuperadminLogbookModal from "@/components/superadmin/SuperadminLogbookModal";
+  BookOpen,
+  Calendar as CalendarIcon,
+  CalendarPlus,
+  CheckCircle2,
+  Clock,
+  Download,
+  RefreshCw,
+  Search,
+  Users,
+  X,
+  XCircle,
+} from "lucide-react";
+import Calendar from "@/components/logbook/Calendar";
+import AdminLogbookModal, {
+  type AdminLogbookItem,
+} from "@/components/admin/AdminLogbookModal";
+import PaginationFooter from "@/components/dashboard/PaginationFooter";
+import { TablePageSkeleton } from "@/components/dashboard/skeletons";
+import { showToast } from "@/components/ui/toastDashboard";
 
-type Peserta = {
+/* ================= TYPES ================= */
+
+type PesertaStat = {
   _id: string;
   name: string;
   email: string;
-  role: string;
-  status: "active" | "inactive";
   totalLogbooks: number;
   approvedLogbooks: number;
   pendingLogbooks: number;
   rejectedLogbooks: number;
+  revisiLogbooks: number;
 };
 
-type Logbook = {
-  _id: string;
-  date: string;
-  status: string;
-  judul: string;
-  approvalStatus: "menunggu" | "disetujui" | "ditolak";
-  user: {
+type FilterTab = "Semua" | "Perlu Review" | "Disetujui" | "Ditolak";
+
+type FilledDateMap = Record<
+  string,
+  {
     _id: string;
-    name: string;
-    email: string;
-  };
-};
+    status:
+      | "hadir"
+      | "tidak_hadir_keterangan"
+      | "tidak_hadir_tanpa_keterangan";
+    approvalStatus: "menunggu" | "disetujui" | "ditolak" | "revisi";
+  }
+>;
 
-type LogbookSummary = {
-  total: number;
-  hadir: number;
-  tidakHadirDenganKeterangan: number;
-  tidakHadirTanpaKeterangan: number;
-  ditolakMentor: number;
-};
+/* ================= CONSTANTS ================= */
 
-export default function ViewLogbookSuperadmin() {
-  const [peserta, setPeserta] = useState<Peserta[]>([]);
-  const [filteredPeserta, setFilteredPeserta] = useState<Peserta[]>([]);
-  const [allLogbooks, setAllLogbooks] = useState<Logbook[]>([]);
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
+const ITEMS_PER_PAGE = 10;
+
+function getInitials(name = "P"): string {
+  return (
+    name
+      .split(" ")
+      .filter(Boolean)
+      .map((part) => part[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase() || "P"
+  );
+}
+
+/* ================= COMPONENT ================= */
+
+export default function ViewLogbookSuperadminPage() {
+  const [allLogbooks, setAllLogbooks] = useState<AdminLogbookItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
   const [search, setSearch] = useState("");
-  const [selectedPeserta, setSelectedPeserta] = useState<Peserta | null>(null);
-  const [showCalendarModal, setShowCalendarModal] = useState(false);
-  const [logbookSummary, setLogbookSummary] = useState<LogbookSummary | null>(
+  const [filterTab, setFilterTab] = useState<FilterTab>("Semua");
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const [selectedPesertaId, setSelectedPesertaId] = useState<string | null>(
     null,
   );
-  const [filledDates, setFilledDates] = useState<Record<string, string>>({});
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [logbookModalData, setLogbookModalData] = useState<any>(null);
-  const [isLoadingDetail, setIsLoadingDetail] = useState(false);
+  const [selectedLogbook, setSelectedLogbook] =
+    useState<AdminLogbookItem | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
-  // State untuk modal superadmin
-  const [showSuperadminModal, setShowSuperadminModal] = useState(false);
-  const [selectedLogbook, setSelectedLogbook] = useState<any>(null);
+  /* ---------- Enable Missed Day (Superadmin Feature) ---------- */
+  const [missedDate, setMissedDate] = useState("");
+  const [enablingMissedDay, setEnablingMissedDay] = useState(false);
 
-  // Pagination state
-  const [page, setPage] = useState(1);
-  const itemsPerPage = 10;
+  const deepLinkHandledRef = useRef(false);
 
-  // Load all data
-  const loadData = async () => {
-    setLoading(true);
+  /* ================= FETCH ================= */
+
+  const loadData = useCallback(async (isManual = false) => {
     try {
-      // Fetch semua logbook untuk mendapatkan data peserta
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/superadmin/logbook`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        },
-      );
-      const logbooksData = await res.json();
-      setAllLogbooks(logbooksData);
+      if (isManual) setRefreshing(true);
+      else setLoading(true);
 
-      // Ekstrak data peserta unik dari logbook
-      const pesertaMap = new Map();
-      const pesertaWithStats: Peserta[] = [];
-
-      logbooksData.forEach((logbook: Logbook) => {
-        // ✅ CEK USER DULU
-        if (!logbook.user || !logbook.user._id) {
-          console.warn("Logbook tanpa user:", logbook);
-          return; // skip data rusak
-        }
-
-        const userId = logbook.user._id;
-
-        if (!pesertaMap.has(userId)) {
-          pesertaMap.set(userId, {
-            _id: userId,
-            name: logbook.user.name,
-            email: logbook.user.email,
-            role: "peserta",
-            status: "active",
-            totalLogbooks: 0,
-            approvedLogbooks: 0,
-            pendingLogbooks: 0,
-            rejectedLogbooks: 0,
-          });
-        }
-
-        const peserta = pesertaMap.get(userId);
-        peserta.totalLogbooks++;
-
-        switch (logbook.approvalStatus) {
-          case "disetujui":
-            peserta.approvedLogbooks++;
-            break;
-          case "menunggu":
-            peserta.pendingLogbooks++;
-            break;
-          case "ditolak":
-            peserta.rejectedLogbooks++;
-            break;
-        }
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_BASE}/superadmin/logbook`, {
+        headers: { Authorization: `Bearer ${token}` },
       });
 
-      // Konversi map ke array
-      pesertaMap.forEach((peserta) => {
-        pesertaWithStats.push(peserta);
-      });
+      if (!res.ok) {
+        throw new Error("Gagal memuat data logbook");
+      }
 
-      // 👉 SORT DI SINI
-      pesertaWithStats.sort((a, b) => {
-        if (b.pendingLogbooks !== a.pendingLogbooks) {
-          return b.pendingLogbooks - a.pendingLogbooks;
-        }
-        if (b.totalLogbooks !== a.totalLogbooks) {
-          return b.totalLogbooks - a.totalLogbooks;
-        }
-        return a.name.localeCompare(b.name);
-      });
-
-      // Baru set ke state
-      setPeserta(pesertaWithStats);
-      setFilteredPeserta(pesertaWithStats);
-      setPage(1); // Reset ke halaman pertama saat data baru dimuat
-    } catch (error) {
-      console.error("Gagal memuat data", error);
+      const json = await res.json();
+      setAllLogbooks(Array.isArray(json) ? json : []);
+    } catch {
+      showToast.error("Gagal memuat data logbook peserta");
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
-  };
+  }, []);
 
-  const loadPesertaLogbookSummary = (pesertaId: string) => {
-    const pesertaLogbooks = allLogbooks.filter(
-      (logbook) => logbook.user && logbook.user._id === pesertaId,
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  /* ================= GROUP PER PESERTA ================= */
+
+  const pesertaList = useMemo<PesertaStat[]>(() => {
+    const map = new Map<string, PesertaStat>();
+
+    for (const lb of allLogbooks) {
+      if (!lb.user?._id) continue;
+      const uid = lb.user._id;
+      let entry = map.get(uid);
+      if (!entry) {
+        entry = {
+          _id: uid,
+          name: lb.user.name || "Tanpa Nama",
+          email: lb.user.email || "-",
+          totalLogbooks: 0,
+          approvedLogbooks: 0,
+          pendingLogbooks: 0,
+          rejectedLogbooks: 0,
+          revisiLogbooks: 0,
+        };
+        map.set(uid, entry);
+      }
+
+      entry.totalLogbooks += 1;
+      if (lb.approvalStatus === "disetujui") entry.approvedLogbooks += 1;
+      else if (lb.approvalStatus === "ditolak") entry.rejectedLogbooks += 1;
+      else if (lb.approvalStatus === "revisi") entry.revisiLogbooks += 1;
+      else entry.pendingLogbooks += 1;
+    }
+
+    return Array.from(map.values()).sort((a, b) => {
+      if (b.pendingLogbooks !== a.pendingLogbooks) {
+        return b.pendingLogbooks - a.pendingLogbooks;
+      }
+      if (b.totalLogbooks !== a.totalLogbooks) {
+        return b.totalLogbooks - a.totalLogbooks;
+      }
+      return a.name.localeCompare(b.name);
+    });
+  }, [allLogbooks]);
+
+  /* ================= DEEP LINK ?email= ================= */
+
+  useEffect(() => {
+    if (deepLinkHandledRef.current || pesertaList.length === 0) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const emailParam = params.get("email")?.trim().toLowerCase();
+    if (!emailParam) {
+      deepLinkHandledRef.current = true;
+      return;
+    }
+
+    deepLinkHandledRef.current = true;
+    setSearch(emailParam);
+    const matched = pesertaList.find(
+      (p) => p.email.trim().toLowerCase() === emailParam,
     );
-    const summary: LogbookSummary = {
-      total: pesertaLogbooks.length,
+    if (matched) {
+      setSelectedPesertaId(matched._id);
+    }
+  }, [pesertaList]);
 
-      hadir: pesertaLogbooks.filter((l) => l.status === "hadir").length,
+  /* ================= ESCAPE KEY ================= */
 
-      tidakHadirDenganKeterangan: pesertaLogbooks.filter(
-        (l) => l.status === "tidak_hadir_keterangan",
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (!selectedLogbook && selectedPesertaId) {
+        setSelectedPesertaId(null);
+        setMissedDate("");
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [selectedLogbook, selectedPesertaId]);
+
+  /* ================= STATS & FILTERING ================= */
+
+  const summary = useMemo(() => {
+    const totalEntries = allLogbooks.length;
+    let totalPending = 0;
+    let totalApproved = 0;
+    let totalRejectedOrRevisi = 0;
+
+    for (const lb of allLogbooks) {
+      if (lb.approvalStatus === "disetujui") totalApproved += 1;
+      else if (lb.approvalStatus === "menunggu") totalPending += 1;
+      else totalRejectedOrRevisi += 1;
+    }
+
+    const counts: Record<FilterTab, number> = {
+      Semua: pesertaList.length,
+      "Perlu Review": pesertaList.filter((p) => p.pendingLogbooks > 0).length,
+      Disetujui: pesertaList.filter(
+        (p) =>
+          p.totalLogbooks > 0 &&
+          p.pendingLogbooks === 0 &&
+          p.rejectedLogbooks === 0 &&
+          p.revisiLogbooks === 0,
       ).length,
-
-      tidakHadirTanpaKeterangan: pesertaLogbooks.filter(
-        (l) => l.status === "tidak_hadir_tanpa_keterangan",
-      ).length,
-
-      ditolakMentor: pesertaLogbooks.filter(
-        (l) => l.approvalStatus === "ditolak",
+      Ditolak: pesertaList.filter(
+        (p) => p.rejectedLogbooks > 0 || p.revisiLogbooks > 0,
       ).length,
     };
 
-    const dates: Record<string, string> = {};
+    return {
+      totalPeserta: pesertaList.length,
+      totalEntries,
+      totalPending,
+      totalApproved,
+      totalRejectedOrRevisi,
+      counts,
+    };
+  }, [allLogbooks, pesertaList]);
 
-    pesertaLogbooks.forEach((logbook) => {
-      dates[logbook.date] = logbook._id;
+  const filteredPeserta = useMemo(() => {
+    const q = search.trim().toLowerCase();
+
+    return pesertaList.filter((p) => {
+      if (filterTab === "Perlu Review" && p.pendingLogbooks === 0) return false;
+      if (
+        filterTab === "Disetujui" &&
+        (p.pendingLogbooks > 0 ||
+          p.rejectedLogbooks > 0 ||
+          p.revisiLogbooks > 0)
+      ) {
+        return false;
+      }
+      if (
+        filterTab === "Ditolak" &&
+        p.rejectedLogbooks === 0 &&
+        p.revisiLogbooks === 0
+      ) {
+        return false;
+      }
+
+      if (!q) return true;
+      return (
+        p.name.toLowerCase().includes(q) || p.email.toLowerCase().includes(q)
+      );
     });
+  }, [pesertaList, search, filterTab]);
 
-    setLogbookSummary(summary);
-    setFilledDates(dates);
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredPeserta.length / ITEMS_PER_PAGE),
+  );
+  const safePage = Math.min(currentPage, totalPages);
+
+  const paginatedPeserta = useMemo(() => {
+    const start = (safePage - 1) * ITEMS_PER_PAGE;
+    return filteredPeserta.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredPeserta, safePage]);
+
+  /* ================= SELECTED PESERTA CALENDAR DATA ================= */
+
+  const selectedPeserta = useMemo(
+    () => pesertaList.find((p) => p._id === selectedPesertaId) || null,
+    [pesertaList, selectedPesertaId],
+  );
+
+  const { filledDates, calendarSummary, selectedPesertaLogbooks } =
+    useMemo(() => {
+      if (!selectedPesertaId) {
+        return {
+          filledDates: {} as FilledDateMap,
+          calendarSummary: { total: 0, hadir: 0, izin: 0, alpa: 0 },
+          selectedPesertaLogbooks: [] as AdminLogbookItem[],
+        };
+      }
+
+      const items = allLogbooks.filter(
+        (lb) => lb.user?._id === selectedPesertaId,
+      );
+      const map: FilledDateMap = {};
+      let hadir = 0;
+      let izin = 0;
+      let alpa = 0;
+
+      for (const lb of items) {
+        if (lb.status === "hadir") hadir += 1;
+        else if (lb.status === "tidak_hadir_keterangan") izin += 1;
+        else alpa += 1;
+
+        const normalizedStatus =
+          lb.status === "hadir" ||
+          lb.status === "tidak_hadir_keterangan" ||
+          lb.status === "tidak_hadir_tanpa_keterangan"
+            ? lb.status
+            : "hadir";
+
+        map[lb.date] = {
+          _id: lb._id,
+          status: normalizedStatus,
+          approvalStatus: lb.approvalStatus || "menunggu",
+        };
+      }
+
+      return {
+        filledDates: map,
+        calendarSummary: { total: items.length, hadir, izin, alpa },
+        selectedPesertaLogbooks: items,
+      };
+    }, [allLogbooks, selectedPesertaId]);
+
+  /* ================= ACTIONS ================= */
+
+  const handleSelectDate = (date: string, isFilled: boolean) => {
+    if (!isFilled) {
+      setMissedDate(date);
+      return;
+    }
+    const match = selectedPesertaLogbooks.find((lb) => lb.date === date);
+    if (!match) {
+      showToast.error("Detail logbook pada tanggal ini tidak ditemukan");
+      return;
+    }
+    setSelectedLogbook(match);
   };
 
-  const handleViewCalendar = (peserta: Peserta) => {
-    setSelectedPeserta(peserta);
-    loadPesertaLogbookSummary(peserta._id);
-    setShowCalendarModal(true);
-  };
+  const handleEnableMissedDay = async () => {
+    if (!selectedPeserta || !missedDate) {
+      showToast.error("Pilih tanggal terlebih dahulu");
+      return;
+    }
 
-  /* ================= HANDLE SUPERADMIN ACTION ================= */
-  const handleSuperadminAction = async (
-    id: string,
-    status: string,
-    note: string,
-  ) => {
+    const toastId = showToast.loading("Mengaktifkan hari terlewat...");
     try {
+      setEnablingMissedDay(true);
+      const token = localStorage.getItem("token");
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/superadmin/logbook/${id}/approve`,
+        `${API_BASE}/superadmin/logbook/enable-missed-day`,
         {
-          method: "PUT",
+          method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
-            approvalStatus: status,
-            mentorNote: note,
+            userId: selectedPeserta._id,
+            date: missedDate,
           }),
         },
       );
 
-      if (!res.ok) throw new Error("Gagal memproses logbook");
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json?.message || "Gagal mengaktifkan hari terlewat");
+      }
 
-      // Refresh data
-      await loadData();
-      setShowSuperadminModal(false);
-      setSelectedLogbook(null);
-      setSelectedDate(null);
-    } catch (error) {
-      console.error("Gagal memproses logbook:", error);
-      alert("Gagal memproses logbook");
+      showToast.updateSuccess(
+        toastId,
+        json?.message || "Hari terlewat berhasil diaktifkan",
+      );
+      setMissedDate("");
+      await loadData(true);
+    } catch (err) {
+      showToast.updateError(
+        toastId,
+        err instanceof Error ? err.message : "Gagal mengaktifkan hari terlewat",
+      );
+    } finally {
+      setEnablingMissedDay(false);
     }
   };
 
-  /* ================= DOWNLOAD PDF (ADMIN/SUPERADMIN) ================= */
-  const handleDownloadPDF = async (userId: string, name: string) => {
+  const handleApproveAction = async (
+    id: string,
+    status: "disetujui" | "revisi" | "ditolak",
+    note: string,
+  ) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_BASE}/superadmin/logbook/${id}/approve`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          approvalStatus: status,
+          mentorNote: note,
+        }),
+      });
+
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json?.message || "Gagal memproses logbook");
+      }
+
+      showToast.success(json?.message || "Status logbook berhasil diperbarui");
+      setSelectedLogbook(null);
+      await loadData(true);
+    } catch (err) {
+      showToast.error(
+        err instanceof Error ? err.message : "Gagal memproses logbook",
+      );
+    }
+  };
+
+  const handleDownloadPdf = async (userId: string, name: string) => {
+    const toastId = showToast.loading("Menyiapkan PDF logbook...");
     try {
       setDownloadingId(userId);
-
+      const token = localStorage.getItem("token");
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/logbook/admin/${userId}/download/pdf`,
+        `${API_BASE}/logbook/admin/${userId}/download/pdf`,
         {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         },
       );
 
-      if (!res.ok) {
-        throw new Error("Gagal download PDF");
-      }
+      if (!res.ok) throw new Error("Gagal mengunduh PDF logbook");
 
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
-
       const a = document.createElement("a");
       a.href = url;
       a.download = `logbook-${name}.pdf`;
-
       document.body.appendChild(a);
       a.click();
-
-      document.body.removeChild(a);
-
+      a.remove();
       window.URL.revokeObjectURL(url);
+      showToast.updateSuccess(toastId, "PDF logbook berhasil diunduh");
     } catch (err) {
-      console.error("[DOWNLOAD ADMIN PDF]", err);
-      alert("Gagal download PDF logbook");
+      showToast.updateError(
+        toastId,
+        err instanceof Error ? err.message : "Gagal mengunduh PDF logbook",
+      );
     } finally {
       setDownloadingId(null);
     }
   };
 
-  const handleSelectDate = async (date: string, isFilled: boolean) => {
-    if (!selectedPeserta) return;
+  /* ================= RENDER ================= */
 
-    setSelectedDate(date);
-    setIsLoadingDetail(true);
-
-    try {
-      // Gunakan endpoint yang sama seperti mentor
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/logbook/mentor/peserta/${selectedPeserta._id}/date/${date}`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        },
-      );
-
-      if (res.status === 404) {
-        // Logbook belum diisi
-        setLogbookModalData(null);
-        return;
-      }
-
-      if (!res.ok) throw new Error("Gagal mengambil logbook");
-
-      const data = await res.json();
-
-      // ✅ SET DATA UNTUK MODAL SUPERADMIN
-      setSelectedLogbook(data);
-      setShowSuperadminModal(true);
-    } catch (error) {
-      console.error("Gagal mengambil detail logbook", error);
-      // Fallback: coba ambil dari data yang sudah dimuat
-      const fallbackLogbook = allLogbooks.find(
-        (logbook) =>
-          logbook.user &&
-          logbook.user._id === selectedPeserta._id &&
-          logbook.date === date,
-      );
-      if (fallbackLogbook) {
-        setSelectedLogbook(fallbackLogbook);
-        setShowSuperadminModal(true);
-      } else {
-        setLogbookModalData(null);
-      }
-    } finally {
-      setIsLoadingDetail(false);
-    }
-  };
-
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  useEffect(() => {
-    if (!search.trim()) {
-      setFilteredPeserta(peserta);
-      setPage(1); // Reset ke halaman pertama saat pencarian diubah
-      return;
-    }
-
-    const query = search.toLowerCase();
-    const filtered = peserta.filter(
-      (p) =>
-        p.name.toLowerCase().includes(query) ||
-        p.email.toLowerCase().includes(query),
-    );
-    setFilteredPeserta(filtered);
-    setPage(1); // Reset ke halaman pertama saat pencarian diubah
-  }, [search, peserta]);
-
-  // Calculate pagination
-  const totalPage = Math.ceil(filteredPeserta.length / itemsPerPage);
-  const indexOfLastItem = page * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = filteredPeserta.slice(indexOfFirstItem, indexOfLastItem);
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "active":
-        return (
-          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">
-            <HiCheckCircle /> Aktif
-          </span>
-        );
-      case "inactive":
-        return (
-          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700">
-            <HiXCircle /> Nonaktif
-          </span>
-        );
-      default:
-        return (
-          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-700">
-            <HiClock /> Menunggu
-          </span>
-        );
-    }
-  };
-
-  const getApprovalBadge = (status: string) => {
-    switch (status) {
-      case "disetujui":
-        return (
-          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">
-            <HiCheckCircle /> Disetujui
-          </span>
-        );
-      case "ditolak":
-        return (
-          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700">
-            <HiXCircle /> Ditolak
-          </span>
-        );
-      default:
-        return (
-          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-700">
-            <HiClock /> Menunggu
-          </span>
-        );
-    }
-  };
-
-  // Calendar Component
-  const Calendar = ({
-    onSelectDate,
-    filledDates,
-  }: {
-    onSelectDate: (date: string, isFilled: boolean) => void;
-    filledDates: Record<string, string>;
-  }) => {
-    const [currentMonth, setCurrentMonth] = useState(new Date());
-    const [holidays, setHolidays] = useState<Record<string, string>>({});
-
-    useEffect(() => {
-      const fetchHolidays = async () => {
-        try {
-          const res = await fetch("https://api-harilibur.vercel.app/api");
-          const data = await res.json();
-          const mapped: Record<string, string> = {};
-          data.forEach((item: any) => {
-            if (item.is_national_holiday) {
-              mapped[item.holiday_date] = item.holiday_name;
-            }
-          });
-          setHolidays(mapped);
-        } catch (error) {
-          console.error("Failed to fetch holidays", error);
-        }
-      };
-      fetchHolidays();
-    }, []);
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const year = currentMonth.getFullYear();
-    const month = currentMonth.getMonth();
-
-    const firstDay = new Date(year, month, 1);
-    const lastDate = new Date(year, month + 1, 0).getDate();
-    const startDay = (firstDay.getDay() + 6) % 7;
-
-    const days: (Date | null)[] = [];
-    for (let i = 0; i < startDay; i++) days.push(null);
-    for (let i = 1; i <= lastDate; i++) {
-      days.push(new Date(year, month, i));
-    }
-
-    const dayNames = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"];
-
+  if (loading) {
     return (
-      <div className="w-full max-w-4xl mx-auto">
-        <div
-          className="
-            rounded-2xl
-            bg-white/80 dark:bg-indigo-950/50
-            backdrop-blur
-            shadow-lg
-            p-6
-            text-slate-800 dark:text-slate-100
-          "
-        >
-          {/* Header */}
-          <div className="mb-4 grid grid-cols-3 items-center">
-            {/* KIRI (kosong biar center beneran) */}
-            <div />
-
-            {/* TENGAH */}
-            <h2 className="text-center text-lg font-extrabold text-slate-900 dark:text-white">
-              {currentMonth.toLocaleDateString("id-ID", {
-                month: "long",
-                year: "numeric",
-              })}
-            </h2>
-
-            {/* KANAN */}
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => setCurrentMonth(new Date(year, month - 1, 1))}
-                className="
-                    w-9 h-9
-                    rounded-full
-                    flex items-center justify-center
-                    bg-slate-200/70 dark:bg-indigo-900/60
-                    hover:bg-slate-300 dark:hover:bg-indigo-800
-                    transition
-                  "
-              >
-                ←
-              </button>
-
-              <button
-                onClick={() => setCurrentMonth(new Date(year, month + 1, 1))}
-                className="
-                    w-9 h-9
-                    rounded-full
-                    flex items-center justify-center
-                    bg-slate-200/70 dark:bg-indigo-900/60
-                    hover:bg-slate-300 dark:hover:bg-indigo-800
-                    transition
-                  "
-              >
-                →
-              </button>
-            </div>
-          </div>
-
-          {/* Day names */}
-          <div className="grid grid-cols-7 text-center text-sm font-semibold text-slate-500 mb-2">
-            {dayNames.map((d) => (
-              <div key={d}>{d}</div>
-            ))}
-          </div>
-
-          {/* Dates */}
-          <div className="grid grid-cols-7 gap-2">
-            {days.map((date, idx) => {
-              if (!date) return <div key={idx} />;
-
-              const isoDate = date.toLocaleDateString("en-CA");
-              const isSunday = date.getDay() === 0;
-              const isHoliday = Boolean(holidays[isoDate]);
-              const isFilled = Boolean(filledDates?.[isoDate]);
-              const isToday = date.getTime() === today.getTime();
-
-              const disabled = isSunday || isHoliday;
-
-              return (
-                <button
-                  key={idx}
-                  disabled={disabled}
-                  onClick={() => onSelectDate(isoDate, isFilled)}
-                  className={`
-                      relative aspect-square
-                      rounded-xl
-                      border p-2
-                      text-sm font-semibold
-                      transition-all
-                      ${
-                        isFilled
-                          ? "bg-emerald-100 dark:bg-emerald-500/20 border-emerald-400 dark:border-emerald-400 text-emerald-800 dark:text-emerald-200"
-                          : isToday
-                            ? "bg-white dark:bg-indigo-800/40 border-slate-300 dark:border-indigo-400 text-slate-800 dark:text-white"
-                            : "bg-slate-100 dark:bg-indigo-950/60 border-slate-200 dark:border-indigo-700 text-slate-400 dark:text-indigo-300"
-                      }
-                      ${
-                        disabled
-                          ? "opacity-40 cursor-not-allowed"
-                          : "hover:scale-[1.04] hover:shadow-md"
-                      }
-                    `}
-                >
-                  <div className="text-sm font-bold">{date.getDate()}</div>
-
-                  {isHoliday && (
-                    <span className="text-[8px] text-red-600 absolute bottom-1 left-1 right-1 truncate">
-                      Libur
-                    </span>
-                  )}
-
-                  {isSunday && !isHoliday && (
-                    <span className="text-[8px] text-red-500 absolute bottom-1 left-1 right-1 truncate">
-                      Minggu
-                    </span>
-                  )}
-
-                  {isFilled && (
-                    <span className="absolute top-1 right-1 w-2 h-2 bg-emerald-500 rounded-full" />
-                  )}
-
-                  {!isFilled && isToday && (
-                    <span className="absolute top-1 right-1 w-2 h-2 bg-indigo-500 rounded-full" />
-                  )}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Legend */}
-          <div className="mt-4 flex flex-wrap gap-4 text-xs text-slate-600 dark:text-indigo-200">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-emerald-500" />
-              <span>Sudah diisi</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-slate-300" />
-              <span>Belum diisi</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-indigo-500" />
-              <span>Hari ini</span>
-            </div>
-          </div>
-        </div>
-      </div>
+      <TablePageSkeleton
+        title="Monitoring Logbook Peserta"
+        subtitle="Memuat data logbook harian peserta magang..."
+        columnsCount={5}
+        rowsCount={8}
+      />
     );
-  };
-
-  /* ================= STATISTICS ================= */
-  const totalPeserta = peserta.length;
-
-  const totalLogbook = peserta.reduce((sum, p) => sum + p.totalLogbooks, 0);
-
-  const totalApproved = peserta.reduce((sum, p) => sum + p.approvedLogbooks, 0);
-
-  const totalPending = peserta.reduce((sum, p) => sum + p.pendingLogbooks, 0);
-
-  const totalRejected = peserta.reduce((sum, p) => sum + p.rejectedLogbooks, 0);
+  }
 
   return (
-    <div
-      className="
-          min-h-screen p-4 sm:p-6 lg:p-10
-          bg-linear-to-br
-          from-slate-50 via-white to-indigo-100
-          dark:from-[#0B0614] dark:via-[#120A24] dark:to-[#1E0F3D]
-          text-slate-800 dark:text-slate-100
-          transition-colors
-        "
-    >
-      {/* HEADER */}
-      <div className="mb-10">
-        <h1 className="flex items-center gap-3 tracking-tight mb-2">
-          <span
-            className="
-                text-2xl sm:text-3xl lg:text-4xl
-                font-extrabold leading-tight
-                bg-clip-text text-transparent
-                bg-linear-to-r
-                from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
-                dark:from-indigo-400 dark:via-violet-400 dark:to-purple-400
-              "
-          >
-            Logbook Peserta
-          </span>
-        </h1>
-        <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400">
-          Kelola dan review logbook semua peserta magang
-        </p>
-      </div>
+    <div className="space-y-6">
+      {/* ================= HEADER ================= */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-3 border-b border-slate-100 dark:border-slate-800">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+            Monitoring Logbook Peserta
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
+            Pantau catatan harian peserta per kalender, verifikasi logbook,
+            aktifkan hari terlewat, dan unduh PDF
+          </p>
+        </div>
 
-      {/* STATS */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
-        <StatCard
-          title="Total Peserta"
-          value={totalPeserta}
-          icon={<HiUser className="w-7 h-7" />}
-          note="Peserta dengan logbook"
-          color="indigo"
-        />
-
-        <StatCard
-          title="Total Logbook"
-          value={totalLogbook}
-          icon={<HiDocumentText className="w-7 h-7" />}
-          note="Seluruh logbook terkirim"
-          color="blue"
-        />
-
-        <StatCard
-          title="Disetujui"
-          value={totalApproved}
-          icon={<HiCheckCircle className="w-7 h-7" />}
-          note="Logbook disetujui"
-          color="emerald"
-        />
-
-        <StatCard
-          title="Menunggu"
-          value={totalPending}
-          icon={<HiClock className="w-7 h-7" />}
-          note="Menunggu persetujuan"
-          color="amber"
-        />
-
-        <StatCard
-          title="Ditolak"
-          value={totalRejected}
-          icon={<HiXCircle className="w-7 h-7" />}
-          note="Logbook ditolak"
-          color="slate"
-        />
-      </div>
-
-      {/* Search Bar */}
-      <div className="mb-8">
-        <div className="relative">
-          <HiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-[#7F1D1D] dark:text-indigo-400 w-5 h-5 z-10" />
-          <input
-            type="text"
-            placeholder="Cari peserta berdasarkan nama atau email..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="
-                w-full pl-11 pr-10 py-3
-                rounded-2xl
-                bg-white/90 dark:bg-white/5
-                backdrop-blur
-                border border-[#F59E0B]/40 dark:border-indigo-500/40
-                text-slate-700 dark:text-slate-100
-                placeholder:text-slate-400
-                focus:outline-none focus:ring-2
-                focus:ring-[#B91C1C]/60 dark:focus:ring-indigo-500/60
-                transition
-              "
+        <button
+          type="button"
+          onClick={() => loadData(true)}
+          disabled={refreshing}
+          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition self-start sm:self-auto disabled:opacity-60"
+        >
+          <RefreshCw
+            className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`}
           />
+          Refresh
+        </button>
+      </div>
+
+      {/* ================= KPI CARDS ================= */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="rounded-2xl p-5 bg-linear-to-br from-[#0284c7] to-blue-700 text-white shadow-sm">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-medium text-sky-100">
+                Peserta Mengisi Logbook
+              </p>
+              <p className="text-3xl font-extrabold tracking-tight mt-2">
+                {summary.totalPeserta}
+              </p>
+              <p className="text-[11px] text-sky-100 mt-1.5">
+                {summary.totalEntries} total entri logbook
+              </p>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
+              <Users className="w-5 h-5" />
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-2xl p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                Menunggu Verifikasi
+              </p>
+              <p className="text-3xl font-extrabold text-amber-600 dark:text-amber-400 tracking-tight mt-2">
+                {summary.totalPending}
+              </p>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1.5">
+                {summary.counts["Perlu Review"]} peserta perlu ditinjau
+              </p>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+              <Clock className="w-5 h-5" />
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-2xl p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                Logbook Disetujui
+              </p>
+              <p className="text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 tracking-tight mt-2">
+                {summary.totalApproved}
+              </p>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1.5">
+                Telah terverifikasi
+              </p>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+              <CheckCircle2 className="w-5 h-5" />
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-2xl p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                Ditolak / Revisi
+              </p>
+              <p className="text-3xl font-extrabold text-rose-600 dark:text-rose-400 tracking-tight mt-2">
+                {summary.totalRejectedOrRevisi}
+              </p>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1.5">
+                Perlu perbaikan peserta
+              </p>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+              <XCircle className="w-5 h-5" />
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* ===================== TABLE ===================== */}
-      <div
-        className="
-            rounded-2xl
-            bg-white/90 dark:bg-white/5
-            backdrop-blur
-            border border-slate-200 dark:border-indigo-500/30
-            shadow-lg
-            overflow-hidden
-          "
-      >
+      {/* ================= FILTER & SEARCH ================= */}
+      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/30 p-3.5 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-1.5">
+          {(["Semua", "Perlu Review", "Disetujui", "Ditolak"] as FilterTab[]).map(
+            (tab) => {
+              const active = filterTab === tab;
+              return (
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => {
+                    setFilterTab(tab);
+                    setCurrentPage(1);
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition inline-flex items-center gap-1.5 ${
+                    active
+                      ? "bg-[#0284c7] text-white shadow-xs"
+                      : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  }`}
+                >
+                  <span>{tab}</span>
+                  <span
+                    className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold ${
+                      active
+                        ? "bg-white/20 text-white"
+                        : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+                    }`}
+                  >
+                    {summary.counts[tab]}
+                  </span>
+                </button>
+              );
+            },
+          )}
+        </div>
+
+        <div className="relative w-full lg:w-80">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setCurrentPage(1);
+            }}
+            placeholder="Cari nama atau email peserta..."
+            className="w-full pl-9 pr-9 py-2 rounded-xl text-xs sm:text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40 focus:border-[#0284c7]"
+          />
+          {search && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearch("");
+                setCurrentPage(1);
+              }}
+              aria-label="Hapus pencarian"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* ================= TABLE ================= */}
+      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm sm:text-base">
-            {/* ================= HEAD ================= */}
+          <table className="w-full text-left border-collapse">
             <thead>
-              <tr
-                className="
-                    bg-slate-50 dark:bg-indigo-500/10
-                    border-b border-slate-200 dark:border-indigo-500/30
-                  "
-              >
-                <th className="w-[5%] py-4 px-4 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
-                  No
-                </th>
-                <th className="w-[28%] py-4 px-4 text-left text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
-                  Peserta
-                </th>
-                <th className="w-[12%] py-4 px-4 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
-                  Status
-                </th>
-                <th className="w-[11%] py-4 px-4 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
-                  Logbook
-                </th>
-                <th className="w-[11%] py-4 px-4 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
-                  Disetujui
-                </th>
-                <th className="w-[11%] py-4 px-4 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
-                  Menunggu
-                </th>
-                <th className="w-[11%] py-4 px-4 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
-                  Ditolak
-                </th>
-                <th className="w-[11%] py-4 px-4 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
-                  Aksi
-                </th>
+              <tr className="bg-slate-50 dark:bg-slate-800/70 border-b border-slate-200 dark:border-slate-800 text-[11px] uppercase tracking-wider font-bold text-slate-500 dark:text-slate-400">
+                <th className="py-3.5 px-4 w-12 text-center">No</th>
+                <th className="py-3.5 px-4">Peserta</th>
+                <th className="py-3.5 px-4 text-center">Total Entri</th>
+                <th className="py-3.5 px-4">Rekap Status</th>
+                <th className="py-3.5 px-4 text-right">Aksi</th>
               </tr>
             </thead>
-
-            {/* ================= BODY ================= */}
-            <tbody className="divide-y divide-slate-100 dark:divide-indigo-500/20">
-              {loading ? (
-                <tr>
-                  <td colSpan={8} className="py-14 text-center">
-                    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600 mx-auto" />
-                  </td>
-                </tr>
-              ) : currentItems.length === 0 ? (
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
+              {paginatedPeserta.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={8}
-                    className="py-14 text-center text-slate-500 dark:text-slate-400"
+                    colSpan={5}
+                    className="py-14 px-4 text-center text-slate-500 dark:text-slate-400"
                   >
-                    {search
-                      ? "Peserta tidak ditemukan"
-                      : "Tidak ada data peserta"}
+                    <BookOpen className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+                    <p className="font-semibold text-slate-700 dark:text-slate-200">
+                      Tidak ada data logbook peserta
+                    </p>
                   </td>
                 </tr>
               ) : (
-                currentItems.map((p, index) => (
-                  <tr
-                    key={p._id}
-                    className="hover:bg-[#FEF3C7]/40 dark:hover:bg-indigo-500/10 transition"
-                  >
-                    {/* NO */}
-                    <td className="py-4 px-4 text-center align-middle font-medium text-slate-500">
-                      {indexOfFirstItem + index + 1}
-                    </td>
+                paginatedPeserta.map((p, idx) => {
+                  const rowNo = (safePage - 1) * ITEMS_PER_PAGE + idx + 1;
+                  return (
+                    <tr
+                      key={p._id}
+                      className="hover:bg-sky-50/40 dark:hover:bg-slate-800/40 transition-colors"
+                    >
+                      <td className="py-3.5 px-4 text-center text-xs font-semibold text-slate-500 dark:text-slate-400">
+                        {rowNo}
+                      </td>
 
-                    {/* PESERTA */}
-                    <td className="py-4 px-4 text-left align-middle">
-                      <div className="flex items-center gap-3">
-                        <div
-                          className="
-                              shrink-0 w-10 h-10 rounded-full
-                              bg-linear-to-br from-[#7F1D1D] to-[#F59E0B]
-                              dark:from-indigo-600 dark:to-violet-500
-                              flex items-center justify-center
-                              text-white shadow
-                            "
-                        >
-                          <HiUser className="w-5 h-5" />
+                      <td className="py-3.5 px-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-full bg-linear-to-br from-[#0284c7] to-blue-700 text-white text-xs font-bold flex items-center justify-center shrink-0">
+                            {getInitials(p.name)}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-bold text-slate-900 dark:text-white truncate">
+                              {p.name}
+                            </p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                              {p.email}
+                            </p>
+                          </div>
                         </div>
-                        <div className="text-left leading-tight">
-                          <p className="font-medium text-slate-800 dark:text-slate-100">
-                            {p.name}
-                          </p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">
-                            {p.email}
-                          </p>
+                      </td>
+
+                      <td className="py-3.5 px-4 text-center">
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200">
+                          {p.totalLogbooks} hari
+                        </span>
+                      </td>
+
+                      <td className="py-3.5 px-4">
+                        <div className="flex flex-wrap items-center gap-1.5 text-[11px] font-semibold">
+                          <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800">
+                            {p.approvedLogbooks} disetujui
+                          </span>
+                          {p.pendingLogbooks > 0 && (
+                            <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800">
+                              {p.pendingLogbooks} menunggu
+                            </span>
+                          )}
+                          {p.rejectedLogbooks + p.revisiLogbooks > 0 && (
+                            <span className="px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/50 dark:text-rose-300 dark:border-rose-800">
+                              {p.rejectedLogbooks + p.revisiLogbooks}{" "}
+                              ditolak/revisi
+                            </span>
+                          )}
                         </div>
-                      </div>
-                    </td>
+                      </td>
 
-                    {/* STATUS */}
-                    <td className="py-4 px-4 text-center align-middle">
-                      {getStatusBadge(p.status)}
-                    </td>
+                      <td className="py-3.5 px-4 text-right">
+                        <div className="inline-flex items-center gap-2">
+                          <button
+                            type="button"
+                            disabled={downloadingId === p._id}
+                            onClick={() => handleDownloadPdf(p._id, p.name)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition disabled:opacity-60"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                            {downloadingId === p._id ? "Unduh..." : "PDF"}
+                          </button>
 
-                    {/* TOTAL LOGBOOK */}
-                    <td className="py-4 px-4 text-center align-middle">
-                      <div className="flex justify-center items-center gap-2">
-                        <HiDocumentText className="w-4 h-4 text-slate-400" />
-                        <span className="font-semibold">
-                          {p.totalLogbooks || 0}
-                        </span>
-                      </div>
-                    </td>
-
-                    {/* DISETUJUI */}
-                    <td className="py-4 px-4 text-center align-middle">
-                      <div className="flex justify-center items-center gap-2 text-emerald-600">
-                        <HiCheckCircle className="w-4 h-4" />
-                        <span className="font-semibold">
-                          {p.approvedLogbooks || 0}
-                        </span>
-                      </div>
-                    </td>
-
-                    {/* MENUNGGU */}
-                    <td className="py-4 px-4 text-center align-middle">
-                      <div className="flex justify-center items-center gap-2 text-amber-600">
-                        <HiClock className="w-4 h-4" />
-                        <span className="font-semibold">
-                          {p.pendingLogbooks || 0}
-                        </span>
-                      </div>
-                    </td>
-
-                    {/* DITOLAK */}
-                    <td className="py-4 px-4 text-center align-middle">
-                      <div className="flex justify-center items-center gap-2 text-red-600">
-                        <HiXCircle className="w-4 h-4" />
-                        <span className="font-semibold">
-                          {p.rejectedLogbooks || 0}
-                        </span>
-                      </div>
-                    </td>
-
-                    {/* AKSI */}
-                    <td className="py-4 px-4 text-center align-middle">
-                      <div className="flex justify-center gap-2 flex-wrap">
-                        {/* LIHAT */}
-                        <button
-                          onClick={() => handleViewCalendar(p)}
-                          disabled={p.totalLogbooks === 0}
-                          className="
-                              inline-flex items-center gap-2
-                              px-3 py-2
-                              rounded-lg
-                              text-sm font-semibold
-                              text-white
-                              bg-linear-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
-                              dark:from-indigo-600 dark:to-violet-500
-                              shadow
-                              hover:shadow-xl
-                              transition
-                              disabled:opacity-50
-                            "
-                        >
-                          <FiEye />
-                          Lihat
-                        </button>
-
-                        {/* DOWNLOAD */}
-                        <button
-                          onClick={() => handleDownloadPDF(p._id, p.name)}
-                          disabled={
-                            p.totalLogbooks === 0 || downloadingId === p._id
-                          }
-                          className="
-                              inline-flex items-center gap-2
-                              px-3 py-2
-                              rounded-lg
-                              text-sm font-semibold
-                              text-white
-                              bg-emerald-600 hover:bg-emerald-700
-                              shadow
-                              transition
-                              disabled:opacity-50
-                            "
-                        >
-                          {downloadingId === p._id ? "..." : "PDF"}
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedPesertaId(p._id);
+                              setMissedDate("");
+                            }}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-[#0284c7] hover:bg-sky-700 text-white shadow-xs transition"
+                          >
+                            <CalendarIcon className="w-3.5 h-3.5" />
+                            Kalender
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
         </div>
+
+        <PaginationFooter
+          currentPage={safePage}
+          totalItems={filteredPeserta.length}
+          itemsPerPage={ITEMS_PER_PAGE}
+          itemLabel="peserta"
+          onPageChange={setCurrentPage}
+        />
       </div>
 
-      {/* ===================== PAGINATION BUTTON ===================== */}
-      {totalPage > 1 && (
-        <div className="flex flex-wrap items-center justify-center gap-2 py-5">
-          {/* PREV */}
-          <button
-            disabled={page === 1}
-            onClick={() => setPage((p) => p - 1)}
-            className="
-                px-4 py-2
-                rounded-lg
-                text-sm font-medium
-                border
-                border-slate-300 dark:border-indigo-500/30
-                bg-white dark:bg-indigo-950
-                text-slate-700 dark:text-indigo-200
-                hover:bg-[#FFF1F2] dark:hover:bg-indigo-900/40
-                disabled:opacity-40 disabled:cursor-not-allowed
-                transition
-              "
-          >
-            Prev
-          </button>
-
-          {/* PAGE NUMBER */}
-          {Array.from({ length: totalPage }).map((_, i) => {
-            const active = page === i + 1;
-
-            return (
-              <button
-                key={i}
-                onClick={() => setPage(i + 1)}
-                className={`
-                    min-w-9.5 h-9.5
-                    rounded-lg
-                    text-sm font-semibold
-                    transition
-                    ${
-                      active
-                        ? `
-                          bg-[#B91C1C] text-white shadow
-                          dark:bg-indigo-600 dark:text-white
-                        `
-                        : `
-                          bg-white dark:bg-indigo-950
-                          text-[#7F1D1D] dark:text-indigo-200
-                          border border-slate-300 dark:border-indigo-500/30
-                          hover:bg-[#FFF1F2] dark:hover:bg-indigo-900/40
-                        `
-                    }
-                  `}
-              >
-                {i + 1}
-              </button>
-            );
-          })}
-
-          {/* NEXT */}
-          <button
-            disabled={page === totalPage}
-            onClick={() => setPage((p) => p + 1)}
-            className="
-                px-4 py-2
-                rounded-lg
-                text-sm font-medium
-                border
-                border-slate-300 dark:border-indigo-500/30
-                bg-white dark:bg-indigo-950
-                text-slate-700 dark:text-indigo-200
-                hover:bg-[#FFF1F2] dark:hover:bg-indigo-900/40
-                disabled:opacity-40 disabled:cursor-not-allowed
-                transition
-              "
-          >
-            Next
-          </button>
-        </div>
-      )}
-
-      {/* Calendar Modal */}
-      {showCalendarModal && selectedPeserta && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 dark:bg-black/70 backdrop-blur-md p-3 sm:p-6">
-          <div
-            className="
-              w-full max-w-5xl
-              bg-white/90 dark:bg-indigo-950/40
-              backdrop-blur
-              rounded-3xl
-              border border-slate-200 dark:border-indigo-500/30
-              shadow-2xl
-              flex flex-col
-              max-h-[92vh]
-              overflow-hidden
-            "
-          >
+      {/* ================= CALENDAR MODAL ================= */}
+      {selectedPeserta && (
+        <div
+          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setSelectedPesertaId(null);
+              setMissedDate("");
+            }
+          }}
+        >
+          <div className="w-full max-w-4xl max-h-[92vh] rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col overflow-hidden">
             {/* Header */}
-            <div
-              className="
-                px-5 sm:px-6 py-4 sm:py-5
-                bg-linear-to-r
-                from-[#F59E0B] via-[#B91C1C] to-[#7F1D1D]
-                dark:from-indigo-600 dark:to-violet-500
-                text-white
-                flex items-center justify-between
-              "
-            >
-              {/* LEFT */}
-              <div className="flex items-center gap-3">
-                <HiCalendar className="text-xl" />
-                <div>
+            <div className="bg-linear-to-r from-[#0284c7] to-blue-700 px-6 py-4 text-white flex items-center justify-between gap-4 shrink-0">
+              <div className="flex items-center gap-3 min-w-0">
+                <CalendarIcon className="w-5 h-5 shrink-0" />
+                <div className="min-w-0">
                   <h2 className="text-lg font-bold">Kalender Logbook</h2>
-                  <p className="text-sm opacity-90">
+                  <p className="text-xs text-sky-100 truncate">
                     {selectedPeserta.name} • {selectedPeserta.email}
                   </p>
                 </div>
               </div>
 
-              {/* RIGHT */}
               <button
+                type="button"
                 onClick={() => {
-                  setShowCalendarModal(false);
-                  setSelectedPeserta(null);
-                  setLogbookSummary(null);
-                  setFilledDates({});
+                  setSelectedPesertaId(null);
+                  setMissedDate("");
                 }}
-                className="
-                    p-2
-                    rounded-full
-                    hover:bg-white/20
-                    transition
-                  "
+                aria-label="Tutup kalender logbook"
+                className="p-2 rounded-xl bg-white/15 hover:bg-white/25 text-white transition"
               >
-                <HiX className="text-xl" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            {/* Summary Stats */}
-            {logbookSummary && (
-              <div
-                className="
-      px-5 sm:px-6 py-5
-      border-b border-slate-200 dark:border-indigo-500/30
-      bg-slate-50/80 dark:bg-indigo-950/30
-    "
-              >
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-                  {/* Total Logbook */}
-                  <div className="rounded-2xl p-4 text-center bg-white dark:bg-indigo-900/40 border border-slate-200 dark:border-indigo-500/30 shadow-sm">
-                    <div className="text-xl mb-1">📘</div>
-                    <div className="text-2xl font-bold text-slate-800 dark:text-white">
-                      {logbookSummary.total}
-                    </div>
-                    <div className="text-sm font-semibold">Total Logbook</div>
-                    <div className="text-xs text-slate-500">
-                      Seluruh catatan
-                    </div>
-                  </div>
+            {/* Summary */}
+            <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 grid grid-cols-2 sm:grid-cols-4 gap-3 shrink-0">
+              <SummaryPill label="Total" value={calendarSummary.total} />
+              <SummaryPill
+                label="Hadir"
+                value={calendarSummary.hadir}
+                accent="emerald"
+              />
+              <SummaryPill
+                label="Izin / Sakit"
+                value={calendarSummary.izin}
+                accent="sky"
+              />
+              <SummaryPill
+                label="Tanpa Keterangan"
+                value={calendarSummary.alpa}
+                accent="rose"
+              />
+            </div>
 
-                  {/* Hadir */}
-                  <div className="rounded-2xl p-4 text-center bg-white dark:bg-indigo-900/40 border border-slate-200 dark:border-indigo-500/30 shadow-sm">
-                    <div className="text-xl mb-1">✅</div>
-                    <div className="text-2xl font-bold text-emerald-600">
-                      {logbookSummary.hadir}
-                    </div>
-                    <div className="text-sm font-semibold">Hadir</div>
-                    <div className="text-xs text-slate-500">
-                      Kehadiran valid
-                    </div>
-                  </div>
+            {/* Calendar + Superadmin Enable Missed Day */}
+            <div className="p-4 sm:p-6 overflow-y-auto space-y-4">
+              <div className="p-3.5 rounded-xl border border-sky-200 dark:border-sky-800/60 bg-sky-50/60 dark:bg-sky-950/20 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="text-xs">
+                  <p className="font-bold text-[#0284c7] dark:text-sky-300 flex items-center gap-1.5">
+                    <CalendarPlus className="w-4 h-4" />
+                    Aktifkan Pengisian Hari Terlewat (Superadmin)
+                  </p>
+                  <p className="text-slate-500 dark:text-slate-400 mt-0.5">
+                    Pilih tanggal kosong pada input atau klik kalender, lalu
+                    aktifkan agar peserta bisa mengisi hari tersebut.
+                  </p>
+                </div>
 
-                  {/* Tidak Hadir Dengan Keterangan */}
-                  <div className="rounded-2xl p-4 text-center bg-white dark:bg-indigo-900/40 border border-slate-200 dark:border-indigo-500/30 shadow-sm">
-                    <div className="text-xl mb-1">📝</div>
-                    <div className="text-2xl font-bold text-blue-600">
-                      {logbookSummary.tidakHadirDenganKeterangan}
-                    </div>
-                    <div className="text-sm font-semibold">
-                      Tidak Hadir (Keterangan)
-                    </div>
-                    <div className="text-xs text-slate-500">
-                      Dengan keterangan
-                    </div>
-                  </div>
-
-                  {/* Tanpa Keterangan */}
-                  <div className="rounded-2xl p-4 text-center bg-white dark:bg-indigo-900/40 border border-slate-200 dark:border-indigo-500/30 shadow-sm">
-                    <div className="text-xl mb-1">❌</div>
-                    <div className="text-2xl font-bold text-red-600">
-                      {logbookSummary.tidakHadirTanpaKeterangan}
-                    </div>
-                    <div className="text-sm font-semibold">
-                      Tidak Hadir (Tanpa Ket.)
-                    </div>
-                    <div className="text-xs text-slate-500">
-                      Perlu perhatian
-                    </div>
-                  </div>
-
-                  {/* Ditolak Mentor */}
-                  <div className="rounded-2xl p-4 text-center bg-white dark:bg-indigo-900/40 border border-slate-200 dark:border-indigo-500/30 shadow-sm">
-                    <div className="text-xl mb-1">⛔</div>
-                    <div className="text-2xl font-bold text-amber-600">
-                      {logbookSummary.ditolakMentor}
-                    </div>
-                    <div className="text-sm font-semibold">Ditolak Mentor</div>
-                    <div className="text-xs text-slate-500">Perlu revisi</div>
-                  </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <input
+                    type="date"
+                    value={missedDate}
+                    onChange={(e) => setMissedDate(e.target.value)}
+                    className="px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs"
+                  />
+                  <button
+                    type="button"
+                    disabled={enablingMissedDay || !missedDate}
+                    onClick={handleEnableMissedDay}
+                    className="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-[#0284c7] hover:bg-sky-700 text-white shadow-xs transition disabled:opacity-50"
+                  >
+                    {enablingMissedDay ? "Memproses..." : "Aktifkan"}
+                  </button>
                 </div>
               </div>
-            )}
 
-            {/* Calendar */}
-            <div className="flex-1 overflow-y-auto p-4 sm:p-6">
-              <div
-                className="
-                  rounded-2xl
-                  bg-white dark:bg-indigo-950/40
-                  border border-slate-200 dark:border-indigo-500/30
-                  p-3 sm:p-4
-                "
-              >
-                <Calendar
-                  onSelectDate={handleSelectDate}
-                  filledDates={filledDates}
-                />
-              </div>
-            </div>
-
-            {/* Footer */}
-            <div className="px-5 sm:px-6 py-4 border-t border-slate-200 dark:border-indigo-500/30">
-              <button
-                onClick={() => {
-                  setShowCalendarModal(false);
-                  setSelectedPeserta(null);
-                  setLogbookSummary(null);
-                  setFilledDates({});
-                }}
-                className="
-                    w-full
-                    px-6 py-2.5
-                    rounded-xl
-                    bg-linear-to-r from-[#F59E0B] via-[#B91C1C] to-[#7F1D1D]
-                    hover:from-amber-400 hover:via-[#DC2626] hover:to-[#991B1B]
-                    dark:bg-linear-to-r dark:from-indigo-600 dark:to-violet-500
-                    dark:hover:from-indigo-500 dark:hover:to-violet-400
-                    text-white font-semibold
-                    shadow-md hover:shadow-xl
-                    transition-all
-                  "
-              >
-                Tutup Kalender
-              </button>
+              <Calendar
+                onSelectDate={handleSelectDate}
+                filledDates={filledDates}
+              />
             </div>
           </div>
         </div>
       )}
 
-      {/* Superadmin Logbook Detail Modal */}
-      {showSuperadminModal && selectedLogbook && (
-        <SuperadminLogbookModal
+      {/* ================= DETAIL & APPROVE LOGBOOK MODAL ================= */}
+      {selectedLogbook && (
+        <AdminLogbookModal
           logbook={selectedLogbook}
-          onClose={() => {
-            setShowSuperadminModal(false);
-            setSelectedLogbook(null);
-            setSelectedDate(null);
-          }}
-          onAction={handleSuperadminAction}
-          userRole="superadmin"
-          userName="Superadmin"
+          onClose={() => setSelectedLogbook(null)}
+          onAction={handleApproveAction}
         />
       )}
     </div>
   );
 }
 
-type StatCardColor = "indigo" | "emerald" | "amber" | "slate" | "blue";
-
-type StatCardProps = {
-  title: string;
-  value: number | string;
-  icon: React.ReactNode;
-  note: string;
-  color: StatCardColor;
-};
-
-function StatCard({ title, value, icon, note, color }: StatCardProps) {
-  const iconColorMap: Record<StatCardColor, string> = {
-    indigo: "bg-[#B91C1C]/90 dark:bg-indigo-600",
-    emerald: "bg-emerald-500 dark:bg-emerald-600",
-    amber: "bg-amber-500 dark:bg-violet-500",
-    slate: "bg-slate-500 dark:bg-indigo-700",
-    blue: "bg-blue-500 dark:bg-blue-600",
-  };
-
-  const textColorMap: Record<StatCardColor, string> = {
-    indigo: "text-[#7F1D1D] dark:text-white",
-    emerald: "text-[#7F1D1D] dark:text-white",
-    amber: "text-[#7F1D1D] dark:text-white",
-    slate: "text-[#7F1D1D] dark:text-white",
-    blue: "text-[#7F1D1D] dark:text-white",
+function SummaryPill({
+  label,
+  value,
+  accent = "slate",
+}: {
+  label: string;
+  value: number;
+  accent?: "slate" | "emerald" | "sky" | "rose";
+}) {
+  const colorMap = {
+    slate: "text-slate-900 dark:text-white",
+    emerald: "text-emerald-600 dark:text-emerald-400",
+    sky: "text-[#0284c7] dark:text-sky-400",
+    rose: "text-rose-600 dark:text-rose-400",
   };
 
   return (
-    <div
-      className="
-          group relative
-          rounded-2xl
-          border border-[#FCA5A5]/40 dark:border-indigo-500/30
-          bg-linear-to-br
-          from-[#FFFDF8] via-[#FFF4EC] to-white
-          dark:from-indigo-950 dark:via-indigo-900 dark:to-indigo-800
-          p-6
-          shadow-sm hover:shadow-xl
-          transition
-        "
-    >
-      {/* TOP */}
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-wide text-[#7F1D1D] dark:text-indigo-300">
-            {title}
-          </p>
-          <p className={`text-4xl font-extrabold mt-1 ${textColorMap[color]}`}>
-            {value}
-          </p>
-        </div>
-
-        <div
-          className={`
-              w-14 h-14 rounded-2xl
-              text-white
-              flex items-center justify-center
-              shadow
-              group-hover:scale-110 transition
-              ${iconColorMap[color]}
-            `}
-        >
-          {icon}
-        </div>
-      </div>
-
-      {/* FOOTER */}
-      <div className="mt-4 pt-4 border-t border-[#FCA5A5]/40 dark:border-indigo-500/30">
-        <p className="text-xs text-slate-600 dark:text-slate-300">{note}</p>
-      </div>
+    <div className="rounded-xl p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-center">
+      <p className={`text-xl font-extrabold ${colorMap[accent]}`}>{value}</p>
+      <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+        {label}
+      </p>
     </div>
   );
 }

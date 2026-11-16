@@ -1,32 +1,34 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  FaBullhorn,
-  FaPlus,
-  FaTrash,
-  FaEdit,
-  FaSave,
-  FaImage,
-  FaTimes,
-  FaCheckCircle,
-  FaExclamationCircle,
-  FaEye,
-  FaEyeSlash,
-  FaCalendarAlt,
-  FaChevronLeft,
-  FaChevronRight,
-} from "react-icons/fa";
-import { motion, AnimatePresence } from "framer-motion";
+  AlertTriangle,
+  Calendar,
+  CheckCircle2,
+  Edit3,
+  Eye,
+  EyeOff,
+  Image as ImageIcon,
+  Megaphone,
+  Plus,
+  RefreshCw,
+  Save,
+  Search,
+  Trash2,
+  Upload,
+  X,
+  XCircle,
+} from "lucide-react";
+import PaginationFooter from "@/components/dashboard/PaginationFooter";
+import { TablePageSkeleton } from "@/components/dashboard/skeletons";
 import { showToast } from "@/components/ui/toastDashboard";
 
-/* ========================
-   TYPE
-======================== */
+/* ================= TYPES ================= */
 
 type AnnouncementType = "landing" | "peserta" | "mentor" | "admin";
+type FilterType = "all" | AnnouncementType;
 
-interface Announcement {
+type Announcement = {
   _id: string;
   title: string;
   subtitle?: string;
@@ -36,27 +38,54 @@ interface Announcement {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+};
+
+/* ================= CONSTANTS & HELPERS ================= */
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
+const ITEMS_PER_PAGE = 10;
+
+const TYPE_LABELS: Record<AnnouncementType, string> = {
+  landing: "Landing Page",
+  peserta: "Peserta",
+  mentor: "Mentor",
+  admin: "Admin",
+};
+
+function getTypeBadgeClass(type: AnnouncementType) {
+  switch (type) {
+    case "landing":
+      return "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/50 dark:text-purple-300 dark:border-purple-800";
+    case "peserta":
+      return "bg-sky-50 text-[#0284c7] border-sky-200 dark:bg-sky-950/50 dark:text-sky-300 dark:border-sky-800";
+    case "mentor":
+      return "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800";
+    case "admin":
+      return "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800";
+  }
 }
 
-/* ========================
-   COMPONENT
-======================== */
+function getBannerImageUrl(image?: string): string | null {
+  if (!image) return null;
+  if (image.startsWith("http") || image.startsWith("blob:")) return image;
+  return `${API_BASE}/uploads/announcements/${image.replace(/^\/+/, "")}`;
+}
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL;
+/* ================= PAGE ================= */
 
-export default function PengumumanPage() {
+export default function ManajemenTampilanBannerSuperadminPage() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [editId, setEditId] = useState<string | null>(null);
-  const [selectedType, setSelectedType] = useState<AnnouncementType | "all">(
-    "all",
-  );
+  const [refreshing, setRefreshing] = useState(false);
+
+  const [selectedType, setSelectedType] = useState<FilterType>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 6;
 
-  // Form states
+  /* ---------- Form Modal State ---------- */
+  const [showForm, setShowForm] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [subtitle, setSubtitle] = useState("");
   const [content, setContent] = useState("");
@@ -64,138 +93,171 @@ export default function PengumumanPage() {
   const [isActive, setIsActive] = useState(true);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [uploadProgress, setUploadProgress] = useState(0);
 
-  const [confirmModal, setConfirmModal] = useState<{
-    show: boolean;
-    id: string | null;
-  }>({
-    show: false,
-    id: null,
-  });
+  /* ---------- Delete Confirm State ---------- */
+  const [deleteTarget, setDeleteTarget] = useState<Announcement | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
-  // Fetch data
-  useEffect(() => {
-    fetchData();
-  }, []);
+  /* ================= FETCH ================= */
 
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchData = useCallback(async (isManual = false) => {
     try {
+      if (isManual) setRefreshing(true);
+      else setLoading(true);
+
       const token = localStorage.getItem("token");
       const res = await fetch(`${API_BASE}/announcements`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
-      if (!res.ok) throw new Error("Gagal mengambil data");
+      if (!res.ok) throw new Error("Gagal mengambil data pengumuman");
 
       const data = await res.json();
-      setAnnouncements(data);
-    } catch (err) {
-      console.error(err);
+      setAnnouncements(Array.isArray(data) ? data : []);
+    } catch {
       showToast.error("Gagal memuat data pengumuman");
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  /* ================= ESCAPE KEY HANDLER ================= */
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (deleteTarget && !deleting) setDeleteTarget(null);
+      else if (showForm && !saving) setShowForm(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [deleteTarget, deleting, showForm, saving]);
+
+  /* ================= STATS & FILTERING ================= */
+
+  const stats = useMemo(() => {
+    return {
+      total: announcements.length,
+      active: announcements.filter((a) => a.isActive).length,
+      inactive: announcements.filter((a) => !a.isActive).length,
+      landing: announcements.filter((a) => a.type === "landing").length,
+      peserta: announcements.filter((a) => a.type === "peserta").length,
+      mentor: announcements.filter((a) => a.type === "mentor").length,
+      admin: announcements.filter((a) => a.type === "admin").length,
+    };
+  }, [announcements]);
+
+  const filteredAnnouncements = useMemo(() => {
+    const q = searchTerm.trim().toLowerCase();
+
+    return announcements.filter((a) => {
+      if (selectedType !== "all" && a.type !== selectedType) return false;
+      if (!q) return true;
+      return (
+        a.title?.toLowerCase().includes(q) ||
+        a.subtitle?.toLowerCase().includes(q) ||
+        a.content?.toLowerCase().includes(q)
+      );
+    });
+  }, [announcements, selectedType, searchTerm]);
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredAnnouncements.length / ITEMS_PER_PAGE),
+  );
+  const safePage = Math.min(currentPage, totalPages);
+
+  const paginatedAnnouncements = useMemo(() => {
+    const start = (safePage - 1) * ITEMS_PER_PAGE;
+    return filteredAnnouncements.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredAnnouncements, safePage]);
+
+  /* ================= FORM HANDLERS ================= */
 
   const resetForm = () => {
+    setEditId(null);
     setTitle("");
     setSubtitle("");
     setContent("");
     setType("landing");
     setIsActive(true);
-    setEditId(null);
     setImageFile(null);
     setImagePreview(null);
-    setUploadProgress(0);
   };
 
-  const getTypeLabel = (type: AnnouncementType) => {
-    const map = {
-      landing: "Landing Page",
-      peserta: "Peserta",
-      mentor: "Mentor",
-      admin: "Admin",
-    };
-    return map[type];
+  const openCreateModal = () => {
+    resetForm();
+    setShowForm(true);
   };
 
-  const getTypeColor = (type: AnnouncementType) => {
-    const map = {
-      landing: "bg-purple-100 text-purple-700 border-purple-200",
-      peserta: "bg-blue-100 text-blue-700 border-blue-200",
-      mentor: "bg-green-100 text-green-700 border-green-200",
-      admin: "bg-orange-100 text-orange-700 border-orange-200",
-    };
-    return map[type];
+  const openEditModal = (item: Announcement) => {
+    setEditId(item._id);
+    setTitle(item.title || "");
+    setSubtitle(item.subtitle || "");
+    setContent(item.content || "");
+    setType(item.type);
+    setIsActive(item.isActive);
+    setImageFile(null);
+    setImagePreview(getBannerImageUrl(item.image));
+    setShowForm(true);
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validasi ukuran file (max 2MB)
-    if (file.size > 2 * 1024 * 1024) {
-      showToast.error("Ukuran gambar maksimal 2MB");
+    if (!file.type.startsWith("image/")) {
+      showToast.error("File harus berupa gambar (JPG/PNG/WebP)");
+      e.target.value = "";
       return;
     }
 
-    // Validasi tipe file
-    if (!file.type.startsWith("image/")) {
-      showToast.error("File harus berupa gambar");
+    if (file.size > 2 * 1024 * 1024) {
+      showToast.error("Ukuran gambar maksimal 2MB");
+      e.target.value = "";
       return;
     }
 
     setImageFile(file);
     setImagePreview(URL.createObjectURL(file));
-
-    // Simulasi upload progress
-    setUploadProgress(0);
-    const interval = setInterval(() => {
-      setUploadProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          return 100;
-        }
-        return prev + 10;
-      });
-    }, 50);
   };
 
   const handleSave = async () => {
     if (!title.trim()) {
-      showToast.error("Judul wajib diisi");
+      showToast.error("Judul pengumuman wajib diisi");
       return;
     }
     if (!content.trim()) {
-      showToast.error("Konten wajib diisi");
+      showToast.error("Isi pengumuman wajib diisi");
       return;
     }
     if (type === "landing" && !subtitle.trim()) {
-      showToast.error("Sub judul landing page wajib diisi");
+      showToast.error("Sub judul wajib diisi untuk tipe Landing Page");
       return;
     }
 
     const toastId = showToast.loading(
-      editId ? "Memperbarui pengumuman..." : "Menyimpan pengumuman..."
+      editId ? "Memperbarui pengumuman..." : "Menyimpan pengumuman...",
     );
 
     try {
+      setSaving(true);
       const token = localStorage.getItem("token");
       const formData = new FormData();
 
-      formData.append("title", title);
-      formData.append("content", content);
+      formData.append("title", title.trim());
+      formData.append("content", content.trim());
       formData.append("type", type);
       formData.append("isActive", String(isActive));
 
-      if (type === "landing" && subtitle) {
-        formData.append("subtitle", subtitle);
+      if (type === "landing" && subtitle.trim()) {
+        formData.append("subtitle", subtitle.trim());
       }
-
       if (imageFile) {
         formData.append("image", imageFile);
       }
@@ -206,781 +268,629 @@ export default function PengumumanPage() {
           : `${API_BASE}/announcements`,
         {
           method: editId ? "PUT" : "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
           body: formData,
-        }
+        },
       );
 
-      if (!res.ok) throw new Error();
+      if (!res.ok) throw new Error("Gagal menyimpan pengumuman");
 
       showToast.updateSuccess(
         toastId,
         editId
           ? "Pengumuman berhasil diperbarui"
-          : "Pengumuman berhasil ditambahkan"
+          : "Pengumuman berhasil ditambahkan",
       );
-
-      resetForm();
       setShowForm(false);
-      fetchData();
-    } catch (err) {
+      resetForm();
+      await fetchData(true);
+    } catch {
       showToast.updateError(toastId, "Gagal menyimpan pengumuman");
-    }
-  };
-
-  const handleDelete = (id: string) => {
-    setConfirmModal({ show: true, id });
-  };
-
-  const confirmDelete = async () => {
-    if (!confirmModal.id) return;
-
-    const toastId = showToast.loading("Menghapus pengumuman...");
-
-    try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(
-        `${API_BASE}/announcements/${confirmModal.id}`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (!res.ok) throw new Error();
-
-      showToast.updateSuccess(toastId, "Pengumuman berhasil dihapus");
-      fetchData();
-    } catch (err) {
-      showToast.updateError(toastId, "Gagal menghapus pengumuman");
     } finally {
-      setConfirmModal({ show: false, id: null });
+      setSaving(false);
     }
   };
 
-  const handleToggleActive = async (id: string, currentActive: boolean) => {
+  const handleToggleActive = async (item: Announcement) => {
     const toastId = showToast.loading("Memperbarui status...");
-
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`${API_BASE}/announcements/${id}/toggle`, {
+      const res = await fetch(`${API_BASE}/announcements/${item._id}/toggle`, {
         method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       if (!res.ok) throw new Error();
 
       showToast.updateSuccess(
         toastId,
-        `Pengumuman ${currentActive ? "dinonaktifkan" : "diaktifkan"}`
+        item.isActive
+          ? "Pengumuman dinonaktifkan"
+          : "Pengumuman diaktifkan",
       );
-
-      fetchData();
-    } catch (err) {
+      await fetchData(true);
+    } catch {
       showToast.updateError(toastId, "Gagal mengubah status pengumuman");
     }
   };
 
-  const handleEdit = (data: Announcement) => {
-    setEditId(data._id);
-    setTitle(data.title || "");
-    setSubtitle(data.subtitle || "");
-    setContent(data.content || "");
-    setType(data.type);
-    setIsActive(data.isActive);
-    setImagePreview(
-      data.image ? `${API_BASE}/uploads/announcements/${data.image}` : null,
+  const executeDelete = async () => {
+    if (!deleteTarget) return;
+    const toastId = showToast.loading("Menghapus pengumuman...");
+
+    try {
+      setDeleting(true);
+      const token = localStorage.getItem("token");
+      const res = await fetch(
+        `${API_BASE}/announcements/${deleteTarget._id}`,
+        {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+
+      if (!res.ok) throw new Error();
+
+      showToast.updateSuccess(toastId, "Pengumuman berhasil dihapus");
+      setDeleteTarget(null);
+      await fetchData(true);
+    } catch {
+      showToast.updateError(toastId, "Gagal menghapus pengumuman");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  /* ================= RENDER ================= */
+
+  if (loading) {
+    return (
+      <TablePageSkeleton
+        title="Manajemen Tampilan & Pengumuman"
+        subtitle="Memuat daftar banner dan pengumuman sistem..."
+        columnsCount={5}
+        rowsCount={6}
+      />
     );
-    setShowForm(true);
-  };
-
-  // Filter announcements
-  const filteredAnnouncements = announcements.filter((a) => {
-    const matchesType = selectedType === "all" || a.type === selectedType;
-    const matchesSearch =
-      a.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      a.content.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesType && matchesSearch;
-  });
-
-  // Pagination
-  const totalPages = Math.ceil(filteredAnnouncements.length / itemsPerPage);
-  const paginatedAnnouncements = filteredAnnouncements.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage,
-  );
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("id-ID", {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
+  }
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-slate-50 via-white to-slate-100 dark:from-[#0B0614] dark:via-[#120A24] dark:to-[#1E0F3D] p-4 sm:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col md:flex-row md:items-center md:justify-between gap-4"
-        >
-          <div>
-            <h1 className="
-              text-3xl lg:text-4xl 
-              font-extrabold 
-              leading-tight
-              bg-clip-text text-transparent 
-              bg-linear-to-r 
-              from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
-              dark:from-indigo-400 dark:via-violet-400 dark:to-purple-400
-            ">
-              Manajemen Pengumuman
-            </h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
-              Kelola dan publikasikan pengumuman untuk semua pengguna
-            </p>
-          </div>
+    <div className="space-y-6">
+      {/* ================= HEADER ================= */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-3 border-b border-slate-100 dark:border-slate-800">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+            Manajemen Tampilan &amp; Pengumuman
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
+            Kelola banner landing page serta kotak pengumuman aktif untuk
+            peserta, mentor, dan admin
+          </p>
+        </div>
 
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => {
-              resetForm();
-              setShowForm(true);
-            }}
-            className="flex items-center justify-center gap-2 px-6 py-3
-              bg-linear-to-r 
-              from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
-              dark:from-indigo-600 dark:to-violet-500
-              text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all
-            "
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => fetchData(true)}
+            disabled={refreshing}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition disabled:opacity-60"
           >
-            <FaPlus />
+            <RefreshCw
+              className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`}
+            />
+            Segarkan
+          </button>
+
+          <button
+            type="button"
+            onClick={openCreateModal}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-linear-to-r from-[#0284c7] to-blue-700 hover:from-[#0369a1] hover:to-blue-800 text-white shadow-xs transition cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
             Tambah Pengumuman
-          </motion.button>
-        </motion.div>
+          </button>
+        </div>
+      </div>
 
-        {/* Filter Bar */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="bg-white dark:bg-slate-900 rounded-2xl shadow-lg p-4 border border-gray-100 dark:border-gray-800"
-        >
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
-              <input
-                type="text"
-                placeholder="Cari pengumuman..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="
-                  w-full px-4 py-2 rounded-xl border transition-all
-
-                  bg-white/80 border-[#FACC15]/50
-                  focus:ring-2 focus:ring-[#B91C1C]
-                  focus:border-transparent
-
-                  dark:bg-indigo-900/40
-                  dark:border-indigo-700
-                  dark:text-white
-                  dark:placeholder-indigo-300
-                  dark:focus:ring-indigo-400
-                "
-              />
+      {/* ================= KPI CARDS ================= */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="rounded-2xl p-5 bg-linear-to-br from-[#0284c7] to-blue-700 text-white shadow-sm">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-medium text-sky-100">
+                Total Pengumuman
+              </p>
+              <p className="text-3xl font-extrabold tracking-tight mt-2">
+                {stats.total}
+              </p>
+              <p className="text-[11px] text-sky-100 mt-1.5">
+                Semua kanal publik &amp; dashboard
+              </p>
             </div>
-            <div className="flex gap-2 flex-wrap">
-              {["all", "landing", "peserta", "mentor", "admin"].map((t) => (
-                <button
-                  key={t}
-                  onClick={() => setSelectedType(t as any)}
-                  className={`px-4 py-2 rounded-xl font-medium text-sm transition-all 
-                    ${
-                      selectedType === t
-                        ? `
-                            bg-linear-to-r
-                            from-[#7F1D1D]
-                            to-[#B91C1C]
-                            text-white
-                            shadow-md
-                            dark:from-indigo-500
-                            dark:to-purple-500
-                          `
-                        : `
-                            bg-white/60
-                            text-[#7F1D1D]
-                            border border-[#FACC15]/40
-                            hover:bg-[#FDE68A]/60
-
-                            dark:bg-indigo-900/40
-                            dark:text-indigo-200
-                            dark:border-indigo-700
-                            dark:hover:bg-indigo-800/50
-                          `
-                    }
-                  `}
-                >
-                  {t === "all" ? "Semua" : getTypeLabel(t as AnnouncementType)}
-                </button>
-              ))}
+            <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
+              <Megaphone className="w-5 h-5" />
             </div>
           </div>
-        </motion.div>
+        </div>
 
-        {/* Form */}
-        <AnimatePresence>
-          {showForm && (
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="
-                w-full
-                max-w-4xl
-                mx-auto
-                rounded-2xl shadow-xl overflow-hidden border transition-all
+        <div className="rounded-2xl p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                Sedang Aktif
+              </p>
+              <p className="text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 tracking-tight mt-2">
+                {stats.active}
+              </p>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1.5">
+                Ditampilkan ke pengguna
+              </p>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+              <CheckCircle2 className="w-5 h-5" />
+            </div>
+          </div>
+        </div>
 
-                bg-white dark:bg-slate-900
-                border-gray-200 dark:border-gray-800
-              "
+        <div className="rounded-2xl p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                Nonaktif / Arsip
+              </p>
+              <p className="text-3xl font-extrabold text-slate-700 dark:text-slate-200 tracking-tight mt-2">
+                {stats.inactive}
+              </p>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1.5">
+                Disembunyikan sementara
+              </p>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center shrink-0">
+              <XCircle className="w-5 h-5" />
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-2xl p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                Banner Landing Page
+              </p>
+              <p className="text-3xl font-extrabold text-[#0284c7] dark:text-sky-400 tracking-tight mt-2">
+                {stats.landing}
+              </p>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1.5">
+                {stats.peserta} peserta • {stats.mentor} mentor • {stats.admin}{" "}
+                admin
+              </p>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-sky-50 dark:bg-sky-950/60 text-[#0284c7] dark:text-sky-400 flex items-center justify-center shrink-0">
+              <ImageIcon className="w-5 h-5" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ================= FILTER & SEARCH ================= */}
+      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/30 p-3.5 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-1.5">
+          {(
+            [
+              { key: "all", label: "Semua", count: stats.total },
+              { key: "landing", label: "Landing Page", count: stats.landing },
+              { key: "peserta", label: "Peserta", count: stats.peserta },
+              { key: "mentor", label: "Mentor", count: stats.mentor },
+              { key: "admin", label: "Admin", count: stats.admin },
+            ] as Array<{ key: FilterType; label: string; count: number }>
+          ).map((tab) => {
+            const active = selectedType === tab.key;
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => {
+                  setSelectedType(tab.key);
+                  setCurrentPage(1);
+                }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition inline-flex items-center gap-1.5 cursor-pointer ${
+                  active
+                    ? "bg-[#0284c7] text-white shadow-xs"
+                    : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
+                }`}
+              >
+                <span>{tab.label}</span>
+                <span
+                  className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold ${
+                    active
+                      ? "bg-white/20 text-white"
+                      : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+                  }`}
+                >
+                  {tab.count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="relative w-full lg:w-80">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setCurrentPage(1);
+            }}
+            placeholder="Cari judul atau konten pengumuman..."
+            className="w-full pl-9 pr-9 py-2 rounded-xl text-xs sm:text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40 focus:border-[#0284c7]"
+          />
+          {searchTerm && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearchTerm("");
+                setCurrentPage(1);
+              }}
+              aria-label="Hapus pencarian"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
             >
-              <div className="
-                px-4 sm:px-6 py-4
-                bg-linear-to-r
-                from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+      </div>
 
-                dark:from-indigo-600
-                dark:via-indigo-500
-                dark:to-purple-500
-              ">
-                <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                  {editId ? <FaEdit /> : <FaPlus />}
-                  {editId ? "Edit Pengumuman" : "Tambah Pengumuman Baru"}
-                </h3>
+      {/* ================= ANNOUNCEMENTS GRID ================= */}
+      {paginatedAnnouncements.length === 0 ? (
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-14 px-4 text-center">
+          <Megaphone className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+          <p className="font-semibold text-slate-700 dark:text-slate-200">
+            Belum ada pengumuman yang sesuai
+          </p>
+          <p className="text-xs text-slate-400 mt-1">
+            Klik &ldquo;Tambah Pengumuman&rdquo; untuk membuat banner atau info
+            baru.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {paginatedAnnouncements.map((item) => {
+            const imgUrl = getBannerImageUrl(item.image);
+
+            return (
+              <div
+                key={item._id}
+                className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-xs hover:shadow-md transition flex flex-col justify-between"
+              >
+                <div>
+                  {imgUrl && (
+                    <div className="h-44 w-full bg-slate-100 dark:bg-slate-800 overflow-hidden border-b border-slate-100 dark:border-slate-800">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={imgUrl}
+                        alt={item.title}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
+
+                  <div className="p-5 space-y-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full border text-[11px] font-semibold ${getTypeBadgeClass(
+                          item.type,
+                        )}`}
+                      >
+                        {TYPE_LABELS[item.type]}
+                      </span>
+
+                      <span
+                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-[11px] font-semibold ${
+                          item.isActive
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800"
+                            : "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700"
+                        }`}
+                      >
+                        {item.isActive ? (
+                          <>
+                            <Eye className="w-3 h-3" /> Aktif
+                          </>
+                        ) : (
+                          <>
+                            <EyeOff className="w-3 h-3" /> Nonaktif
+                          </>
+                        )}
+                      </span>
+                    </div>
+
+                    <div>
+                      <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                        {item.title}
+                      </h3>
+                      {item.subtitle && (
+                        <p className="text-xs font-medium text-[#0284c7] dark:text-sky-400 mt-0.5">
+                          {item.subtitle}
+                        </p>
+                      )}
+                    </div>
+
+                    <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 line-clamp-3 whitespace-pre-line">
+                      {item.content}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="px-5 py-3.5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/30 flex flex-wrap items-center justify-between gap-2">
+                  <span className="inline-flex items-center gap-1.5 text-[11px] text-slate-400">
+                    <Calendar className="w-3.5 h-3.5" />
+                    {new Date(item.createdAt).toLocaleDateString("id-ID", {
+                      day: "2-digit",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  </span>
+
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => handleToggleActive(item)}
+                      className="px-2.5 py-1.5 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+                    >
+                      {item.isActive ? "Nonaktifkan" : "Aktifkan"}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => openEditModal(item)}
+                      aria-label="Edit pengumuman"
+                      className="p-2 rounded-xl bg-sky-50 text-[#0284c7] hover:bg-sky-100 dark:bg-sky-950/50 dark:text-sky-300 transition cursor-pointer"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setDeleteTarget(item)}
+                      aria-label="Hapus pengumuman"
+                      className="p-2 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 dark:bg-rose-950/50 dark:text-rose-400 transition cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ================= PAGINATION ================= */}
+      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
+        <PaginationFooter
+          currentPage={safePage}
+          totalItems={filteredAnnouncements.length}
+          itemsPerPage={ITEMS_PER_PAGE}
+          itemLabel="pengumuman"
+          onPageChange={setCurrentPage}
+        />
+      </div>
+
+      {/* ================= MODAL CREATE / EDIT ================= */}
+      {showForm && (
+        <div
+          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !saving) setShowForm(false);
+          }}
+        >
+          <div className="w-full max-w-2xl max-h-[92vh] rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col overflow-hidden">
+            <div className="bg-linear-to-r from-[#0284c7] to-blue-700 px-6 py-4 text-white flex items-center justify-between shrink-0">
+              <h2 className="text-base sm:text-lg font-bold">
+                {editId ? "Edit Pengumuman" : "Tambah Pengumuman Baru"}
+              </h2>
+              <button
+                type="button"
+                disabled={saving}
+                onClick={() => setShowForm(false)}
+                className="p-1.5 rounded-lg bg-white/15 hover:bg-white/25"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-5 sm:p-6 overflow-y-auto space-y-4 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                    Target Tampilan <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    value={type}
+                    onChange={(e) =>
+                      setType(e.target.value as AnnouncementType)
+                    }
+                    className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40 focus:border-[#0284c7]"
+                  >
+                    <option value="landing">Landing Page</option>
+                    <option value="peserta">Dashboard Peserta</option>
+                    <option value="mentor">Dashboard Mentor</option>
+                    <option value="admin">Dashboard Admin</option>
+                  </select>
+                </div>
+
+                <div className="flex items-end">
+                  <label className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 w-full cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={isActive}
+                      onChange={(e) => setIsActive(e.target.checked)}
+                      className="w-4 h-4 accent-[#0284c7]"
+                    />
+                    <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                      Tampilkan langsung (Aktif)
+                    </span>
+                  </label>
+                </div>
               </div>
 
-              <div className="px-4 sm:px-6 lg:px-8 py-6 space-y-8">
-                {/* Image Upload */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Judul Pengumuman <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Contoh: Pembukaan Magang Periode Baru"
+                  className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40 focus:border-[#0284c7]"
+                />
+              </div>
+
+              {type === "landing" && (
                 <div>
-                  <label className="block text-sm font-medium text-[#7F1D1D] dark:text-indigo-200 mb-2">
-                    Gambar Banner <b>(OPSIONAL)</b>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                    Sub Judul Banner Landing{" "}
+                    <span className="text-rose-500">*</span>
                   </label>
-                  <div className="relative">
+                  <input
+                    type="text"
+                    value={subtitle}
+                    onChange={(e) => setSubtitle(e.target.value)}
+                    placeholder="Contoh: Pendaftaran Batch 2 Dibuka Hingga 30 Juni"
+                    className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40 focus:border-[#0284c7]"
+                  />
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Isi Pengumuman <span className="text-rose-500">*</span>
+                </label>
+                <textarea
+                  rows={4}
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  placeholder="Tuliskan detail informasi atau pengumuman..."
+                  className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40 focus:border-[#0284c7]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Gambar Banner (Opsional, maks. 2MB)
+                </label>
+                <div className="flex flex-wrap items-center gap-3">
+                  <label className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-dashed border-[#0284c7] bg-sky-50/60 dark:bg-sky-950/30 text-[#0284c7] dark:text-sky-300 text-xs font-semibold cursor-pointer hover:bg-sky-100/70 transition">
+                    <Upload className="w-4 h-4" />
+                    <span>{imageFile ? imageFile.name : "Pilih Gambar"}</span>
                     <input
                       type="file"
                       accept="image/*"
                       onChange={handleImageChange}
                       className="hidden"
-                      id="image-upload"
                     />
-                    <label
-                      htmlFor="image-upload"
-                      className="
-                        relative flex flex-col items-center justify-center
-                        w-full
-                        h-40 sm:h-48 md:h-56
-                        rounded-xl cursor-pointer transition-colors overflow-hidden
-                        border-2 border-dashed
-                        border-[#FACC15]/60 hover:border-[#B91C1C]
-                        dark:border-indigo-700 dark:hover:border-indigo-400
-                      "
-                    >
-                      {imagePreview ? (
-                        <>
-                          <img
-                            src={imagePreview}
-                            alt="Preview"
-                            className="w-full h-full object-cover"
-                          />
-                          {uploadProgress < 100 && (
-                            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                              <div className="w-32 h-2 bg-white/30 rounded-full overflow-hidden">
-                                <div
-                                  className="
-                                    h-full
-                                    bg-linear-to-r
-                                    from-[#B91C1C] to-[#F59E0B]
-                                    dark:from-indigo-400 dark:to-purple-400
-                                    transition-all
-                                  "
-                                  style={{ width: `${uploadProgress}%` }}
-                                />
-                              </div>
-                            </div>
-                          )}
-                        </>
-                      ) : (
-                        <div className="text-center">
-                          <FaImage className="mx-auto text-4xl text-gray-400 dark:text-indigo-300 mb-2" />
-                          <p className="text-sm text-gray-600 dark:text-indigo-200">
-                            Klik untuk upload gambar
-                          </p>
-                          <p className="text-xs text-gray-400 dark:text-indigo-300 mt-1">
-                            PNG, JPG, GIF max 2MB
-                          </p>
-                        </div>
-                      )}
-                    </label>
-                  </div>
-                </div>
-
-                {/* Title */}
-                <div>
-                  <label className="block text-sm font-medium text-[#7F1D1D] dark:text-indigo-200 mb-2">
-                    Judul Pengumuman
                   </label>
-                  <input
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Contoh: Pembukaan Magang Gelombang 2"
-                    className="
-                      w-full px-4 py-3 rounded-xl border transition-all
-
-                      bg-white/80 border-[#FACC15]/50
-                      focus:ring-2 focus:ring-[#B91C1C]
-                      focus:border-transparent
-
-                      dark:bg-indigo-900/40
-                      dark:border-indigo-700
-                      dark:text-white
-                      dark:placeholder-indigo-300
-                      dark:focus:ring-indigo-400
-                    "
-                  />
-                </div>
-
-                {/* Type and Status */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-[#7F1D1D] dark:text-indigo-200 mb-2">
-                      Target Pengguna
-                    </label>
-                    <select
-                      value={type}
-                      onChange={(e) =>
-                        setType(e.target.value as AnnouncementType)
-                      }
-                      className="
-                        w-full px-4 py-3 rounded-xl border transition-all
-
-                        bg-white/80 border-[#FACC15]/50
-                        focus:ring-2 focus:ring-[#B91C1C]
-
-                        dark:bg-indigo-900/40
-                        dark:border-indigo-700
-                        dark:text-white
-                        dark:focus:ring-indigo-400
-                      "
-                    >
-                      <option value="landing">Landing Page</option>
-                      <option value="peserta">Peserta</option>
-                      <option value="mentor">Mentor</option>
-                      <option value="admin">Admin</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-[#7F1D1D] dark:text-indigo-200 mb-2">
-                      Status
-                    </label>
-                    <div className="flex items-center gap-6 mt-3">
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="radio"
-                          checked={isActive}
-                          onChange={() => setIsActive(true)}
-                          className="w-4 h-4 text-[#B91C1C] dark:text-indigo-400"
-                        />
-                        <span className="text-sm text-gray-700 dark:text-indigo-200">
-                          Aktif
-                        </span>
-                      </label>
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="radio"
-                          checked={!isActive}
-                          onChange={() => setIsActive(false)}
-                          className="w-4 h-4 text-[#B91C1C] dark:text-indigo-400"
-                        />
-                        <span className="text-sm text-gray-700 dark:text-indigo-200">
-                          Nonaktif
-                        </span>
-                      </label>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Subtitle (khusus landing) */}
-                {type === "landing" && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                  >
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Sub Judul (Landing Page)
-                    </label>
-                    <input
-                      value={subtitle}
-                      onChange={(e) => setSubtitle(e.target.value)}
-                      placeholder="Contoh: Pendaftaran Magang 2026 Dibuka"
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-purple-50 dark:bg-purple-900/20 focus:ring-2 focus:ring-[#B91C1C] focus:border-transparent transition"
-                    />
-                  </motion.div>
-                )}
-
-                {/* Content */}
-                <div>
-                  <label className="block text-sm font-medium text-[#7F1D1D] dark:text-indigo-200 mb-2">
-                    Isi Pengumuman
-                  </label>
-                  <textarea
-                    rows={5}
-                    value={content}
-                    onChange={(e) => setContent(e.target.value)}
-                    placeholder="Tulis isi pengumuman di sini..."
-                    className="
-                      w-full px-4 py-3 rounded-xl border transition-all resize-none
-
-                      bg-white/80 border-[#FACC15]/50
-                      focus:ring-2 focus:ring-[#B91C1C]
-
-                      dark:bg-indigo-900/40
-                      dark:border-indigo-700
-                      dark:text-white
-                      dark:placeholder-indigo-300
-                      dark:focus:ring-indigo-400
-                    "
-                  />
-                </div>
-
-                {/* Form Actions */}
-                <div className="
-                  flex flex-col sm:flex-row
-                  justify-end
-                  gap-3
-                  pt-6
-                  border-t border-gray-200 dark:border-gray-800
-                ">
-                  <button
-                    onClick={() => {
-                      resetForm();
-                      setShowForm(false);
-                    }}
-                    className="
-                      w-full sm:w-auto
-                      px-6 py-3 rounded-xl border transition-all
-
-                      border-gray-300 dark:border-gray-700
-                      text-gray-700 dark:text-gray-300
-                      hover:bg-gray-100 dark:hover:bg-gray-800
-                    "
-                  >
-                    Batal
-                  </button>
-                  <button
-                    onClick={handleSave}
-                    className="
-                      w-full sm:w-auto
-                      flex items-center justify-center gap-2
-                      px-8 py-3 rounded-xl font-semibold text-white shadow-lg
-                      transition-all
-
-                      bg-linear-to-r
-                      from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
-                      hover:from-[#991B1B]
-                      hover:via-[#DC2626]
-                      hover:to-[#FBBF24]
-
-                      dark:from-indigo-600
-                      dark:via-indigo-500
-                      dark:to-purple-500
-                      dark:hover:from-indigo-500
-                      dark:hover:via-purple-500
-                      dark:hover:to-fuchsia-500
-                    "
-                  >
-                    <FaSave />
-                    {editId ? "Update" : "Simpan"}
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Announcements Grid */}
-        {loading ? (
-          <div className="flex items-center justify-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#B91C1C]"></div>
-          </div>
-        ) : (
-          <>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {paginatedAnnouncements.length === 0 ? (
-                <div className="col-span-full text-center py-20">
-                  <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gray-100 dark:bg-gray-800 mb-4">
-                    <FaBullhorn className="text-3xl text-gray-400" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                    Belum ada pengumuman
-                  </h3>
-                  <p className="text-sm text-gray-500">
-                    {searchTerm || selectedType !== "all"
-                      ? "Tidak ada pengumuman yang sesuai dengan filter"
-                      : "Klik tombol Tambah Pengumuman untuk membuat pengumuman pertama"}
-                  </p>
-                </div>
-              ) : (
-                paginatedAnnouncements.map((a, index) => (
-                  <motion.div
-                    key={a._id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.05 }}
-                    className="group relative bg-white dark:bg-slate-900 rounded-2xl shadow-lg hover:shadow-2xl border border-gray-200 dark:border-gray-800 overflow-hidden transition-all duration-300 hover:-translate-y-1"
-                  >
-                    {/* Status Badge */}
-                    <div
-                      className={`absolute top-4 right-4 z-20 flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold shadow-md backdrop-blur-sm ${
-                        a.isActive
-                          ? "bg-emerald-500/90 text-white"
-                          : "bg-gray-500/90 text-white"
-                      }`}
-                    >
-                      <span className="w-2 h-2 rounded-full bg-white animate-pulse"></span>
-                      {a.isActive ? "Aktif" : "Nonaktif"}
-                    </div>
-
-                    {/* Image */}
-                    {a.image && (
-                      <div className="relative h-48 overflow-hidden">
-                        <img
-                          src={`${API_BASE}/uploads/announcements/${a.image}`}
-                          alt={a.title}
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src =
-                              "/images/placeholder.jpg";
-                          }}
-                        />
-                      </div>
-                    )}
-
-                    <div className="p-5 space-y-3">
-                      {/* Type Badge */}
-                      <div
-                        className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium border ${getTypeColor(a.type)}`}
-                      >
-                        <FaBullhorn className="text-xs" />
-                        {getTypeLabel(a.type)}
-                      </div>
-
-                      {/* Title */}
-                      <h3 className="font-bold text-lg text-gray-900 dark:text-white line-clamp-2">
-                        {a.title}
-                      </h3>
-
-                      {/* Subtitle (if landing) */}
-                      {a.type === "landing" && a.subtitle && (
-                        <p className="text-sm text-purple-600 dark:text-purple-400 font-medium">
-                          {a.subtitle}
-                        </p>
-                      )}
-
-                      {/* Content Preview */}
-                      <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
-                        {a.content}
-                      </p>
-
-                      {/* Date */}
-                      <div className="flex items-center gap-2 text-xs text-gray-400">
-                        <FaCalendarAlt />
-                        <span>{formatDate(a.createdAt)}</span>
-                      </div>
-
-                      {/* Actions */}
-                      <div className="flex items-center justify-end gap-2 pt-3 border-t border-gray-100 dark:border-gray-800">
-                        <button
-                          onClick={() => handleToggleActive(a._id, a.isActive)}
-                          className={`p-2 rounded-lg transition ${
-                            a.isActive
-                              ? "text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
-                              : "text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
-                          }`}
-                          title={a.isActive ? "Nonaktifkan" : "Aktifkan"}
-                        >
-                          {a.isActive ? <FaEye /> : <FaEyeSlash />}
-                        </button>
-                        <button
-                          onClick={() => handleEdit(a)}
-                          className="p-2 rounded-lg text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition"
-                          title="Edit"
-                        >
-                          <FaEdit />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(a._id)}
-                          className="p-2 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition"
-                          title="Hapus"
-                        >
-                          <FaTrash />
-                        </button>
-                      </div>
-                    </div>
-                  </motion.div>
-                ))
-              )}
-            </div>
-
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-center gap-2 mt-8">
-                <button
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  className="p-2 rounded-lg border border-gray-300 dark:border-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-800 transition"
-                >
-                  <FaChevronLeft />
-                </button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                  (page) => (
+                  {imagePreview && (
                     <button
-                      key={page}
-                      onClick={() => setCurrentPage(page)}
-                      className={`w-10 h-10 rounded-lg font-medium transition ${
-                        currentPage === page
-                          ? "bg-linear-to-r from-[#7F1D1D] to-[#B91C1C] text-white"
-                          : "border border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800"
-                      }`}
+                      type="button"
+                      onClick={() => {
+                        setImageFile(null);
+                        setImagePreview(null);
+                      }}
+                      className="text-xs font-semibold text-rose-600 hover:underline"
                     >
-                      {page}
+                      Hapus pratinjau
                     </button>
-                  ),
+                  )}
+                </div>
+
+                {imagePreview && (
+                  <div className="mt-3 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 max-h-48">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={imagePreview}
+                      alt="Pratinjau banner"
+                      className="w-full h-48 object-cover"
+                    />
+                  </div>
                 )}
-                <button
-                  onClick={() =>
-                    setCurrentPage((p) => Math.min(totalPages, p + 1))
-                  }
-                  disabled={currentPage === totalPages}
-                  className="p-2 rounded-lg border border-gray-300 dark:border-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-800 transition"
-                >
-                  <FaChevronRight />
-                </button>
-              </div>
-            )}
-          </>
-        )}
-      </div>
-
-      {/* ================= CONFIRM DELETE MODAL ================= */}
-      <AnimatePresence>
-        {confirmModal.show && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center px-4"
-          >
-            {/* BACKDROP */}
-            <div
-              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-              onClick={() => setConfirmModal({ show: false, id: null })}
-            />
-
-            {/* MODAL CARD */}
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              transition={{ type: "spring", stiffness: 200 }}
-              className="
-                relative w-full max-w-md rounded-2xl shadow-2xl border
-                bg-white border-[#FACC15]/40
-                dark:bg-slate-900 dark:border-indigo-700
-                p-6 sm:p-8
-              "
-            >
-              {/* ICON */}
-              <div className="
-                mx-auto mb-4
-                w-16 h-16 rounded-full flex items-center justify-center
-                bg-linear-to-br from-[#7F1D1D] to-[#F59E0B]
-                dark:from-indigo-500 dark:to-purple-500
-                text-white text-2xl
-              ">
-                <FaExclamationCircle />
               </div>
 
-              {/* TEXT */}
-              <h3 className="text-lg sm:text-xl font-bold text-center text-gray-900 dark:text-white mb-2">
-                Hapus Pengumuman?
-              </h3>
-
-              <p className="text-sm text-center text-gray-600 dark:text-indigo-200 mb-6">
-                Tindakan ini tidak dapat dibatalkan.  
-                Apakah Anda yakin ingin menghapus pengumuman ini?
-              </p>
-
-              {/* BUTTONS */}
-              <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
                 <button
-                  onClick={() =>
-                    setConfirmModal({ show: false, id: null })
-                  }
-                  className="
-                    w-full
-                    px-4 py-3 rounded-xl border font-medium transition-all
-
-                    border-gray-300 text-gray-700
-                    hover:bg-gray-100
-
-                    dark:border-indigo-700
-                    dark:text-indigo-200
-                    dark:hover:bg-indigo-800/40
-                  "
+                  type="button"
+                  disabled={saving}
+                  onClick={() => setShowForm(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
                 >
                   Batal
                 </button>
-
                 <button
-                  onClick={confirmDelete}
-                  className="
-                    w-full
-                    px-4 py-3 rounded-xl font-semibold text-white transition-all shadow-lg
-
-                    bg-linear-to-r
-                    from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
-                    hover:from-[#991B1B]
-                    hover:via-[#DC2626]
-                    hover:to-[#FBBF24]
-
-                    dark:from-indigo-600
-                    dark:via-indigo-500
-                    dark:to-purple-500
-                    dark:hover:from-indigo-500
-                    dark:hover:via-purple-500
-                    dark:hover:to-fuchsia-500
-                  "
+                  type="button"
+                  disabled={saving}
+                  onClick={handleSave}
+                  className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl text-xs font-semibold bg-[#0284c7] hover:bg-sky-700 text-white shadow-xs disabled:opacity-60 cursor-pointer"
                 >
-                  Ya, Hapus
+                  <Save className="w-3.5 h-3.5" />
+                  {saving ? "Menyimpan..." : "Simpan Pengumuman"}
                 </button>
               </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================= CONFIRM DELETE ================= */}
+      {deleteTarget && (
+        <div
+          className="fixed inset-0 z-60 bg-slate-900/65 backdrop-blur-xs flex items-center justify-center p-4"
+          onClick={() => !deleting && setDeleteTarget(null)}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-rose-100 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  Hapus Pengumuman?
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-1">
+                  Pengumuman{" "}
+                  <strong className="text-slate-900 dark:text-white">
+                    {deleteTarget.title}
+                  </strong>{" "}
+                  akan dihapus permanen dari sistem.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={() => setDeleteTarget(null)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={executeDelete}
+                className="px-4 py-2 rounded-xl text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white shadow-xs disabled:opacity-60 cursor-pointer"
+              >
+                {deleting ? "Menghapus..." : "Ya, Hapus"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

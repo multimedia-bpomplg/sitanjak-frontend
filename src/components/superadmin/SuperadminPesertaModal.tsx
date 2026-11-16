@@ -1,303 +1,271 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
-  FiX,
-  FiUser,
-  FiMail,
-  FiPhone,
-  FiBriefcase,
-  FiBook,
-  FiCalendar,
-  FiBookOpen,
-  FiFileText,
-  FiFile,
-} from "react-icons/fi";
+  BookOpen,
+  Briefcase,
+  Calendar,
+  FileText,
+  GraduationCap,
+  Mail,
+  Phone,
+  ShieldCheck,
+  User,
+  UserCheck,
+  X,
+} from "lucide-react";
 import SuratSelesaiUpload from "./SuratSelesaiUpload";
 
+export type SuperadminPesertaItem = {
+  pendaftaranId: string;
+  pesertaId?: string;
+  nama: string;
+  email: string;
+  wa: string;
+  posisi: string;
+  jurusan?: string;
+  kategori?: string;
+  mentor?: {
+    _id?: string;
+    name: string;
+    email?: string;
+  } | null;
+  statusMagang?: string;
+  isTerdaftar?: boolean;
+  tanggalMulaiMagang: string;
+  tanggalSelesaiMagang: string;
+  createdAt?: string;
+};
+
 type Props = {
-  peserta: any;
+  peserta: SuperadminPesertaItem;
   onClose: () => void;
   onViewLogbook: (email: string) => void;
   onViewLaporanAkhir: (email: string) => void;
   onSuratSelesaiSuccess?: () => void;
 };
 
+type TabKey = "profil" | "logbook" | "laporan" | "suratSelesai";
+
 export default function SuperadminPesertaModal({
   peserta,
   onClose,
   onViewLogbook,
   onViewLaporanAkhir,
+  onSuratSelesaiSuccess,
 }: Props) {
-  const [activeTab, setActiveTab] = useState<
-    "info" | "logbook" | "laporan" | "suratSelesai"
-  >("info");
+  const [activeTab, setActiveTab] = useState<TabKey>("profil");
 
-  const [suratStatus, setSuratStatus] = useState<"belum" | "sudah">("belum");
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
+
+  const initials =
+    peserta?.nama
+      ?.split(" ")
+      .filter(Boolean)
+      .map((p) => p[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase() || "P";
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-      <div
-        className="
-          w-full max-w-5xl
-          bg-white/90 dark:bg-white/5
-          backdrop-blur
-          rounded-3xl
-          shadow-2xl
-          overflow-hidden
-          flex flex-col
-          max-h-[92vh]
-        "
-      >
-        {/* ================= HEADER ================= */}
-        <div
-          className="
-            px-6 py-5
-            bg-linear-to-r
-            from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
-            dark:from-indigo-600 dark:to-violet-600
-            text-white
-          "
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center">
-                <FiUser className="text-2xl" />
-              </div>
-              <div>
-                <h2 className="text-xl font-extrabold">Detail Peserta</h2>
-                <p className="text-sm opacity-90">{peserta?.nama}</p>
-              </div>
+    <div
+      className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="w-full max-w-3xl max-h-[90vh] rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col overflow-hidden">
+        {/* Header */}
+        <div className="bg-linear-to-r from-[#0284c7] to-blue-700 px-6 py-5 text-white flex items-center justify-between gap-4 shrink-0">
+          <div className="flex items-center gap-3.5 min-w-0">
+            <div className="w-12 h-12 rounded-2xl bg-white/15 border border-white/25 flex items-center justify-center text-base font-extrabold shrink-0">
+              {initials}
             </div>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-white/20 rounded-lg transition"
-            >
-              <FiX className="text-2xl" />
-            </button>
+            <div className="min-w-0">
+              <h2 className="text-lg sm:text-xl font-bold truncate">
+                {peserta?.nama}
+              </h2>
+              <p className="text-xs text-sky-100 truncate">
+                {peserta?.email} • {peserta?.posisi || "-"}
+              </p>
+            </div>
           </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Tutup detail peserta"
+            className="p-2 rounded-xl bg-white/15 hover:bg-white/25 text-white transition shrink-0"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
 
-        {/* ================= TABS ================= */}
-        <div className="px-6 pt-4">
-          <div className="flex flex-wrap gap-2 bg-slate-100 dark:bg-indigo-950 p-1.5 rounded-2xl">
-            <TabButton
-              active={activeTab === "info"}
-              onClick={() => setActiveTab("info")}
-            >
-              Informasi
-            </TabButton>
-            <TabButton
-              active={activeTab === "logbook"}
-              onClick={() => setActiveTab("logbook")}
-            >
-              Logbook
-            </TabButton>
-            <TabButton
-              active={activeTab === "laporan"}
-              onClick={() => setActiveTab("laporan")}
-            >
-              Laporan Akhir
-            </TabButton>
-            <TabButton
-              active={activeTab === "suratSelesai"}
-              onClick={() => setActiveTab("suratSelesai")}
-            >
-              <span className="flex items-center gap-2">
-                <FiFile className="text-sm" />
-                Kirim Surat Selesai
-              </span>
-            </TabButton>
-          </div>
+        {/* Tab Bar */}
+        <div className="px-5 py-3 bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 flex flex-wrap gap-1.5 shrink-0">
+          {(
+            [
+              { key: "profil", label: "Profil Peserta" },
+              { key: "logbook", label: "Logbook" },
+              { key: "laporan", label: "Laporan Akhir" },
+              { key: "suratSelesai", label: "Surat Selesai Magang" },
+            ] as Array<{ key: TabKey; label: string }>
+          ).map((tab) => {
+            const active = activeTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setActiveTab(tab.key)}
+                className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition ${
+                  active
+                    ? "bg-[#0284c7] text-white shadow-xs"
+                    : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
+                }`}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
         </div>
 
-        {/* ================= BODY ================= */}
-        <div className="flex-1 overflow-y-auto p-6">
-          {/* ---------- INFO ---------- */}
-          {activeTab === "info" && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <InfoCard icon={<FiUser />} label="Nama" value={peserta?.nama} />
+        {/* Content */}
+        <div className="p-5 sm:p-6 overflow-y-auto">
+          {activeTab === "profil" && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <InfoCard
-                icon={<FiMail />}
+                icon={<User className="w-4 h-4" />}
+                label="Nama Lengkap"
+                value={peserta?.nama}
+              />
+              <InfoCard
+                icon={<Mail className="w-4 h-4" />}
                 label="Email"
                 value={peserta?.email}
               />
               <InfoCard
-                icon={<FiPhone />}
+                icon={<Phone className="w-4 h-4" />}
                 label="WhatsApp"
                 value={peserta?.wa}
               />
               <InfoCard
-                icon={<FiBriefcase />}
-                label="Posisi"
+                icon={<Briefcase className="w-4 h-4" />}
+                label="Posisi / Formasi"
                 value={peserta?.posisi}
               />
               <InfoCard
-                icon={<FiBook />}
+                icon={<GraduationCap className="w-4 h-4" />}
                 label="Jurusan"
-                value={peserta?.jurusan}
+                value={peserta?.jurusan || "-"}
               />
               <InfoCard
-                icon={<FiCalendar />}
-                label="Kategori"
-                value={peserta?.kategori}
+                icon={<ShieldCheck className="w-4 h-4" />}
+                label="Status Akun"
+                value={
+                  peserta?.isTerdaftar
+                    ? "Sudah Memiliki Akun"
+                    : "Belum Ada Akun"
+                }
               />
-
-              <div className="md:col-span-2">
+              <div className="sm:col-span-2">
                 <InfoCard
-                  icon={<FiCalendar />}
+                  icon={<Calendar className="w-4 h-4" />}
                   label="Periode Magang"
-                  value={`${peserta?.tanggalMulaiMagang} – ${peserta?.tanggalSelesaiMagang}`}
+                  value={`${peserta?.tanggalMulaiMagang || "-"} s/d ${peserta?.tanggalSelesaiMagang || "-"}`}
                 />
               </div>
 
-              {peserta?.mentor && (
-                <div
-                  className="
-                    md:col-span-2
-                    p-5 rounded-2xl
-                    bg-linear-to-r
-                    from-[#FFF1F2] to-[#FEF3C7]
-                    dark:from-indigo-900/40 dark:to-violet-900/40
-                    border border-[#FCA5A5]/40 dark:border-indigo-500/30
-                  "
-                >
-                  <p className="text-sm font-semibold text-[#7F1D1D] dark:text-indigo-300 mb-1">
-                    Mentor
-                  </p>
-                  <p className="font-bold text-slate-800 dark:text-white">
-                    {peserta.mentor.name}
-                  </p>
-                  <p className="text-sm text-slate-600 dark:text-slate-300">
-                    {peserta.mentor.email}
-                  </p>
+              <div className="sm:col-span-2 p-4 rounded-2xl border border-sky-200 dark:border-sky-800/70 bg-sky-50/70 dark:bg-sky-950/30 flex items-start gap-3">
+                <div className="w-9 h-9 rounded-xl bg-[#0284c7] text-white flex items-center justify-center shrink-0">
+                  <UserCheck className="w-4 h-4" />
                 </div>
-              )}
+                <div>
+                  <p className="text-xs font-semibold text-[#0284c7] dark:text-sky-300">
+                    Mentor Pembimbing
+                  </p>
+                  {peserta?.mentor ? (
+                    <>
+                      <p className="text-sm font-bold text-slate-900 dark:text-white mt-0.5">
+                        {peserta.mentor.name}
+                      </p>
+                      {peserta.mentor.email && (
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          {peserta.mentor.email}
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    <p className="text-sm font-semibold text-amber-600 dark:text-amber-400 mt-0.5">
+                      Belum ditetapkan
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
           )}
 
-          {/* ---------- LOGBOOK ---------- */}
           {activeTab === "logbook" && (
-            <div className="flex flex-col items-center justify-center text-center py-12">
-              <div
-                className="
-                  w-20 h-20 rounded-full
-                  bg-linear-to-br from-[#7F1D1D] to-[#F59E0B]
-                  dark:from-indigo-600 dark:to-violet-500
-                  flex items-center justify-center
-                  text-white mb-5
-                  shadow-lg
-                "
-              >
-                <FiBookOpen className="text-3xl" />
+            <div className="flex flex-col items-center justify-center text-center py-10">
+              <div className="w-16 h-16 rounded-2xl bg-linear-to-br from-[#0284c7] to-blue-700 text-white flex items-center justify-center shadow-md mb-4">
+                <BookOpen className="w-7 h-7" />
               </div>
-              <h3 className="text-xl font-bold mb-2">Logbook Peserta</h3>
-              <p className="text-slate-600 dark:text-slate-400 mb-8 max-w-md">
-                Lihat seluruh aktivitas harian peserta selama menjalani magang.
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1.5">
+                Logbook Aktivitas Peserta
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-md mb-6">
+                Tinjau seluruh catatan aktivitas harian peserta selama masa
+                magang.
               </p>
               <button
+                type="button"
                 onClick={() => onViewLogbook(peserta?.email)}
-                className="
-                  px-8 py-4 rounded-xl
-                  bg-linear-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
-                  dark:from-indigo-600 dark:to-violet-500
-                  text-white font-semibold
-                  shadow-md hover:shadow-xl
-                  transition-all hover:-translate-y-1
-                  flex items-center gap-3
-                "
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#0284c7] hover:bg-sky-700 text-white text-sm font-semibold shadow-sm transition"
               >
-                <FiBookOpen className="text-lg" />
-                Buka Logbook
+                <BookOpen className="w-4 h-4" />
+                Buka Logbook Peserta
               </button>
             </div>
           )}
 
-          {/* ---------- LAPORAN AKHIR ---------- */}
           {activeTab === "laporan" && (
-            <div className="flex flex-col items-center justify-center text-center py-12">
-              <div
-                className="
-                  w-20 h-20 rounded-full
-                  bg-linear-to-br from-[#7F1D1D] to-[#F59E0B]
-                  dark:from-indigo-600 dark:to-violet-500
-                  flex items-center justify-center
-                  text-white mb-5
-                  shadow-lg
-                "
-              >
-                <FiFileText className="text-3xl" />
+            <div className="flex flex-col items-center justify-center text-center py-10">
+              <div className="w-16 h-16 rounded-2xl bg-linear-to-br from-[#0284c7] to-blue-700 text-white flex items-center justify-center shadow-md mb-4">
+                <FileText className="w-7 h-7" />
               </div>
-              <h3 className="text-xl font-bold mb-2">Laporan Akhir Magang</h3>
-              <p className="text-slate-600 dark:text-slate-400 mb-8 max-w-md">
-                Lihat laporan akhir yang telah dibuat peserta sebagai hasil dari
-                program magang.
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1.5">
+                Laporan Akhir Magang
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-md mb-6">
+                Lihat dokumen laporan akhir dan penilaian yang diunggah peserta.
               </p>
               <button
+                type="button"
                 onClick={() => onViewLaporanAkhir(peserta?.email)}
-                className="
-                  px-8 py-4 rounded-xl
-                  bg-linear-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
-                  dark:from-indigo-600 dark:to-violet-500
-                  text-white font-semibold
-                  shadow-md hover:shadow-xl
-                  transition-all hover:-translate-y-1
-                  flex items-center gap-3
-                "
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#0284c7] hover:bg-sky-700 text-white text-sm font-semibold shadow-sm transition"
               >
-                <FiFileText className="text-lg" />
-                Lihat Laporan Akhir
+                <FileText className="w-4 h-4" />
+                Buka Laporan Akhir
               </button>
             </div>
           )}
 
-          {/* ---------- SURAT SELESAI MAGANG ---------- */}
           {activeTab === "suratSelesai" && (
             <SuratSelesaiUpload
               peserta={peserta}
               onSuccess={() => {
-                // Optional: refresh data atau notifikasi
+                onSuratSelesaiSuccess?.();
               }}
             />
           )}
         </div>
       </div>
     </div>
-  );
-}
-
-/* ================= SMALL COMPONENTS ================= */
-
-function TabButton({
-  children,
-  active,
-  onClick,
-}: {
-  children: React.ReactNode;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`
-        px-5 py-2.5 rounded-xl text-sm font-semibold transition
-        ${
-          active
-            ? `
-              bg-white dark:bg-indigo-600
-              text-[#7F1D1D] dark:text-white
-              shadow
-            `
-            : `
-              text-slate-500 dark:text-slate-300
-              hover:bg-white/60 dark:hover:bg-indigo-900/40
-            `
-        }
-      `}
-    >
-      {children}
-    </button>
   );
 }
 
@@ -308,81 +276,17 @@ function InfoCard({
 }: {
   icon: React.ReactNode;
   label: string;
-  value: string;
+  value?: string;
 }) {
   return (
-    <div
-      className="
-        p-4 rounded-2xl
-        border border-[#FCA5A5]/40 dark:border-indigo-500/30
-        bg-white/80 dark:bg-indigo-950
-        backdrop-blur
-        hover:shadow-md transition
-      "
-    >
-      <div className="flex items-center gap-2 text-slate-500 dark:text-slate-300 text-sm mb-1">
-        {icon}
-        {label}
+    <div className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40">
+      <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 mb-1">
+        <span className="text-[#0284c7] dark:text-sky-400">{icon}</span>
+        <span>{label}</span>
       </div>
-      <p className="font-semibold text-slate-800 dark:text-white">
+      <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 break-words">
         {value || "-"}
       </p>
-    </div>
-  );
-}
-
-function ActionCard({
-  title,
-  desc,
-  icon,
-  onClick,
-  label,
-}: {
-  title: string;
-  desc: string;
-  icon: React.ReactNode;
-  color: "amber" | "emerald";
-  onClick: () => void;
-  label: string;
-}) {
-  return (
-    <div
-      className="
-        p-6 rounded-2xl
-        bg-white/80 dark:bg-indigo-950
-        border border-slate-200 dark:border-indigo-500/30
-        shadow hover:shadow-xl
-        transition flex flex-col
-      "
-    >
-      <div className="flex items-center gap-3 mb-3">
-        <div
-          className="
-            w-10 h-10 rounded-xl
-            bg-linear-to-br from-[#7F1D1D] to-[#F59E0B]
-            dark:from-indigo-600 dark:to-violet-500
-            flex items-center justify-center
-            text-white
-          "
-        >
-          {icon}
-        </div>
-        <h3 className="font-bold text-lg">{title}</h3>
-      </div>
-      <p className="text-sm text-slate-600 dark:text-slate-400 mb-5">{desc}</p>
-      <button
-        onClick={onClick}
-        className="
-          mt-auto
-          px-5 py-2.5 rounded-xl
-          bg-linear-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
-          dark:from-indigo-600 dark:to-violet-500
-          text-white font-semibold
-          hover:shadow-xl transition
-        "
-      >
-        {label}
-      </button>
     </div>
   );
 }

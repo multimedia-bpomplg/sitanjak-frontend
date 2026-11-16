@@ -1,1136 +1,880 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  HiPlus,
-  HiTrash,
-  HiPencil,
+  AlertTriangle,
+  Building2,
+  ChevronDown,
+  ChevronUp,
+  Edit3,
+  GraduationCap,
+  Layers,
+  Plus,
+  RefreshCw,
+  Save,
+  Search,
+  Trash2,
+  X,
+} from "lucide-react";
+import {
   HiAcademicCap,
-  HiOfficeBuilding,
-  HiShieldCheck,
   HiBeaker,
+  HiOfficeBuilding,
   HiSearch,
+  HiShieldCheck,
   HiSpeakerphone,
-  HiEye,
-  HiEyeOff,
-  HiOutlineRefresh,
-  HiOutlineChevronDown,
-  HiOutlineChevronUp,
-  HiX,
 } from "react-icons/hi";
-import { motion, AnimatePresence } from "framer-motion";
-import { useConfirm } from "@/components/ui/ConfirmProvider";
+import PaginationFooter from "@/components/dashboard/PaginationFooter";
+import { TablePageSkeleton } from "@/components/dashboard/skeletons";
 import { showToast } from "@/components/ui/toastDashboard";
 
-const API = process.env.NEXT_PUBLIC_API_URL;
+/* ================= TYPES ================= */
 
-export default function InformasiFungsiAdmin() {
-  const [data, setData] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState<any>({
-    title: "",
-    desc: "",
-    jurusan: [],
-    iconName: "HiOfficeBuilding",
+interface FungsiItem {
+  _id: string;
+  title: string;
+  desc: string;
+  jurusan: string[];
+  iconName: string;
+  gradient: string;
+  lightBg?: string;
+  border?: string;
+  text?: string;
+}
+
+/* ================= CONSTANTS & HELPERS ================= */
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
+const ITEMS_PER_PAGE = 10;
+
+const ICON_OPTIONS = [
+  { key: "HiOfficeBuilding", label: "Tata Usaha" },
+  { key: "HiShieldCheck", label: "Penindakan" },
+  { key: "HiBeaker", label: "Pengujian" },
+  { key: "HiSearch", label: "Pemeriksaan" },
+  { key: "HiSpeakerphone", label: "Komunikasi" },
+  { key: "HiAcademicCap", label: "Akademik" },
+];
+
+const COLOR_THEMES = [
+  {
+    label: "Sky / Blue",
+    gradient: "from-blue-500 to-cyan-500",
+    lightBg: "bg-sky-50",
+    border: "border-sky-200",
+    text: "text-sky-700",
+  },
+  {
+    label: "Amber",
     gradient: "from-amber-500 to-orange-500",
     lightBg: "bg-amber-50",
     border: "border-amber-200",
     text: "text-amber-700",
-  });
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [showModal, setShowModal] = useState(false);
+  },
+  {
+    label: "Emerald",
+    gradient: "from-emerald-500 to-teal-500",
+    lightBg: "bg-emerald-50",
+    border: "border-emerald-200",
+    text: "text-emerald-700",
+  },
+  {
+    label: "Rose",
+    gradient: "from-red-500 to-rose-600",
+    lightBg: "bg-rose-50",
+    border: "border-rose-200",
+    text: "text-rose-700",
+  },
+  {
+    label: "Purple",
+    gradient: "from-purple-500 to-pink-500",
+    lightBg: "bg-purple-50",
+    border: "border-purple-200",
+    text: "text-purple-700",
+  },
+];
+
+function renderFungsiIcon(iconName?: string) {
+  switch (iconName?.trim()) {
+    case "HiShieldCheck":
+      return <HiShieldCheck className="w-5 h-5" />;
+    case "HiBeaker":
+      return <HiBeaker className="w-5 h-5" />;
+    case "HiSearch":
+      return <HiSearch className="w-5 h-5" />;
+    case "HiSpeakerphone":
+      return <HiSpeakerphone className="w-5 h-5" />;
+    case "HiAcademicCap":
+      return <HiAcademicCap className="w-5 h-5" />;
+    default:
+      return <HiOfficeBuilding className="w-5 h-5" />;
+  }
+}
+
+/* ================= PAGE ================= */
+
+export default function InformasiFungsiSuperadminPage() {
+  const [data, setData] = useState<FungsiItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
   const [search, setSearch] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  /* ---------- Form Modal ---------- */
+  const [showModal, setShowModal] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [form, setForm] = useState({
+    title: "",
+    desc: "",
+    iconName: "HiOfficeBuilding",
+    gradient: "from-blue-500 to-cyan-500",
+    lightBg: "bg-sky-50",
+    border: "border-sky-200",
+    text: "text-sky-700",
+  });
   const [jurusanInput, setJurusanInput] = useState("");
   const [jurusanList, setJurusanList] = useState<string[]>([]);
-  const [descError, setDescError] = useState("");
 
-  const token =
-    typeof window !== "undefined" ? localStorage.getItem("token") : "";
+  /* ---------- Delete Modal ---------- */
+  const [deleteTarget, setDeleteTarget] = useState<FungsiItem | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
-  // Icons mapping untuk preview
-  const iconMap: any = {
-    HiOfficeBuilding: <HiOfficeBuilding />,
-    HiShieldCheck: <HiShieldCheck />,
-    HiBeaker: <HiBeaker />,
-    HiSearch: <HiSearch />,
-    HiSpeakerphone: <HiSpeakerphone />,
-    HiAcademicCap: <HiAcademicCap />,
-  };
+  /* ================= FETCH ================= */
 
-  const confirm = useConfirm();
-
-  /* ========== FUNGSI JURUSAN ========== */
-  const addJurusan = () => {
-    if (!jurusanInput.trim()) {
-      showToast.error("Jurusan tidak boleh kosong");
-      return;
-    }
-
-    if (jurusanList.includes(jurusanInput.trim())) {
-      showToast.error("Jurusan sudah ada");
-      return;
-    }
-
-    setJurusanList([...jurusanList, jurusanInput.trim()]);
-    setJurusanInput("");
-
-    showToast.success("Jurusan ditambahkan");
-  };
-
-  const removeJurusan = (index: number) => {
-    setJurusanList(jurusanList.filter((_, i) => i !== index));
-  };
-
-  /* LOAD DATA */
-  const fetchData = async (showLoading = false) => {
-    let toastId: any;
-
+  const fetchData = useCallback(async (isManual = false) => {
     try {
-      if (showLoading) {
-        toastId = showToast.loading("Memuat data...");
-      }
+      if (isManual) setRefreshing(true);
+      else setLoading(true);
 
-      setLoading(true);
-
-      const res = await fetch(`${API}/informasi-fungsi`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_BASE}/informasi-fungsi`, {
+        headers: { Authorization: `Bearer ${token}` },
       });
 
-      if (!res.ok) throw new Error("Gagal memuat data");
-
+      if (!res.ok) throw new Error("Gagal memuat informasi fungsi");
       const json = await res.json();
-      setData(json.data || json);
-
-      if (showLoading) {
-        showToast.updateSuccess(toastId, "Data berhasil dimuat");
-      }
-    } catch (error) {
-      console.error(error);
-      showToast.error("Gagal memuat data");
+      const rows = Array.isArray(json)
+        ? json
+        : Array.isArray(json?.data)
+          ? json.data
+          : [];
+      setData(rows);
+    } catch (err) {
+      showToast.error(
+        err instanceof Error ? err.message : "Gagal memuat informasi fungsi",
+      );
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
-  /* CREATE / UPDATE */
-  const handleSubmit = async (e: any) => {
+  /* ================= ESCAPE KEY HANDLER ================= */
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (deleteTarget && !deleting) setDeleteTarget(null);
+      else if (showModal && !saving) setShowModal(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [deleteTarget, deleting, showModal, saving]);
+
+  /* ================= FILTERING & PAGINATION ================= */
+
+  const stats = useMemo(() => {
+    const totalJurusan = data.reduce(
+      (acc, item) => acc + (item.jurusan?.length || 0),
+      0,
+    );
+    return {
+      totalFungsi: data.length,
+      totalJurusan,
+    };
+  }, [data]);
+
+  const filteredData = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return data;
+    return data.filter(
+      (item) =>
+        item.title?.toLowerCase().includes(q) ||
+        item.desc?.toLowerCase().includes(q) ||
+        item.jurusan?.some((j) => j.toLowerCase().includes(q)),
+    );
+  }, [data, search]);
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredData.length / ITEMS_PER_PAGE),
+  );
+  const safePage = Math.min(currentPage, totalPages);
+
+  const paginatedData = useMemo(() => {
+    const start = (safePage - 1) * ITEMS_PER_PAGE;
+    return filteredData.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredData, safePage]);
+
+  /* ================= FORM HANDLERS ================= */
+
+  const openCreateModal = () => {
+    setEditingId(null);
+    setForm({
+      title: "",
+      desc: "",
+      iconName: "HiOfficeBuilding",
+      gradient: "from-blue-500 to-cyan-500",
+      lightBg: "bg-sky-50",
+      border: "border-sky-200",
+      text: "text-sky-700",
+    });
+    setJurusanList([]);
+    setJurusanInput("");
+    setShowModal(true);
+  };
+
+  const openEditModal = (item: FungsiItem) => {
+    setEditingId(item._id);
+    setForm({
+      title: item.title || "",
+      desc: item.desc || "",
+      iconName: item.iconName || "HiOfficeBuilding",
+      gradient: item.gradient || "from-blue-500 to-cyan-500",
+      lightBg: item.lightBg || "bg-sky-50",
+      border: item.border || "border-sky-200",
+      text: item.text || "text-sky-700",
+    });
+    setJurusanList(Array.isArray(item.jurusan) ? item.jurusan : []);
+    setJurusanInput("");
+    setShowModal(true);
+  };
+
+  const addJurusan = () => {
+    const clean = jurusanInput.trim();
+    if (!clean) {
+      showToast.error("Nama jurusan tidak boleh kosong");
+      return;
+    }
+    if (jurusanList.some((j) => j.toLowerCase() === clean.toLowerCase())) {
+      showToast.error("Jurusan sudah ada dalam daftar");
+      return;
+    }
+    setJurusanList((prev) => [...prev, clean]);
+    setJurusanInput("");
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-
+    if (!form.title.trim()) {
+      showToast.error("Judul fungsi wajib diisi");
+      return;
+    }
     if (form.desc.trim().length < 20) {
-      setDescError("Deskripsi minimal 20 karakter");
-
-      showToast.error(
-        "Deskripsi terlalu pendek. Minimal 20 karakter agar lebih informatif."
-      );
-
+      showToast.error("Deskripsi minimal 20 karakter");
+      return;
+    }
+    if (jurusanList.length === 0) {
+      showToast.error("Tambahkan minimal 1 jurusan yang diterima");
       return;
     }
 
-    const payload = {
-      ...form,
-      jurusan: jurusanList,
-    };
-
+    const token = localStorage.getItem("token");
     const toastId = showToast.loading(
-      editingId ? "Mengupdate data..." : "Menyimpan data..."
+      editingId ? "Memperbarui informasi fungsi..." : "Menyimpan informasi fungsi...",
     );
 
     try {
+      setSaving(true);
       const res = await fetch(
         editingId
-          ? `${API}/informasi-fungsi/${editingId}`
-          : `${API}/informasi-fungsi`,
+          ? `${API_BASE}/informasi-fungsi/${editingId}`
+          : `${API_BASE}/informasi-fungsi`,
         {
           method: editingId ? "PUT" : "POST",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify(payload),
-        }
+          body: JSON.stringify({
+            ...form,
+            title: form.title.trim(),
+            desc: form.desc.trim(),
+            jurusan: jurusanList,
+          }),
+        },
       );
 
-      if (!res.ok) throw new Error("Gagal menyimpan data");
+      if (!res.ok) throw new Error("Gagal menyimpan informasi fungsi");
 
       showToast.updateSuccess(
         toastId,
         editingId
-          ? "Data berhasil diperbarui 🎉"
-          : "Data berhasil ditambahkan 🎉"
+          ? "Informasi fungsi berhasil diperbarui"
+          : "Informasi fungsi berhasil ditambahkan",
       );
-
-      // Reset form
-      setForm({
-        title: "",
-        desc: "",
-        jurusan: [],
-        iconName: "HiOfficeBuilding",
-        gradient: "from-amber-500 to-orange-500",
-        lightBg: "bg-amber-50",
-        border: "border-amber-200",
-        text: "text-amber-700",
-      });
-
-      setJurusanList([]);
-      setJurusanInput("");
-      setEditingId(null);
       setShowModal(false);
-
-      fetchData();
-    } catch (error) {
-      console.error(error);
-      showToast.updateError(toastId, "Terjadi kesalahan saat menyimpan");
+      await fetchData(true);
+    } catch (err) {
+      showToast.updateError(
+        toastId,
+        err instanceof Error ? err.message : "Gagal menyimpan data",
+      );
+    } finally {
+      setSaving(false);
     }
   };
 
-  /* DELETE */
-  const handleDelete = async (id: string) => {
-    confirm({
-      title: "Hapus Data?",
-      message:
-        "Data yang dihapus tidak dapat dikembalikan. Apakah Anda yakin ingin melanjutkan?",
-      onConfirm: async () => {
-        const toastId = showToast.loading("Menghapus data...");
+  const executeDelete = async () => {
+    if (!deleteTarget) return;
+    const token = localStorage.getItem("token");
+    const toastId = showToast.loading("Menghapus informasi fungsi...");
 
-        try {
-          const res = await fetch(`${API}/informasi-fungsi/${id}`, {
-            method: "DELETE",
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          });
+    try {
+      setDeleting(true);
+      const res = await fetch(
+        `${API_BASE}/informasi-fungsi/${deleteTarget._id}`,
+        {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
 
-          if (!res.ok) throw new Error("Gagal menghapus");
+      if (!res.ok) throw new Error("Gagal menghapus data");
 
-          showToast.updateSuccess(toastId, "Data berhasil dihapus 🗑");
-
-          fetchData();
-        } catch (error) {
-          console.error(error);
-          showToast.updateError(toastId, "Gagal menghapus data");
-        }
-      },
-    });
+      showToast.updateSuccess(toastId, "Informasi fungsi berhasil dihapus");
+      setDeleteTarget(null);
+      await fetchData(true);
+    } catch (err) {
+      showToast.updateError(
+        toastId,
+        err instanceof Error ? err.message : "Gagal menghapus data",
+      );
+    } finally {
+      setDeleting(false);
+    }
   };
 
-  /* EDIT */
-  const handleEdit = (item: any) => {
-    setForm({
-      title: item.title,
-      desc: item.desc || item.desc,
-      jurusan: item.jurusan,
-      iconName: item.iconName || "HiOfficeBuilding",
-      gradient: item.gradient || "from-amber-500 to-orange-500",
-      lightBg: item.lightBg || "bg-amber-50",
-      border: item.border || "border-amber-200",
-      text: item.text || "text-amber-700",
-    });
-    setJurusanList(item.jurusan || []);
-    setEditingId(item._id);
-    setShowModal(true);
-  };
+  /* ================= RENDER ================= */
 
-  /* RESET FORM */
-  const resetForm = () => {
-    setForm({
-      title: "",
-      desc: "",
-      jurusan: [],
-      iconName: "HiOfficeBuilding",
-      gradient: "from-amber-500 to-orange-500",
-      lightBg: "bg-amber-50",
-      border: "border-amber-200",
-      text: "text-amber-700",
-    });
-    setJurusanList([]);
-    setJurusanInput("");
-    setEditingId(null);
-  };
-
-  /* OPEN CREATE MODAL */
-  const openCreateModal = () => {
-    resetForm();
-    setShowModal(true);
-  };
-
-  // Filter data berdasarkan pencarian
-  const filteredData = data.filter(
-    (item) =>
-      item.title?.toLowerCase().includes(search.toLowerCase()) ||
-      item.desc?.toLowerCase().includes(search.toLowerCase()) ||
-      item.jurusan?.some((j: string) =>
-        j.toLowerCase().includes(search.toLowerCase()),
-      ),
-  );
-
-  // Preview Card Component
-  const PreviewCard = ({ item }: { item: any }) => {
-    const iconKey = item.iconName?.trim() || "HiOfficeBuilding";
-    const IconComponent = iconMap[iconKey] || <HiOfficeBuilding />;
-    const isExpanded = expandedId === item._id;
-
+  if (loading) {
     return (
-      <motion.div
-        layout
-        initial={{ opacity: 0, y: 15 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0 }}
-        className="
-          group
-          rounded-2xl sm:rounded-3xl
-          border border-[#FCA5A5]/30 dark:border-indigo-500/30
-          bg-linear-to-br
-          from-white via-[#FFFDF8] to-[#FFF4EC]
-          dark:from-indigo-950 dark:via-indigo-900 dark:to-indigo-800
-          backdrop-blur
-          shadow-sm hover:shadow-lg
-          transition
-        "
-      >
-        <div className="p-4 sm:p-6">
-        <div className="flex gap-3 sm:gap-4">
+      <TablePageSkeleton
+        title="Manajemen Informasi Fungsi"
+        subtitle="Memuat daftar fungsi dan jurusan penerima magang..."
+        columnsCount={4}
+        rowsCount={5}
+      />
+    );
+  }
 
-            {/* ICON */}
-            <div
-              className={`
-                w-10 h-10 sm:w-12 sm:h-12
-                shrink-0
-                rounded-xl
-                bg-linear-to-br ${item.gradient}
-                text-white
-                flex items-center justify-center
-                text-base sm:text-lg
-                shadow
-              `}
+  return (
+    <div className="space-y-6">
+      {/* ================= PAGE HEADER ================= */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-slate-100 dark:border-slate-800">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+            Manajemen Informasi Fungsi
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
+            Kelola informasi fungsi kerja BPOM dan daftar jurusan yang ditampilkan
+            pada halaman utama
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+          <button
+            type="button"
+            onClick={() => fetchData(true)}
+            disabled={refreshing}
+            className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition disabled:opacity-50"
+          >
+            <RefreshCw
+              className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`}
+            />
+            Segarkan
+          </button>
+
+          <button
+            type="button"
+            onClick={openCreateModal}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-linear-to-r from-[#0284c7] to-blue-700 hover:from-[#0369a1] hover:to-blue-800 shadow-sm transition cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            Tambah Fungsi Baru
+          </button>
+        </div>
+      </div>
+
+      {/* ================= KPI CARDS ================= */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 sm:p-5 flex items-center justify-between shadow-2xs">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+              Total Fungsi Terdaftar
+            </p>
+            <p className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white mt-1 tabular-nums">
+              {stats.totalFungsi}
+            </p>
+            <p className="text-[11px] text-slate-400 mt-0.5">
+              Unit fungsi pada halaman publik
+            </p>
+          </div>
+          <div className="p-3 rounded-xl bg-sky-50 dark:bg-sky-950/60 text-[#0284c7] dark:text-sky-400">
+            <Building2 className="w-6 h-6" />
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 sm:p-5 flex items-center justify-between shadow-2xs">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+              Total Entri Jurusan
+            </p>
+            <p className="text-2xl sm:text-3xl font-extrabold text-[#0284c7] dark:text-sky-400 mt-1 tabular-nums">
+              {stats.totalJurusan}
+            </p>
+            <p className="text-[11px] text-slate-400 mt-0.5">
+              Cakupan program studi penerima
+            </p>
+          </div>
+          <div className="p-3 rounded-xl bg-sky-50 dark:bg-sky-950/60 text-[#0284c7] dark:text-sky-400">
+            <GraduationCap className="w-6 h-6" />
+          </div>
+        </div>
+      </div>
+
+      {/* ================= SEARCH BAR ================= */}
+      <div className="rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-2xs">
+        <div className="relative">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setCurrentPage(1);
+            }}
+            placeholder="Cari fungsi berdasarkan judul, deskripsi, atau jurusan..."
+            className="w-full pl-10 pr-9 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40 focus:border-[#0284c7]"
+          />
+          {search && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearch("");
+                setCurrentPage(1);
+              }}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
             >
-              {IconComponent}
-            </div>
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+      </div>
 
-            {/* CONTENT */}
-            <div className="flex-1 min-w-0">
+      {/* ================= CARDS GRID (KOTAK PERSEGI) ================= */}
+      {paginatedData.length === 0 ? (
+        <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-14 px-4 text-center">
+          <Layers className="w-9 h-9 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+          <p className="font-semibold text-slate-700 dark:text-slate-200">
+            {search ? "Informasi fungsi tidak ditemukan" : "Belum ada data fungsi"}
+          </p>
+          <p className="text-xs text-slate-400 mt-1">
+            {search
+              ? "Coba kata kunci lain"
+              : "Klik Tambah Fungsi Baru untuk mulai mengisi informasi fungsi"}
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {paginatedData.map((item) => {
+            const isExpanded = expandedId === item._id;
+            return (
+              <div
+                key={item._id}
+                className="rounded-lg border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs hover:shadow-md transition flex flex-col justify-between overflow-hidden min-w-0 min-h-60"
+              >
+                <div className="p-5 space-y-3 min-w-0">
+                  <div className="flex items-start justify-between gap-3">
+                    <div
+                      className={`w-11 h-11 rounded-lg bg-linear-to-br ${item.gradient || "from-blue-500 to-cyan-500"} text-white flex items-center justify-center shrink-0 shadow-xs`}
+                    >
+                      {renderFungsiIcon(item.iconName)}
+                    </div>
 
-              {/* HEADER ROW */}
-              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+                    <span className="inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold bg-sky-50 text-[#0284c7] border border-sky-200 dark:bg-sky-950/60 dark:text-sky-300 dark:border-sky-800 shrink-0">
+                      {item.jurusan?.length || 0} Jurusan
+                    </span>
+                  </div>
 
-                {/* Title & Desc */}
-                <div className="min-w-0">
-                  <h3 className="
-                    text-base sm:text-lg font-bold
-                    text-[#7F1D1D] dark:text-indigo-200
-                    wrap-break-words
-                  ">
-                    {item.title}
-                  </h3>
-
-                  {item.desc && (
-                    <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-1 line-clamp-2">
+                  <div className="space-y-1.5 min-w-0">
+                    <h3 className="text-base font-extrabold text-slate-900 dark:text-white wrap-anywhere line-clamp-2">
+                      {item.title}
+                    </h3>
+                    <p
+                      className={`text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed wrap-anywhere ${
+                        isExpanded ? "" : "line-clamp-3"
+                      }`}
+                    >
                       {item.desc}
                     </p>
-                  )}
-                </div>
+                  </div>
 
-                {/* ACTIONS */}
-                <div className="flex items-center gap-1 mt-1 sm:mt-0 shrink-0">
-
-                  <button
-                    onClick={() => handleEdit(item)}
-                    className="p-1.5 sm:p-2 rounded-lg text-blue-600 dark:text-indigo-300 hover:bg-blue-50 dark:hover:bg-indigo-900/40 transition"
-                  >
-                    <HiPencil className="w-4 h-4" />
-                  </button>
-
-                  <button
-                    onClick={() => handleDelete(item._id)}
-                    className="p-1.5 sm:p-2 rounded-lg text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 transition"
-                  >
-                    <HiTrash className="w-4 h-4" />
-                  </button>
-
-                  <button
-                    onClick={() =>
-                      setExpandedId(isExpanded ? null : item._id)
-                    }
-                    className="p-1.5 sm:p-2 rounded-lg text-slate-400 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-indigo-900/40 transition"
-                  >
-                    {isExpanded ? (
-                      <HiOutlineChevronUp className="w-4 h-4" />
-                    ) : (
-                      <HiOutlineChevronDown className="w-4 h-4" />
-                    )}
-                  </button>
-
-                </div>
-              </div>
-
-              {/* EXPANDED SECTION */}
-              <AnimatePresence>
-                {isExpanded && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.25 }}
-                    className="overflow-hidden"
-                  >
-                    <div className="mt-4 pt-4 border-t border-[#FCA5A5]/30 dark:border-indigo-500/30">
-                      <p className="text-xs font-semibold mb-3 text-[#7F1D1D] dark:text-indigo-300">
-                        Jurusan yang Diterima:
+                  {isExpanded && (
+                    <div className="pt-3 border-t border-slate-100 dark:border-slate-800 min-w-0">
+                      <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">
+                        Jurusan yang Diterima
                       </p>
-
-                      <div className="flex flex-wrap gap-2">
-                        {item.jurusan?.map((j: string, i: number) => (
+                      <div className="flex flex-wrap gap-1.5 min-w-0">
+                        {(item.jurusan || []).map((j, i) => (
                           <span
-                            key={i}
-                            className="
-                              px-2.5 py-1
-                              text-[11px] sm:text-xs
-                              rounded-full
-                              bg-[#FFF4EC]
-                              text-[#7F1D1D]
-                              border border-[#FCA5A5]/40
-                              dark:bg-indigo-900/50
-                              dark:text-indigo-200
-                              dark:border-indigo-500/40
-                            "
+                            key={`${j}-${i}`}
+                            className="px-2.5 py-1 rounded-md text-xs font-semibold bg-sky-50 text-[#0284c7] border border-sky-200 dark:bg-sky-950/60 dark:text-sky-300 dark:border-sky-800 wrap-anywhere max-w-full"
                           >
                             {j}
                           </span>
                         ))}
                       </div>
                     </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-            </div>
-          </div>
-        </div>
-      </motion.div>
-    );
-  };
-
-  return (
-    <div className="min-h-screen bg-linear-to-br from-slate-50 via-white to-slate-100 dark:from-[#0B0614] dark:via-[#120A24] dark:to-[#1E0F3D] p-4 sm:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
-          <div>
-            <h1 className="
-              text-3xl lg:text-4xl 
-              font-extrabold 
-              leading-tight
-              bg-clip-text text-transparent 
-              bg-linear-to-r 
-              from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
-              dark:from-indigo-400 dark:via-violet-400 dark:to-purple-400
-            ">
-              Manajemen Informasi Fungsi
-            </h1>
-            <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 mt-2">
-              Kelola informasi fungsi yang ditampilkan di halaman utama
-            </p>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => fetchData()}
-              className="
-                inline-flex items-center gap-2
-                px-4 py-2
-                rounded-lg
-                bg-linear-to-r
-                from-[#F59E0B] to-[#B91C1C]
-                dark:from-indigo-600 dark:to-indigo-800
-                text-white font-semibold text-sm
-                shadow-md shadow-[#B91C1C]/30
-                dark:shadow-indigo-600/30
-                hover:scale-[1.03]
-                transition
-              "
-              title="Refresh"
-            >
-              <HiOutlineRefresh className="w-4 h-4" />
-            </button>
-            <button
-              onClick={openCreateModal}
-              className="
-                inline-flex items-center gap-2
-                px-5 py-2
-                rounded-lg
-                bg-linear-to-r
-                from-[#7F1D1D] to-[#B91C1C]
-                dark:from-indigo-700 dark:to-indigo-600
-                text-white font-semibold text-sm
-                shadow-md shadow-[#7F1D1D]/30
-                dark:shadow-indigo-600/30
-                hover:scale-[1.03]
-                transition
-              "
-            >
-              <HiPlus className="w-4 h-4" />
-              Tambah Baru
-            </button>
-          </div>
-        </div>
-
-        {/* ===================== STATS ===================== */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
-
-          {/* Total Fungsi */}
-          <div
-            className="
-              group relative
-              rounded-2xl
-              border border-[#FCA5A5]/40 dark:border-indigo-500/30
-              bg-linear-to-br
-              from-[#FFFDF8] via-[#FFF4EC] to-white
-              dark:from-indigo-950 dark:via-indigo-900 dark:to-indigo-800
-              p-6
-              shadow-sm hover:shadow-xl
-              transition
-            "
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs uppercase tracking-wide text-[#7F1D1D] dark:text-indigo-300">
-                  Total Fungsi
-                </p>
-                <p className="text-4xl font-extrabold mt-1 text-[#7F1D1D] dark:text-white">
-                  {data.length}
-                </p>
-              </div>
-
-              <div
-                className="
-                  w-14 h-14 rounded-2xl
-                  bg-[#B91C1C]/90 dark:bg-indigo-600
-                  text-white
-                  flex items-center justify-center
-                  shadow
-                  group-hover:scale-110 transition
-                "
-              >
-                <HiOfficeBuilding className="w-7 h-7" />
-              </div>
-            </div>
-
-            <div className="mt-4 pt-4 border-t border-[#FCA5A5]/40 dark:border-indigo-500/30">
-              <p className="text-xs text-slate-600 dark:text-slate-300">
-                Jumlah seluruh fungsi yang tersedia
-              </p>
-            </div>
-          </div>
-
-          {/* Total Jurusan */}
-          <div
-            className="
-              group relative
-              rounded-2xl
-              border border-[#FCA5A5]/40 dark:border-indigo-500/30
-              bg-linear-to-br
-              from-[#FFFDF8] via-[#FFF4EC] to-white
-              dark:from-indigo-950 dark:via-indigo-900 dark:to-indigo-800
-              p-6
-              shadow-sm hover:shadow-xl
-              transition
-            "
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs uppercase tracking-wide text-[#7F1D1D] dark:text-indigo-300">
-                  Total Jurusan
-                </p>
-                <p className="text-4xl font-extrabold mt-1 text-[#7F1D1D] dark:text-white">
-                  {data.reduce((acc, item) => acc + (item.jurusan?.length || 0), 0)}
-                </p>
-              </div>
-
-              <div
-                className="
-                  w-14 h-14 rounded-2xl
-                  bg-amber-500 dark:bg-violet-500
-                  text-white
-                  flex items-center justify-center
-                  shadow
-                  group-hover:scale-110 transition
-                "
-              >
-                <HiAcademicCap className="w-7 h-7" />
-              </div>
-            </div>
-
-            <div className="mt-4 pt-4 border-t border-[#FCA5A5]/40 dark:border-indigo-500/30">
-              <p className="text-xs text-slate-600 dark:text-slate-300">
-                Total jurusan yang tersedia
-              </p>
-            </div>
-          </div>
-        </div>
-
-
-
-        {/* ===================== SEARCH BAR ===================== */}
-        <div className="mb-2">
-          <div className="relative">
-            <HiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-[#7F1D1D] dark:text-indigo-400 w-5 h-5 z-10" />
-            <input
-              type="text"
-              placeholder="Cari berdasarkan judul, deskripsi, atau jurusan..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="
-                w-full pl-11 pr-10 py-3
-                rounded-2xl
-                bg-white/90 dark:bg-white/5
-                backdrop-blur
-                border border-[#F59E0B]/40 dark:border-indigo-500/40
-                text-slate-700 dark:text-slate-100
-                placeholder:text-slate-400
-                focus:outline-none focus:ring-2
-                focus:ring-[#B91C1C]/60 dark:focus:ring-indigo-500/60
-                transition
-              "
-            />
-          </div>
-
-          <div className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-            Total {filteredData.length} dari {data.length} data
-          </div>
-        </div>
-
-        {/* Data List */}
-        {loading ? (
-          <div className="grid gap-4 sm:gap-5">
-            {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="
-                  rounded-2xl
-                  border border-[#FCA5A5]/30 dark:border-indigo-500/30
-                  bg-linear-to-br
-                  from-[#FFFDF8] via-white to-[#FFF4EC]
-                  dark:from-indigo-950 dark:via-indigo-900 dark:to-indigo-800
-                  p-4 sm:p-5
-                  animate-pulse
-                "
-              >
-                <div className="flex items-start gap-3 sm:gap-4">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-slate-200 dark:bg-indigo-700 shrink-0" />
-                  <div className="flex-1 space-y-2">
-                    <div className="h-4 w-32 sm:w-40 bg-slate-200 dark:bg-indigo-700 rounded-full" />
-                    <div className="h-3 w-full bg-slate-200 dark:bg-indigo-700 rounded-full" />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : filteredData.length === 0 ? (
-          <div
-            className="
-              text-center
-              py-14 sm:py-20
-              px-4 sm:px-6
-              rounded-3xl
-              border border-[#FCA5A5]/30 dark:border-indigo-500/30
-              bg-linear-to-br
-              from-[#FFFDF8] via-white to-[#FFF4EC]
-              dark:from-indigo-950 dark:via-indigo-900 dark:to-indigo-800
-              shadow-sm
-            "
-          >
-            <div
-              className="
-                w-16 h-16 sm:w-20 sm:h-20
-                mx-auto mb-5 sm:mb-6
-                rounded-2xl
-                flex items-center justify-center
-                bg-linear-to-br
-                from-[#F59E0B] to-[#B91C1C]
-                dark:from-indigo-600 dark:to-indigo-700
-                text-white shadow-lg
-              "
-            >
-              <HiAcademicCap className="text-2xl sm:text-3xl" />
-            </div>
-            <h3 className="text-lg sm:text-xl font-bold text-[#7F1D1D] dark:text-indigo-200 mb-2">
-              {search ? "Data tidak ditemukan" : "Belum ada data"}
-            </h3>
-            <p className="text-sm text-slate-600 dark:text-slate-300 max-w-md mx-auto">
-              {search
-                ? "Coba gunakan kata kunci lain"
-                : "Klik tombol 'Tambah Baru' untuk menambahkan data"}
-            </p>
-          </div>
-        ) : (
-          <div className="grid gap-4 sm:gap-5">
-            <AnimatePresence>
-              {filteredData.map((item) => (
-                <PreviewCard key={item._id} item={item} />
-              ))}
-            </AnimatePresence>
-          </div>
-        )}
-
-        {/* Footer Info */}
-        <div className="
-          mt-8 text-center text-sm
-          text-slate-600 dark:text-slate-300
-        ">
-          <span className="font-semibold text-[#7F1D1D] dark:text-indigo-300">
-            {filteredData.length}
-          </span>{" "}
-          dari{" "}
-          <span className="font-semibold">
-            {data.length}
-          </span>{" "}
-          data ditampilkan
-        </div>
-      </div>
-
-      {/* MODAL CREATE/EDIT */}
-      <AnimatePresence>
-        {showModal && (
-          <>
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowModal(false)}
-              className="fixed inset-0 bg-black/40 backdrop-blur-md z-50"
-            />
-
-            {/* Modal */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              transition={{ duration: 0.25 }}
-              className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 lg:p-10 pointer-events-none"
-            >
-              <div
-                className="
-                  pointer-events-auto
-                  w-full max-w-5xl
-                  max-h-[92vh] overflow-y-auto
-                  rounded-3xl
-                  border border-[#FCA5A5]/30 dark:border-indigo-500/30
-                  bg-white/90 dark:bg-indigo-950/80
-                  backdrop-blur-xl
-                  shadow-2xl
-                  transition
-                "
-              >
-                {/* Modal Header */}
-                <div
-                  className="
-                    sticky top-0 z-10
-                    px-5 sm:px-8 py-5
-                    border-b border-[#FCA5A5]/30 dark:border-indigo-500/30
-                    bg-linear-to-r
-                    from-[#FFF4EC] via-white to-[#FFFDF8]
-                    dark:from-indigo-950 dark:via-indigo-900 dark:to-indigo-800
-                    backdrop-blur
-                  "
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    
-                    {/* Left Content */}
-                    <div className="space-y-2">
-
-                      {/* Badge kecil */}
-                      <div className="
-                        inline-flex items-center
-                        px-3 py-1
-                        rounded-full
-                        text-xs font-semibold tracking-wide
-                        bg-[#FDE8E8] text-[#B91C1C]
-                        dark:bg-indigo-900/50 dark:text-indigo-300
-                      ">
-                        {editingId ? "MODE EDIT" : "MODE CREATE"}
-                      </div>
-
-                      {/* Title */}
-                      <h2
-                        className="
-                          text-lg sm:text-2xl font-extrabold leading-snug
-                          bg-linear-to-r
-                          from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
-                          dark:from-indigo-300 dark:via-violet-300 dark:to-purple-400
-                          bg-clip-text text-transparent
-                        "
-                      >
-                        {editingId
-                          ? "Edit Informasi Fungsi"
-                          : "Tambah Informasi Fungsi Baru"}
-                      </h2>
-
-                      {/* Subtitle */}
-                      <p className="text-sm text-slate-600 dark:text-slate-300 max-w-md">
-                        {editingId
-                          ? "Ubah data informasi fungsi yang sudah ada."
-                          : "Isi form berikut untuk menambahkan fungsi baru."}
-                      </p>
-                    </div>
-
-                    {/* Close Button */}
-                    <button
-                      onClick={() => setShowModal(false)}
-                      className="
-                        flex items-center justify-center
-                        w-10 h-10
-                        rounded-xl
-                        bg-white/60 
-                        hover:bg-red-50 
-                        text-red-600 
-                        shadow-sm
-                        transition
-                      "
-                    >
-                      <HiX className="w-5 h-5" />
-                    </button>
-                  </div>
+                  )}
                 </div>
 
-                {/* Modal Body */}
-                <form onSubmit={handleSubmit} className="px-6 py-6 sm:px-8 sm:py-8">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Left Column */}
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                          Judul Fungsi <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          placeholder="Contoh: Bagian Tata Usaha"
-                          className="
-                            w-full
-                            px-4 py-3
-                            rounded-2xl
-                            border border-[#FCA5A5]/40 dark:border-indigo-500/40
-                            bg-white/80 dark:bg-white/5
-                            backdrop-blur
-                            text-slate-700 dark:text-slate-100
-                            placeholder:text-slate-400
-                            focus:outline-none
-                            focus:ring-2 focus:ring-[#B91C1C]/50 dark:focus:ring-indigo-500/50
-                            transition
-                          "
-                          value={form.title}
-                          onChange={(e) =>
-                            setForm({ ...form, title: e.target.value })
-                          }
-                          required
-                        />
-                      </div>
+                <div className="px-5 py-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 flex items-center justify-between gap-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setExpandedId(isExpanded ? null : item._id)
+                    }
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+                  >
+                    <span>{isExpanded ? "Tutup Detail" : "Lihat Detail"}</span>
+                    {isExpanded ? (
+                      <ChevronUp className="w-3.5 h-3.5" />
+                    ) : (
+                      <ChevronDown className="w-3.5 h-3.5" />
+                    )}
+                  </button>
 
-                      <div>
-                        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                          Deskripsi <span className="text-red-500">*</span>
-                        </label>
-
-                        <textarea
-                          placeholder="Jelaskan tugas dan fungsi..."
-                          rows={4}
-                          className={`
-                            w-full
-                            px-4 py-3
-                            rounded-2xl
-                            border
-                            ${descError
-                              ? "border-rose-500 focus:ring-rose-500/50"
-                              : "border-[#FCA5A5]/40 dark:border-indigo-500/40 focus:ring-[#B91C1C]/50 dark:focus:ring-indigo-500/50"}
-                            bg-white/80 dark:bg-white/5
-                            backdrop-blur
-                            text-slate-700 dark:text-slate-100
-                            placeholder:text-slate-400
-                            focus:outline-none
-                            focus:ring-2
-                            transition
-                          `}
-                          value={form.desc}
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            setForm({ ...form, desc: value });
-
-                            if (value.trim().length < 20) {
-                              setDescError("Deskripsi minimal 20 karakter");
-                            } else {
-                              setDescError("");
-                            }
-                          }}
-                          required
-                        />
-
-                        {/* Character Counter */}
-                        <div className="flex justify-between mt-1 text-xs">
-                          <span
-                            className={`${
-                              descError ? "text-rose-500" : "text-slate-500 dark:text-slate-400"
-                            }`}
-                          >
-                            {descError || "Minimal 20 karakter agar deskripsi lebih jelas."}
-                          </span>
-
-                          <span
-                            className={`${
-                              form.desc.length < 20
-                                ? "text-rose-500"
-                                : "text-emerald-500"
-                            }`}
-                          >
-                            {form.desc.length}/20
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* JURUSAN SECTION */}
-                      <div>
-                        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                          Jurusan <span className="text-red-500">*</span>
-                        </label>
-
-                        {/* Input + Button */}
-                        <div className="flex gap-2">
-                          <input
-                            placeholder="Masukkan jurusan..."
-                            className="
-                            w-full
-                            px-4 py-3
-                            rounded-2xl
-                            border border-[#FCA5A5]/40 dark:border-indigo-500/40
-                            bg-white/80 dark:bg-white/5
-                            backdrop-blur
-                            text-slate-700 dark:text-slate-100
-                            placeholder:text-slate-400
-                            focus:outline-none
-                            focus:ring-2 focus:ring-[#B91C1C]/50 dark:focus:ring-indigo-500/50
-                            transition
-                          "
-                            value={jurusanInput}
-                            onChange={(e) => setJurusanInput(e.target.value)}
-                            onKeyPress={(e) => {
-                              if (e.key === "Enter") {
-                                e.preventDefault();
-                                addJurusan();
-                              }
-                            }}
-                          />
-
-                          <button
-                            type="button"
-                            onClick={addJurusan}
-                            className="px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 transition"
-                          >
-                            Masukkan
-                          </button>
-                        </div>
-
-                        {/* List Jurusan */}
-                        {jurusanList.length > 0 && (
-                          <div className="mt-3 flex flex-wrap gap-2">
-                            {jurusanList.map((j, i) => (
-                              <span
-                                key={i}
-                                className="
-                                  flex items-center gap-2
-                                  px-3 py-1.5
-                                  rounded-full
-                                  text-xs font-medium
-                                  bg-[#FFF4EC] text-[#7F1D1D]
-                                  border border-[#FCA5A5]/40
-                                  dark:bg-indigo-900/50
-                                  dark:text-indigo-200
-                                  dark:border-indigo-500/40
-                                  transition
-                                "
-                              >
-                                {j}
-
-                                <button
-                                  type="button"
-                                  onClick={() => removeJurusan(i)}
-                                  className="hover:text-red-900 font-bold"
-                                >
-                                  ×
-                                </button>
-                              </span>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Info tambahan */}
-                        {jurusanList.length === 0 && (
-                          <p className="text-xs text-amber-600 mt-1">
-                            * Minimal 1 jurusan harus ditambahkan
-                          </p>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Right Column */}
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                          Pilih Icon
-                        </label>
-                        <select
-                          className="
-                            w-full px-4 py-3
-                            rounded-xl
-                            border border-[#FCA5A5]/40 dark:border-indigo-500/40
-                            bg-white dark:bg-[#1E293B]
-                            text-slate-700 dark:text-white
-                            focus:ring-2 focus:ring-red-500/50 dark:focus:ring-indigo-500/50
-                            transition
-                          "
-                          value={form.iconName}
-                          onChange={(e) =>
-                            setForm({ ...form, iconName: e.target.value })
-                          }
-                        >
-                          <option value="HiOfficeBuilding">Tata Usaha</option>
-                          <option value="HiShieldCheck">Penindakan</option>
-                          <option value="HiBeaker">Pengujian</option>
-                          <option value="HiSearch">Pemeriksaan</option>
-                          <option value="HiSpeakerphone">Komunikasi</option>
-                          <option value="HiAcademicCap">Akademik</option>
-                        </select>
-                      </div>
-
-                      {/* Color Preview */}
-                      <div className="space-y-2">
-                        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                          Preview Warna
-                        </label>
-                        <div className="grid grid-cols-2 gap-2">
-                          <select
-                            className="
-                              w-full px-4 py-3
-                              rounded-xl
-                              border border-[#FCA5A5]/40 dark:border-indigo-500/40
-                              bg-white dark:bg-[#1E293B]
-                              text-slate-700 dark:text-white
-                              focus:ring-2 focus:ring-red-500/50 dark:focus:ring-indigo-500/50
-                              transition
-                            "
-                            value={form.gradient}
-                            onChange={(e) =>
-                              setForm({ ...form, gradient: e.target.value })
-                            }
-                          >
-                            <option value="from-amber-500 to-orange-500">Amber</option>
-                            <option value="from-red-500 to-rose-600">Red</option>
-                            <option value="from-blue-500 to-cyan-500">Blue</option>
-                            <option value="from-emerald-500 to-teal-500">Emerald</option>
-                            <option value="from-purple-500 to-pink-500">Purple</option>
-                          </select>
-                        </div>
-                      </div>
-
-                      {/* Live Preview Card */}
-                      <div className="
-                        mt-6
-                        p-5
-                        rounded-2xl
-                        border border-[#FCA5A5]/30 dark:border-indigo-500/30
-                        bg-white/70 dark:bg-indigo-900/50
-                        backdrop-blur
-                      ">
-                        <p className="text-xs font-medium text-slate-500 dark:text-white mb-3">
-                          Live Preview:
-                        </p>
-                        <div className="
-                          flex items-center gap-4
-                          p-4
-                          rounded-xl
-                          bg-white dark:bg-indigo-950/70
-                          shadow-sm
-                        ">
-                          <div
-                            className={`w-10 h-10 rounded-xl bg-linear-to-br ${form.gradient} text-white flex items-center justify-center text-lg`}
-                          >
-                            {iconMap[form.iconName] || <HiOfficeBuilding />}
-                          </div>
-                          <div className="flex-1">
-                            <div className="h-3 w-32 bg-slate-200 rounded-full mb-2" />
-                            <div className="flex gap-2">
-                              <div
-                                className={`h-2 w-16 ${form.lightBg || "bg-amber-50"} rounded-full`}
-                              />
-                              <div
-                                className={`h-2 w-16 border ${form.border || "border-amber-200"} rounded-full`}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                        {form.title && (
-                          <p className="mt-2 text-xs text-slate-600 dark:text-white">
-                            <span className="font-medium">Judul:</span>{" "}
-                            {form.title}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Modal Footer */}
-                  <div className="
-                    flex flex-col sm:flex-row
-                    items-stretch sm:items-center
-                    justify-end
-                    gap-3
-                    mt-10 pt-6
-                    border-t border-[#FCA5A5]/30 dark:border-indigo-500/30
-                  ">
+                  <div className="flex items-center gap-1.5 shrink-0">
                     <button
                       type="button"
-                      onClick={() => setShowModal(false)}
-                      className="
-                        px-6 py-3
-                        rounded-xl
-                        border border-[#FCA5A5]/40 dark:border-indigo-500/40
-                        text-[#7F1D1D] dark:text-indigo-200
-                        hover:bg-[#FFF4EC] dark:hover:bg-indigo-900/40
-                        transition
-                      "
+                      onClick={() => openEditModal(item)}
+                      aria-label="Edit fungsi"
+                      className="p-2 rounded-lg bg-sky-50 hover:bg-sky-100 text-[#0284c7] dark:bg-sky-950/60 dark:text-sky-300 transition cursor-pointer"
                     >
-                      Batal
+                      <Edit3 className="w-4 h-4" />
                     </button>
                     <button
-                      type="submit"
-                      disabled={jurusanList.length === 0 || form.desc.trim().length < 20}
-                      className={`
-                        px-6 py-3
-                        rounded-xl
-                        bg-linear-to-r
-                        from-[#B91C1C] to-[#F59E0B]
-                        dark:from-indigo-600 dark:to-indigo-700
-                        text-white font-semibold
-                        shadow-lg shadow-[#B91C1C]/30 dark:shadow-indigo-600/30
-                        hover:scale-[1.02]
-                        transition
-                        ${jurusanList.length === 0 || form.desc.trim().length < 20
-                          ? "opacity-50 cursor-not-allowed"
-                          : ""}
-                      `}
+                      type="button"
+                      onClick={() => setDeleteTarget(item)}
+                      aria-label="Hapus fungsi"
+                      className="p-2 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400 transition cursor-pointer"
                     >
-                      {editingId ? "Update Data" : "Simpan Data"}
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
-                </form>
+                </div>
               </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ================= PAGINATION ================= */}
+      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
+        <PaginationFooter
+          currentPage={safePage}
+          totalItems={filteredData.length}
+          itemsPerPage={ITEMS_PER_PAGE}
+          itemLabel="fungsi"
+          onPageChange={setCurrentPage}
+        />
+      </div>
+
+      {/* ================= CREATE / EDIT MODAL ================= */}
+      {showModal && (
+        <div
+          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !saving) setShowModal(false);
+          }}
+        >
+          <div className="w-full max-w-3xl max-h-[92vh] rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col overflow-hidden">
+            <div className="px-6 py-4 bg-linear-to-r from-[#0284c7] to-blue-700 text-white flex items-center justify-between shrink-0">
+              <div>
+                <h2 className="text-base sm:text-lg font-extrabold">
+                  {editingId
+                    ? "Edit Informasi Fungsi"
+                    : "Tambah Informasi Fungsi Baru"}
+                </h2>
+                <p className="text-xs text-sky-100">
+                  Data ini ditampilkan di section Informasi Fungsi halaman utama
+                </p>
+              </div>
+              <button
+                type="button"
+                disabled={saving}
+                onClick={() => setShowModal(false)}
+                className="p-1.5 rounded-lg bg-white/15 hover:bg-white/25"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={handleSave}
+              className="p-5 sm:p-6 overflow-y-auto space-y-5 text-sm"
+            >
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">
+                      Judul Fungsi <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={form.title}
+                      onChange={(e) =>
+                        setForm({ ...form, title: e.target.value })
+                      }
+                      placeholder="Contoh: Bagian Tata Usaha"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40 focus:border-[#0284c7]"
+                    />
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between mb-1.5">
+                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+                        Deskripsi Tugas <span className="text-rose-500">*</span>
+                      </label>
+                      <span
+                        className={`text-xs font-semibold ${
+                          form.desc.trim().length < 20
+                            ? "text-rose-500"
+                            : "text-emerald-600"
+                        }`}
+                      >
+                        {form.desc.trim().length}/20 min
+                      </span>
+                    </div>
+                    <textarea
+                      rows={4}
+                      value={form.desc}
+                      onChange={(e) =>
+                        setForm({ ...form, desc: e.target.value })
+                      }
+                      placeholder="Jelaskan ruang lingkup tugas dan kegiatan magang..."
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40 focus:border-[#0284c7]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">
+                      Jurusan Diterima <span className="text-rose-500">*</span>
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={jurusanInput}
+                        onChange={(e) => setJurusanInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            addJurusan();
+                          }
+                        }}
+                        placeholder="Contoh: Farmasi, Teknik Informatika"
+                        className="flex-1 px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40 focus:border-[#0284c7]"
+                      />
+                      <button
+                        type="button"
+                        onClick={addJurusan}
+                        className="px-4 py-2 rounded-xl text-xs font-bold bg-[#0284c7] hover:bg-sky-700 text-white transition cursor-pointer"
+                      >
+                        Tambah
+                      </button>
+                    </div>
+
+                    {jurusanList.length > 0 && (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {jurusanList.map((j, i) => (
+                          <span
+                            key={`${j}-${i}`}
+                            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-sky-50 text-[#0284c7] border border-sky-200 dark:bg-sky-950/60 dark:text-sky-300 dark:border-sky-800"
+                          >
+                            {j}
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setJurusanList((prev) =>
+                                  prev.filter((_, idx) => idx !== i),
+                                )
+                              }
+                              className="hover:text-rose-600 font-bold cursor-pointer"
+                            >
+                              ×
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">
+                      Ikon Kartu
+                    </label>
+                    <select
+                      value={form.iconName}
+                      onChange={(e) =>
+                        setForm({ ...form, iconName: e.target.value })
+                      }
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40 focus:border-[#0284c7]"
+                    >
+                      {ICON_OPTIONS.map((opt) => (
+                        <option key={opt.key} value={opt.key}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">
+                      Tema Warna Aksen
+                    </label>
+                    <select
+                      value={form.gradient}
+                      onChange={(e) => {
+                        const preset = COLOR_THEMES.find(
+                          (t) => t.gradient === e.target.value,
+                        );
+                        setForm({
+                          ...form,
+                          gradient: e.target.value,
+                          lightBg: preset?.lightBg || form.lightBg,
+                          border: preset?.border || form.border,
+                          text: preset?.text || form.text,
+                        });
+                      }}
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40 focus:border-[#0284c7]"
+                    >
+                      {COLOR_THEMES.map((theme) => (
+                        <option key={theme.gradient} value={theme.gradient}>
+                          {theme.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="p-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/40 space-y-2.5">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                      Pratinjau Kartu Landing
+                    </p>
+                    <div className="flex items-center gap-3 p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-2xs">
+                      <div
+                        className={`w-10 h-10 rounded-xl bg-linear-to-br ${form.gradient} text-white flex items-center justify-center shrink-0`}
+                      >
+                        {renderFungsiIcon(form.iconName)}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-slate-900 dark:text-white truncate">
+                          {form.title || "Judul Fungsi"}
+                        </p>
+                        <p className="text-xs text-slate-400 truncate">
+                          {jurusanList.length} jurusan terdaftar
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={() => setShowModal(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl text-xs font-bold bg-[#0284c7] hover:bg-sky-700 text-white shadow-xs disabled:opacity-60 cursor-pointer"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  {saving
+                    ? "Menyimpan..."
+                    : editingId
+                      ? "Perbarui Fungsi"
+                      : "Simpan Fungsi"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ================= CONFIRM DELETE ================= */}
+      {deleteTarget && (
+        <div
+          className="fixed inset-0 z-60 bg-slate-900/65 backdrop-blur-xs flex items-center justify-center p-4"
+          onClick={() => !deleting && setDeleteTarget(null)}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-rose-100 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  Hapus Informasi Fungsi?
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-1">
+                  Data fungsi{" "}
+                  <strong className="text-slate-900 dark:text-white">
+                    {deleteTarget.title}
+                  </strong>{" "}
+                  akan dihapus permanen dari sistem.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={() => setDeleteTarget(null)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={executeDelete}
+                className="px-4 py-2 rounded-xl text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white cursor-pointer disabled:opacity-60"
+              >
+                {deleting ? "Menghapus..." : "Ya, Hapus"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

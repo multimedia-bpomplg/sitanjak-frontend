@@ -1,32 +1,31 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  FaWhatsapp,
-  FaEdit,
-  FaTrash,
-  FaCheckCircle,
-  FaExclamationTriangle,
-  FaPlus,
-  FaHistory,
-  FaPhoneAlt,
-  FaUserCheck,
-  FaClock,
-  FaCopy,
-  FaQrcode,
-  FaCheckDouble,
-  FaShieldAlt,
-} from "react-icons/fa";
-import { HiXCircle } from "react-icons/hi";
-import { motion, AnimatePresence } from "framer-motion";
-import { showToast } from "@/components/ui/toastDashboard";
-import LoadingSpinner from "@/components/ui/LoadingSpinner";
-import Modal from "@/components/ui/Modal";
-import moment from "moment";
+  AlertTriangle,
+  CheckCircle2,
+  Clock,
+  Copy,
+  Edit3,
+  History,
+  MessageCircle,
+  Phone,
+  Plus,
+  QrCode,
+  RefreshCw,
+  ShieldCheck,
+  Trash2,
+  UserCheck,
+  Wifi,
+  X,
+} from "lucide-react";
+import { FaWhatsapp } from "react-icons/fa";
 import { QRCodeSVG } from "qrcode.react";
-moment.locale("id");
+import PaginationFooter from "@/components/dashboard/PaginationFooter";
+import { TablePageSkeleton } from "@/components/dashboard/skeletons";
+import { showToast } from "@/components/ui/toastDashboard";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL;
+/* ================= TYPES ================= */
 
 interface WhatsAppData {
   _id: string;
@@ -34,9 +33,9 @@ interface WhatsAppData {
   isActive: boolean;
   groupId?: string;
   groupName?: string;
-  updatedBy: {
-    name: string;
-    email: string;
+  updatedBy?: {
+    name?: string;
+    email?: string;
   };
   createdAt: string;
   updatedAt: string;
@@ -48,96 +47,209 @@ interface GroupData {
   participants: number;
 }
 
-export default function ManajemenWhatsappPage() {
+/* ================= CONSTANTS & HELPERS ================= */
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
+const ITEMS_PER_PAGE = 10;
+
+function formatLocalNumber(num = ""): string {
+  if (!num) return "-";
+  return num.startsWith("62") ? `0${num.substring(2)}` : num;
+}
+
+function formatDisplayNumber(num = ""): string {
+  const cleaned = formatLocalNumber(num);
+  const match = cleaned.match(/^(\d{4})(\d{4})(\d{3,5})$/);
+  return match ? `${match[1]}-${match[2]}-${match[3]}` : cleaned;
+}
+
+function formatInternational(num = ""): string {
+  const local = formatLocalNumber(num);
+  return local.startsWith("0") ? `+62${local.substring(1)}` : `+62${local}`;
+}
+
+function validatePhoneNumber(num: string): boolean {
+  return /^08\d{8,11}$/.test(num);
+}
+
+function formatDateTime(dateStr: string): string {
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return "-";
+  return d.toLocaleString("id-ID", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+/* ================= PAGE ================= */
+
+export default function ManajemenWhatsappSuperadminPage() {
   const [whatsapps, setWhatsapps] = useState<WhatsAppData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [qr, setQR] = useState<string | null>(null);
-  const [waStatus, setWaStatus] = useState<string>("disconnected");
+  const [currentPage, setCurrentPage] = useState(1);
 
-  // Modal states
+  /* ---------- QR & Connection ---------- */
+  const [qr, setQr] = useState<string | null>(null);
+  const [waStatus, setWaStatus] = useState<string>("disconnected");
+  const [groups, setGroups] = useState<GroupData[]>([]);
+  const [activeGroupId, setActiveGroupId] = useState<string>("");
+  const [isSavingGroup, setIsSavingGroup] = useState(false);
+
+  /* ---------- Add/Edit Modal ---------- */
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<"add" | "edit">("add");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [phoneNumber, setPhoneNumber] = useState("");
 
-  // Delete confirmation
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
+  /* ---------- Delete Modal ---------- */
+  const [deleteTarget, setDeleteTarget] = useState<WhatsAppData | null>(null);
 
-  // Group states
-  const [groups, setGroups] = useState<GroupData[]>([]);
-  const [activeGroupId, setActiveGroupId] = useState<string | null>(null);
-  const [selectedGroup, setSelectedGroup] = useState<GroupData | null>(null);
-  const [isSavingGroup, setIsSavingGroup] = useState(false);
+  /* ================= FETCH ================= */
+
+  const fetchWhatsapps = useCallback(async (isManual = false) => {
+    try {
+      if (isManual) setRefreshing(true);
+      else setLoading(true);
+
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_BASE}/whatsapp/all`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const result = await res.json();
+
+      if (!res.ok || !result?.success) {
+        throw new Error(result?.message || "Gagal mengambil data WhatsApp");
+      }
+
+      const list: WhatsAppData[] = Array.isArray(result.data) ? result.data : [];
+      setWhatsapps(list);
+      const active = list.find((w) => w.isActive);
+      setActiveGroupId(active?.groupId || "");
+    } catch (err) {
+      showToast.error(
+        err instanceof Error ? err.message : "Gagal memuat data WhatsApp",
+      );
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  const fetchQR = useCallback(async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_BASE}/whatsapp/qr`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const result = await res.json();
+      if (result?.success) {
+        setQr(result.qr ?? null);
+        setWaStatus(result.status || "disconnected");
+      }
+    } catch {
+      // Silent poll error
+    }
+  }, []);
+
+  const fetchGroups = useCallback(async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_BASE}/whatsapp/groups`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const result = await res.json();
+      if (result?.success && Array.isArray(result.data)) {
+        setGroups(result.data);
+      }
+    } catch {
+      // Silent group error
+    }
+  }, []);
 
   useEffect(() => {
     fetchWhatsapps();
-  }, []);
+  }, [fetchWhatsapps]);
 
-  const fetchWhatsapps = async () => {
-    try {
-      setLoading(true);
-      const token = localStorage.getItem("token");
-
-      const res = await fetch(`${API_BASE}/whatsapp/all`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      const result = await res.json();
-
-      if (result.success) {
-        setWhatsapps(result.data);
-
-        const active = result.data.find((w: WhatsAppData) => w.isActive);
-        if (active?.groupId) {
-          setActiveGroupId(active.groupId);
-        }
-      } else {
-        showToast.error(result.message || "Gagal mengambil data");
+  useEffect(() => {
+    fetchQR();
+    const interval = setInterval(() => {
+      if (waStatus !== "connected") {
+        fetchQR();
       }
-    } catch {
-      showToast.error("Terjadi kesalahan saat mengambil data");
-    } finally {
-      setLoading(false);
-    }
-  };
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [waStatus, fetchQR]);
 
-  const handleOpenModal = (mode: "add" | "edit", data?: WhatsAppData) => {
-    setModalMode(mode);
-    if (mode === "edit" && data) {
-      setSelectedId(data._id);
-      setPhoneNumber("0" + data.phoneNumber.substring(2));
-    } else {
-      setSelectedId(null);
-      setPhoneNumber("");
+  useEffect(() => {
+    if (waStatus === "connected") {
+      fetchGroups();
     }
+  }, [waStatus, fetchGroups]);
+
+  /* ================= ESCAPE KEY HANDLER ================= */
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || submitting) return;
+      if (deleteTarget) setDeleteTarget(null);
+      else if (isModalOpen) setIsModalOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [deleteTarget, isModalOpen, submitting]);
+
+  /* ================= DERIVED STATE ================= */
+
+  const activeWhatsapp = useMemo(
+    () => whatsapps.find((w) => w.isActive) || null,
+    [whatsapps],
+  );
+  const inactiveWhatsapps = useMemo(
+    () => whatsapps.filter((w) => !w.isActive),
+    [whatsapps],
+  );
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(whatsapps.length / ITEMS_PER_PAGE),
+  );
+  const safePage = Math.min(currentPage, totalPages);
+
+  const paginatedWhatsapps = useMemo(() => {
+    const start = (safePage - 1) * ITEMS_PER_PAGE;
+    return whatsapps.slice(start, start + ITEMS_PER_PAGE);
+  }, [whatsapps, safePage]);
+
+  /* ================= HANDLERS ================= */
+
+  const openModal = (mode: "add" | "edit", item?: WhatsAppData) => {
+    setModalMode(mode);
+    setPhoneNumber(
+      mode === "edit" && item ? formatLocalNumber(item.phoneNumber) : "",
+    );
     setIsModalOpen(true);
   };
 
-  const validatePhoneNumber = (num: string): boolean => {
-    return /^08\d{8,11}$/.test(num);
-  };
-
-  const handleSubmit = async () => {
+  const handleSavePhone = async () => {
     if (!phoneNumber.trim()) {
       showToast.error("Nomor WhatsApp wajib diisi");
       return;
     }
-
     if (!validatePhoneNumber(phoneNumber)) {
-      showToast.error("Format nomor harus diawali 08 dan minimal 10 digit");
+      showToast.error(
+        "Format nomor harus diawali 08 dan terdiri dari 10–13 digit",
+      );
       return;
     }
 
     const toastId = showToast.loading("Menyimpan nomor WhatsApp...");
-
     try {
       setSubmitting(true);
       const token = localStorage.getItem("token");
-
       const res = await fetch(`${API_BASE}/whatsapp/update`, {
         method: "PUT",
         headers: {
@@ -148,148 +260,76 @@ export default function ManajemenWhatsappPage() {
       });
 
       const result = await res.json();
-
       if (!res.ok) {
-        throw new Error(result.message || "Gagal menyimpan nomor");
+        throw new Error(result?.message || "Gagal menyimpan nomor");
       }
 
       showToast.updateSuccess(toastId, "Nomor WhatsApp berhasil diperbarui");
-
       setIsModalOpen(false);
-      fetchWhatsapps();
-    } catch (err: any) {
-      showToast.updateError(toastId, err.message || "Terjadi kesalahan");
+      await fetchWhatsapps(true);
+    } catch (err) {
+      showToast.updateError(
+        toastId,
+        err instanceof Error ? err.message : "Gagal menyimpan nomor",
+      );
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleDeleteClick = (id: string) => {
-    setDeleteId(id);
-    setShowDeleteConfirm(true);
-  };
-
   const handleDeleteConfirm = async () => {
-    if (!deleteId) return;
-
+    if (!deleteTarget) return;
     const toastId = showToast.loading("Menghapus nomor WhatsApp...");
 
     try {
       setSubmitting(true);
       const token = localStorage.getItem("token");
-
-      const res = await fetch(`${API_BASE}/whatsapp/${deleteId}`, {
+      const res = await fetch(`${API_BASE}/whatsapp/${deleteTarget._id}`, {
         method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       const result = await res.json();
-
       if (!res.ok) {
-        throw new Error(result.message || "Gagal menghapus nomor");
+        throw new Error(result?.message || "Gagal menghapus nomor");
       }
 
       showToast.updateSuccess(toastId, "Nomor WhatsApp berhasil dihapus");
-      setShowDeleteConfirm(false);
-      fetchWhatsapps();
-    } catch (err: any) {
-      showToast.updateError(toastId, err.message || "Terjadi kesalahan");
+      setDeleteTarget(null);
+      await fetchWhatsapps(true);
+    } catch (err) {
+      showToast.updateError(
+        toastId,
+        err instanceof Error ? err.message : "Gagal menghapus nomor",
+      );
     } finally {
       setSubmitting(false);
-      setDeleteId(null);
     }
   };
 
-  const formatPhoneNumber = (num: string): string => {
-    return "0" + num.substring(2);
-  };
-
-  const formatDisplayNumber = (num: string): string => {
-    const cleaned = formatPhoneNumber(num);
-    const match = cleaned.match(/^(\d{4})(\d{4})(\d{4})$/);
-    if (match) {
-      return `${match[1]}-${match[2]}-${match[3]}`;
-    }
-    return cleaned;
-  };
-
-  const handleCopyNumber = (num: string) => {
-    navigator.clipboard.writeText(formatPhoneNumber(num));
-    showToast.success("Nomor berhasil disalin");
-  };
-
-  const activeWhatsapp = whatsapps.find((w) => w.isActive);
-  const inactiveWhatsapps = whatsapps.filter((w) => !w.isActive);
-
-  const fetchQR = async () => {
+  const handleReconnect = async () => {
+    const toastId = showToast.loading("Menghubungkan ulang sesi WhatsApp...");
     try {
       const token = localStorage.getItem("token");
-
-      const res = await fetch(`${API_BASE}/whatsapp/qr`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      const result = await res.json();
-
-      if (result.success) {
-        setQR(result.qr);
-        setWaStatus(result.status);
-      }
-    } catch {
-      // Silent fail
-    }
-  };
-
-  const reconnectWhatsapp = async () => {
-    const toastId = showToast.loading("Menghubungkan ulang WhatsApp...");
-    try {
-      const token = localStorage.getItem("token");
-
       await fetch(`${API_BASE}/whatsapp/reconnect`, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
-
-      fetchQR();
-      showToast.updateSuccess(toastId, "Reconnect berhasil");
+      await fetchQR();
+      showToast.updateSuccess(toastId, "Permintaan koneksi ulang dikirim");
     } catch {
-      showToast.updateError(toastId, "Gagal reconnect");
+      showToast.updateError(toastId, "Gagal menghubungkan ulang WhatsApp");
     }
   };
 
-  const fetchGroups = async () => {
+  const handleSelectGroup = async (groupId: string) => {
+    const group = groups.find((g) => g.id === groupId);
+    if (!group) return;
+
+    const toastId = showToast.loading("Menyimpan grup WhatsApp...");
     try {
+      setIsSavingGroup(true);
       const token = localStorage.getItem("token");
-
-      const res = await fetch(`${API_BASE}/whatsapp/groups`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      const result = await res.json();
-
-      if (result.success) {
-        setGroups(result.data);
-      }
-    } catch {
-      // Silent fail
-    }
-  };
-
-  const handleSelectGroup = async (group: GroupData) => {
-    setIsSavingGroup(true);
-    const toastId = showToast.loading("Menyimpan grup...");
-
-    try {
-      const token = localStorage.getItem("token");
-
       const res = await fetch(`${API_BASE}/whatsapp/set-group`, {
         method: "POST",
         headers: {
@@ -301,792 +341,535 @@ export default function ManajemenWhatsappPage() {
           groupName: group.name,
         }),
       });
-
       const result = await res.json();
-
-      if (result.success) {
-        setActiveGroupId(group.id);
-        setSelectedGroup(group);
-        showToast.updateSuccess(
-          toastId,
-          `Grup "${group.name}" berhasil dipilih`,
-        );
-
-        // Update local whatsapps data
-        setWhatsapps((prev) =>
-          prev.map((w) =>
-            w.isActive ? { ...w, groupId: group.id, groupName: group.name } : w,
-          ),
-        );
-      } else {
-        showToast.updateError(toastId, result.message);
+      if (!res.ok || !result?.success) {
+        throw new Error(result?.message || "Gagal memilih grup");
       }
-    } catch {
-      showToast.updateError(toastId, "Gagal memilih grup");
+
+      setActiveGroupId(group.id);
+      setWhatsapps((prev) =>
+        prev.map((w) =>
+          w.isActive ? { ...w, groupId: group.id, groupName: group.name } : w,
+        ),
+      );
+      showToast.updateSuccess(toastId, `Grup "${group.name}" berhasil dipilih`);
+    } catch (err) {
+      showToast.updateError(
+        toastId,
+        err instanceof Error ? err.message : "Gagal memilih grup",
+      );
     } finally {
       setIsSavingGroup(false);
     }
   };
 
-  const handleDropdownChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const groupId = e.target.value;
-
-    const group = groups.find((g) => g.id === groupId);
-
-    if (group) {
-      handleSelectGroup(group);
-    }
+  const handleCopyNumber = (num: string) => {
+    navigator.clipboard.writeText(formatLocalNumber(num));
+    showToast.success("Nomor WhatsApp disalin ke clipboard");
   };
 
-  useEffect(() => {
-    fetchQR();
-
-    const interval = setInterval(() => {
-      if (waStatus !== "connected") {
-        fetchQR();
-      }
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, [waStatus]);
-
-  useEffect(() => {
-    if (waStatus === "connected") {
-      fetchGroups();
-    }
-  }, [waStatus]);
+  /* ================= RENDER ================= */
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-indigo-50 dark:from-[#020617] dark:via-[#0B1120] dark:to-[#1E1B4B]">
-        <LoadingSpinner />
-      </div>
+      <TablePageSkeleton
+        title="Manajemen WhatsApp"
+        subtitle="Memuat daftar nomor WhatsApp dan status koneksi gateway..."
+        columnsCount={6}
+        rowsCount={6}
+      />
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50 dark:from-[#020617] dark:via-[#0B1120] dark:to-[#1E1B4B] p-4 sm:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto space-y-8">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col md:flex-row md:items-center md:justify-between gap-4"
-        >
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-15 h-15 rounded-2xl bg-green-500/20 flex items-center justify-center">
-                <FaWhatsapp className="text-4xl text-green-600" />
-              </div>
-              <div>
-                <h1
-                  className="
-                  text-3xl lg:text-4xl 
-                  font-extrabold 
-                  leading-tight
-                  bg-clip-text text-transparent 
-                  bg-gradient-to-r 
-                  from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
-                  dark:from-indigo-400 dark:via-violet-400 dark:to-purple-400
-                "
-                >
-                  Manajemen WhatsApp
-                </h1>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                  Kelola nomor WhatsApp untuk bubble chat interaktif di website
-                </p>
-              </div>
-            </div>
-          </div>
+    <div className="space-y-6">
+      {/* ================= PAGE HEADER ================= */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-slate-100 dark:border-slate-800">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+            Manajemen WhatsApp
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
+            Kelola nomor WhatsApp bubble chat website, grup notifikasi, dan
+            koneksi gateway QR
+          </p>
+        </div>
 
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => handleOpenModal("add")}
-            className="flex items-center justify-center gap-2 px-6 py-3
-              bg-gradient-to-r 
-              from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
-              dark:from-indigo-600 dark:to-violet-500
-              text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all
-            "
+        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+          <button
+            type="button"
+            onClick={() => fetchWhatsapps(true)}
+            disabled={refreshing}
+            className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition disabled:opacity-50"
           >
-            <FaPlus />
+            <RefreshCw
+              className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`}
+            />
+            Segarkan
+          </button>
+
+          <button
+            type="button"
+            onClick={() => openModal("add")}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-linear-to-r from-[#0284c7] to-blue-700 hover:from-[#0369a1] hover:to-blue-800 shadow-sm transition cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
             Tambah Nomor Baru
-          </motion.button>
-        </motion.div>
+          </button>
+        </div>
+      </div>
 
-        {/* Stats Cards */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="grid grid-cols-1 md:grid-cols-3 gap-6"
-        >
-          <div className="bg-white/90 dark:bg-white/5 rounded-2xl shadow-lg p-6 border border-[#FCA5A5]/40 dark:border-indigo-500/30">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-500 dark:text-slate-400">
-                  Total Nomor
-                </p>
-                <p className="text-3xl font-bold text-slate-900 dark:text-white mt-1">
-                  {whatsapps.length}
-                </p>
-              </div>
-              <div className="w-12 h-12 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                <FaWhatsapp className="text-2xl text-green-600" />
-              </div>
-            </div>
+      {/* ================= KPI CARDS ================= */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 sm:p-5 flex items-center justify-between shadow-2xs">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+              Total Nomor
+            </p>
+            <p className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white mt-1 tabular-nums">
+              {whatsapps.length}
+            </p>
+            <p className="text-[11px] text-slate-400 mt-0.5">
+              Nomor yang pernah dikonfigurasi
+            </p>
           </div>
-
-          <div className="bg-white/90 dark:bg-white/5 rounded-2xl shadow-lg p-6 border border-[#FCA5A5]/40 dark:border-indigo-500/30">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-500 dark:text-slate-400">
-                  Nomor Aktif
-                </p>
-                <p className="text-3xl font-bold text-slate-900 dark:text-white mt-1">
-                  {activeWhatsapp ? 1 : 0}
-                </p>
-              </div>
-              <div className="w-12 h-12 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
-                <FaCheckCircle className="text-2xl text-emerald-600" />
-              </div>
-            </div>
+          <div className="p-3 rounded-xl bg-sky-50 dark:bg-sky-950/60 text-[#0284c7] dark:text-sky-400">
+            <MessageCircle className="w-6 h-6" />
           </div>
+        </div>
 
-          <div className="bg-white/90 dark:bg-white/5 rounded-2xl shadow-lg p-6 border border-[#FCA5A5]/40 dark:border-indigo-500/30">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-500 dark:text-slate-400">
-                  Riwayat
-                </p>
-                <p className="text-3xl font-bold text-slate-900 dark:text-white mt-1">
-                  {inactiveWhatsapps.length}
-                </p>
-              </div>
-              <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                <FaHistory className="text-2xl text-blue-600" />
-              </div>
-            </div>
+        <div className="rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 sm:p-5 flex items-center justify-between shadow-2xs">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+              Nomor Aktif
+            </p>
+            <p className="text-2xl sm:text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-1 tabular-nums">
+              {activeWhatsapp ? 1 : 0}
+            </p>
+            <p className="text-[11px] text-slate-400 mt-0.5">
+              Digunakan pada landing page
+            </p>
           </div>
-        </motion.div>
+          <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">
+            <CheckCircle2 className="w-6 h-6" />
+          </div>
+        </div>
 
-        {/* Active Number Card */}
-        <AnimatePresence>
-          {activeWhatsapp && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="
-                relative overflow-hidden rounded-2xl
-                bg-gradient-to-r from-green-500 to-emerald-600
-                shadow-2xl
-              "
-            >
-              {/* Background Glow */}
-              <div className="absolute inset-0 opacity-10">
-                <div className="absolute -right-20 -top-20 w-64 h-64 bg-white rounded-full blur-3xl" />
-                <div className="absolute -left-20 -bottom-20 w-64 h-64 bg-white rounded-full blur-3xl" />
+        <div className="rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 sm:p-5 flex items-center justify-between shadow-2xs">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+              Riwayat Nonaktif
+            </p>
+            <p className="text-2xl sm:text-3xl font-extrabold text-[#0284c7] dark:text-sky-400 mt-1 tabular-nums">
+              {inactiveWhatsapps.length}
+            </p>
+            <p className="text-[11px] text-slate-400 mt-0.5">
+              Arsip nomor sebelumnya
+            </p>
+          </div>
+          <div className="p-3 rounded-xl bg-sky-50 dark:bg-sky-950/60 text-[#0284c7] dark:text-sky-400">
+            <History className="w-6 h-6" />
+          </div>
+        </div>
+      </div>
+
+      {/* ================= ACTIVE WHATSAPP CARD ================= */}
+      {activeWhatsapp && (
+        <div className="rounded-2xl p-6 bg-linear-to-r from-emerald-600 to-teal-600 text-white shadow-sm space-y-5">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div className="flex items-start gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center shrink-0">
+                <FaWhatsapp className="w-8 h-8 text-white" />
               </div>
-
-              <div className="relative p-5 sm:p-8">
-                <div
-                  className="
-                  flex flex-col
-                  lg:flex-row
-                  lg:items-center
-                  lg:justify-between
-                  gap-6
-                "
-                >
-                  {/* LEFT SIDE */}
-                  <div className="flex flex-col sm:flex-row sm:items-start gap-4">
-                    <div
-                      className="
-                      w-14 h-14 sm:w-16 sm:h-16
-                      rounded-2xl bg-white/20 backdrop-blur
-                      flex items-center justify-center
-                    "
-                    >
-                      <FaWhatsapp className="text-3xl sm:text-4xl text-white" />
-                    </div>
-
-                    <div>
-                      <div className="flex flex-wrap items-center gap-2 mb-3">
-                        <span className="px-3 py-1 bg-white/20 rounded-full text-xs font-semibold text-white">
-                          AKTIF
-                        </span>
-                        <span className="px-3 py-1 bg-white/20 rounded-full text-xs font-semibold text-white flex items-center gap-1">
-                          <FaShieldAlt className="text-xs" />
-                          PRIMARY
-                        </span>
-                      </div>
-
-                      <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-3 break-all">
-                        {formatDisplayNumber(activeWhatsapp.phoneNumber)}
-                      </h2>
-
-                      <div
-                        className="
-                        flex flex-col sm:flex-row
-                        sm:items-center
-                        gap-2 sm:gap-6
-                        text-white/80 text-xs sm:text-sm
-                      "
-                      >
-                        <span className="flex items-center gap-1">
-                          <FaUserCheck />
-                          {activeWhatsapp.updatedBy?.name || "Unknown"}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <FaClock />
-                          {moment(activeWhatsapp.updatedAt).fromNow()}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={() => handleCopyNumber(activeWhatsapp.phoneNumber)}
-                    className="
-                      w-full lg:w-auto
-                      flex items-center justify-center gap-2
-                      px-5 py-3
-                      bg-white text-green-600
-                      rounded-xl font-semibold
-                      shadow-lg hover:shadow-xl
-                      transition-all hover:scale-[1.02]
-                    "
-                  >
-                    <FaCopy />
-                    Salin Nomor
-                  </button>
+              <div>
+                <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                  <span className="px-2.5 py-0.5 rounded-full bg-white/20 text-[11px] font-bold uppercase tracking-wider">
+                    AKTIF • PRIMARY
+                  </span>
                 </div>
+                <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+                  {formatDisplayNumber(activeWhatsapp.phoneNumber)}
+                </h2>
+                <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-white/85 mt-2">
+                  <span className="inline-flex items-center gap-1.5">
+                    <UserCheck className="w-3.5 h-3.5" />
+                    Diperbarui oleh: {activeWhatsapp.updatedBy?.name || "System"}
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5" />
+                    {formatDateTime(activeWhatsapp.updatedAt)}
+                  </span>
+                </div>
+              </div>
+            </div>
 
-                {/* Grup WhatsApp List */}
-                {groups.length > 0 && waStatus === "connected" && (
-                  <div className="mt-6 bg-white/10 rounded-xl p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-white font-semibold">
-                        Grup WhatsApp Tersedia
-                      </h3>
-                      {isSavingGroup && (
-                        <div className="flex items-center gap-2 text-white/70 text-xs">
-                          <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                          <span>Menyimpan...</span>
-                        </div>
-                      )}
-                    </div>
-                    {/* Grup WhatsApp Dropdown */}
-                    {groups.length > 0 && waStatus === "connected" && (
-                      <div className="mt-6 bg-white/10 rounded-xl p-4">
-                        <div className="flex items-center justify-between mb-3">
-                          <h3 className="text-white font-semibold">
-                            Pilih Grup WhatsApp
-                          </h3>
+            <button
+              type="button"
+              onClick={() => handleCopyNumber(activeWhatsapp.phoneNumber)}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white text-emerald-700 hover:bg-emerald-50 text-xs sm:text-sm font-bold shadow-xs transition cursor-pointer shrink-0"
+            >
+              <Copy className="w-4 h-4" />
+              Salin Nomor
+            </button>
+          </div>
 
-                          {isSavingGroup && (
-                            <div className="flex items-center gap-2 text-white/70 text-xs">
-                              <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                              <span>Menyimpan...</span>
-                            </div>
-                          )}
-                        </div>
-
-                        <select
-                          value={activeGroupId || ""}
-                          onChange={handleDropdownChange}
-                          disabled={isSavingGroup}
-                          className="
-        w-full
-        bg-white/20
-        text-white
-        border border-white/30
-        rounded-lg
-        px-4 py-2
-        text-sm
-        focus:outline-none
-        focus:ring-2
-        focus:ring-white/50
-      "
-                        >
-                          <option value="" className="text-black">
-                            -- Pilih Grup --
-                          </option>
-
-                          {groups.map((group) => (
-                            <option
-                              key={group.id}
-                              value={group.id}
-                              className="text-black"
-                            >
-                              {group.name} ({group.participants} anggota)
-                            </option>
-                          ))}
-                        </select>
-
-                        {/* Info group aktif */}
-                        {activeGroupId && (
-                          <div className="mt-3 text-xs text-white/80 flex items-center gap-2">
-                            <FaCheckDouble className="text-emerald-300" />
-                            Grup aktif:{" "}
-                            <span className="font-semibold">
-                              {groups.find((g) => g.id === activeGroupId)?.name}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
+          {groups.length > 0 && waStatus === "connected" && (
+            <div className="rounded-xl bg-white/15 p-4 space-y-2.5">
+              <div className="flex items-center justify-between gap-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-white">
+                  Grup Notifikasi WhatsApp Aktif
+                </label>
+                {isSavingGroup && (
+                  <span className="text-xs text-white/80">Menyimpan...</span>
                 )}
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Table + QR Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* TABLE SECTION */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden"
-          >
-            {/* Table Header */}
-            <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
-              <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-                  <FaHistory />
-                  Riwayat Nomor WhatsApp
-                </h3>
-                <span className="text-sm text-slate-500 dark:text-slate-400">
-                  Total {whatsapps.length} nomor
-                </span>
-              </div>
+              <select
+                value={activeGroupId}
+                onChange={(e) => handleSelectGroup(e.target.value)}
+                disabled={isSavingGroup}
+                className="w-full px-3.5 py-2.5 rounded-xl bg-white text-slate-800 text-xs sm:text-sm font-semibold focus:outline-none"
+              >
+                <option value="">-- Pilih Grup WhatsApp --</option>
+                {groups.map((group) => (
+                  <option key={group.id} value={group.id}>
+                    {group.name} ({group.participants} anggota)
+                  </option>
+                ))}
+              </select>
             </div>
+          )}
+        </div>
+      )}
 
-            {/* Table */}
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-slate-50 dark:bg-slate-800/50">
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                      Nomor WhatsApp
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                      Grup
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                      Diperbarui Oleh
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                      Terakhir Update
-                    </th>
-                    <th className="px-6 py-4 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                      Aksi
-                    </th>
+      {/* ================= TABLE + QR LAYOUT ================= */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        <div className="lg:col-span-2 rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs overflow-hidden">
+          <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <History className="w-4 h-4 text-[#0284c7]" />
+              <h3 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white">
+                Riwayat Nomor WhatsApp
+              </h3>
+            </div>
+            <span className="text-xs font-semibold text-slate-400">
+              {whatsapps.length} nomor
+            </span>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left">
+              <thead>
+                <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/50 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  <th className="py-3.5 px-4">Nomor WhatsApp</th>
+                  <th className="py-3.5 px-4 text-center">Status</th>
+                  <th className="py-3.5 px-4">Grup</th>
+                  <th className="py-3.5 px-4">Diperbarui Oleh</th>
+                  <th className="py-3.5 px-4">Update Terakhir</th>
+                  <th className="py-3.5 px-4 text-center">Aksi</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {paginatedWhatsapps.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-14 text-center">
+                      <div className="flex flex-col items-center gap-2 text-slate-400">
+                        <MessageCircle className="w-9 h-9 opacity-40" />
+                        <p className="text-sm font-semibold text-slate-600 dark:text-slate-300">
+                          Belum ada nomor WhatsApp tersimpan
+                        </p>
+                      </div>
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-                  {whatsapps.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="px-6 py-12">
-                        <div className="flex flex-col items-center justify-center text-center">
-                          <div className="w-20 h-20 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-4">
-                            <FaWhatsapp className="text-4xl text-green-500" />
-                          </div>
-                          <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
-                            Belum ada nomor WhatsApp
-                          </h3>
-                          <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
-                            Tambahkan nomor WhatsApp pertama Anda untuk memulai
-                          </p>
-                          <button
-                            onClick={() => handleOpenModal("add")}
-                            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B] dark:from-indigo-600 dark:to-violet-500 text-white rounded-lg font-medium transition"
+                ) : (
+                  paginatedWhatsapps.map((wa) => (
+                    <tr
+                      key={wa._id}
+                      className="hover:bg-sky-50/40 dark:hover:bg-slate-800/40 transition-colors"
+                    >
+                      <td className="py-3.5 px-4">
+                        <div className="flex items-center gap-2.5">
+                          <div
+                            className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                              wa.isActive
+                                ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400"
+                                : "bg-slate-100 text-slate-400 dark:bg-slate-800"
+                            }`}
                           >
-                            <FaPlus />
-                            Tambah Nomor
+                            <Phone className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <p className="font-semibold text-slate-800 dark:text-slate-100 text-xs sm:text-sm">
+                              {formatDisplayNumber(wa.phoneNumber)}
+                            </p>
+                            <p className="text-[11px] text-slate-400">
+                              {formatInternational(wa.phoneNumber)}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+
+                      <td className="py-3.5 px-4 text-center">
+                        <span
+                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${
+                            wa.isActive
+                              ? "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800"
+                              : "bg-slate-100 text-slate-500 border border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700"
+                          }`}
+                        >
+                          {wa.isActive ? "Aktif" : "Nonaktif"}
+                        </span>
+                      </td>
+
+                      <td className="py-3.5 px-4 text-xs text-slate-600 dark:text-slate-300 max-w-36 truncate">
+                        {wa.groupName || "-"}
+                      </td>
+
+                      <td className="py-3.5 px-4 text-xs text-slate-600 dark:text-slate-300">
+                        {wa.updatedBy?.name || "Unknown"}
+                      </td>
+
+                      <td className="py-3.5 px-4 text-xs text-slate-500 dark:text-slate-400">
+                        {formatDateTime(wa.updatedAt)}
+                      </td>
+
+                      <td className="py-3.5 px-4">
+                        <div className="flex items-center justify-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => openModal("edit", wa)}
+                            aria-label="Edit nomor WhatsApp"
+                            className="p-2 rounded-lg bg-sky-50 hover:bg-sky-100 text-[#0284c7] dark:bg-sky-950/60 dark:text-sky-300 transition cursor-pointer"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
                           </button>
+                          {!wa.isActive && (
+                            <button
+                              type="button"
+                              onClick={() => setDeleteTarget(wa)}
+                              aria-label="Hapus nomor WhatsApp"
+                              className="p-2 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400 transition cursor-pointer"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
-                  ) : (
-                    whatsapps.map((wa, index) => (
-                      <motion.tr
-                        key={wa._id}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.05 }}
-                        className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition"
-                      >
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <div
-                              className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                                wa.isActive
-                                  ? "bg-green-100 dark:bg-green-900/30"
-                                  : "bg-slate-100 dark:bg-slate-800"
-                              }`}
-                            >
-                              <FaWhatsapp
-                                className={`${
-                                  wa.isActive
-                                    ? "text-green-600"
-                                    : "text-slate-400"
-                                }`}
-                              />
-                            </div>
-                            <div>
-                              <p className="font-medium text-slate-900 dark:text-white">
-                                {formatDisplayNumber(wa.phoneNumber)}
-                              </p>
-                              <p className="text-xs text-slate-500">
-                                +62{wa.phoneNumber.substring(2)}
-                              </p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          {wa.isActive ? (
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400">
-                              <FaCheckCircle className="text-xs" />
-                              Aktif
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
-                              Tidak Aktif
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4">
-                          {wa.groupName ? (
-                            <span className="text-sm text-slate-700 dark:text-slate-300">
-                              {wa.groupName.length > 20
-                                ? wa.groupName.substring(0, 20) + "..."
-                                : wa.groupName}
-                            </span>
-                          ) : (
-                            <span className="text-sm text-slate-400">-</span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
-                              <span className="text-xs font-medium text-indigo-600 dark:text-indigo-400">
-                                {wa.updatedBy?.name?.charAt(0) || "U"}
-                              </span>
-                            </div>
-                            <span className="text-sm text-slate-700 dark:text-slate-300">
-                              {wa.updatedBy?.name || "Unknown"}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex flex-col">
-                            <span className="text-sm text-slate-700 dark:text-slate-300">
-                              {moment(wa.updatedAt).format("DD MMM YYYY")}
-                            </span>
-                            <span className="text-xs text-slate-500">
-                              {moment(wa.updatedAt).format("HH:mm")} WIB
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center justify-end gap-2">
-                            <motion.button
-                              whileHover={{ scale: 1.1 }}
-                              whileTap={{ scale: 0.9 }}
-                              onClick={() => handleOpenModal("edit", wa)}
-                              className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-lg transition"
-                              title="Edit"
-                            >
-                              <FaEdit />
-                            </motion.button>
-                            {!wa.isActive && (
-                              <motion.button
-                                whileHover={{ scale: 1.1 }}
-                                whileTap={{ scale: 0.9 }}
-                                onClick={() => handleDeleteClick(wa._id)}
-                                className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition"
-                                title="Hapus"
-                              >
-                                <FaTrash />
-                              </motion.button>
-                            )}
-                          </div>
-                        </td>
-                      </motion.tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
 
-            {/* Table Footer */}
-            {whatsapps.length > 0 && (
-              <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-600 dark:text-slate-400">
-                    Menampilkan {whatsapps.length} nomor
-                  </span>
-                  <span className="text-slate-600 dark:text-slate-400 flex items-center gap-2">
-                    <FaShieldAlt className="text-green-500" />
-                    Hanya satu nomor yang dapat aktif
-                  </span>
-                </div>
-              </div>
-            )}
-          </motion.div>
+          <PaginationFooter
+            currentPage={safePage}
+            totalItems={whatsapps.length}
+            itemsPerPage={ITEMS_PER_PAGE}
+            itemLabel="nomor"
+            onPageChange={setCurrentPage}
+          />
+        </div>
 
-          {/* QR SECTION */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-6"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold flex items-center gap-2">
-                <FaQrcode /> WhatsApp Connection
+        {/* QR CONNECTION SECTION */}
+        <div className="rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 sm:p-6 shadow-2xs space-y-4">
+          <div className="flex items-center justify-between gap-2 pb-3 border-b border-slate-100 dark:border-slate-800">
+            <div className="flex items-center gap-2">
+              <QrCode className="w-5 h-5 text-[#0284c7]" />
+              <h3 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white">
+                Koneksi Gateway
               </h3>
-
-              <button
-                onClick={reconnectWhatsapp}
-                className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm"
-              >
-                Reconnect
-              </button>
             </div>
+            <button
+              type="button"
+              onClick={handleReconnect}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-[#0284c7] hover:bg-sky-700 text-white transition cursor-pointer"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              Reconnect
+            </button>
+          </div>
 
-            {waStatus === "connected" ? (
-              <div className="text-green-600 font-semibold flex items-center gap-2">
-                <FaCheckCircle /> WhatsApp Connected
+          {waStatus === "connected" ? (
+            <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/60 text-emerald-600 dark:text-emerald-400">
+                <Wifi className="w-5 h-5" />
               </div>
-            ) : qr ? (
-              <div className="flex flex-col items-center gap-4">
+              <div>
+                <p className="text-sm font-bold text-emerald-800 dark:text-emerald-200">
+                  WhatsApp Terhubung
+                </p>
+                <p className="text-xs text-emerald-600 dark:text-emerald-400">
+                  Gateway siap mengirim notifikasi sistem
+                </p>
+              </div>
+            </div>
+          ) : qr ? (
+            <div className="flex flex-col items-center gap-3 py-2">
+              <div className="p-3 rounded-2xl bg-white border border-slate-200 shadow-xs">
                 <QRCodeSVG
                   value={qr}
-                  size={220}
+                  size={200}
                   bgColor="#ffffff"
                   fgColor="#000000"
                   level="M"
                 />
-                <p className="text-sm text-gray-500 text-center">
-                  Scan QR menggunakan WhatsApp admin
-                </p>
               </div>
-            ) : (
-              <p className="text-gray-500 text-center">Menunggu QR...</p>
-            )}
-          </motion.div>
+              <p className="text-xs text-slate-500 dark:text-slate-400 text-center">
+                Pindai QR ini melalui perangkat tertaut di aplikasi WhatsApp
+                Admin
+              </p>
+            </div>
+          ) : (
+            <div className="p-6 text-center text-xs text-slate-400 border border-dashed border-slate-200 dark:border-slate-700 rounded-xl">
+              Menunggu QR code dari gateway WhatsApp...
+            </div>
+          )}
+
+          <div className="p-3.5 rounded-xl bg-sky-50/70 dark:bg-sky-950/30 border border-sky-200/80 dark:border-sky-800/60 text-xs text-slate-600 dark:text-slate-300 flex items-start gap-2.5">
+            <ShieldCheck className="w-4 h-4 text-[#0284c7] shrink-0 mt-0.5" />
+            <span>
+              Hanya satu nomor utama yang dapat aktif pada satu waktu. Nomor
+              baru otomatis menggantikan nomor aktif sebelumnya.
+            </span>
+          </div>
         </div>
-
-        {/* Info Cards */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="grid grid-cols-1 md:grid-cols-2 gap-6"
-        >
-          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-2xl p-6 border border-blue-200 dark:border-blue-800">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center shrink-0">
-                <FaHistory className="text-xl text-blue-600 dark:text-blue-400" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-blue-800 dark:text-blue-300 mb-2">
-                  Informasi Sistem
-                </h3>
-                <p className="text-sm text-blue-600 dark:text-blue-400">
-                  Nomor baru yang ditambahkan akan otomatis menjadi nomor aktif.
-                  Nomor sebelumnya akan dinonaktifkan secara otomatis.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-purple-50 dark:bg-purple-900/20 rounded-2xl p-6 border border-purple-200 dark:border-purple-800">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-xl bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center shrink-0">
-                <FaQrcode className="text-xl text-purple-600 dark:text-purple-400" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-purple-800 dark:text-purple-300 mb-2">
-                  Format Nomor
-                </h3>
-                <p className="text-sm text-purple-600 dark:text-purple-400">
-                  Gunakan format 08xxxxxxxxxx (minimal 10 digit). Nomor akan
-                  otomatis dikonversi ke format internasional +62.
-                </p>
-              </div>
-            </div>
-          </div>
-        </motion.div>
       </div>
 
-      {/* Modal Add/Edit */}
-      <Modal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title={
-          modalMode === "add" ? "Tambah Nomor WhatsApp" : "Edit Nomor WhatsApp"
-        }
-      >
-        <div className="space-y-6">
-          <div className="flex items-center gap-3 pb-2 border-b border-slate-200 dark:border-slate-700">
-            <div
-              className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                modalMode === "add"
-                  ? "bg-green-100 dark:bg-green-900/30 text-green-600"
-                  : "bg-blue-100 dark:bg-blue-900/30 text-blue-600"
-              }`}
-            >
-              {modalMode === "add" ? <FaPlus /> : <FaEdit />}
-            </div>
-            <p className="text-sm text-slate-600 dark:text-slate-400">
-              {modalMode === "add"
-                ? "Tambahkan nomor WhatsApp baru untuk bubble chat"
-                : "Edit nomor WhatsApp yang sudah ada"}
-            </p>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-              Nomor WhatsApp
-            </label>
-            <div className="relative">
-              <div className="absolute left-3 top-1/2 -translate-y-1/2">
-                <FaWhatsapp className="text-green-500" />
+      {/* ================= ADD / EDIT MODAL ================= */}
+      {isModalOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4"
+          onClick={() => !submitting && setIsModalOpen(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-6 py-4 bg-linear-to-r from-[#0284c7] to-blue-700 text-white flex items-center justify-between">
+              <div>
+                <h2 className="text-base font-extrabold">
+                  {modalMode === "add"
+                    ? "Tambah Nomor WhatsApp"
+                    : "Edit Nomor WhatsApp"}
+                </h2>
+                <p className="text-xs text-sky-100">
+                  Gunakan format awalan 08 (10–13 digit)
+                </p>
               </div>
-              <div className="flex items-center rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 focus-within:ring-2 focus-within:ring-green-500 overflow-hidden">
-                <span className="px-8 py-3 text-slate-500 text-sm bg-slate-50 dark:bg-slate-700 border-r">
-                  +62
-                </span>
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={() => setIsModalOpen(false)}
+                className="p-1.5 rounded-lg hover:bg-white/15"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">
+                  Nomor WhatsApp
+                </label>
                 <input
                   type="tel"
                   value={phoneNumber}
                   onChange={(e) =>
                     setPhoneNumber(e.target.value.replace(/\D/g, ""))
                   }
-                  placeholder="81234567890"
-                  className="w-full px-4 py-3 outline-none bg-transparent text-sm"
+                  placeholder="081234567890"
+                  className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40 focus:border-[#0284c7]"
                   autoFocus
                 />
               </div>
-            </div>
-            <p className="text-xs text-slate-500 mt-2 flex items-center gap-1">
-              <FaPhoneAlt className="text-xs" />
-              Masukkan nomor dengan format 08xxxxxxxxxx
-            </p>
-          </div>
 
-          <AnimatePresence>
-            {phoneNumber && validatePhoneNumber(phoneNumber) && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                className="overflow-hidden"
-              >
-                <div className="p-4 rounded-xl bg-green-50 dark:bg-green-500/10 border border-green-200 dark:border-green-500/30">
-                  <div className="flex items-center gap-3">
-                    <FaCheckCircle className="text-green-500 text-xl" />
-                    <div>
-                      <p className="text-sm font-medium text-green-700 dark:text-green-300">
-                        Preview Nomor
-                      </p>
-                      <p className="text-lg font-bold text-green-800 dark:text-green-200">
-                        +62{phoneNumber.substring(1)}
-                      </p>
-                    </div>
+              {phoneNumber && validatePhoneNumber(phoneNumber) && (
+                <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 flex items-center gap-3">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                  <div>
+                    <p className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">
+                      Pratinjau Format Internasional
+                    </p>
+                    <p className="text-sm font-extrabold text-emerald-800 dark:text-emerald-200">
+                      +62{phoneNumber.substring(1)}
+                    </p>
                   </div>
                 </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
-            <button
-              onClick={() => setIsModalOpen(false)}
-              disabled={submitting}
-              className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-sm hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center gap-2"
-            >
-              <HiXCircle />
-              Batal
-            </button>
-            <button
-              onClick={handleSubmit}
-              disabled={submitting}
-              className="px-6 py-2 rounded-lg bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white text-sm font-semibold flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              {submitting ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Menyimpan...
-                </>
-              ) : (
-                <>
-                  <FaCheckCircle />
-                  Simpan
-                </>
               )}
-            </button>
+            </div>
+
+            <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2.5">
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={() => setIsModalOpen(false)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={handleSavePhone}
+                className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl text-xs font-bold text-white bg-[#0284c7] hover:bg-sky-700 cursor-pointer disabled:opacity-50"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                {submitting ? "Menyimpan..." : "Simpan Nomor"}
+              </button>
+            </div>
           </div>
         </div>
-      </Modal>
+      )}
 
-      {/* Delete Confirmation Modal */}
-      <Modal
-        isOpen={showDeleteConfirm}
-        onClose={() => setShowDeleteConfirm(false)}
-        title="Konfirmasi Hapus"
-        size="sm"
-      >
-        <div className="text-center py-4">
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            className="mx-auto w-16 h-16 rounded-full bg-red-100 dark:bg-red-500/20 flex items-center justify-center mb-4"
+      {/* ================= DELETE CONFIRM MODAL ================= */}
+      {deleteTarget && (
+        <div
+          className="fixed inset-0 z-60 bg-slate-900/65 backdrop-blur-xs flex items-center justify-center p-4"
+          onClick={() => !submitting && setDeleteTarget(null)}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-4"
+            onClick={(e) => e.stopPropagation()}
           >
-            <FaExclamationTriangle className="text-3xl text-red-600" />
-          </motion.div>
-          <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
-            Hapus Nomor WhatsApp?
-          </h3>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
-            Nomor yang dihapus tidak dapat dikembalikan. Apakah Anda yakin ingin
-            menghapus nomor ini?
-          </p>
-          <div className="flex justify-center gap-3">
-            <button
-              onClick={() => setShowDeleteConfirm(false)}
-              disabled={submitting}
-              className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-sm hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-            >
-              Batal
-            </button>
-            <button
-              onClick={handleDeleteConfirm}
-              disabled={submitting}
-              className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold flex items-center gap-2 disabled:opacity-60"
-            >
-              {submitting ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Menghapus...
-                </>
-              ) : (
-                "Ya, Hapus"
-              )}
-            </button>
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-rose-100 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  Hapus Nomor WhatsApp?
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-1">
+                  Nomor{" "}
+                  <strong className="text-slate-900 dark:text-white">
+                    {formatDisplayNumber(deleteTarget.phoneNumber)}
+                  </strong>{" "}
+                  akan dihapus permanen dari riwayat sistem.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={() => setDeleteTarget(null)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={handleDeleteConfirm}
+                className="px-4 py-2 rounded-xl text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white cursor-pointer disabled:opacity-60"
+              >
+                {submitting ? "Menghapus..." : "Ya, Hapus"}
+              </button>
+            </div>
           </div>
         </div>
-      </Modal>
+      )}
     </div>
   );
 }

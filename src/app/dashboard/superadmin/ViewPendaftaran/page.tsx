@@ -1,435 +1,701 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  HiX,
-  HiDocumentText,
-  HiUser,
-  HiUsers,
-  HiMail,
-  HiPhone,
-  HiIdentification,
-  HiLocationMarker,
-  HiCalendar,
-  HiBriefcase,
-  HiCheckCircle,
-  HiClock,
-  HiXCircle,
-} from "react-icons/hi";
-import {
-  UserCheck,
-  XCircle,
-  Search,
-  Filter,
-  ChevronDown,
-  Users,
-  Check,
+  AlertTriangle,
+  Building2,
+  Calendar,
+  CheckCircle2,
+  ClipboardList,
+  Clock,
+  Download,
+  Edit3,
+  Eye,
+  FileCheck2,
+  FileText,
+  GraduationCap,
+  KeyRound,
   Mail,
-  Briefcase,
+  MapPin,
+  Phone,
+  RefreshCw,
+  Save,
+  Search,
+  ShieldCheck,
+  Sparkles,
+  Trash2,
+  Upload,
+  UserCheck,
+  UserPlus,
+  Users,
   X,
-  CheckCircle,
+  XCircle,
 } from "lucide-react";
+import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
-import AlertPopup from "@/components/ui/AlertPopup";
 import { fetchFormasi, IFormasi } from "@/services/formasiService";
-import * as XLSX from "xlsx-js-style";
+import PaginationFooter from "@/components/dashboard/PaginationFooter";
+import { TablePageSkeleton } from "@/components/dashboard/skeletons";
+import { showToast } from "@/components/ui/toastDashboard";
 
-/* ===================== TYPE ===================== */
-type Peserta = {
-  nama: string;
+/* ================= TYPES ================= */
+
+type PendaftaranStatus =
+  | "Menunggu"
+  | "Sedang Diproses"
+  | "Disetujui"
+  | "Ditolak";
+
+type StatusFilter = "Semua" | PendaftaranStatus;
+
+type MentorInfo = {
+  _id: string;
+  name: string;
   email: string;
-  wa: string;
+  posisiMentor?: string;
+  status?: string;
+};
+
+type PesertaItem = {
+  nama: string;
   posisi: string;
-  asal?: {
-    jenis: "Universitas" | "SMK" | "";
-    nama: string;
-  };
-  mentor?: {
-    _id: string;
-    name: string;
-    email: string;
-    posisiMentor: string;
-  };
   jurusan?: string;
+  asal?: {
+    jenis?: string;
+    nama?: string;
+  };
   tanggalMulaiMagang: string;
   tanggalSelesaiMagang: string;
-  tempatLahir: string;
-  tanggalLahir: string;
-  jenisKelamin: string;
-  provinsi: string;
-  kota: string;
-  kecamatan: string;
-  kelurahan: string;
-  alamatLengkap: string;
-  isTerdaftar: boolean;
-
-  statusMagang?: "Menunggu" | "Sedang Magang" | "Selesai Magang";
+  tempatLahir?: string;
+  tanggalLahir?: string;
+  jenisKelamin?: string;
+  provinsi?: string;
+  kota?: string;
+  kecamatan?: string;
+  kelurahan?: string;
+  alamatLengkap?: string;
+  email: string;
+  wa: string;
+  statusMagang?: string;
+  mentor?: MentorInfo | string | null;
 };
 
 type Pendaftaran = {
   _id: string;
-  kategori: "sendiri" | "bersama";
+  kategori: "sendiri" | "bersama" | string;
   jumlahPeserta: number;
-  peserta: Peserta[];
-  mentor?: {
-    _id: string;
-    name: string;
-    email: string;
-    posisiMentor: string;
-  };
-  suratPengantar: string;
-  status: "Menunggu" | "Sedang Diproses" | "Disetujui" | "Ditolak";
+  status: PendaftaranStatus;
   jawabanAdmin?: string;
-  createdAt: string;
+  suratPengantar?: string;
   suratBalasan?: string;
-};
-
-type Mentor = {
-  _id: string;
-  name: string;
-  email: string;
-  posisiMentor: string;
-  status: "Aktif" | "Nonaktif";
+  createdAt: string;
+  peserta: PesertaItem[];
 };
 
 type AkunPeserta = {
   _id: string;
   name: string;
   email: string;
-  status: string;
+  status?: string;
 };
 
-const POSISI_MAGANG = [
-  "Fungsi Penindakan",
-  "Fungsi Pengujian",
-  "Fungsi Pemeriksaan (Inspeksi dan sertifikasi)",
-  "Fungsi Informasi dan Komunikasi",
-  "Bagian Tata Usaha",
-];
-
-const API_BASE: string = process.env.NEXT_PUBLIC_API_URL || "";
-
-/* ================== HITUNG DURASI MAGANG ================== */
-const hitungDurasiMagang = (mulai: string, selesai: string) => {
-  if (!mulai || !selesai) return null;
-  const start = new Date(mulai);
-  const end = new Date(selesai);
-  if (end < start) return null;
-  const diffTime = end.getTime() - start.getTime();
-  const totalHari = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  const bulan = Math.floor(totalHari / 30);
-  const sisaHari = totalHari % 30;
-  return { totalHari, bulan, sisaHari };
+type ConfirmAction = {
+  status: "Sedang Diproses" | "Disetujui" | "Ditolak";
+  title: string;
+  message: string;
 };
 
-/* ===================== PAGE ===================== */
-export default function ViewPendaftaranPage() {
+/* ================= CONSTANTS & HELPERS ================= */
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
+const ITEMS_PER_PAGE = 10;
+const MAX_PDF_SIZE = 5 * 1024 * 1024; // 5MB
+
+function getTodayWibIso(): string {
+  return new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
+}
+
+function getStatusMagangByDate(
+  mulai?: string,
+  selesai?: string,
+): "Belum Waktu Magang" | "Sedang Magang" | "Selesai" | "Menunggu" {
+  if (!mulai || !selesai) return "Menunggu";
+  const todayIso = getTodayWibIso();
+  if (todayIso < mulai) return "Belum Waktu Magang";
+  if (todayIso <= selesai) return "Sedang Magang";
+  return "Selesai";
+}
+
+function getStatusPendaftaranBadge(status: PendaftaranStatus) {
+  switch (status) {
+    case "Disetujui":
+      return "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800";
+    case "Ditolak":
+      return "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/50 dark:text-rose-300 dark:border-rose-800";
+    case "Sedang Diproses":
+      return "bg-sky-50 text-[#0284c7] border-sky-200 dark:bg-sky-950/50 dark:text-sky-300 dark:border-sky-800";
+    default:
+      return "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800";
+  }
+}
+
+function getStatusMagangBadge(status?: string) {
+  switch (status) {
+    case "Sedang Magang":
+      return "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800";
+    case "Belum Waktu Magang":
+      return "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800";
+    case "Selesai":
+      return "bg-sky-50 text-[#0284c7] border-sky-200 dark:bg-sky-950/50 dark:text-sky-300 dark:border-sky-800";
+    default:
+      return "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700";
+  }
+}
+
+function formatTanggalShort(iso?: string): string {
+  if (!iso) return "-";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString("id-ID", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function getMentorObject(
+  mentor: PesertaItem["mentor"],
+  mentors: MentorInfo[],
+): MentorInfo | null {
+  if (!mentor) return null;
+  if (typeof mentor === "object" && "name" in mentor) return mentor;
+  if (typeof mentor === "string") {
+    return mentors.find((m) => m._id === mentor) || null;
+  }
+  return null;
+}
+
+function generateAccountPassword(length = 10): string {
+  const upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+  const lower = "abcdefghijkmnopqrstuvwxyz";
+  const digits = "23456789";
+  const all = upper + lower + digits;
+
+  let pwd =
+    upper[Math.floor(Math.random() * upper.length)] +
+    lower[Math.floor(Math.random() * lower.length)] +
+    digits[Math.floor(Math.random() * digits.length)];
+
+  while (pwd.length < length) {
+    pwd += all[Math.floor(Math.random() * all.length)];
+  }
+  return pwd;
+}
+
+/* ================= COMPONENT ================= */
+
+export default function ViewPendaftaranSuperadminPage() {
   const [data, setData] = useState<Pendaftaran[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState<Pendaftaran | null>(null);
-  const [editMode, setEditMode] = useState(false);
-  const [editField, setEditField] = useState<string | null>(null);
-  const [editedPeserta, setEditedPeserta] = useState<Peserta[]>([]);
-  const [alasan, setAlasan] = useState("");
-  const [alertOpen, setAlertOpen] = useState(false);
-  const [alertTitle, setAlertTitle] = useState<string | undefined>();
-  const [alertMessage, setAlertMessage] = useState("");
-  const [alertType, setAlertType] = useState<
-    "success" | "error" | "warning" | "info"
-  >("info");
-  const [editPosisiIndex, setEditPosisiIndex] = useState<number | null>(null);
-  const [posisiBaru, setPosisiBaru] = useState("");
-  const [mentorList, setMentorList] = useState<Mentor[]>([]);
-  const [mentorModal, setMentorModal] = useState(false);
-  const [selectedMentor, setSelectedMentor] = useState<string>("");
-  const [selectedPesertaEmail, setSelectedPesertaEmail] = useState<string>("");
-  const [suratBalasan, setSuratBalasan] = useState<File | null>(null);
+  const [mentors, setMentors] = useState<MentorInfo[]>([]);
   const [akunPeserta, setAkunPeserta] = useState<AkunPeserta[]>([]);
+  const [formasiList, setFormasiList] = useState<IFormasi[]>([]);
+
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
   const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
-  const LIMIT = 10;
-  const [mentorSearch, setMentorSearch] = useState("");
-  const [filterPosisiMentor, setFilterPosisiMentor] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("Semua");
+  const [currentPage, setCurrentPage] = useState(1);
+
+  /* ---------- Detail & Status Action ---------- */
+  const [selected, setSelected] = useState<Pendaftaran | null>(null);
+  const [alasan, setAlasan] = useState("");
+  const [suratBalasan, setSuratBalasan] = useState<File | null>(null);
+  const [fileError, setFileError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [submittingStatus, setSubmittingStatus] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(
+    null,
+  );
+
+  /* ---------- Edit Data Peserta (Superadmin Exclusive) ---------- */
+  const [editMode, setEditMode] = useState(false);
+  const [editedPeserta, setEditedPeserta] = useState<PesertaItem[]>([]);
+  const [savingEditData, setSavingEditData] = useState(false);
+
+  /* ---------- Bulk Delete (Superadmin Exclusive) ---------- */
   const [deleteMode, setDeleteMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [deleteStep, setDeleteStep] = useState<0 | 1 | 2>(0);
+  const [deleting, setDeleting] = useState(false);
 
-  const [deleteConfirm, setDeleteConfirm] = useState({
-    step: 0,
-    show: false,
-    message: "",
-  });
+  /* ---------- Edit Posisi State ---------- */
+  const [editingPosisiIndex, setEditingPosisiIndex] = useState<number | null>(
+    null,
+  );
+  const [newPosisiValue, setNewPosisiValue] = useState("");
+  const [savingPosisi, setSavingPosisi] = useState(false);
 
-  // ✅ State konfirmasi action
-  const [confirmAction, setConfirmAction] = useState<{
-    show: boolean;
-    type: "setuju" | "tolak" | "edit";
-    title: string;
-    message: string;
-  }>({
-    show: false,
-    type: "setuju",
-    title: "",
-    message: "",
-  });
+  /* ---------- Assign Mentor Modal ---------- */
+  const [mentorTarget, setMentorTarget] = useState<{
+    index: number;
+    peserta: PesertaItem;
+  } | null>(null);
+  const [selectedMentorId, setSelectedMentorId] = useState("");
+  const [mentorSearch, setMentorSearch] = useState("");
+  const [savingMentor, setSavingMentor] = useState(false);
 
-  const showAlert = (
-    type: "success" | "error" | "warning" | "info",
-    message: string,
-    title?: string,
-  ) => {
-    setAlertType(type);
-    setAlertTitle(title);
-    setAlertMessage(message);
-    setAlertOpen(true);
-  };
+  /* ---------- Create Akun Modal (Inline) ---------- */
+  const [akunTarget, setAkunTarget] = useState<PesertaItem | null>(null);
+  const [akunPassword, setAkunPassword] = useState("");
+  const [creatingAkun, setCreatingAkun] = useState(false);
 
-  const closeModal = () => {
-    setSelected(null);
-    setAlasan("");
+  /* ================= FETCH ================= */
+
+  const loadData = useCallback(async (isManual = false) => {
+    try {
+      if (isManual) setRefreshing(true);
+      else setLoading(true);
+
+      const token = localStorage.getItem("token");
+      const headers = { Authorization: `Bearer ${token}` };
+
+      const [resPendaftaran, resPeserta, resMentor, formasi] =
+        await Promise.all([
+          fetch(`${API_BASE}/admin/pendaftaran`, { headers }),
+          fetch(`${API_BASE}/admin/peserta`, { headers }),
+          fetch(`${API_BASE}/admin/mentor`, { headers }),
+          fetchFormasi().catch(() => [] as IFormasi[]),
+        ]);
+
+      if (!resPendaftaran.ok) {
+        throw new Error("Gagal memuat data pendaftaran");
+      }
+
+      const [jsonPendaftaran, jsonPeserta, jsonMentor] = await Promise.all([
+        resPendaftaran.json(),
+        resPeserta.ok ? resPeserta.json() : [],
+        resMentor.ok ? resMentor.json() : [],
+      ]);
+
+      setData(Array.isArray(jsonPendaftaran) ? jsonPendaftaran : []);
+      setAkunPeserta(Array.isArray(jsonPeserta) ? jsonPeserta : []);
+      setMentors(Array.isArray(jsonMentor) ? jsonMentor : []);
+      setFormasiList(Array.isArray(formasi) ? formasi : []);
+    } catch {
+      showToast.error("Gagal memuat data pendaftaran");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  /* ================= OPEN DETAIL & DEEP LINK ================= */
+
+  const openDetailModal = useCallback((item: Pendaftaran) => {
+    setSelected(item);
+    setAlasan(item.jawabanAdmin || "");
     setSuratBalasan(null);
-    setEditPosisiIndex(null);
-    setMentorModal(false);
+    setFileError(null);
+    setFormError(null);
+    setEditingPosisiIndex(null);
+    setNewPosisiValue("");
+    setEditMode(false);
+    setEditedPeserta(
+      item.peserta.map((p) => ({
+        ...p,
+        asal: p.asal ? { ...p.asal } : { jenis: "", nama: "" },
+      })),
+    );
+    setConfirmAction(null);
+    setMentorTarget(null);
+    setAkunTarget(null);
+  }, []);
 
-    // hapus hash dari URL
-    window.history.replaceState(null, "", window.location.pathname);
-  };
+  useEffect(() => {
+    if (data.length === 0) return;
 
-  const toggleSelect = (id: string) => {
+    const hashId = window.location.hash.replace("#", "").trim();
+    const queryId =
+      new URLSearchParams(window.location.search).get("id")?.trim() || "";
+    const targetId = hashId || queryId;
+
+    if (targetId) {
+      const match = data.find((d) => d._id === targetId);
+      if (match) openDetailModal(match);
+    }
+  }, [data, openDetailModal]);
+
+  /* ================= ESCAPE KEY HANDLER ================= */
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (deleteStep > 0 && !deleting) setDeleteStep(0);
+      else if (confirmAction && !submittingStatus) setConfirmAction(null);
+      else if (akunTarget && !creatingAkun) setAkunTarget(null);
+      else if (mentorTarget && !savingMentor) setMentorTarget(null);
+      else if (selected && !savingEditData) setSelected(null);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [
+    deleteStep,
+    deleting,
+    confirmAction,
+    submittingStatus,
+    akunTarget,
+    creatingAkun,
+    mentorTarget,
+    savingMentor,
+    selected,
+    savingEditData,
+  ]);
+
+  /* ================= FILTERING & PAGINATION ================= */
+
+  const statusCounts = useMemo(() => {
+    const counts = {
+      Semua: data.length,
+      Menunggu: 0,
+      "Sedang Diproses": 0,
+      Disetujui: 0,
+      Ditolak: 0,
+    };
+
+    for (const item of data) {
+      if (item.status === "Menunggu") counts.Menunggu += 1;
+      else if (item.status === "Sedang Diproses") counts["Sedang Diproses"] += 1;
+      else if (item.status === "Disetujui") counts.Disetujui += 1;
+      else if (item.status === "Ditolak") counts.Ditolak += 1;
+    }
+
+    return counts;
+  }, [data]);
+
+  const totalPesertaCount = useMemo(
+    () =>
+      data.reduce(
+        (acc, item) => acc + (item.jumlahPeserta || item.peserta?.length || 0),
+        0,
+      ),
+    [data],
+  );
+
+  const filteredData = useMemo(() => {
+    const q = search.trim().toLowerCase();
+
+    return data.filter((item) => {
+      if (statusFilter !== "Semua" && item.status !== statusFilter) {
+        return false;
+      }
+
+      if (!q) return true;
+      if (item._id.toLowerCase().includes(q)) return true;
+      if (item.kategori?.toLowerCase().includes(q)) return true;
+
+      return item.peserta.some(
+        (p) =>
+          p.nama?.toLowerCase().includes(q) ||
+          p.email?.toLowerCase().includes(q) ||
+          p.posisi?.toLowerCase().includes(q) ||
+          p.jurusan?.toLowerCase().includes(q) ||
+          p.asal?.nama?.toLowerCase().includes(q) ||
+          p.wa?.toLowerCase().includes(q),
+      );
+    });
+  }, [data, search, statusFilter]);
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredData.length / ITEMS_PER_PAGE),
+  );
+  const safePage = Math.min(currentPage, totalPages);
+
+  const paginatedData = useMemo(() => {
+    const start = (safePage - 1) * ITEMS_PER_PAGE;
+    return filteredData.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredData, safePage]);
+
+  /* ================= ACCOUNT & QUOTA HELPERS ================= */
+
+  const findAkunByEmail = useCallback(
+    (email?: string) => {
+      if (!email) return undefined;
+      const target = email.trim().toLowerCase();
+      return akunPeserta.find((a) => a.email?.trim().toLowerCase() === target);
+    },
+    [akunPeserta],
+  );
+
+  const findFormasiByPosisi = useCallback(
+    (posisi?: string) => {
+      if (!posisi) return undefined;
+      const target = posisi.trim().toLowerCase();
+      return formasiList.find((f) => f.title?.trim().toLowerCase() === target);
+    },
+    [formasiList],
+  );
+
+  /* ================= BULK DELETE HANDLERS ================= */
+
+  const toggleSelectRow = (id: string) => {
     setSelectedIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
   };
 
-  const deleteSelected = () => {
-    if (selectedIds.length === 0) {
-      showAlert("warning", "Pilih data yang ingin dihapus");
-      return;
+  const toggleSelectPage = () => {
+    const pageIds = paginatedData.map((d) => d._id);
+    const allSelected =
+      pageIds.length > 0 && pageIds.every((id) => selectedIds.includes(id));
+
+    if (allSelected) {
+      setSelectedIds((prev) => prev.filter((id) => !pageIds.includes(id)));
+    } else {
+      setSelectedIds((prev) => Array.from(new Set([...prev, ...pageIds])));
     }
-
-    const selectedData = data.filter((d) => selectedIds.includes(d._id));
-
-    const nama = selectedData[0]?.peserta?.[0]?.nama || "Peserta";
-
-    const jumlah =
-      selectedData[0]?.jumlahPeserta || selectedData[0]?.peserta.length || 0;
-
-    setDeleteConfirm({
-      show: true,
-      step: 1,
-      message: `Apakah anda yakin akan menghapus pendaftaran perwakilan "${nama}" dengan ${jumlah} orang peserta?`,
-    });
   };
 
-  const isAktif = selected?.status === "Disetujui";
+  const requestBulkDelete = () => {
+    if (selectedIds.length === 0) {
+      showToast.error("Pilih minimal 1 data pendaftaran untuk dihapus");
+      return;
+    }
+    setDeleteStep(1);
+  };
 
-  const executeDelete = async () => {
+  const executeBulkDelete = async () => {
+    const toastId = showToast.loading("Menghapus data pendaftaran...");
     try {
+      setDeleting(true);
       const token = localStorage.getItem("token");
-
       const res = await fetch(`${API_BASE}/pendaftaran/delete`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          ids: selectedIds,
-        }),
+        body: JSON.stringify({ ids: selectedIds }),
       });
 
       const result = await res.json();
+      if (!res.ok) {
+        throw new Error(result?.message || "Gagal menghapus pendaftaran");
+      }
 
-      if (!res.ok) throw new Error(result.message);
-
-      showAlert("success", "Data pendaftaran berhasil dihapus");
-
+      showToast.updateSuccess(
+        toastId,
+        result?.message || "Pendaftaran berhasil dihapus",
+      );
       setSelectedIds([]);
       setDeleteMode(false);
-
-      setDeleteConfirm({
-        show: false,
-        step: 0,
-        message: "",
-      });
-
-      loadData();
-    } catch (err: any) {
-      showAlert("error", err.message);
-    }
-  };
-
-  /* ===================== LOAD DATA ===================== */
-  const loadData = async () => {
-    setLoading(true);
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        showAlert(
-          "error",
-          "Token tidak ditemukan, silakan login ulang",
-          "Error",
-        );
-        return;
-      }
-
-      const res = await fetch(`${API_BASE}/admin/pendaftaran`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (res.status === 403) {
-        showAlert(
-          "error",
-          "Anda tidak memiliki akses ke data pendaftaran",
-          "Akses Ditolak",
-        );
-        return;
-      }
-
-      if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
-      }
-
-      const json = await res.json();
-      setData(json);
-    } catch (error: any) {
-      showAlert("error", error.message || "Gagal memuat data", "Error");
+      setDeleteStep(0);
+      await loadData(true);
+    } catch (err) {
+      showToast.updateError(
+        toastId,
+        err instanceof Error ? err.message : "Gagal menghapus pendaftaran",
+      );
     } finally {
-      setLoading(false);
+      setDeleting(false);
     }
   };
 
-  const fetchAkunPeserta = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${API_BASE}/admin/peserta`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+  /* ================= STATUS, FILE, POSISI, MENTOR, EDIT ================= */
 
-      if (res.ok) {
-        const result = await res.json();
-        setAkunPeserta(result);
-      }
-    } catch (error) {
-      console.error("Gagal mengambil data akun peserta");
-    }
-  };
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    setFileError(null);
+    setFormError(null);
 
-  const fetchMentor = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${API_BASE}/admin/mentor`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (res.ok) {
-        const result = await res.json();
-        setMentorList(result.filter((m: Mentor) => m.status === "Aktif"));
-      }
-    } catch (err: any) {
-      showAlert("error", err.message || "Gagal memuat mentor");
-    }
-  };
-
-  useEffect(() => {
-    loadData();
-    fetchAkunPeserta();
-  }, []);
-
-  useEffect(() => {
-    if (!data.length) return;
-
-    const hash = window.location.hash.replace("#", "");
-    if (!hash) return;
-
-    const found = data.find((item) => item._id === hash);
-
-    if (found) {
-      setSelected(found);
-      setEditedPeserta(found.peserta);
-    }
-  }, [data]);
-
-  useEffect(() => {
-    if (mentorModal) {
-      fetchMentor();
-    }
-  }, [mentorModal]);
-
-  /* ===================== UPDATE STATUS ===================== */
-  const updateStatus = async (status: "Disetujui" | "Ditolak") => {
-    if (!selected?._id) {
-      showAlert("error", "Data pendaftaran tidak valid", "Kesalahan");
+    if (!file) {
+      setSuratBalasan(null);
       return;
     }
 
-    if (!alasan.trim()) {
-      showAlert(
-        "warning",
-        "Silakan isi alasan sebelum melanjutkan proses.",
-        "Alasan Wajib Diisi",
+    const isPdf =
+      file.type === "application/pdf" ||
+      file.name.toLowerCase().endsWith(".pdf");
+
+    if (!isPdf) {
+      setSuratBalasan(null);
+      e.target.value = "";
+      const msg = "Hanya file berformat PDF yang diperbolehkan";
+      setFileError(msg);
+      showToast.error(msg);
+      return;
+    }
+
+    if (file.size > MAX_PDF_SIZE) {
+      setSuratBalasan(null);
+      e.target.value = "";
+      const msg = "Ukuran file maksimal 5MB";
+      setFileError(msg);
+      showToast.error(msg);
+      return;
+    }
+
+    setSuratBalasan(file);
+  };
+
+  const requestUpdateStatus = (
+    targetStatus: "Sedang Diproses" | "Disetujui" | "Ditolak",
+  ) => {
+    if (!selected) return;
+
+    if (selected.status === "Disetujui" || selected.status === "Ditolak") {
+      showToast.error(
+        "Pendaftaran dengan status final tidak dapat diubah kembali.",
       );
       return;
     }
 
-    if (status === "Disetujui" && !suratBalasan) {
-      showAlert(
-        "warning",
-        "Surat balasan wajib diunggah sebelum pendaftaran disetujui.",
-        "Dokumen Belum Lengkap",
-      );
+    setFormError(null);
+
+    if (
+      (targetStatus === "Disetujui" || targetStatus === "Ditolak") &&
+      !alasan.trim()
+    ) {
+      const msg =
+        targetStatus === "Disetujui"
+          ? "Catatan / pesan persetujuan admin wajib diisi."
+          : "Alasan penolakan admin wajib diisi.";
+      setFormError(msg);
+      showToast.error(msg);
       return;
     }
 
+    if (targetStatus === "Disetujui") {
+      if (!suratBalasan && !selected.suratBalasan) {
+        const msg = "Surat balasan (PDF) wajib diunggah sebelum menyetujui.";
+        setFormError(msg);
+        showToast.error(msg);
+        return;
+      }
+
+      const neededByPosisi = new Map<string, number>();
+      for (const p of selected.peserta) {
+        const key = (p.posisi || "").trim();
+        if (!key) continue;
+        neededByPosisi.set(key, (neededByPosisi.get(key) || 0) + 1);
+      }
+
+      for (const [posisiName, neededCount] of neededByPosisi.entries()) {
+        const formasi = findFormasiByPosisi(posisiName);
+        if (formasi && formasi.sisaKuota < neededCount) {
+          const msg = `Kuota formasi "${formasi.title}" tidak mencukupi (tersisa ${formasi.sisaKuota}, dibutuhkan ${neededCount}).`;
+          setFormError(msg);
+          showToast.error(msg);
+          return;
+        }
+      }
+    }
+
+    if (targetStatus === "Sedang Diproses") {
+      setConfirmAction({
+        status: "Sedang Diproses",
+        title: "Tandai Sedang Diproses?",
+        message:
+          "Status pendaftaran akan diperbarui menjadi Sedang Diproses agar pendaftar mengetahui berkas sedang ditinjau.",
+      });
+      return;
+    }
+
+    if (targetStatus === "Disetujui") {
+      setConfirmAction({
+        status: "Disetujui",
+        title: "Setujui Pendaftaran Magang?",
+        message: `Apakah Anda yakin ingin MENYETUJUI pendaftaran ini (${selected.peserta.length} peserta)? Akun peserta yang belum terdaftar akan dibuat otomatis dan kredensial dikirim melalui email.`,
+      });
+      return;
+    }
+
+    setConfirmAction({
+      status: "Ditolak",
+      title: "Tolak Pendaftaran Magang?",
+      message:
+        "Apakah Anda yakin ingin MENOLAK pendaftaran ini? Email penolakan akan dikirim dan keputusan bersifat final.",
+    });
+  };
+
+  const executeUpdateStatus = async () => {
+    if (!selected || !confirmAction) return;
+
     try {
+      setSubmittingStatus(true);
+      const token = localStorage.getItem("token");
+
       const formData = new FormData();
-      formData.append("status", status);
-      formData.append("jawabanAdmin", alasan);
-      if (suratBalasan) formData.append("suratBalasan", suratBalasan);
+      formData.append("status", confirmAction.status);
+      formData.append(
+        "jawabanAdmin",
+        alasan.trim() ||
+          (confirmAction.status === "Sedang Diproses"
+            ? "Berkas pendaftaran sedang ditinjau."
+            : ""),
+      );
+      if (suratBalasan) {
+        formData.append("suratBalasan", suratBalasan);
+      }
 
-      const token = localStorage.getItem("token");
       const res = await fetch(`${API_BASE}/admin/pendaftaran/${selected._id}`, {
         method: "PUT",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
         body: formData,
       });
 
-      const result = await res.json();
-
+      const json = await res.json();
       if (!res.ok) {
-        throw new Error(result.message || "Gagal memperbarui status");
+        throw new Error(json?.message || "Gagal memperbarui status");
       }
 
-      showAlert(
-        "success",
-        "Status pendaftaran dan surat balasan berhasil diproses.",
-        "Berhasil",
+      const updatedDoc: Pendaftaran | undefined = json?.data;
+
+      setConfirmAction(null);
+      showToast.success(
+        json?.message ||
+          `Status pendaftaran berhasil diubah menjadi "${confirmAction.status}"`,
       );
-      loadData();
-      closeModal();
-    } catch (error: any) {
-      showAlert("error", error.message || "Terjadi kesalahan", "Gagal");
+
+      if (updatedDoc) {
+        setSelected(updatedDoc);
+        setAlasan(updatedDoc.jawabanAdmin || "");
+        setData((prev) =>
+          prev.map((d) => (d._id === updatedDoc._id ? updatedDoc : d)),
+        );
+      }
+
+      await loadData(true);
+      if (updatedDoc) {
+        setSelected(updatedDoc);
+        setAlasan(updatedDoc.jawabanAdmin || "");
+      }
+    } catch (err) {
+      const msg =
+        err instanceof Error ? err.message : "Gagal memperbarui status";
+      showToast.error(msg);
+      setFormError(msg);
+      setConfirmAction(null);
+    } finally {
+      setSubmittingStatus(false);
     }
   };
 
-  /* ===================== SIMPAN POSISI ===================== */
-  const simpanPosisi = async (index: number) => {
-    if (!selected?._id || !posisiBaru) return;
-
-    // ✅ CEK SLOT
-    if (getSisaKuota(posisiBaru) <= 0) {
-      showAlert("error", "Kuota formasi sudah habis");
+  const handleSavePosisi = async (indexPeserta: number) => {
+    if (!selected) return;
+    const trimmed = newPosisiValue.trim();
+    if (!trimmed) {
+      showToast.error("Posisi tidak boleh kosong");
       return;
     }
 
     try {
+      setSavingPosisi(true);
       const token = localStorage.getItem("token");
       const res = await fetch(
         `${API_BASE}/admin/pendaftaran/${selected._id}/posisi`,
@@ -439,48 +705,103 @@ export default function ViewPendaftaranPage() {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({
-            indexPeserta: index,
-            posisi: posisiBaru,
-          }),
+          body: JSON.stringify({ indexPeserta, posisi: trimmed }),
         },
       );
 
-      const result = await res.json();
-
+      const json = await res.json();
       if (!res.ok) {
-        throw new Error(result.message || "Gagal memperbarui posisi");
+        throw new Error(json?.message || "Gagal memperbarui posisi");
       }
 
-      const updated: Pendaftaran = {
+      const updatedDoc: Pendaftaran = json?.data || {
         ...selected,
-        peserta: selected.peserta.map((p, i) =>
-          i === index ? { ...p, posisi: posisiBaru } : p,
+        peserta: selected.peserta.map((p, idx) =>
+          idx === indexPeserta ? { ...p, posisi: trimmed } : p,
         ),
       };
 
-      setSelected(updated);
-      setEditPosisiIndex(null);
-      await loadData();
-
-      // refresh kuota
-      const data = await fetchFormasi();
-      setFormasiList(data);
-
-      showAlert("success", "Posisi magang berhasil diperbarui");
-    } catch (err: any) {
-      showAlert("error", err.message || "Gagal mengubah posisi");
+      setSelected(updatedDoc);
+      setData((prev) =>
+        prev.map((d) => (d._id === updatedDoc._id ? updatedDoc : d)),
+      );
+      setEditingPosisiIndex(null);
+      setNewPosisiValue("");
+      showToast.success("Posisi peserta berhasil diperbarui");
+    } catch (err) {
+      showToast.error(
+        err instanceof Error ? err.message : "Gagal memperbarui posisi",
+      );
+    } finally {
+      setSavingPosisi(false);
     }
   };
 
-  /* ===================== SIMPAN MENTOR ===================== */
-  const simpanMentor = async () => {
-    if (!selected || !selectedMentor || !selectedPesertaEmail) {
-      showAlert("warning", "Data mentor atau peserta belum lengkap");
+  const handleSaveEditData = async () => {
+    if (!selected) return;
+
+    try {
+      setSavingEditData(true);
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_BASE}/pendaftaran/${selected._id}/edit`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ peserta: editedPeserta }),
+      });
+
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json?.message || "Gagal menyimpan perubahan data");
+      }
+
+      const updatedDoc: Pendaftaran = json?.data || {
+        ...selected,
+        peserta: editedPeserta,
+      };
+
+      setSelected(updatedDoc);
+      setData((prev) =>
+        prev.map((d) => (d._id === updatedDoc._id ? updatedDoc : d)),
+      );
+      setEditMode(false);
+      showToast.success("Data peserta pendaftaran berhasil diperbarui");
+    } catch (err) {
+      showToast.error(
+        err instanceof Error ? err.message : "Gagal menyimpan perubahan",
+      );
+    } finally {
+      setSavingEditData(false);
+    }
+  };
+
+  const updateEditedField = (
+    idx: number,
+    updater: (prev: PesertaItem) => PesertaItem,
+  ) => {
+    setEditedPeserta((prev) =>
+      prev.map((item, i) => (i === idx ? updater(item) : item)),
+    );
+  };
+
+  const openMentorModal = (index: number, peserta: PesertaItem) => {
+    const existing = getMentorObject(peserta.mentor, mentors);
+    setMentorTarget({ index, peserta });
+    setSelectedMentorId(existing?._id || "");
+    setMentorSearch("");
+  };
+
+  const handleSaveMentor = async () => {
+    if (!selected || !mentorTarget) return;
+    if (!selectedMentorId) {
+      showToast.error("Pilih mentor terlebih dahulu");
       return;
     }
 
     try {
+      setSavingMentor(true);
       const token = localStorage.getItem("token");
       const res = await fetch(
         `${API_BASE}/admin/pendaftaran/${selected._id}/mentor-peserta`,
@@ -491,1896 +812,1545 @@ export default function ViewPendaftaranPage() {
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
-            email: selectedPesertaEmail,
-            mentorId: selectedMentor,
+            email: mentorTarget.peserta.email,
+            mentorId: selectedMentorId,
           }),
         },
       );
 
-      const result = await res.json();
-
+      const json = await res.json();
       if (!res.ok) {
-        if (res.status === 403) {
-          throw new Error("Anda tidak memiliki izin untuk mengatur mentor");
-        }
-        throw new Error(result.message || "Gagal menyimpan mentor");
+        throw new Error(json?.message || "Gagal menetapkan mentor");
       }
 
-      setSelected(result.data);
-      setMentorModal(false);
-      setSelectedMentor("");
-      setSelectedPesertaEmail("");
-      showAlert("success", "Mentor peserta berhasil disimpan");
-    } catch (err: any) {
-      showAlert("error", err.message || "Terjadi kesalahan");
+      const updatedDoc: Pendaftaran | undefined = json?.data;
+      if (updatedDoc) {
+        setSelected(updatedDoc);
+        setData((prev) =>
+          prev.map((d) => (d._id === updatedDoc._id ? updatedDoc : d)),
+        );
+      }
+
+      setMentorTarget(null);
+      showToast.success("Mentor peserta berhasil ditetapkan");
+    } catch (err) {
+      showToast.error(
+        err instanceof Error ? err.message : "Gagal menetapkan mentor",
+      );
+    } finally {
+      setSavingMentor(false);
     }
   };
 
-  /* ===================== FUNGSI LAINNYA ===================== */
-  const isAkunTerdaftar = (email?: string) => {
-    if (!email) return false;
-    return akunPeserta.some(
-      (akun) => akun.email.toLowerCase() === email.toLowerCase(),
-    );
+  const openAkunModal = (peserta: PesertaItem) => {
+    setAkunTarget(peserta);
+    setAkunPassword(generateAccountPassword(10));
   };
 
-  const filteredData = data.filter((item) =>
-    item.peserta?.[0]?.nama?.toLowerCase().includes(search.toLowerCase()),
-  );
-
-  const totalPage = Math.ceil(filteredData.length / LIMIT);
-  const paginatedData = filteredData.slice((page - 1) * LIMIT, page * LIMIT);
-
-  const totalPendaftar = data.length;
-  const disetujui = data.filter((d) => d.status === "Disetujui").length;
-  const ditolak = data.filter((d) => d.status === "Ditolak").length;
-
-  const downloadExcel = () => {
-    if (data.length === 0) {
-      showAlert("error", "Tidak ada data pendaftaran.", "Data Kosong");
-      return;
-    }
-
-    const excelData = data.flatMap((pendaftaran, index) =>
-      pendaftaran.peserta.map((p) => ({
-        No: index + 1,
-        Nama: p.nama,
-        Email: p.email,
-        WhatsApp: p.wa,
-        Posisi: p.posisi,
-        Kategori: pendaftaran.kategori,
-        Status: pendaftaran.status,
-
-        "Mulai Magang": new Date(
-          p.tanggalMulaiMagang ?? "",
-        ).toLocaleDateString(),
-
-        "Selesai Magang": new Date(
-          p.tanggalSelesaiMagang ?? "",
-        ).toLocaleDateString(),
-
-        "Tanggal Lahir": new Date(p.tanggalLahir ?? "").toLocaleDateString(),
-
-        "Tempat Lahir": p.tempatLahir,
-
-        "Jenis Kelamin": p.jenisKelamin,
-        Provinsi: p.provinsi,
-        Kota: p.kota,
-        Kecamatan: p.kecamatan,
-        Kelurahan: p.kelurahan,
-        Alamat: p.alamatLengkap,
-
-        "Tanggal Daftar": new Date(pendaftaran.createdAt).toLocaleDateString(),
-
-        "Surat Pengantar": pendaftaran.suratPengantar
-          ? `${API_BASE}/uploads/${pendaftaran.suratPengantar}`
-          : "",
-
-        "Surat Balasan": pendaftaran.suratBalasan
-          ? `${API_BASE}/uploads/${pendaftaran.suratBalasan}`
-          : "Belum Ada",
-      })),
-    );
-
-    const worksheet = XLSX.utils.json_to_sheet(excelData);
-
-    /* =============================
-      STYLE HEADER
-    ============================= */
-    const range = XLSX.utils.decode_range(worksheet["!ref"] || "A1:A1");
-
-    for (let C = range.s.c; C <= range.e.c; C++) {
-      const cell = XLSX.utils.encode_cell({ r: 0, c: C });
-
-      if (!worksheet[cell]) continue;
-
-      worksheet[cell].s = {
-        font: {
-          bold: true,
-          color: { rgb: "FFFFFF" },
-        },
-        alignment: {
-          horizontal: "center",
-          vertical: "center",
-        },
-        fill: {
-          fgColor: { rgb: "B91C1C" },
-        },
-        border: {
-          top: { style: "thin" },
-          bottom: { style: "thin" },
-          left: { style: "thin" },
-          right: { style: "thin" },
-        },
-      };
-    }
-
-    /* =============================
-      TAMBAHKAN HYPERLINK
-    ============================= */
-
-    const jsonKeys = Object.keys(excelData[0]);
-
-    const colPengantar = jsonKeys.indexOf("Surat Pengantar");
-    const colBalasan = jsonKeys.indexOf("Surat Balasan");
-
-    excelData.forEach((row, i) => {
-      const r = i + 1;
-
-      if (row["Surat Pengantar"]) {
-        const cell = XLSX.utils.encode_cell({
-          r,
-          c: colPengantar,
-        });
-
-        worksheet[cell] = {
-          t: "s",
-          v: "Download",
-          l: {
-            Target: row["Surat Pengantar"],
-          },
-          s: {
-            font: {
-              color: { rgb: "0563C1" },
-              underline: true,
-            },
-            alignment: { horizontal: "center" },
-          },
-        };
-      }
-
-      if (row["Surat Balasan"] !== "Belum Ada") {
-        const cell = XLSX.utils.encode_cell({
-          r,
-          c: colBalasan,
-        });
-
-        worksheet[cell] = {
-          t: "s",
-          v: "Download",
-          l: {
-            Target: row["Surat Balasan"],
-          },
-          s: {
-            font: {
-              color: { rgb: "0563C1" },
-              underline: true,
-            },
-            alignment: { horizontal: "center" },
-          },
-        };
-      }
-    });
-
-    /* =============================
-      AUTO WIDTH KOLOM
-    ============================= */
-
-    worksheet["!cols"] = [
-      { wch: 5 },
-      { wch: 25 },
-      { wch: 30 },
-      { wch: 18 },
-      { wch: 22 },
-      { wch: 15 },
-      { wch: 15 },
-      { wch: 15 },
-      { wch: 15 },
-      { wch: 20 },
-      { wch: 15 },
-      { wch: 15 },
-      { wch: 18 },
-      { wch: 18 },
-      { wch: 18 },
-      { wch: 18 },
-      { wch: 40 },
-      { wch: 18 },
-      { wch: 18 },
-    ];
-
-    /* =============================
-      FREEZE HEADER
-    ============================= */
-
-    worksheet["!freeze"] = {
-      xSplit: 0,
-      ySplit: 1,
-    };
-
-    /* =============================
-      FILTER
-    ============================= */
-
-    worksheet["!autofilter"] = {
-      ref: worksheet["!ref"] || "A1",
-    };
-
-    /* =============================
-      BUAT WORKBOOK
-    ============================= */
-
-    const workbook = XLSX.utils.book_new();
-
-    XLSX.utils.book_append_sheet(
-      workbook,
-      worksheet,
-      "Data Pendaftaran Magang",
-    );
-
-    const excelBuffer = XLSX.write(workbook, {
-      bookType: "xlsx",
-      type: "array",
-    });
-
-    const file = new Blob([excelBuffer], {
-      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    });
-
-    saveAs(file, `data-pendaftaran-${Date.now()}.xlsx`);
-  };
-
-  const [formasiList, setFormasiList] = useState<IFormasi[]>([]);
-  const [loadingFormasi, setLoadingFormasi] = useState(true);
-
-  useEffect(() => {
-    const loadFormasi = async () => {
-      try {
-        const data = await fetchFormasi();
-        setFormasiList(data);
-      } catch (err) {
-        console.error("Gagal load formasi:", err);
-      } finally {
-        setLoadingFormasi(false);
-      }
-    };
-
-    loadFormasi();
-  }, []);
-
-  const getSisaKuota = (posisi: string) => {
-    const f = formasiList.find((x) => x.title === posisi);
-    return f ? f.sisaKuota : 0;
-  };
-
-  const uniquePosisiMentor = [
-    ...new Set(mentorList.map((m) => m.posisiMentor)),
-  ];
-
-  const filteredMentor = mentorList.filter((m) => {
-    const matchSearch = m.name
-      .toLowerCase()
-      .includes(mentorSearch.toLowerCase());
-
-    const matchPosisi = filterPosisiMentor
-      ? m.posisiMentor === filterPosisiMentor
-      : true;
-
-    return matchSearch && matchPosisi;
-  });
-
-  const updatePendaftaran = async () => {
-    if (!selected) {
-      showAlert("error", "Data tidak ditemukan");
+  const handleCreateAkunManual = async () => {
+    if (!akunTarget) return;
+    const pwd = akunPassword.trim();
+    if (
+      pwd.length < 8 ||
+      !/[A-Z]/.test(pwd) ||
+      !/[a-z]/.test(pwd) ||
+      !/[0-9]/.test(pwd)
+    ) {
+      showToast.error(
+        "Password minimal 8 karakter (wajib huruf besar, huruf kecil, dan angka)",
+      );
       return;
     }
 
     try {
+      setCreatingAkun(true);
       const token = localStorage.getItem("token");
-
-      const res = await fetch(`${API_BASE}/pendaftaran/${selected._id}/edit`, {
-        method: "PUT",
+      const res = await fetch(`${API_BASE}/superadmin/buat-peserta`, {
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          peserta: editedPeserta,
+          name: akunTarget.nama,
+          email: akunTarget.email.trim().toLowerCase(),
+          password: pwd,
+          periode: akunTarget.tanggalMulaiMagang
+            ? akunTarget.tanggalMulaiMagang.slice(0, 4)
+            : new Date().getFullYear().toString(),
         }),
       });
 
-      const result = await res.json();
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json?.message || "Gagal membuat akun peserta");
+      }
 
-      if (!res.ok) throw new Error(result.message);
+      if (json?.user) {
+        setAkunPeserta((prev) => [
+          ...prev,
+          {
+            _id: json.user.id || json.user._id || akunTarget.email,
+            name: json.user.name || akunTarget.nama,
+            email: json.user.email || akunTarget.email,
+            status: json.user.status || "Aktif",
+          },
+        ]);
+      } else {
+        await loadData(true);
+      }
 
-      showAlert("success", "Data berhasil diperbarui");
-
-      setEditMode(false);
-      loadData();
-    } catch (err: any) {
-      showAlert("error", err.message);
+      setAkunTarget(null);
+      setAkunPassword("");
+      showToast.success(
+        json?.message || "Akun peserta berhasil dibuat & email terkirim",
+      );
+    } catch (err) {
+      showToast.error(
+        err instanceof Error ? err.message : "Gagal membuat akun peserta",
+      );
+    } finally {
+      setCreatingAkun(false);
     }
   };
 
-  const confirmEdit = () => {
-    setConfirmAction({
-      show: true,
-      type: "edit",
-      title: "Konfirmasi Perubahan",
-      message: "Apakah anda yakin mengganti data pendaftaran ini?",
+  const handleDownloadExcel = () => {
+    if (filteredData.length === 0) {
+      showToast.error("Tidak ada data yang dapat diekspor");
+      return;
+    }
+
+    let rowNo = 0;
+    const rows: Record<string, string | number>[] = [];
+
+    for (const item of filteredData) {
+      for (const p of item.peserta) {
+        rowNo += 1;
+        const mentorObj = getMentorObject(p.mentor, mentors);
+        const computedMagang =
+          item.status === "Disetujui"
+            ? getStatusMagangByDate(p.tanggalMulaiMagang, p.tanggalSelesaiMagang)
+            : item.status === "Ditolak"
+              ? "Tidak Magang"
+              : "Menunggu";
+
+        rows.push({
+          No: rowNo,
+          "ID Pendaftaran": item._id,
+          Kategori: item.kategori === "bersama" ? "Kelompok" : "Mandiri",
+          "Nama Peserta": p.nama || "-",
+          Email: p.email || "-",
+          WhatsApp: p.wa || "-",
+          "Jenis Asal": p.asal?.jenis || "-",
+          "Asal Institusi": p.asal?.nama || "-",
+          Jurusan: p.jurusan || "-",
+          Posisi: p.posisi || "-",
+          Mentor: mentorObj?.name || "Belum Ditetapkan",
+          "Tanggal Mulai": p.tanggalMulaiMagang || "-",
+          "Tanggal Selesai": p.tanggalSelesaiMagang || "-",
+          "Status Pendaftaran": item.status,
+          "Status Magang": computedMagang,
+          "Catatan Admin": item.jawabanAdmin || "-",
+          "Tanggal Daftar": formatTanggalShort(item.createdAt),
+        });
+      }
+    }
+
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Data Pendaftaran");
+
+    const excelBuffer = XLSX.write(workbook, {
+      bookType: "xlsx",
+      type: "array",
     });
+    const blob = new Blob([excelBuffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8",
+    });
+    saveAs(blob, `Data_Pendaftaran_Magang_${getTodayWibIso()}.xlsx`);
+    showToast.success(`Berhasil mengekspor ${rows.length} data peserta`);
   };
 
-  return (
-    <div className="min-h-screen p-4 sm:p-6 bg-linear-to-br from-slate-50 via-white to-indigo-50 dark:from-[#020617] dark:via-[#020617] dark:to-[#1E1B4B] text-slate-800 dark:text-slate-100 transition-colors">
-      <h1 className="flex items-center gap-3 tracking-tight mb-10">
-        <span
-          className="
-                text-2xl sm:text-3xl lg:text-4xl
-                font-extrabold leading-tight
-                bg-clip-text text-transparent
-                bg-linear-to-r
-                from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
-                dark:from-indigo-400 dark:via-violet-400 dark:to-purple-400
-              "
-        >
-          Data Pendaftaran
-        </span>
-      </h1>
+  /* ================= RENDER ================= */
 
-      {/* SUMMARY CARD */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-        <SummaryCard
-          title="Jumlah Pendaftar"
-          value={totalPendaftar}
-          icon={<HiUsers className="w-7 h-7" />}
-        />
-        <SummaryCard
-          title="Disetujui"
-          value={disetujui}
-          color="green"
-          icon={<HiCheckCircle className="w-7 h-7" />}
-        />
-        <SummaryCard
-          title="Ditolak"
-          value={ditolak}
-          color="red"
-          icon={<HiXCircle className="w-7 h-7" />}
-        />
+  if (loading) {
+    return (
+      <TablePageSkeleton
+        title="Manajemen Pendaftaran Magang"
+        subtitle="Memuat seluruh data pendaftaran magang..."
+        columnsCount={6}
+        rowsCount={8}
+      />
+    );
+  }
+
+  const isSelectedFinal =
+    selected?.status === "Disetujui" || selected?.status === "Ditolak";
+  const activeMentors = mentors.filter((m) => m.status !== "nonaktif");
+  const filteredMentors = activeMentors.filter((m) => {
+    const q = mentorSearch.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      m.name.toLowerCase().includes(q) ||
+      (m.posisiMentor && m.posisiMentor.toLowerCase().includes(q))
+    );
+  });
+
+  const pageIds = paginatedData.map((d) => d._id);
+  const isAllPageSelected =
+    pageIds.length > 0 && pageIds.every((id) => selectedIds.includes(id));
+
+  return (
+    <div className="space-y-6">
+      {/* ================= HEADER ================= */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-3 border-b border-slate-100 dark:border-slate-800">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+            Manajemen Pendaftaran Magang
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
+            Verifikasi berkas pendaftaran, edit data peserta, tetapkan mentor,
+            dan kelola penghapusan berkas
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => loadData(true)}
+            disabled={refreshing}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition disabled:opacity-60"
+          >
+            <RefreshCw
+              className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`}
+            />
+            Refresh
+          </button>
+
+          {deleteMode ? (
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  setDeleteMode(false);
+                  setSelectedIds([]);
+                }}
+                className="px-3.5 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100"
+              >
+                Batal Hapus
+              </button>
+              <button
+                type="button"
+                onClick={requestBulkDelete}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white shadow-xs transition"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Hapus Terpilih ({selectedIds.length})
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setDeleteMode(true)}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold border border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 hover:bg-rose-100 transition"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              Mode Hapus
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={handleDownloadExcel}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-[#0284c7] hover:bg-sky-700 text-white shadow-xs transition"
+          >
+            <Download className="w-3.5 h-3.5" />
+            Export Excel
+          </button>
+        </div>
       </div>
 
-      {/* SEARCH & ACTION */}
-      <div className="mb-5 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
-        {/* SEARCH */}
-        <div className="relative w-full lg:max-w-sm">
-          <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400">
-            🔍
-          </span>
+      {/* ================= KPI CARDS ================= */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="rounded-2xl p-5 bg-linear-to-br from-[#0284c7] to-blue-700 text-white shadow-sm">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-medium text-sky-100">
+                Total Pendaftaran
+              </p>
+              <p className="text-3xl font-extrabold tracking-tight mt-2">
+                {statusCounts.Semua}
+              </p>
+              <p className="text-[11px] text-sky-100 mt-1.5">
+                {totalPesertaCount} total calon peserta terdaftar
+              </p>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
+              <ClipboardList className="w-5 h-5" />
+            </div>
+          </div>
+        </div>
 
+        <div className="rounded-2xl p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                Menunggu &amp; Diproses
+              </p>
+              <p className="text-3xl font-extrabold text-amber-600 dark:text-amber-400 tracking-tight mt-2">
+                {statusCounts.Menunggu + statusCounts["Sedang Diproses"]}
+              </p>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1.5">
+                {statusCounts.Menunggu} menunggu •{" "}
+                {statusCounts["Sedang Diproses"]} diproses
+              </p>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+              <Clock className="w-5 h-5" />
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-2xl p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                Disetujui
+              </p>
+              <p className="text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 tracking-tight mt-2">
+                {statusCounts.Disetujui}
+              </p>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1.5">
+                Berkas diterima &amp; siap magang
+              </p>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+              <CheckCircle2 className="w-5 h-5" />
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-2xl p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                Ditolak
+              </p>
+              <p className="text-3xl font-extrabold text-rose-600 dark:text-rose-400 tracking-tight mt-2">
+                {statusCounts.Ditolak}
+              </p>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1.5">
+                Tidak memenuhi kriteria / kuota
+              </p>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+              <XCircle className="w-5 h-5" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ================= FILTER & SEARCH ================= */}
+      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/30 p-3.5 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-1.5">
+          {(
+            [
+              "Semua",
+              "Menunggu",
+              "Sedang Diproses",
+              "Disetujui",
+              "Ditolak",
+            ] as StatusFilter[]
+          ).map((tab) => {
+            const active = statusFilter === tab;
+            return (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => {
+                  setStatusFilter(tab);
+                  setCurrentPage(1);
+                }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition inline-flex items-center gap-1.5 ${
+                  active
+                    ? "bg-[#0284c7] text-white shadow-xs"
+                    : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
+                }`}
+              >
+                <span>{tab}</span>
+                <span
+                  className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold ${
+                    active
+                      ? "bg-white/20 text-white"
+                      : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+                  }`}
+                >
+                  {statusCounts[tab]}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="relative w-full lg:w-80">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
             type="text"
-            placeholder="Cari nama peserta..."
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
-              setPage(1);
+              setCurrentPage(1);
             }}
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-700 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#B91C1C]/70 dark:focus:ring-indigo-500/70 transition"
+            placeholder="Cari nama, email, posisi, instansi..."
+            className="w-full pl-9 pr-9 py-2 rounded-xl text-xs sm:text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40 focus:border-[#0284c7]"
           />
-        </div>
-
-        {/* BUTTON GROUP */}
-        <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
-          {/* DELETE BUTTON */}
-          <button
-            onClick={() => {
-              if (deleteMode) {
-                deleteSelected();
-              } else {
-                setDeleteMode(true);
-              }
-            }}
-            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition w-full sm:w-auto"
-          >
-            {deleteMode ? "Hapus Pendaftaran" : "hapus Pendaftaran"}
-          </button>
-
-          {/* DOWNLOAD EXCEL */}
-          <button
-            onClick={downloadExcel}
-            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-linear-to-r from-emerald-500 to-green-600 hover:opacity-90 shadow-md hover:shadow-lg transition w-full sm:w-auto"
-          >
-            <HiDocumentText className="text-lg" />
-            Download Excel
-          </button>
+          {search && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearch("");
+                setCurrentPage(1);
+              }}
+              aria-label="Hapus pencarian"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </div>
 
-      {/* TABLE */}
-      {!loading && paginatedData.length === 0 ? (
-        <div className="rounded-3xl bg-white/80 dark:bg-white/5 backdrop-blur border border-[#F59E0B]/30 dark:border-indigo-500/30 shadow-xl p-12 text-center">
-          <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-5 rounded-full bg-linear-to-br from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B] dark:from-indigo-600 dark:to-violet-500 flex items-center justify-center shadow-lg animate-pulse">
-            <HiUser className="w-7 h-7 sm:w-10 sm:h-10 text-white" />
-          </div>
-          <h3 className="text-lg sm:text-xl font-bold text-[#7F1D1D] dark:text-indigo-300 mb-2">
-            Data tidak ditemukan
-          </h3>
-          <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 max-w-md mx-auto">
-            Tidak ada data yang dapat ditampilkan saat ini.
-          </p>
-        </div>
-      ) : (
-        <div className="rounded-2xl bg-white/90 dark:bg-white/5 backdrop-blur border border-slate-200 dark:border-indigo-500/30 shadow-lg overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-180 w-full text-sm sm:text-base">
-              <thead>
-                <tr className="bg-slate-50 dark:bg-indigo-500/10 border-b border-slate-200 dark:border-indigo-500/30">
-                  {deleteMode && <th className="w-[4%] py-4 px-2 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">Pilih</th>}
-                  <th className="w-[5%] py-4 px-4 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
-                    No
+      {/* ================= TABLE ================= */}
+      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-xs">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-50 dark:bg-slate-800/70 border-b border-slate-200 dark:border-slate-800 text-[11px] uppercase tracking-wider font-bold text-slate-500 dark:text-slate-400">
+                {deleteMode && (
+                  <th className="py-3.5 px-3 w-10 text-center">
+                    <input
+                      type="checkbox"
+                      checked={isAllPageSelected}
+                      onChange={toggleSelectPage}
+                      aria-label="Pilih semua baris di halaman ini"
+                      className="w-4 h-4 accent-rose-600 cursor-pointer"
+                    />
                   </th>
-                  <th className="w-[25%] py-4 px-4 text-left text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
-                    Peserta
-                  </th>
-                  <th className="w-[22%] py-4 px-4 text-left text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
-                    Email
-                  </th>
-                  <th className="w-[15%] py-4 px-4 text-left text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
-                    Posisi
-                  </th>
-                  <th className="w-[11%] py-4 px-4 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
-                    Kategori
-                  </th>
-                  <th className="w-[11%] py-4 px-4 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
-                    Status Pendaftaran
-                  </th>
-
-                  <th className="w-[11%] py-4 px-4 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
-                    Status Magang
-                  </th>
+                )}
+                <th className="py-3.5 px-4 w-12 text-center">No</th>
+                <th className="py-3.5 px-4">Pendaftar &amp; Anggota</th>
+                <th className="py-3.5 px-4">Asal &amp; Posisi</th>
+                <th className="py-3.5 px-4">Periode &amp; Berkas</th>
+                <th className="py-3.5 px-4">Status</th>
+                <th className="py-3.5 px-4 text-right">Aksi</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
+              {paginatedData.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={deleteMode ? 7 : 6}
+                    className="py-14 px-4 text-center text-slate-500 dark:text-slate-400"
+                  >
+                    <ClipboardList className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+                    <p className="font-semibold text-slate-700 dark:text-slate-200">
+                      Tidak ada data pendaftaran yang sesuai
+                    </p>
+                  </td>
                 </tr>
-              </thead>
+              ) : (
+                paginatedData.map((item, idx) => {
+                  const first = item.peserta[0];
+                  const rowNo = (safePage - 1) * ITEMS_PER_PAGE + idx + 1;
+                  const uniquePositions = Array.from(
+                    new Set(
+                      item.peserta.map((p) => p.posisi).filter(Boolean),
+                    ),
+                  );
+                  const liveMagangStatus =
+                    item.status === "Disetujui" && first
+                      ? getStatusMagangByDate(
+                          first.tanggalMulaiMagang,
+                          first.tanggalSelesaiMagang,
+                        )
+                      : null;
+                  const checked = selectedIds.includes(item._id);
 
-              <tbody className="divide-y divide-slate-100 dark:divide-indigo-500/20">
-                {paginatedData.map((item, i) => (
-                  <tr
-                    key={item._id}
-                    className="hover:bg-[#FEF3C7]/40 dark:hover:bg-indigo-500/10 transition"
-                  >
-                    {deleteMode && (
-                      <td className="py-4 px-2 text-center align-middle">
-                        <input
-                          type="checkbox"
-                          checked={selectedIds.includes(item._id)}
-                          onChange={() => toggleSelect(item._id)}
-                        />
-                      </td>
-                    )}
-                    <td className="py-4 px-4 text-center align-middle font-medium text-slate-500">
-                      {i + 1}
-                    </td>
-                    <td className="py-4 px-4 text-left align-middle">
-                      <div
-                        onClick={() => setSelected(item)}
-                        className="flex items-center gap-3 cursor-pointer group"
-                      >
-                        <div
-                          className="
-                              shrink-0 w-10 h-10 min-w-10 min-h-10
-                              rounded-full
-                              bg-linear-to-br from-[#7F1D1D] to-[#F59E0B]
-                              dark:from-indigo-600 dark:to-violet-500
-                              flex items-center justify-center
-                              text-white shadow
-                              group-hover:scale-110 transition
-                            "
-                        >
-                          <HiUser className="w-5 h-5" />
-                        </div>
-
-                        <div className="text-left">
-                          <p className="font-medium text-slate-800 dark:text-slate-100">
-                            {item.peserta[0]?.nama}
-                          </p>
-                          <p className="text-xs text-[#7F1D1D]">
-                            Klik untuk lihat detail
-                          </p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-4 px-4 text-left align-middle">
-                      <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
-                        <HiMail className="w-4 h-4 shrink-0 text-slate-400" />
-                        <span className="truncate max-w-52">
-                          {item.peserta[0]?.email}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="py-4 px-4 text-left align-middle">
-                      <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
-                        {item.peserta[0]?.posisi || "-"}
-                      </span>
-                    </td>
-                    <td className="py-4 px-4 text-center align-middle">
-                      <span
-                        className={`
-                            px-3 py-1.5
-                            rounded-full
-                            text-xs font-semibold
-                            border
-                            ${
-                              item.kategori === "bersama"
-                                ? "bg-[#7F1D1D]/10 text-[#7F1D1D] border-[#7F1D1D]/20"
-                                : "bg-[#FEF3C7] text-[#92400E] border-[#FDE68A]"
-                            }
-                          `}
-                      >
-                        {item.kategori === "bersama" ? "Bersama" : "Sendiri"}
-                      </span>
-                    </td>
-                    <td className="py-4 px-4 text-center align-middle">
-                      <StatusBadge status={item.status} />
-                    </td>
-                    <td className="py-4 px-4 text-center align-middle">
-                      <StatusMagangBadge
-                        status={getStatusMagang(
-                          item.status,
-                          item.peserta[0]?.tanggalMulaiMagang,
-                          item.peserta[0]?.tanggalSelesaiMagang,
-                        )}
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {totalPage > 1 && (
-            <div className="flex flex-wrap items-center justify-center gap-2 py-5">
-              <button
-                disabled={page === 1}
-                onClick={() => setPage((p) => p - 1)}
-                className="px-4 py-2 rounded-lg text-sm font-medium border border-slate-300 dark:border-indigo-500/30 bg-white dark:bg-indigo-950 text-slate-700 dark:text-indigo-200 hover:bg-[#FFF1F2] dark:hover:bg-indigo-900/40 disabled:opacity-40 disabled:cursor-not-allowed transition"
-              >
-                Prev
-              </button>
-              {Array.from({ length: totalPage }).map((_, i) => {
-                const active = page === i + 1;
-                return (
-                  <button
-                    key={i}
-                    onClick={() => setPage(i + 1)}
-                    className={`min-w-9.5 h-9.5 rounded-lg text-sm font-semibold transition ${active ? "bg-[#B91C1C] text-white shadow dark:bg-indigo-600 dark:text-white" : "bg-white dark:bg-indigo-950 text-[#7F1D1D] dark:text-indigo-200 border border-slate-300 dark:border-indigo-500/30 hover:bg-[#FFF1F2] dark:hover:bg-indigo-900/40"}`}
-                  >
-                    {i + 1}
-                  </button>
-                );
-              })}
-              <button
-                disabled={page === totalPage}
-                onClick={() => setPage((p) => p + 1)}
-                className="px-4 py-2 rounded-lg text-sm font-medium border border-slate-300 dark:border-indigo-500/30 bg-white dark:bg-indigo-950 text-slate-700 dark:text-indigo-200 hover:bg-[#FFF1F2] dark:hover:bg-indigo-900/40 disabled:opacity-40 disabled:cursor-not-allowed transition"
-              >
-                Next
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* MODAL DETAIL */}
-      {selected && (
-        <div className="fixed inset-y-0 right-0 left-0 lg:left-72 z-40 flex">
-          <div
-            className="absolute inset-y-0 right-0 left-0 bg-black/40 backdrop-blur-sm"
-            onClick={closeModal}
-          />
-          <div
-            className="relative w-full h-full bg-linear-to-br from-white via-[#FFF5F5] to-[#FDECEC] dark:from-[#0B0614] dark:via-[#120A24] dark:to-[#1E0F3D] flex flex-col"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* HEADER */}
-            <div className="sticky top-0 z-50 flex items-center justify-between px-6 py-4 bg-linear-to-r from-[#FCA5A5] via-[#FDE8E8] to-white dark:from-indigo-900 dark:via-violet-800 dark:to-purple-800 border-b border-blue-200 dark:border-indigo-800/40 shadow-lg text-blue-950 dark:text-indigo-50">
-              <div className="flex items-center gap-4">
-                <div className="w-11 h-11 rounded-xl bg-white/80 dark:bg-white/10 flex items-center justify-center shadow">
-                  <HiDocumentText className="text-2xl text-[#B91C1C] dark:text-indigo-300" />
-                </div>
-                <div className="leading-tight">
-                  <p className="text-xs font-medium text-blue-900/70 dark:text-indigo-200/80">
-                    Detail
-                  </p>
-                  <h2 className="text-lg font-semibold tracking-tight text-blue-950 dark:text-white">
-                    Pendaftaran Magang
-                  </h2>
-                </div>
-              </div>
-              <button
-                onClick={closeModal}
-                className="w-10 h-10 flex items-center justify-center rounded-full text-blue-900 dark:text-indigo-200 hover:bg-white/70 dark:hover:bg-white/10 transition"
-              >
-                <HiX className="text-xl" />
-              </button>
-            </div>
-
-            {/* CONTENT */}
-            <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
-              {/* SURAT PENGANTAR */}
-              <div className="rounded-2xl p-5 bg-linear-to-br from-[#FFF1F2] to-[#FFE4E6] dark:from-indigo-500/10 dark:to-violet-500/10 border-[#FCA5A5] dark:border-indigo-700/40 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-[#B91C1C] dark:bg-indigo-700 text-white flex items-center justify-center">
-                    <HiDocumentText className="text-xl" />
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                      Surat Pengantar
-                    </p>
-                    <p className="font-semibold text-slate-800 dark:text-white">
-                      File Surat Pengantar Magang
-                    </p>
-                  </div>
-                </div>
-                <a
-                  href={`${API_BASE}/uploads/${selected.suratPengantar}`}
-                  target="_blank"
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition bg-[#B91C1C] hover:bg-[#991B1B] dark:bg-indigo-600 dark:hover:bg-indigo-700"
-                >
-                  <HiDocumentText />
-                  Lihat Surat
-                </a>
-              </div>
-
-              {/* DATA PESERTA */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                {selected.peserta.map((p, i) => (
-                  <div
-                    key={i}
-                    className="rounded-2xl bg-white/90 dark:bg-[#140B2D]/80 border-[#FCA5A5] dark:border-indigo-700/40 p-6 shadow-sm"
-                  >
-                    <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                      <div className="flex flex-col gap-2 w-full sm:flex-row sm:w-auto sm:items-center">
-                        <HiUser className="text-[#B91C1C] dark:text-indigo-400" />
-                        <div className="flex items-center gap-3">
-                          <h3 className="text-lg font-semibold text-[#B91C1C] dark:text-indigo-400">
-                            Peserta {i + 1}
-                          </h3>
-
-                          {!editMode && (
-                            <button
-                              onClick={() => {
-                                setEditMode(true);
-                                setEditedPeserta(selected.peserta);
-                              }}
-                              className="text-xs px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white"
-                            >
-                              ✏️ Edit Data
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
-                        {editPosisiIndex === i ? (
-                          <>
-                            <select
-                              value={posisiBaru}
-                              onChange={(e) => {
-                                const val = e.target.value;
-
-                                // ❌ Cegah kalau penuh
-                                if (getSisaKuota(val) <= 0) {
-                                  showAlert(
-                                    "warning",
-                                    "Kuota formasi ini sudah penuh",
-                                  );
-                                  return;
-                                }
-
-                                setPosisiBaru(val);
-                              }}
-                              disabled={loadingFormasi}
-                              className="w-full sm:w-56 text-xs px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800"
-                            >
-                              <option value="">Pilih Posisi</option>
-                              {formasiList.map((f) => (
-                                <option
-                                  key={f._id}
-                                  value={f.title}
-                                  disabled={f.sisaKuota === 0}
-                                >
-                                  {f.title} ({f.sisaKuota} slot)
-                                  {f.sisaKuota === 0 ? " - PENUH" : ""}
-                                </option>
-                              ))}
-                            </select>
-                            <button
-                              onClick={() => simpanPosisi(i)}
-                              className="w-full sm:w-auto text-xs px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition"
-                            >
-                              Simpan
-                            </button>
-                            <button
-                              onClick={() => setEditPosisiIndex(null)}
-                              className="w-full sm:w-auto text-xs px-3 py-2 rounded-lg bg-slate-300 hover:bg-slate-400 dark:bg-slate-600 transition"
-                            >
-                              Batal
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            <span className="text-xs font-semibold px-3 py-1 rounded-full bg-[#FEE2E2] text-[#7F1D1D] dark:bg-indigo-500/20 dark:text-indigo-300 flex items-center gap-1">
-                              <HiBriefcase />
-                              {p.posisi}
-                            </span>
-                            <button
-                              onClick={() => {
-                                setEditPosisiIndex(i);
-                                setPosisiBaru(p.posisi);
-                              }}
-                              className={`w-full sm:w-auto text-xs px-3 py-2 rounded-lg text-white transition ${p.mentor ? "bg-amber-600 hover:bg-amber-700" : "bg-[#B91C1C] hover:bg-[#991B1B]"}`}
-                            >
-                              Ubah
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* ✅ HANYA SATU BAGIAN INI - SUDAH BENAR DENGAN TOMBOL EDIT */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                      {/* Nama Lengkap */}
-                      <div className="flex items-center gap-2">
-                        {editMode && editField === `nama-${i}` ? (
+                  return (
+                    <tr
+                      key={item._id}
+                      className={`transition-colors ${
+                        checked
+                          ? "bg-rose-50/50 dark:bg-rose-950/20"
+                          : "hover:bg-sky-50/40 dark:hover:bg-slate-800/40"
+                      }`}
+                    >
+                      {deleteMode && (
+                        <td className="py-3.5 px-3 text-center">
                           <input
-                            type="text"
-                            value={editedPeserta[i].nama}
-                            onChange={(e) => {
-                              const updated = [...editedPeserta];
-                              updated[i].nama = e.target.value;
-                              setEditedPeserta(updated);
-                            }}
-                            onBlur={() => setEditField(null)}
-                            autoFocus
-                            className="w-full px-2 py-1 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500"
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggleSelectRow(item._id)}
+                            aria-label={`Pilih pendaftaran ${first?.nama || item._id}`}
+                            className="w-4 h-4 accent-rose-600 cursor-pointer"
                           />
-                        ) : (
-                          <DetailItem
-                            label="Nama Lengkap"
-                            value={p.nama}
-                            icon={<HiUser />}
-                          />
-                        )}
-                        {editMode && editField !== `nama-${i}` && (
-                          <button
-                            onClick={() => setEditField(`nama-${i}`)}
-                            className="text-blue-500 hover:text-blue-700"
-                          >
-                            ✏️
-                          </button>
-                        )}
-                      </div>
-
-                      {/* Jenis Kelamin */}
-                      <div className="flex items-center gap-2">
-                        {editMode && editField === `jenisKelamin-${i}` ? (
-                          <select
-                            value={editedPeserta[i].jenisKelamin}
-                            onChange={(e) => {
-                              const updated = [...editedPeserta];
-                              updated[i].jenisKelamin = e.target.value;
-                              setEditedPeserta(updated);
-                            }}
-                            onBlur={() => setEditField(null)}
-                            autoFocus
-                            className="w-full px-2 py-1 text-sm border rounded-lg"
-                          >
-                            <option value="Laki-laki">Laki-laki</option>
-                            <option value="Perempuan">Perempuan</option>
-                          </select>
-                        ) : (
-                          <DetailItem
-                            label="Jenis Kelamin"
-                            value={p.jenisKelamin}
-                            icon={<HiIdentification />}
-                          />
-                        )}
-                        {editMode && editField !== `jenisKelamin-${i}` && (
-                          <button
-                            onClick={() => setEditField(`jenisKelamin-${i}`)}
-                            className="text-blue-500 hover:text-blue-700"
-                          >
-                            ✏️
-                          </button>
-                        )}
-                      </div>
-
-                      {/* Mulai Magang */}
-                      <div className="flex items-center gap-2">
-                        {editMode && editField === `tanggalMulaiMagang-${i}` ? (
-                          <input
-                            type="date"
-                            value={
-                              editedPeserta[i].tanggalMulaiMagang?.split("T")[0]
-                            }
-                            onChange={(e) => {
-                              const updated = [...editedPeserta];
-                              updated[i].tanggalMulaiMagang = e.target.value;
-                              setEditedPeserta(updated);
-                            }}
-                            onBlur={() => setEditField(null)}
-                            autoFocus
-                            className="w-full px-2 py-1 text-sm border rounded-lg"
-                          />
-                        ) : (
-                          <DetailItem
-                            label="Mulai Magang"
-                            value={p.tanggalMulaiMagang}
-                            icon={<HiCalendar />}
-                          />
-                        )}
-                        {editMode &&
-                          editField !== `tanggalMulaiMagang-${i}` && (
-                            <button
-                              onClick={() =>
-                                setEditField(`tanggalMulaiMagang-${i}`)
-                              }
-                              className="text-blue-500 hover:text-blue-700"
-                            >
-                              ✏️
-                            </button>
-                          )}
-                      </div>
-
-                      {/* Selesai Magang */}
-                      <div className="flex items-center gap-2">
-                        {editMode &&
-                        editField === `tanggalSelesaiMagang-${i}` ? (
-                          <input
-                            type="date"
-                            value={
-                              editedPeserta[i].tanggalSelesaiMagang?.split(
-                                "T",
-                              )[0]
-                            }
-                            onChange={(e) => {
-                              const updated = [...editedPeserta];
-                              updated[i].tanggalSelesaiMagang = e.target.value;
-                              setEditedPeserta(updated);
-                            }}
-                            onBlur={() => setEditField(null)}
-                            autoFocus
-                            className="w-full px-2 py-1 text-sm border rounded-lg"
-                          />
-                        ) : (
-                          <DetailItem
-                            label="Selesai Magang"
-                            value={p.tanggalSelesaiMagang}
-                            icon={<HiCalendar />}
-                          />
-                        )}
-                        {editMode &&
-                          editField !== `tanggalSelesaiMagang-${i}` && (
-                            <button
-                              onClick={() =>
-                                setEditField(`tanggalSelesaiMagang-${i}`)
-                              }
-                              className="text-blue-500 hover:text-blue-700"
-                            >
-                              ✏️
-                            </button>
-                          )}
-                      </div>
-
-                      {/* Tempat Lahir */}
-                      <div className="flex items-center gap-2">
-                        {editMode && editField === `tempatLahir-${i}` ? (
-                          <input
-                            type="text"
-                            value={editedPeserta[i].tempatLahir}
-                            onChange={(e) => {
-                              const updated = [...editedPeserta];
-                              updated[i].tempatLahir = e.target.value;
-                              setEditedPeserta(updated);
-                            }}
-                            onBlur={() => setEditField(null)}
-                            autoFocus
-                            className="w-full px-2 py-1 text-sm border rounded-lg"
-                          />
-                        ) : (
-                          <DetailItem
-                            label="Tempat Lahir"
-                            value={p.tempatLahir}
-                            icon={<HiLocationMarker />}
-                          />
-                        )}
-                        {editMode && editField !== `tempatLahir-${i}` && (
-                          <button
-                            onClick={() => setEditField(`tempatLahir-${i}`)}
-                            className="text-blue-500 hover:text-blue-700"
-                          >
-                            ✏️
-                          </button>
-                        )}
-                      </div>
-
-                      {/* Tanggal Lahir */}
-                      <div className="flex items-center gap-2">
-                        {editMode && editField === `tanggalLahir-${i}` ? (
-                          <input
-                            type="date"
-                            value={editedPeserta[i].tanggalLahir?.split("T")[0]}
-                            onChange={(e) => {
-                              const updated = [...editedPeserta];
-                              updated[i].tanggalLahir = e.target.value;
-                              setEditedPeserta(updated);
-                            }}
-                            onBlur={() => setEditField(null)}
-                            autoFocus
-                            className="w-full px-2 py-1 text-sm border rounded-lg"
-                          />
-                        ) : (
-                          <DetailItem
-                            label="Tanggal Lahir"
-                            value={p.tanggalLahir}
-                            icon={<HiCalendar />}
-                          />
-                        )}
-                        {editMode && editField !== `tanggalLahir-${i}` && (
-                          <button
-                            onClick={() => setEditField(`tanggalLahir-${i}`)}
-                            className="text-blue-500 hover:text-blue-700"
-                          >
-                            ✏️
-                          </button>
-                        )}
-                      </div>
-
-                      {/* Email */}
-                      <div className="flex items-center gap-2">
-                        {editMode && editField === `email-${i}` ? (
-                          <input
-                            type="email"
-                            value={editedPeserta[i].email}
-                            onChange={(e) => {
-                              const updated = [...editedPeserta];
-                              updated[i].email = e.target.value;
-                              setEditedPeserta(updated);
-                            }}
-                            onBlur={() => setEditField(null)}
-                            autoFocus
-                            className="w-full px-2 py-1 text-sm border rounded-lg"
-                          />
-                        ) : (
-                          <DetailItem
-                            label="Email"
-                            value={p.email}
-                            icon={<HiMail />}
-                          />
-                        )}
-                        {editMode && editField !== `email-${i}` && (
-                          <button
-                            onClick={() => setEditField(`email-${i}`)}
-                            className="text-blue-500 hover:text-blue-700"
-                          >
-                            ✏️
-                          </button>
-                        )}
-                      </div>
-
-                      {/* Asal */}
-                      <div className="flex items-center gap-2">
-                        {editMode && editField === `asal-${i}` ? (
-                          <input
-                            type="text"
-                            value={
-                              p.asal ? `${p.asal.jenis} – ${p.asal.nama}` : "-"
-                            }
-                            onChange={(e) => {
-                              // Implementasi edit asal lebih kompleks, butuh struktur khusus
-                              const updated = [...editedPeserta];
-                              if (!updated[i].asal)
-                                updated[i].asal = {
-                                  jenis: "Universitas",
-                                  nama: "",
-                                };
-                              const [jenis, nama] = e.target.value.split(" – ");
-                              if (updated[i].asal) {
-                                updated[i].asal.jenis =
-                                  (jenis as "Universitas" | "SMK") ||
-                                  "Universitas";
-                                updated[i].asal.nama = nama || "";
-                              }
-                              setEditedPeserta(updated);
-                            }}
-                            onBlur={() => setEditField(null)}
-                            autoFocus
-                            className="w-full px-2 py-1 text-sm border rounded-lg"
-                          />
-                        ) : (
-                          <DetailItem
-                            label="Asal"
-                            value={
-                              p.asal ? `${p.asal.jenis} – ${p.asal.nama}` : "-"
-                            }
-                            icon={<HiIdentification />}
-                          />
-                        )}
-                        {editMode && editField !== `asal-${i}` && (
-                          <button
-                            onClick={() => setEditField(`asal-${i}`)}
-                            className="text-blue-500 hover:text-blue-700"
-                          >
-                            ✏️
-                          </button>
-                        )}
-                      </div>
-
-                      {/* Jurusan */}
-                      <div className="flex items-center gap-2">
-                        {editMode && editField === `jurusan-${i}` ? (
-                          <input
-                            type="text"
-                            value={editedPeserta[i].jurusan}
-                            onChange={(e) => {
-                              const updated = [...editedPeserta];
-                              updated[i].jurusan = e.target.value;
-                              setEditedPeserta(updated);
-                            }}
-                            onBlur={() => setEditField(null)}
-                            autoFocus
-                            className="w-full px-2 py-1 text-sm border rounded-lg"
-                          />
-                        ) : (
-                          <DetailItem
-                            label="Jurusan"
-                            value={p.jurusan}
-                            icon={<HiBriefcase />}
-                          />
-                        )}
-                        {editMode && editField !== `jurusan-${i}` && (
-                          <button
-                            onClick={() => setEditField(`jurusan-${i}`)}
-                            className="text-blue-500 hover:text-blue-700"
-                          >
-                            ✏️
-                          </button>
-                        )}
-                      </div>
-
-                      {/* No WhatsApp */}
-                      <div className="flex items-center gap-2">
-                        {editMode && editField === `wa-${i}` ? (
-                          <input
-                            type="text"
-                            value={editedPeserta[i].wa}
-                            onChange={(e) => {
-                              const updated = [...editedPeserta];
-                              updated[i].wa = e.target.value;
-                              setEditedPeserta(updated);
-                            }}
-                            onBlur={() => setEditField(null)}
-                            autoFocus
-                            className="w-full px-2 py-1 text-sm border rounded-lg"
-                          />
-                        ) : (
-                          <DetailItem
-                            label="No WhatsApp"
-                            value={p.wa}
-                            icon={<HiPhone />}
-                          />
-                        )}
-                        {editMode && editField !== `wa-${i}` && (
-                          <button
-                            onClick={() => setEditField(`wa-${i}`)}
-                            className="text-blue-500 hover:text-blue-700"
-                          >
-                            ✏️
-                          </button>
-                        )}
-                      </div>
-
-                      {/* Durasi Magang */}
-                      {(() => {
-                        const durasi = hitungDurasiMagang(
-                          p.tanggalMulaiMagang,
-                          p.tanggalSelesaiMagang,
-                        );
-                        if (!durasi) return null;
-                        return (
-                          <div className="flex items-center gap-2">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#FFF1F2] dark:bg-indigo-500/10 border border-[#FCA5A5] dark:border-indigo-500/30">
-                                <div className="w-8 h-8 rounded-full bg-[#B91C1C] text-white flex items-center justify-center text-xs font-bold shadow">
-                                  {durasi.bulan}
-                                </div>
-                                <div className="leading-tight">
-                                  <p className="text-[11px] font-semibold text-[#7F1D1D] dark:text-indigo-300">
-                                    Durasi Magang
-                                  </p>
-                                  <p className="text-[10px] text-blue-600 dark:text-indigo-300">
-                                    {durasi.bulan} bulan
-                                    {durasi.sisaHari > 0 &&
-                                      ` ${durasi.sisaHari} hari`}
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
-                            {editMode && (
-                              <button
-                                onClick={() => setEditField(`durasi-${i}`)}
-                                className="text-blue-500 hover:text-blue-700"
-                              >
-                                ✏️
-                              </button>
-                            )}
-                          </div>
-                        );
-                      })()}
-                    </div>
-
-                    {/* ALAMAT LENGKAP - DENGAN FORM EDIT */}
-                    <div className="mt-4 border-t border-slate-200 dark:border-slate-700 pt-4">
-                      <div className="flex items-start gap-2">
-                        <div className="flex-1">
-                          <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">
-                            Alamat Lengkap
-                          </p>
-
-                          {/* Mode Edit untuk Alamat */}
-                          {editMode && editField === `alamat-${i}` ? (
-                            <div className="space-y-3">
-                              {/* Alamat Lengkap */}
-                              <div>
-                                <label className="text-xs text-slate-500 mb-1 block">
-                                  Alamat Lengkap
-                                </label>
-                                <textarea
-                                  value={editedPeserta[i].alamatLengkap}
-                                  onChange={(e) => {
-                                    const updated = [...editedPeserta];
-                                    updated[i].alamatLengkap = e.target.value;
-                                    setEditedPeserta(updated);
-                                  }}
-                                  rows={2}
-                                  className="w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500"
-                                  placeholder="Masukkan alamat lengkap"
-                                />
-                              </div>
-
-                              {/* Grid untuk Kelurahan, Kecamatan, Kota, Provinsi */}
-                              <div className="grid grid-cols-2 gap-3">
-                                <div>
-                                  <label className="text-xs text-slate-500 mb-1 block">
-                                    Kelurahan
-                                  </label>
-                                  <input
-                                    type="text"
-                                    value={editedPeserta[i].kelurahan}
-                                    onChange={(e) => {
-                                      const updated = [...editedPeserta];
-                                      updated[i].kelurahan = e.target.value;
-                                      setEditedPeserta(updated);
-                                    }}
-                                    className="w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500"
-                                    placeholder="Kelurahan"
-                                  />
-                                </div>
-                                <div>
-                                  <label className="text-xs text-slate-500 mb-1 block">
-                                    Kecamatan
-                                  </label>
-                                  <input
-                                    type="text"
-                                    value={editedPeserta[i].kecamatan}
-                                    onChange={(e) => {
-                                      const updated = [...editedPeserta];
-                                      updated[i].kecamatan = e.target.value;
-                                      setEditedPeserta(updated);
-                                    }}
-                                    className="w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500"
-                                    placeholder="Kecamatan"
-                                  />
-                                </div>
-                                <div>
-                                  <label className="text-xs text-slate-500 mb-1 block">
-                                    Kota
-                                  </label>
-                                  <input
-                                    type="text"
-                                    value={editedPeserta[i].kota}
-                                    onChange={(e) => {
-                                      const updated = [...editedPeserta];
-                                      updated[i].kota = e.target.value;
-                                      setEditedPeserta(updated);
-                                    }}
-                                    className="w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500"
-                                    placeholder="Kota"
-                                  />
-                                </div>
-                                <div>
-                                  <label className="text-xs text-slate-500 mb-1 block">
-                                    Provinsi
-                                  </label>
-                                  <input
-                                    type="text"
-                                    value={editedPeserta[i].provinsi}
-                                    onChange={(e) => {
-                                      const updated = [...editedPeserta];
-                                      updated[i].provinsi = e.target.value;
-                                      setEditedPeserta(updated);
-                                    }}
-                                    className="w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500"
-                                    placeholder="Provinsi"
-                                  />
-                                </div>
-                              </div>
-
-                              {/* Tombol Simpan/Selesai */}
-                              <div className="flex justify-end gap-2 mt-2">
-                                <button
-                                  onClick={() => setEditField(null)}
-                                  className="px-3 py-1.5 text-xs bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition"
-                                >
-                                  Selesai
-                                </button>
-                              </div>
-                            </div>
-                          ) : (
-                            /* Mode Tampil */
-                            <>
-                              <p className="text-sm text-slate-700 dark:text-slate-200">
-                                {p.alamatLengkap || "-"}
-                              </p>
-                              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                                {p.kelurahan || "-"}, {p.kecamatan || "-"},{" "}
-                                {p.kota || "-"}, {p.provinsi || "-"}
-                              </p>
-                            </>
-                          )}
-                        </div>
-
-                        {/* Tombol Edit - hanya muncul jika tidak sedang dalam mode edit field ini */}
-                        {editMode && editField !== `alamat-${i}` && (
-                          <button
-                            onClick={() => setEditField(`alamat-${i}`)}
-                            className="text-blue-500 hover:text-blue-700 mt-6"
-                            title="Edit alamat"
-                          >
-                            ✏️
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* MENTOR PER PESERTA */}
-                    <div className="mt-4 flex items-center justify-between rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 px-4 py-3">
-                      <div>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
-                          Mentor Peserta
-                        </p>
-                        {p.mentor ? (
-                          <div>
-                            <p className="text-sm font-semibold text-slate-800 dark:text-white">
-                              {p.mentor.name}
-                            </p>
-                            <p className="text-xs text-slate-500 dark:text-slate-400">
-                              {p.mentor.email}
-                            </p>
-                          </div>
-                        ) : (
-                          <p className="text-sm text-slate-400">
-                            Belum ada mentor
-                          </p>
-                        )}
-                      </div>
-                      <button
-                        onClick={() => {
-                          setMentorModal(true);
-                          setSelectedMentor("");
-                          setSelectedPesertaEmail(p.email);
-                        }}
-                        className={`text-xs px-3 py-1.5 rounded-lg text-white transition ${p.mentor ? "bg-amber-600 hover:bg-amber-700" : "bg-blue-600 hover:bg-blue-700"}`}
-                      >
-                        {p.mentor ? "Ganti Mentor" : "Tambahkan Mentor"}
-                      </button>
-                    </div>
-
-                    {/* STATUS AKUN */}
-                    <div className="mt-3 flex items-center justify-between rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 px-4 py-3">
-                      <div>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
-                          Status Akun
-                        </p>
-                        <span
-                          className={`inline-flex items-center gap-1 mt-1 px-3 py-1 rounded-full text-xs font-semibold ${isAkunTerdaftar(p.email) ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300" : "bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300"}`}
-                        >
-                          {isAkunTerdaftar(p.email) ? (
-                            <HiCheckCircle />
-                          ) : (
-                            <HiXCircle />
-                          )}
-                          {isAkunTerdaftar(p.email)
-                            ? "Terdaftar"
-                            : "Tidak Terdaftar"}
-                        </span>
-                      </div>
-                      {!isAkunTerdaftar(p.email) && (
-                        <button
-                          onClick={() => {
-                            // Simpan URL saat ini sebagai returnTo
-                            const returnUrl = encodeURIComponent(
-                              window.location.pathname + window.location.hash,
-                            );
-                            window.location.href = `/dashboard/superadmin/ManajemenAkun/buatpeserta?email=${encodeURIComponent(p.email)}&name=${encodeURIComponent(p.nama)}&returnTo=${returnUrl}`;
-                          }}
-                          className="text-xs px-3 py-1.5 rounded-lg font-medium transition bg-blue-600 hover:bg-blue-700 text-white dark:bg-indigo-600 dark:hover:bg-indigo-700"
-                        >
-                          Buatkan Akun
-                        </button>
+                        </td>
                       )}
-                    </div>
-                  </div>
-                ))}
+                      <td className="py-3.5 px-4 text-center text-xs font-semibold text-slate-500 dark:text-slate-400">
+                        {rowNo}
+                      </td>
+
+                      <td className="py-3.5 px-4">
+                        <div className="flex flex-col gap-0.5">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-bold text-slate-900 dark:text-white">
+                              {first?.nama || "-"}
+                            </span>
+                            {item.peserta.length > 1 && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-50 text-[#0284c7] border border-sky-200 dark:bg-sky-950/60 dark:text-sky-300 dark:border-sky-800">
+                                <Users className="w-3 h-3" />+
+                                {item.peserta.length - 1} anggota
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-xs text-slate-500 dark:text-slate-400">
+                            {first?.email || "-"}
+                          </span>
+                          <span className="text-[11px] text-slate-400 dark:text-slate-500">
+                            Didaftarkan: {formatTanggalShort(item.createdAt)}
+                          </span>
+                        </div>
+                      </td>
+
+                      <td className="py-3.5 px-4">
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-800 dark:text-slate-200">
+                            <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                            <span>{first?.asal?.nama || "-"}</span>
+                          </div>
+                          <div className="flex flex-wrap gap-1">
+                            {uniquePositions.map((pos) => (
+                              <span
+                                key={pos}
+                                className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+                              >
+                                {pos}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      </td>
+
+                      <td className="py-3.5 px-4">
+                        <div className="flex flex-col gap-1.5 text-xs">
+                          <span className="inline-flex items-center gap-1.5 text-slate-700 dark:text-slate-300 font-medium">
+                            <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                            {first?.tanggalMulaiMagang || "-"} s/d{" "}
+                            {first?.tanggalSelesaiMagang || "-"}
+                          </span>
+
+                          <div className="flex flex-wrap items-center gap-2">
+                            {liveMagangStatus && (
+                              <span
+                                className={`inline-flex items-center px-2 py-0.5 rounded-full border text-[10px] font-semibold ${getStatusMagangBadge(
+                                  liveMagangStatus,
+                                )}`}
+                              >
+                                {liveMagangStatus}
+                              </span>
+                            )}
+
+                            {item.suratPengantar && (
+                              <a
+                                href={`${API_BASE}/uploads/${item.suratPengantar}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#0284c7] hover:underline"
+                              >
+                                <FileText className="w-3 h-3" />
+                                Surat Pengantar
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+
+                      <td className="py-3.5 px-4">
+                        <span
+                          className={`inline-flex items-center px-2.5 py-1 rounded-full border text-xs font-semibold ${getStatusPendaftaranBadge(
+                            item.status,
+                          )}`}
+                        >
+                          {item.status}
+                        </span>
+                      </td>
+
+                      <td className="py-3.5 px-4 text-right">
+                        <button
+                          type="button"
+                          onClick={() => openDetailModal(item)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-[#0284c7] hover:bg-sky-700 text-white shadow-xs transition"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          Detail
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <PaginationFooter
+          currentPage={safePage}
+          totalItems={filteredData.length}
+          itemsPerPage={ITEMS_PER_PAGE}
+          itemLabel="pendaftaran"
+          onPageChange={setCurrentPage}
+        />
+      </div>
+
+      {/* ================= DETAIL & PROSES MODAL ================= */}
+      {selected && (
+        <div
+          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6"
+          onClick={(e) => {
+            if (
+              e.target === e.currentTarget &&
+              !submittingStatus &&
+              !savingEditData
+            ) {
+              setSelected(null);
+            }
+          }}
+        >
+          <div className="w-full max-w-5xl max-h-[92vh] rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col overflow-hidden">
+            {/* Header */}
+            <div className="bg-linear-to-r from-[#0284c7] to-blue-700 px-6 py-4 text-white flex flex-wrap items-start justify-between gap-4 shrink-0">
+              <div>
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <h2 className="text-lg sm:text-xl font-bold">
+                    Detail Pendaftaran Magang
+                  </h2>
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-white/20 text-white">
+                    {selected.kategori === "bersama" ? "Kelompok" : "Mandiri"} (
+                    {selected.peserta.length} Peserta)
+                  </span>
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-white text-[#0284c7]">
+                    {selected.status}
+                  </span>
+                </div>
+                <p className="text-xs text-sky-100 mt-1">
+                  ID: {selected._id} • Diterima pada{" "}
+                  {formatTanggalShort(selected.createdAt)}
+                </p>
               </div>
 
-              {/* MENTOR MODAL */}
-              {mentorModal && (
-                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-300">
-                  <div
-                    className="
-                      bg-white dark:bg-slate-900
-                      rounded-3xl
-                      w-full
-                      sm:max-w-2xl
-                      lg:max-w-3xl
-                      max-h-[90vh]
-                      flex flex-col
-                      shadow-2xl
-                      border border-white/20 dark:border-slate-700/50
-                      overflow-hidden
-                      animate-in slide-in-from-bottom-4 duration-300
-                    "
-                  >
-                    {/* HEADER */}
-                    <div className="bg-linear-to-r from-[#7F1D1D] to-[#B91C1C] dark:from-indigo-700 dark:to-indigo-900 px-4 sm:px-6 py-4 sm:py-5">
-                      <div className="flex items-start sm:items-center justify-between gap-3">
-                        <div className="flex items-start sm:items-center gap-3">
-                          <div className="p-2 bg-white/20 rounded-xl shrink-0">
-                            <UserCheck className="w-5 h-5 text-white" />
-                          </div>
-
-                          <div>
-                            <h3 className="text-base sm:text-xl font-bold text-white tracking-tight">
-                              Pilih Mentor Pembimbing
-                            </h3>
-                            <p className="text-xs sm:text-sm text-white/80 mt-1">
-                              Pilih mentor yang akan membimbing peserta magang
-                            </p>
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => setMentorModal(false)}
-                          className="p-2 hover:bg-white/10 rounded-xl transition shrink-0"
-                        >
-                          <XCircle className="w-5 h-5 text-white" />
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* BODY */}
-                    <div className="flex-1 overflow-y-auto p-4 sm:p-6">
-                      {/* SEARCH & FILTER SECTION */}
-                      <div className="space-y-3 mb-5">
-                        {/* Search Input */}
-                        <div className="relative">
-                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                          <input
-                            type="text"
-                            placeholder="Cari nama mentor..."
-                            value={mentorSearch}
-                            onChange={(e) => setMentorSearch(e.target.value)}
-                            className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 text-sm focus:ring-2 focus:ring-[#B91C1C]/20 dark:focus:ring-indigo-500/30 focus:border-[#B91C1C] dark:focus:border-indigo-500 outline-none transition-all"
-                          />
-                        </div>
-
-                        {/* Filter Posisi dengan desain lebih menarik */}
-                        <div className="relative">
-                          <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                          <select
-                            value={filterPosisiMentor}
-                            onChange={(e) =>
-                              setFilterPosisiMentor(e.target.value)
-                            }
-                            className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 text-sm appearance-none cursor-pointer focus:ring-2 focus:ring-[#B91C1C]/20 dark:focus:ring-indigo-500/30 focus:border-[#B91C1C] dark:focus:border-indigo-500 outline-none transition-all"
-                          >
-                            <option value="">Semua Posisi Mentor</option>
-                            {uniquePosisiMentor.map((pos) => (
-                              <option key={pos} value={pos} className="py-2">
-                                {pos}
-                              </option>
-                            ))}
-                          </select>
-                          <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                        </div>
-                      </div>
-
-                      {/* TOTAL MENTOR & INFO */}
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-                          <Users className="w-4 h-4" />
-                          <span>
-                            <span className="font-semibold text-[#B91C1C] dark:text-indigo-400">
-                              {filteredMentor.length}
-                            </span>{" "}
-                            mentor ditemukan
-                          </span>
-                        </div>
-                        {selectedMentor && (
-                          <span className="text-xs px-2 py-1 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 font-medium">
-                            ✓ Mentor terpilih
-                          </span>
-                        )}
-                      </div>
-
-                      {/* LIST MENTOR - dengan desain card yang lebih premium */}
-                      <div className="space-y-3 pr-1 sm:pr-2">
-                        {filteredMentor.length === 0 ? (
-                          <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-                            <div className="p-4 bg-slate-100 dark:bg-slate-800 rounded-2xl mb-3">
-                              <UserCheck className="w-8 h-8 text-slate-400" />
-                            </div>
-                            <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                              Mentor tidak ditemukan
-                            </p>
-                            <p className="text-xs text-slate-500 dark:text-slate-400">
-                              Coba ubah kata kunci pencarian atau filter posisi
-                            </p>
-                          </div>
-                        ) : (
-                          filteredMentor.map((m) => (
-                            <div
-                              key={m._id}
-                              onClick={() => setSelectedMentor(m._id)}
-                              className={`
-                    relative rounded-2xl p-4 transition-all duration-200 cursor-pointer
-                    border-2 hover:shadow-lg group
-                    ${
-                      selectedMentor === m._id
-                        ? "border-[#B91C1C] dark:border-indigo-500 bg-linear-to-r from-[#B91C1C]/5 to-transparent dark:from-indigo-500/20"
-                        : "border-slate-200 dark:border-slate-700 hover:border-[#B91C1C]/30 dark:hover:border-indigo-500/30 bg-white dark:bg-slate-800/30 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (editMode) {
+                      setEditMode(false);
+                      setEditedPeserta(
+                        selected.peserta.map((p) => ({
+                          ...p,
+                          asal: p.asal
+                            ? { ...p.asal }
+                            : { jenis: "", nama: "" },
+                        })),
+                      );
+                    } else {
+                      setEditMode(true);
                     }
-                  `}
-                            >
-                              {/* Selected indicator */}
-                              {selectedMentor === m._id && (
-                                <div className="absolute -top-2 -right-2 w-6 h-6 bg-[#B91C1C] dark:bg-indigo-500 rounded-full flex items-center justify-center shadow-lg">
-                                  <Check className="w-4 h-4 text-white" />
-                                </div>
-                              )}
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-white/15 hover:bg-white/25 text-white transition"
+                >
+                  <Edit3 className="w-3.5 h-3.5" />
+                  {editMode ? "Batal Edit Data" : "Edit Data Peserta"}
+                </button>
 
-                              <div className="flex items-start justify-between">
-                                {/* Avatar dan Info Mentor */}
-                                <div className="flex items-start gap-4">
-                                  {/* Avatar dengan inisial */}
-                                  <div
-                                    className={`
-                          w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-lg
-                          ${
-                            selectedMentor === m._id
-                              ? "bg-[#B91C1C] dark:bg-indigo-500 text-white"
-                              : "bg-linear-to-br from-[#B91C1C]/10 to-[#7F1D1D]/10 dark:from-indigo-500/20 dark:to-indigo-600/20 text-[#7F1D1D] dark:text-indigo-400"
-                          }
-                        `}
-                                  >
-                                    {m.name
-                                      .split(" ")
-                                      .map((n) => n[0])
-                                      .join("")
-                                      .toUpperCase()
-                                      .slice(0, 2)}
-                                  </div>
+                <button
+                  type="button"
+                  onClick={() => setSelected(null)}
+                  aria-label="Tutup detail pendaftaran"
+                  className="p-2 rounded-xl bg-white/15 hover:bg-white/25 text-white transition"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
 
-                                  {/* Detail Mentor */}
-                                  <div>
-                                    <h4 className="font-semibold text-slate-800 dark:text-white mb-1">
-                                      {m.name}
-                                    </h4>
-                                    <div className="space-y-1">
-                                      <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                                        <Mail className="w-3 h-3" />
-                                        {m.email}
-                                      </p>
-                                      <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                                        <Briefcase className="w-3 h-3" />
-                                        <span className="font-medium text-[#B91C1C] dark:text-indigo-400">
-                                          {m.posisiMentor}
-                                        </span>
-                                      </p>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                {/* Badge Posisi - Mobile friendly */}
-                                <span
-                                  className={`
-                                      text-[10px] sm:text-xs
-                                      px-2.5 sm:px-3
-                                      py-1.5
-                                      rounded-xl
-                                      font-medium
-                                      ml-2
-                                      max-w-30 sm:max-w-none
-                                      truncate sm:whitespace-nowrap
-                                      text-center
-                                      ${
-                                        selectedMentor === m._id
-                                          ? "bg-white/20 text-[#B91C1C] dark:text-indigo-400"
-                                          : "bg-[#FEE2E2] text-[#7F1D1D] dark:bg-indigo-500/20 dark:text-indigo-300"
-                                      }
-                                    `}
-                                >
-                                  {m.posisiMentor}
-                                </span>
-                              </div>
-
-                              {/* Hover effect indicator */}
-                              <div
-                                className={`
-                                    absolute inset-0 rounded-2xl pointer-events-none
-                                    ${
-                                      selectedMentor !== m._id &&
-                                      "group-hover:border-2 group-hover:border-[#B91C1C]/20 dark:group-hover:border-indigo-500/20"
-                                    }
-                                  `}
-                              />
-                            </div>
-                          ))
-                        )}
-                      </div>
-
-                      {/* ACTION BUTTONS dengan desain modern */}
-                      <div
-                        className="
-                          flex flex-col sm:flex-row
-                          sm:items-center
-                          sm:justify-end
-                          gap-3
-                          mt-6 pt-4
-                          border-t border-slate-200 dark:border-slate-700
-                        "
-                      >
-                        {/* Tombol Batal */}
-                        <button
-                          onClick={() => setMentorModal(false)}
-                          className="
-                              w-full sm:w-auto
-                              px-6 py-2.5 rounded-xl
-                              bg-slate-100 dark:bg-slate-800
-                              hover:bg-slate-200 dark:hover:bg-slate-700
-                              text-slate-700 dark:text-slate-300
-                              font-medium text-sm
-                              transition
-                            "
-                        >
-                          Batal
-                        </button>
-
-                        {/* Tombol Simpan */}
-                        <button
-                          disabled={!selectedMentor}
-                          onClick={simpanMentor}
-                          className="
-                              w-full sm:w-auto
-                              px-8 py-2.5 rounded-xl
-                              bg-linear-to-r from-[#059669] to-[#10B981]
-                              text-white font-semibold text-sm
-                              transition
-                              disabled:opacity-40
-                              flex items-center justify-center
-                            "
-                        >
-                          <span className="flex items-center gap-2">
-                            {selectedMentor ? (
-                              <>
-                                <CheckCircle className="w-4 h-4 mr-2" />
-                                Simpan Mentor
-                              </>
-                            ) : (
-                              <>
-                                <UserCheck className="w-4 h-4 mr-2" />
-                                Pilih Mentor
-                              </>
-                            )}
-                          </span>
-                        </button>
-                      </div>
+            {/* Body */}
+            <div className="p-5 sm:p-6 overflow-y-auto space-y-6">
+              {/* Berkas Resmi */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-xl bg-sky-100 dark:bg-sky-950/60 text-[#0284c7] dark:text-sky-300 flex items-center justify-center shrink-0">
+                      <FileText className="w-5 h-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                        Surat Pengantar Pendaftar
+                      </p>
+                      <p className="text-sm font-bold text-slate-800 dark:text-white truncate">
+                        {selected.suratPengantar
+                          ? selected.suratPengantar.split("/").pop()
+                          : "Tidak tersedia"}
+                      </p>
                     </div>
                   </div>
+                  {selected.suratPengantar && (
+                    <a
+                      href={`${API_BASE}/uploads/${selected.suratPengantar}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#0284c7] hover:bg-sky-700 text-white shrink-0 transition"
+                    >
+                      Buka PDF
+                    </a>
+                  )}
+                </div>
+
+                <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 flex items-center justify-center shrink-0">
+                      <FileCheck2 className="w-5 h-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                        Surat Balasan Admin
+                      </p>
+                      <p className="text-sm font-bold text-slate-800 dark:text-white truncate">
+                        {selected.suratBalasan
+                          ? selected.suratBalasan.split("/").pop()
+                          : "Belum diunggah"}
+                      </p>
+                    </div>
+                  </div>
+                  {selected.suratBalasan && (
+                    <a
+                      href={`${API_BASE}/uploads/${selected.suratBalasan}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shrink-0 transition"
+                    >
+                      Lihat PDF
+                    </a>
+                  )}
+                </div>
+              </div>
+
+              {/* Save Bar if EditMode */}
+              {editMode && (
+                <div className="p-4 rounded-2xl border border-sky-300 dark:border-sky-800 bg-sky-50/70 dark:bg-sky-950/30 flex flex-wrap items-center justify-between gap-3">
+                  <p className="text-xs font-semibold text-[#0284c7] dark:text-sky-300">
+                    Mode Edit Data Superadmin aktif — ubah kolom di bawah lalu
+                    simpan perubahan.
+                  </p>
+                  <button
+                    type="button"
+                    disabled={savingEditData}
+                    onClick={handleSaveEditData}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-[#0284c7] hover:bg-sky-700 text-white shadow-xs transition disabled:opacity-60"
+                  >
+                    <Save className="w-3.5 h-3.5" />
+                    {savingEditData
+                      ? "Menyimpan..."
+                      : "Simpan Perubahan Data"}
+                  </button>
                 </div>
               )}
 
-              {/* SURAT BALASAN */}
-              <div>
-                <label className="block text-sm font-semibold mb-2">
-                  Surat Balasan (PDF)
-                </label>
-                {isAktif ? (
-                  selected?.suratBalasan ? (
-                    <div className="flex items-center justify-between rounded-2xl p-5 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30">
-                      <div className="flex items-center gap-3">
-                        <div className="w-11 h-11 rounded-xl bg-emerald-600 text-white flex items-center justify-center">
-                          <HiDocumentText className="text-xl" />
+              {/* Daftar Peserta */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  Data Peserta ({selected.peserta.length})
+                </h3>
+
+                <div className="space-y-4">
+                  {(editMode ? editedPeserta : selected.peserta).map(
+                    (p, idx) => {
+                      const mentorObj = getMentorObject(p.mentor, mentors);
+                      const akun = findAkunByEmail(p.email);
+                      const formasiInfo = findFormasiByPosisi(p.posisi);
+                      const isEditingThisPosisi = editingPosisiIndex === idx;
+                      const magangStatus =
+                        selected.status === "Disetujui"
+                          ? getStatusMagangByDate(
+                              p.tanggalMulaiMagang,
+                              p.tanggalSelesaiMagang,
+                            )
+                          : selected.status === "Ditolak"
+                            ? "Tidak Magang"
+                            : "Menunggu";
+
+                      return (
+                        <div
+                          key={`${p.email}-${idx}`}
+                          className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 sm:p-5 space-y-4"
+                        >
+                          {/* Peserta Header */}
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+                            <div>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                                  Peserta {idx + 1}
+                                </span>
+                                <h4 className="text-base font-bold text-slate-900 dark:text-white">
+                                  {p.nama}
+                                </h4>
+                                <span
+                                  className={`inline-flex items-center px-2 py-0.5 rounded-full border text-[11px] font-semibold ${getStatusMagangBadge(
+                                    magangStatus,
+                                  )}`}
+                                >
+                                  {magangStatus}
+                                </span>
+                              </div>
+
+                              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500 dark:text-slate-400 mt-1.5">
+                                <span className="inline-flex items-center gap-1">
+                                  <Mail className="w-3.5 h-3.5" />
+                                  {p.email}
+                                </span>
+                                <span className="inline-flex items-center gap-1">
+                                  <Phone className="w-3.5 h-3.5" />
+                                  {p.wa}
+                                </span>
+                              </div>
+                            </div>
+
+                            {!editMode && (
+                              <div className="flex flex-wrap items-center gap-2">
+                                {akun ? (
+                                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800">
+                                    <ShieldCheck className="w-3.5 h-3.5" />
+                                    Akun Terdaftar ({akun.status || "aktif"})
+                                  </span>
+                                ) : (
+                                  selected.status !== "Ditolak" && (
+                                    <button
+                                      type="button"
+                                      onClick={() => openAkunModal(p)}
+                                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-white shadow-xs transition"
+                                    >
+                                      <UserPlus className="w-3.5 h-3.5" />
+                                      Buatkan Akun
+                                    </button>
+                                  )
+                                )}
+
+                                {selected.status !== "Ditolak" && (
+                                  <button
+                                    type="button"
+                                    onClick={() => openMentorModal(idx, p)}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-[#0284c7] hover:bg-sky-700 text-white shadow-xs transition"
+                                  >
+                                    <UserCheck className="w-3.5 h-3.5" />
+                                    {mentorObj
+                                      ? "Ubah Mentor"
+                                      : "Tetapkan Mentor"}
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Editable Fields or View Grid */}
+                          {editMode ? (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
+                              <EditField
+                                label="Nama Lengkap"
+                                value={p.nama}
+                                onChange={(val) =>
+                                  updateEditedField(idx, (prev) => ({
+                                    ...prev,
+                                    nama: val,
+                                  }))
+                                }
+                              />
+                              <EditField
+                                label="Email"
+                                type="email"
+                                value={p.email}
+                                onChange={(val) =>
+                                  updateEditedField(idx, (prev) => ({
+                                    ...prev,
+                                    email: val,
+                                  }))
+                                }
+                              />
+                              <EditField
+                                label="WhatsApp"
+                                value={p.wa}
+                                onChange={(val) =>
+                                  updateEditedField(idx, (prev) => ({
+                                    ...prev,
+                                    wa: val,
+                                  }))
+                                }
+                              />
+                              <EditField
+                                label="Asal Institusi"
+                                value={p.asal?.nama || ""}
+                                onChange={(val) =>
+                                  updateEditedField(idx, (prev) => ({
+                                    ...prev,
+                                    asal: {
+                                      jenis: prev.asal?.jenis || "",
+                                      nama: val,
+                                    },
+                                  }))
+                                }
+                              />
+                              <EditField
+                                label="Jurusan"
+                                value={p.jurusan || ""}
+                                onChange={(val) =>
+                                  updateEditedField(idx, (prev) => ({
+                                    ...prev,
+                                    jurusan: val,
+                                  }))
+                                }
+                              />
+                              <EditField
+                                label="Tanggal Mulai Magang"
+                                type="date"
+                                value={p.tanggalMulaiMagang || ""}
+                                onChange={(val) =>
+                                  updateEditedField(idx, (prev) => ({
+                                    ...prev,
+                                    tanggalMulaiMagang: val,
+                                  }))
+                                }
+                              />
+                              <EditField
+                                label="Tanggal Selesai Magang"
+                                type="date"
+                                value={p.tanggalSelesaiMagang || ""}
+                                onChange={(val) =>
+                                  updateEditedField(idx, (prev) => ({
+                                    ...prev,
+                                    tanggalSelesaiMagang: val,
+                                  }))
+                                }
+                              />
+                              <EditField
+                                label="Tempat Lahir"
+                                value={p.tempatLahir || ""}
+                                onChange={(val) =>
+                                  updateEditedField(idx, (prev) => ({
+                                    ...prev,
+                                    tempatLahir: val,
+                                  }))
+                                }
+                              />
+                              <EditField
+                                label="Tanggal Lahir"
+                                type="date"
+                                value={(p.tanggalLahir || "").split("T")[0]}
+                                onChange={(val) =>
+                                  updateEditedField(idx, (prev) => ({
+                                    ...prev,
+                                    tanggalLahir: val,
+                                  }))
+                                }
+                              />
+                              <div className="sm:col-span-2 lg:col-span-3">
+                                <EditField
+                                  label="Alamat Lengkap"
+                                  value={p.alamatLengkap || ""}
+                                  onChange={(val) =>
+                                    updateEditedField(idx, (prev) => ({
+                                      ...prev,
+                                      alamatLengkap: val,
+                                    }))
+                                  }
+                                />
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
+                              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50">
+                                <p className="text-slate-400 font-medium mb-1">
+                                  Asal Institusi &amp; Jurusan
+                                </p>
+                                <p className="font-semibold text-slate-800 dark:text-slate-100">
+                                  {p.asal?.nama || "-"} ({p.asal?.jenis || "-"})
+                                </p>
+                                <p className="text-slate-500 dark:text-slate-400 mt-0.5 inline-flex items-center gap-1">
+                                  <GraduationCap className="w-3.5 h-3.5 shrink-0" />
+                                  {p.jurusan || "-"}
+                                </p>
+                              </div>
+
+                              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50">
+                                <div className="flex items-center justify-between gap-2 mb-1">
+                                  <p className="text-slate-400 font-medium">
+                                    Posisi / Formasi
+                                  </p>
+                                  {!isSelectedFinal && !isEditingThisPosisi && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setEditingPosisiIndex(idx);
+                                        setNewPosisiValue(p.posisi || "");
+                                      }}
+                                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#0284c7] hover:underline"
+                                    >
+                                      <Edit3 className="w-3 h-3" />
+                                      Edit Posisi
+                                    </button>
+                                  )}
+                                </div>
+
+                                {isEditingThisPosisi ? (
+                                  <div className="space-y-2 mt-1">
+                                    {formasiList.length > 0 ? (
+                                      <select
+                                        value={newPosisiValue}
+                                        onChange={(e) =>
+                                          setNewPosisiValue(e.target.value)
+                                        }
+                                        className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs"
+                                      >
+                                        <option value="">
+                                          -- Pilih Formasi --
+                                        </option>
+                                        {formasiList.map((f) => (
+                                          <option key={f._id} value={f.title}>
+                                            {f.title} (Sisa: {f.sisaKuota})
+                                          </option>
+                                        ))}
+                                      </select>
+                                    ) : (
+                                      <input
+                                        type="text"
+                                        value={newPosisiValue}
+                                        onChange={(e) =>
+                                          setNewPosisiValue(e.target.value)
+                                        }
+                                        className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs"
+                                      />
+                                    )}
+                                    <div className="flex items-center gap-2">
+                                      <button
+                                        type="button"
+                                        disabled={savingPosisi}
+                                        onClick={() => handleSavePosisi(idx)}
+                                        className="px-2.5 py-1 rounded-lg bg-[#0284c7] text-white text-[11px] font-semibold disabled:opacity-50"
+                                      >
+                                        {savingPosisi
+                                          ? "Menyimpan..."
+                                          : "Simpan"}
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          setEditingPosisiIndex(null)
+                                        }
+                                        className="px-2.5 py-1 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-[11px] font-semibold"
+                                      >
+                                        Batal
+                                      </button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <>
+                                    <p className="font-semibold text-slate-800 dark:text-slate-100">
+                                      {p.posisi || "-"}
+                                    </p>
+                                    {formasiInfo && (
+                                      <p
+                                        className={`text-[11px] font-medium mt-0.5 ${
+                                          formasiInfo.sisaKuota > 0
+                                            ? "text-emerald-600 dark:text-emerald-400"
+                                            : "text-rose-600 dark:text-rose-400"
+                                        }`}
+                                      >
+                                        Sisa kuota formasi:{" "}
+                                        {formasiInfo.sisaKuota}
+                                      </p>
+                                    )}
+                                  </>
+                                )}
+                              </div>
+
+                              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50">
+                                <p className="text-slate-400 font-medium mb-1">
+                                  Periode &amp; Pembimbing
+                                </p>
+                                <p className="font-semibold text-slate-800 dark:text-slate-100">
+                                  {p.tanggalMulaiMagang} s/d{" "}
+                                  {p.tanggalSelesaiMagang}
+                                </p>
+                                <p className="text-slate-600 dark:text-slate-300 mt-0.5">
+                                  Mentor:{" "}
+                                  <span className="font-semibold text-[#0284c7] dark:text-sky-400">
+                                    {mentorObj
+                                      ? mentorObj.name
+                                      : "Belum ditetapkan"}
+                                  </span>
+                                </p>
+                              </div>
+
+                              <div className="sm:col-span-2 lg:col-span-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 flex flex-wrap items-start gap-2">
+                                <MapPin className="w-3.5 h-3.5 text-slate-400 mt-0.5 shrink-0" />
+                                <div className="text-slate-600 dark:text-slate-300">
+                                  <span className="font-semibold text-slate-800 dark:text-slate-100">
+                                    TTL &amp; Alamat:{" "}
+                                  </span>
+                                  {p.tempatLahir || "-"},{" "}
+                                  {p.tanggalLahir || "-"} (
+                                  {p.jenisKelamin || "-"}) —{" "}
+                                  {[
+                                    p.alamatLengkap,
+                                    p.kelurahan,
+                                    p.kecamatan,
+                                    p.kota,
+                                    p.provinsi,
+                                  ]
+                                    .filter(Boolean)
+                                    .join(", ") || "-"}
+                                </div>
+                              </div>
+                            </div>
+                          )}
                         </div>
-                        <div>
-                          <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
-                            Surat Balasan Tersedia
+                      );
+                    },
+                  )}
+                </div>
+              </div>
+
+              {/* Keputusan Status */}
+              {!editMode && (
+                <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 p-5 space-y-4">
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200">
+                    Verifikasi &amp; Keputusan
+                  </h3>
+
+                  {isSelectedFinal ? (
+                    <div
+                      className={`rounded-xl p-4 border ${
+                        selected.status === "Disetujui"
+                          ? "bg-emerald-50/80 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800"
+                          : "bg-rose-50/80 border-rose-200 dark:bg-rose-950/30 dark:border-rose-800"
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        {selected.status === "Disetujui" ? (
+                          <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                        ) : (
+                          <XCircle className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+                        )}
+                        <div className="space-y-1 text-sm">
+                          <p className="font-bold text-slate-900 dark:text-white">
+                            Keputusan Final: {selected.status}
                           </p>
-                          <p className="text-xs text-emerald-600/80 dark:text-emerald-300/70">
-                            File PDF resmi
+                          <p className="text-slate-700 dark:text-slate-300">
+                            <span className="font-semibold">
+                              Catatan Admin:{" "}
+                            </span>
+                            {selected.jawabanAdmin || "-"}
                           </p>
                         </div>
                       </div>
-                      <a
-                        href={`${API_BASE}/uploads/${selected.suratBalasan}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold"
-                      >
-                        <HiDocumentText /> Download
-                      </a>
                     </div>
                   ) : (
-                    <div className="rounded-2xl p-5 bg-yellow-50 dark:bg-yellow-500/10 border border-yellow-200 dark:border-yellow-500/30 text-sm text-yellow-700 dark:text-yellow-300">
-                      Surat balasan belum tersedia
-                    </div>
-                  )
-                ) : (
-                  <>
-                    <label className="flex flex-col items-center justify-center w-full min-h-35 rounded-2xl border-2 border-dashed border-[#FCA5A5] dark:border-indigo-500/50 bg-[#FFF1F2] dark:bg-indigo-500/10 cursor-pointer transition hover:bg-indigo-100/60 dark:hover:bg-indigo-500/10">
-                      <HiDocumentText className="text-4xl text-[#B91C1C] dark:text-indigo-400 mb-2" />
-                      <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
-                        Klik untuk upload surat balasan
-                      </p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                        Format PDF • Maksimal 5MB
-                      </p>
-                      <input
-                        type="file"
-                        accept="application/pdf"
-                        onChange={(e) =>
-                          setSuratBalasan(e.target.files?.[0] || null)
-                        }
-                        className="hidden"
-                      />
-                    </label>
-                    {suratBalasan && (
-                      <div className="mt-3 flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 text-blue-700 dark:text-blue-300 text-sm font-medium">
-                        <HiCheckCircle className="text-lg" />
-                        {suratBalasan.name}
-                      </div>
-                    )}
-                    <p className="text-xs text-gray-400 mt-1">
-                      Unggah surat balasan resmi (format PDF)
-                    </p>
-                  </>
-                )}
-              </div>
+                    <div className="space-y-4">
+                      {formError && (
+                        <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 text-xs font-semibold text-rose-700 dark:text-rose-300 flex items-center gap-2">
+                          <AlertTriangle className="w-4 h-4 shrink-0" />
+                          <span>{formError}</span>
+                        </div>
+                      )}
 
-              {/* ALASAN ADMIN */}
-              <div>
-                <label className="block text-sm font-semibold mb-2">
-                  Alasan Persetujuan / Penolakan
-                </label>
-                <textarea
-                  rows={4}
-                  value={alasan || selected?.jawabanAdmin || ""}
-                  disabled={isAktif}
-                  onChange={(e) => setAlasan(e.target.value)}
-                  placeholder={
-                    isAktif
-                      ? "Alasan persetujuan sudah ditetapkan"
-                      : "Tuliskan alasan persetujuan atau penolakan pendaftaran..."
-                  }
-                  className={`w-full rounded-xl border border-slate-300 dark:border-slate-700 px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none ${isAktif ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed" : "bg-white dark:bg-slate-800"}`}
-                />
-              </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                          Catatan / Alasan Keputusan{" "}
+                          <span className="text-rose-500">*</span>
+                        </label>
+                        <textarea
+                          rows={3}
+                          value={alasan}
+                          onChange={(e) => {
+                            setAlasan(e.target.value);
+                            if (formError) setFormError(null);
+                          }}
+                          placeholder="Tuliskan catatan persetujuan, informasi proses, atau alasan penolakan..."
+                          className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40 focus:border-[#0284c7]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                          Upload Surat Balasan Resmi (PDF, maks. 5MB — wajib
+                          untuk menyetujui)
+                        </label>
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                          <label className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-dashed border-[#0284c7] bg-sky-50/60 dark:bg-sky-950/30 text-[#0284c7] dark:text-sky-300 text-xs font-semibold cursor-pointer hover:bg-sky-100/70 transition">
+                            <Upload className="w-4 h-4" />
+                            <span>
+                              {suratBalasan
+                                ? suratBalasan.name
+                                : "Pilih File PDF Surat Balasan"}
+                            </span>
+                            <input
+                              type="file"
+                              accept=".pdf,application/pdf"
+                              onChange={handleFileChange}
+                              className="hidden"
+                            />
+                          </label>
+                          {suratBalasan && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSuratBalasan(null);
+                                setFileError(null);
+                              }}
+                              className="text-xs font-semibold text-rose-600 hover:underline self-start sm:self-center"
+                            >
+                              Hapus file
+                            </button>
+                          )}
+                        </div>
+                        {fileError && (
+                          <p className="text-xs text-rose-600 dark:text-rose-400 mt-1.5 font-medium">
+                            {fileError}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="flex flex-wrap items-center justify-end gap-2.5 pt-2">
+                        {selected.status === "Menunggu" && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              requestUpdateStatus("Sedang Diproses")
+                            }
+                            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-semibold bg-sky-100 hover:bg-sky-200 text-[#0284c7] dark:bg-sky-950/60 dark:text-sky-300 transition"
+                          >
+                            <Clock className="w-4 h-4" />
+                            Tandai Sedang Diproses
+                          </button>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => requestUpdateStatus("Ditolak")}
+                          className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white shadow-xs transition"
+                        >
+                          <XCircle className="w-4 h-4" />
+                          Tolak Pendaftaran
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => requestUpdateStatus("Disetujui")}
+                          className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition"
+                        >
+                          <CheckCircle2 className="w-4 h-4" />
+                          Setujui &amp; Kirim Surat
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================= MENTOR MODAL ================= */}
+      {mentorTarget && selected && (
+        <div
+          className="fixed inset-0 z-60 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !savingMentor) {
+              setMentorTarget(null);
+            }
+          }}
+        >
+          <div className="w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden">
+            <div className="bg-linear-to-r from-[#0284c7] to-blue-700 px-5 py-4 text-white flex items-center justify-between">
+              <h3 className="text-base font-bold">Tetapkan Mentor Peserta</h3>
+              <button
+                type="button"
+                onClick={() => setMentorTarget(null)}
+                className="p-1.5 rounded-lg bg-white/15 hover:bg-white/25"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
 
-            {/* ACTION BUTTON DENGAN KONFIRMASI */}
-            {editMode && (
-              <div className="flex justify-end gap-3 px-6 py-4 border-t">
+            <div className="p-5 space-y-4">
+              <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 text-xs space-y-1">
+                <p className="font-bold text-slate-800 dark:text-white text-sm">
+                  {mentorTarget.peserta.nama}
+                </p>
+                <p className="text-slate-500 dark:text-slate-400">
+                  {mentorTarget.peserta.email} • Posisi:{" "}
+                  <span className="font-semibold text-slate-700 dark:text-slate-200">
+                    {mentorTarget.peserta.posisi}
+                  </span>
+                </p>
+              </div>
+
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={mentorSearch}
+                  onChange={(e) => setMentorSearch(e.target.value)}
+                  placeholder="Filter nama atau fungsi mentor..."
+                  className="w-full pl-8 pr-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-xs focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Pilih Mentor Pembimbing
+                </label>
+                <select
+                  value={selectedMentorId}
+                  onChange={(e) => setSelectedMentorId(e.target.value)}
+                  className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40 focus:border-[#0284c7]"
+                >
+                  <option value="">-- Pilih Mentor --</option>
+                  {filteredMentors.map((m) => (
+                    <option key={m._id} value={m._id}>
+                      {m.name}
+                      {m.posisiMentor ? ` — ${m.posisiMentor}` : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
                 <button
-                  onClick={() => setEditMode(false)}
-                  className="px-4 py-2 rounded-lg border"
+                  type="button"
+                  onClick={() => setMentorTarget(null)}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
                 >
                   Batal
                 </button>
-
                 <button
-                  onClick={() => confirmEdit()}
-                  className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white"
+                  type="button"
+                  disabled={savingMentor}
+                  onClick={handleSaveMentor}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold bg-[#0284c7] hover:bg-sky-700 text-white shadow-xs transition disabled:opacity-60"
                 >
-                  Simpan Perubahan
+                  {savingMentor ? "Menyimpan..." : "Simpan Mentor"}
                 </button>
               </div>
-            )}
-            {!isAktif && (
-              <div className="sticky bottom-0 px-6 py-4 bg-white/90 dark:bg-[#0B0614]/95 backdrop-blur border-t border-blue-200 dark:border-indigo-800 flex flex-col sm:flex-row justify-end gap-3">
-                {/* Tolak */}
-                <button
-                  onClick={() => {
-                    const nama = selected?.peserta[0]?.nama;
-
-                    setConfirmAction({
-                      show: true,
-                      type: "tolak",
-                      title: "Konfirmasi Penolakan",
-                      message: `Apakah anda yakin menolak ${nama}?`,
-                    });
-                  }}
-                  className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-linear-to-r from-rose-500 to-red-600 text-white font-semibold hover:opacity-90"
-                >
-                  <HiXCircle /> Tolak
-                </button>
-
-                {/* Setuju */}
-                <button
-                  onClick={() => {
-                    const jumlah =
-                      selected?.jumlahPeserta || selected?.peserta.length || 0;
-
-                    // Hitung durasi dari peserta pertama (asumsi sama semua)
-                    const durasi = hitungDurasiMagang(
-                      selected?.peserta[0]?.tanggalMulaiMagang || "",
-                      selected?.peserta[0]?.tanggalSelesaiMagang || "",
-                    );
-
-                    const bulan = durasi ? durasi.bulan : 0;
-
-                    const message = `
-                        Apakah anda yakin untuk menyetujui Peserta magang ${jumlah} orang peserta?
-
-                        Masa magang: ${bulan} Bulan
-
-                        di BBPOM Kota Palembang
-
-                        Data tidak dapat diubah setelah diproses.
-                            `;
-
-                    setConfirmAction({
-                      show: true,
-                      type: "setuju",
-                      title: "Konfirmasi Persetujuan",
-                      message,
-                    });
-                  }}
-                  className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-linear-to-r from-emerald-500 to-green-600 text-white font-semibold hover:opacity-90"
-                >
-                  <HiCheckCircle /> Setujui
-                </button>
-              </div>
-            )}
+            </div>
           </div>
         </div>
       )}
 
-      {/* MODAL KONFIRMASI */}
-      {confirmAction.show && (
-        <div className="fixed inset-0 z-100 flex items-center justify-center">
-          <div
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-            onClick={() => setConfirmAction({ ...confirmAction, show: false })}
-          />
-
-          <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl p-6 w-full max-w-md">
-            <h3 className="text-lg font-bold mb-2">{confirmAction.title}</h3>
-
-            <p className="text-sm text-gray-600 dark:text-gray-300 mb-6">
-              {confirmAction.message}
-            </p>
-
-            <div className="flex justify-end gap-3">
+      {/* ================= BUAT AKUN MODAL (INLINE) ================= */}
+      {akunTarget && (
+        <div
+          className="fixed inset-0 z-60 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !creatingAkun) {
+              setAkunTarget(null);
+            }
+          }}
+        >
+          <div className="w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden">
+            <div className="bg-linear-to-r from-[#0284c7] to-blue-700 px-5 py-4 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <UserPlus className="w-4 h-4" />
+                <h3 className="text-base font-bold">Buat Akun Peserta</h3>
+              </div>
               <button
-                onClick={() =>
-                  setConfirmAction({ ...confirmAction, show: false })
-                }
-                className="px-4 py-2 rounded-lg border"
+                type="button"
+                disabled={creatingAkun}
+                onClick={() => setAkunTarget(null)}
+                className="p-1.5 rounded-lg bg-white/15 hover:bg-white/25 disabled:opacity-50"
               >
-                Batal
+                <X className="w-4 h-4" />
               </button>
+            </div>
 
-              <button
-                onClick={() => {
-                  setConfirmAction({ ...confirmAction, show: false });
+            <div className="p-5 space-y-4">
+              <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 text-xs space-y-1">
+                <p className="font-bold text-slate-800 dark:text-white text-sm">
+                  {akunTarget.nama}
+                </p>
+                <p className="text-slate-500 dark:text-slate-400">
+                  Email:{" "}
+                  <span className="font-semibold text-slate-700 dark:text-slate-200">
+                    {akunTarget.email.trim().toLowerCase()}
+                  </span>
+                </p>
+                <p className="text-slate-500 dark:text-slate-400">
+                  Posisi: {akunTarget.posisi || "-"}
+                </p>
+              </div>
 
-                  if (confirmAction.type === "edit") {
-                    updatePendaftaran();
-                  } else {
-                    updateStatus(
-                      confirmAction.type === "setuju" ? "Disetujui" : "Ditolak",
-                    );
-                  }
-                }}
-                className={`px-5 py-2 rounded-lg text-white font-semibold ${
-                  confirmAction.type === "setuju"
-                    ? "bg-emerald-600 hover:bg-emerald-700"
-                    : "bg-rose-600 hover:bg-rose-700"
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                    <KeyRound className="w-3.5 h-3.5 text-[#0284c7]" />
+                    Password Awal Akun
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setAkunPassword(generateAccountPassword(10))}
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#0284c7] hover:underline"
+                  >
+                    <Sparkles className="w-3 h-3" />
+                    Generate Acak
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  value={akunPassword}
+                  onChange={(e) => setAkunPassword(e.target.value)}
+                  placeholder="Minimal 8 karakter (huruf besar, kecil & angka)"
+                  className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-sm font-mono text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40 focus:border-[#0284c7]"
+                />
+                <p className="text-[11px] text-slate-400 mt-1.5">
+                  Kredensial login dikirim otomatis ke email peserta. Akun yang
+                  belum terdaftar juga dibuat otomatis saat status Disetujui.
+                </p>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  disabled={creatingAkun}
+                  onClick={() => setAkunTarget(null)}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition disabled:opacity-50"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  disabled={creatingAkun}
+                  onClick={handleCreateAkunManual}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold bg-[#0284c7] hover:bg-sky-700 text-white shadow-xs transition disabled:opacity-60"
+                >
+                  {creatingAkun ? "Membuat Akun..." : "Buat & Kirim Email"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================= CONFIRM STATUS MODAL ================= */}
+      {confirmAction && (
+        <div className="fixed inset-0 z-70 bg-slate-900/65 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-4">
+            <div className="flex items-start gap-3">
+              <div
+                className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                  confirmAction.status === "Disetujui"
+                    ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400"
+                    : confirmAction.status === "Ditolak"
+                      ? "bg-rose-100 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400"
+                      : "bg-sky-100 text-[#0284c7] dark:bg-sky-950/60 dark:text-sky-400"
                 }`}
               >
-                Ya,{" "}
-                {confirmAction.type === "setuju"
-                  ? "Setujui"
-                  : confirmAction.type === "tolak"
-                    ? "Tolak"
-                    : "Simpan"}
-              </button>
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  {confirmAction.title}
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-1">
+                  {confirmAction.message}
+                </p>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
 
-      <AlertPopup
-        open={alertOpen}
-        type={alertType}
-        title={alertTitle}
-        message={alertMessage}
-        onClose={() => setAlertOpen(false)}
-      />
-
-      {/* MODAL KONFIRMASI DELETE */}
-      {deleteConfirm.show && (
-        <div className="fixed inset-0 z-100 flex items-center justify-center">
-          <div
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-            onClick={() => setDeleteConfirm({ ...deleteConfirm, show: false })}
-          />
-
-          <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl p-6 w-full max-w-md">
-            <h3 className="text-lg font-bold mb-2 text-red-600">
-              Konfirmasi Penghapusan
-            </h3>
-
-            <p className="text-sm text-gray-600 dark:text-gray-300 mb-6">
-              {deleteConfirm.message}
-            </p>
-
-            <div className="flex justify-end gap-3">
+            <div className="flex justify-end gap-2 pt-2">
               <button
-                onClick={() =>
-                  setDeleteConfirm({ ...deleteConfirm, show: false })
-                }
-                className="px-4 py-2 rounded-lg border"
+                type="button"
+                disabled={submittingStatus}
+                onClick={() => setConfirmAction(null)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
               >
                 Batal
               </button>
-
               <button
-                onClick={() => {
-                  if (deleteConfirm.step === 1) {
-                    setDeleteConfirm({
-                      show: true,
-                      step: 2,
-                      message:
-                        "Apakah anda benar-benar yakin? Data yang dihapus akan menghapus seluruh data peserta dari database dan tidak dapat dikembalikan.",
-                    });
-                  } else {
-                    executeDelete();
-                  }
-                }}
-                className="px-5 py-2 rounded-lg text-white font-semibold bg-red-600 hover:bg-red-700"
+                type="button"
+                disabled={submittingStatus}
+                onClick={executeUpdateStatus}
+                className={`px-4 py-2 rounded-xl text-xs font-semibold text-white shadow-xs transition disabled:opacity-60 ${
+                  confirmAction.status === "Disetujui"
+                    ? "bg-emerald-600 hover:bg-emerald-700"
+                    : confirmAction.status === "Ditolak"
+                      ? "bg-rose-600 hover:bg-rose-700"
+                      : "bg-[#0284c7] hover:bg-sky-700"
+                }`}
               >
-                {deleteConfirm.step === 1
-                  ? "Ya, Lanjutkan"
-                  : "Ya, Hapus Permanen"}
+                {submittingStatus ? "Memproses..." : "Ya, Lanjutkan"}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================= 2-STEP BULK DELETE CONFIRM MODAL ================= */}
+      {deleteStep > 0 && (
+        <div className="fixed inset-0 z-70 bg-slate-900/65 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-rose-100 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400 flex items-center justify-center shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  {deleteStep === 1
+                    ? "Hapus Data Pendaftaran?"
+                    : "Konfirmasi Penghapusan Permanen"}
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-1">
+                  {deleteStep === 1
+                    ? `Anda memilih ${selectedIds.length} pendaftaran untuk dihapus. Lanjutkan ke konfirmasi akhir?`
+                    : `Semua ${selectedIds.length} pendaftaran yang dipilih akan dihapus permanen dari database dan tidak dapat dipulihkan.`}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={() => setDeleteStep(0)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                Batal
+              </button>
+              {deleteStep === 1 ? (
+                <button
+                  type="button"
+                  onClick={() => setDeleteStep(2)}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-white shadow-xs transition"
+                >
+                  Lanjutkan
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  disabled={deleting}
+                  onClick={executeBulkDelete}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white shadow-xs transition disabled:opacity-60"
+                >
+                  {deleting ? "Menghapus..." : "Ya, Hapus Permanen"}
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -2389,170 +2359,28 @@ export default function ViewPendaftaranPage() {
   );
 }
 
-/* ================= COMPONENT ================= */
-function SummaryCard({
-  title,
-  value,
-  color = "default",
-  icon,
-}: {
-  title: string;
-  value: number | string;
-  color?: "default" | "green" | "red";
-  icon?: React.ReactNode;
-}) {
-  const colorMap = {
-    default: {
-      text: "text-[#7F1D1D] dark:text-white",
-      badge: "bg-[#B91C1C]/90 dark:bg-indigo-600",
-      border: "border-[#FCA5A5]/40 dark:border-indigo-500/30",
-    },
-    green: {
-      text: "text-emerald-600 dark:text-emerald-400",
-      badge: "bg-emerald-500",
-      border: "border-emerald-200 dark:border-emerald-500/30",
-    },
-    red: {
-      text: "text-rose-600 dark:text-rose-400",
-      badge: "bg-rose-500",
-      border: "border-rose-200 dark:border-rose-500/30",
-    },
-  };
-  const c = colorMap[color];
-  return (
-    <div
-      className={`group relative rounded-2xl ${c.border} bg-linear-to-br from-[#FFFDF8] via-[#FFF4EC] to-white dark:from-indigo-950 dark:via-indigo-900 dark:to-indigo-800 p-6 shadow-sm hover:shadow-xl transition`}
-    >
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-wide text-slate-600 dark:text-slate-300">
-            {title}
-          </p>
-          <p className={`text-4xl font-extrabold mt-1 ${c.text}`}>{value}</p>
-        </div>
-        <div
-          className={`w-14 h-14 rounded-2xl ${c.badge} text-white flex items-center justify-center shadow group-hover:scale-110 transition`}
-        >
-          {icon}
-        </div>
-      </div>
-      <div className={`mt-4 pt-4 border-t ${c.border}`}>
-        <p className="text-xs text-slate-600 dark:text-slate-300">
-          Ringkasan data {title.toLowerCase()}
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function StatusBadge({ status }: { status: string }) {
-  return (
-    <span
-      className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-semibold ${status === "Disetujui" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300" : status === "Ditolak" ? "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300" : "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-300"}`}
-    >
-      {status}
-    </span>
-  );
-}
-
-function DetailItem({
+function EditField({
   label,
   value,
-  icon,
+  onChange,
+  type = "text",
 }: {
   label: string;
-  value?: string;
-  icon: React.ReactNode;
+  value: string;
+  onChange: (value: string) => void;
+  type?: "text" | "email" | "date";
 }) {
   return (
-    <div className="flex items-start gap-2 min-w-0">
-      <div className="mt-0.5 text-[#B91C1C] dark:text-indigo-400 shrink-0">
-        {icon}
-      </div>
-      <div className="min-w-0 w-full">
-        <p className="text-xs text-slate-500 dark:text-slate-400">{label}</p>
-
-        <p className="font-medium text-slate-800 dark:text-white wrap-break-word">
-          {value || "-"}
-        </p>
-      </div>
+    <div>
+      <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">
+        {label}
+      </label>
+      <input
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40 focus:border-[#0284c7]"
+      />
     </div>
-  );
-}
-
-/* ================== STATUS MAGANG BADGE ================== */
-function getStatusMagang(
-  statusPendaftaran: string,
-  mulai?: string,
-  selesai?: string,
-) {
-  if (statusPendaftaran === "Ditolak") {
-    return "Tidak Magang";
-  }
-
-  if (statusPendaftaran !== "Disetujui") {
-    return "Menunggu";
-  }
-
-  if (!mulai || !selesai) {
-    return "Menunggu";
-  }
-
-  const today = new Date();
-  const start = new Date(mulai);
-  const end = new Date(selesai);
-
-  if (today < start) {
-    return "Belum Waktu Magang"; // ✅ BARU
-  }
-
-  if (today >= start && today <= end) {
-    return "Sedang Magang";
-  }
-
-  if (today > end) {
-    return "Selesai Magang";
-  }
-
-  return "Menunggu";
-}
-
-function StatusMagangBadge({ status }: { status: string }) {
-  if (status === "Tidak Magang") {
-    return (
-      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-rose-100 text-rose-700">
-        Tidak Magang
-      </span>
-    );
-  }
-
-  if (status === "Belum Waktu Magang") {
-    return (
-      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-700">
-        Belum Waktu Magang
-      </span>
-    );
-  }
-
-  if (status === "Sedang Magang") {
-    return (
-      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
-        Sedang Magang
-      </span>
-    );
-  }
-
-  if (status === "Selesai Magang") {
-    return (
-      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">
-        Selesai
-      </span>
-    );
-  }
-
-  return (
-    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700">
-      Menunggu
-    </span>
   );
 }
