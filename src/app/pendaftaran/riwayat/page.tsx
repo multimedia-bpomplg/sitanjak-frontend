@@ -229,7 +229,7 @@ export default function RiwayatPendaftaran() {
     <>
       <Navbar />
       <div
-        className={`min-h-screen bg-[#F8FAFC] relative overflow-hidden pt-28 md:pt-36 pb-16 px-4 sm:px-6 lg:px-8 ${plusJakarta.className}`}
+        className={`min-h-screen bg-[#F8FAFC] relative overflow-hidden pt-24 md:pt-28 pb-16 px-4 sm:px-6 lg:px-8 ${plusJakarta.className}`}
       >
         {/* Ambient Top Glow Ornaments */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-96 bg-gradient-to-b from-[#EBF5FF]/70 via-[#F8FAFC]/40 to-transparent pointer-events-none -z-10" />
@@ -238,11 +238,7 @@ export default function RiwayatPendaftaran() {
 
         <div className="max-w-4xl mx-auto">
           {/* HEADER SECTION */}
-          <div className="text-center mb-10 md:mb-12">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-200/60 text-[#0088FF] text-xs font-semibold tracking-wide uppercase mb-3.5 shadow-xs">
-              <span className="w-2 h-2 rounded-full bg-[#0088FF] animate-pulse" />
-              Pelacakan Berkas Online
-            </div>
+          <div className="text-center mb-8 md:mb-10">
             <h1 className="text-3xl md:text-5xl font-extrabold text-[#0B1B3D] tracking-tight leading-tight">
               Riwayat & Status <span className="text-[#0088FF]">Pendaftaran Magang</span>
             </h1>
