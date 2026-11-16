@@ -1,10 +1,16 @@
 export type Peserta = {
+  userId?: string | null;
   nama: string;
   email: string;
   wa: string;
 
   posisi: string;
   jurusan?: string;
+  asal?: {
+    jenis: string;
+    nama: string;
+  } | null;
+  statusMagang?: string;
 
   jenisKelamin: string;
   tempatLahir: string;

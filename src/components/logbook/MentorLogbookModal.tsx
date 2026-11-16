@@ -1,32 +1,41 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { showToast } from "@/components/ui/toastDashboard";
+import { useCallback, useEffect, useState } from "react";
 import {
-  FiCheck,
-  FiX,
-  FiCalendar,
-  FiFileText,
-  FiImage,
-  FiClock,
-  FiUserCheck,
-  FiUserX,
-  FiEdit,
-  FiEye,
-} from "react-icons/fi";
+  Calendar,
+  Check,
+  Clock,
+  Edit3,
+  Eye,
+  FileText,
+  Image as ImageIcon,
+  Lock,
+  UserCheck,
+  UserX,
+  X,
+} from "lucide-react";
+import { showToast } from "@/components/ui/toastDashboard";
 
 type Props = {
   date: string;
   pesertaId: string;
   pesertaNama: string;
   onClose: () => void;
+  onUpdated?: () => void;
 };
+
+const QUICK_NOTES = [
+  "Sudah baik dan sesuai, pertahankan.",
+  "Mohon lengkapi uraian aktivitas hari ini.",
+  "Mohon tambahkan dokumentasi atau bukti kegiatan.",
+];
 
 export default function MentorLogbookModal({
   date,
   pesertaId,
   pesertaNama,
   onClose,
+  onUpdated,
 }: Props) {
   const [logbookId, setLogbookId] = useState<string | null>(null);
   const [status, setStatus] = useState<string>("hadir");
@@ -35,7 +44,6 @@ export default function MentorLogbookModal({
   const [kendala, setKendala] = useState("");
   const [keterangan, setKeterangan] = useState("");
   const [files, setFiles] = useState<string[]>([]);
-  const [approvedByMentor, setApprovedByMentor] = useState(false);
   const [mentorNote, setMentorNote] = useState("");
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [pdfFile, setPdfFile] = useState<string | null>(null);
@@ -46,32 +54,11 @@ export default function MentorLogbookModal({
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [approvedAt, setApprovedAt] = useState<string>("");
+  const [notFound, setNotFound] = useState(false);
 
-  useEffect(() => {
-    fetchLogbook();
-  }, [date, pesertaId]);
-
-  const getImageUrl = (path: string) => {
-    if (!path) return "";
-
-    if (path.startsWith("http://") || path.startsWith("https://")) {
-      return path;
-    }
-
-    if (path.startsWith("uploads/")) {
-      const baseUrl =
-        process.env.NEXT_PUBLIC_API_URL ||
-        process.env.NEXT_PUBLIC_BASE_URL ||
-        "";
-      return `${baseUrl.replace(/\/$/, "")}/${path}`;
-    }
-
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || window.location.origin;
-    return `${baseUrl}/${path}`;
-  };
-
-  const fetchLogbook = async () => {
+  const fetchLogbook = useCallback(async () => {
     setIsLoading(true);
+    setNotFound(false);
     try {
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/logbook/mentor/peserta/${pesertaId}/date/${date}`,
@@ -83,8 +70,8 @@ export default function MentorLogbookModal({
       );
 
       if (res.status === 404) {
+        setNotFound(true);
         showToast.error("Logbook ini belum dibuat oleh peserta");
-        setIsLoading(false);
         return;
       }
 
@@ -100,16 +87,49 @@ export default function MentorLogbookModal({
       setKeterangan(data.keterangan || "");
       setFiles(data.files || []);
       setPdfFile(data.pdfFile || null);
-      setApprovedByMentor(Boolean(data.approvedByMentor));
       setApprovalStatus(data.approvalStatus || "menunggu");
       setMentorNote(data.mentorNote || "");
       setApprovedAt(data.approvedAt || "");
-      setIsFinalized(data.isFinalized || false);
+      setIsFinalized(Boolean(data.isFinalized));
     } catch {
       showToast.error("Gagal memuat logbook");
     } finally {
       setIsLoading(false);
     }
+  }, [date, pesertaId]);
+
+  useEffect(() => {
+    fetchLogbook();
+  }, [fetchLogbook]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (previewImage) {
+          setPreviewImage(null);
+        } else {
+          onClose();
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [previewImage, onClose]);
+
+  const getImageUrl = (path: string) => {
+    if (!path) return "";
+    if (path.startsWith("http://") || path.startsWith("https://")) {
+      return path;
+    }
+    if (path.startsWith("uploads/")) {
+      const baseUrl =
+        process.env.NEXT_PUBLIC_API_URL ||
+        process.env.NEXT_PUBLIC_BASE_URL ||
+        "";
+      return `${baseUrl.replace(/\/$/, "")}/${path}`;
+    }
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || window.location.origin;
+    return `${baseUrl}/${path}`;
   };
 
   const handleApprove = async (approved: boolean) => {
@@ -155,7 +175,6 @@ export default function MentorLogbookModal({
 
       setIsFinalized(true);
       setApprovalStatus(approved ? "disetujui" : "ditolak");
-      setApprovedByMentor(approved);
       setApprovedAt(new Date().toISOString());
 
       showToast.updateSuccess(
@@ -163,13 +182,14 @@ export default function MentorLogbookModal({
         approved ? "Logbook berhasil disetujui" : "Logbook berhasil ditolak",
       );
 
+      onUpdated?.();
+
       setTimeout(() => {
-        try {
-          onClose();
-        } catch {}
-      }, 1200);
-    } catch (err: any) {
-      showToast.updateError(toastId, err.message || "Terjadi kesalahan");
+        onClose();
+      }, 900);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Terjadi kesalahan";
+      showToast.updateError(toastId, message);
     } finally {
       setIsSubmitting(false);
     }
@@ -210,96 +230,56 @@ export default function MentorLogbookModal({
         throw new Error(data.message || "Gagal mengirim revisi");
       }
 
-      showToast.updateSuccess(toastId, "Revisi berhasil dikirim");
+      showToast.updateSuccess(toastId, "Permintaan revisi berhasil dikirim");
 
       setApprovalStatus("revisi");
       setIsFinalized(false);
+      onUpdated?.();
 
       setTimeout(() => {
         onClose();
-      }, 1200);
-    } catch (err: any) {
-      showToast.updateError(toastId, err.message || "Terjadi kesalahan");
+      }, 900);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Terjadi kesalahan";
+      showToast.updateError(toastId, message);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDateTime = (dateString: string) => {
     if (!dateString) return "";
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString("id-ID", {
-        weekday: "long",
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-    } catch {
-      return dateString;
-    }
+    const parsed = new Date(dateString);
+    if (Number.isNaN(parsed.getTime())) return dateString;
+    return parsed.toLocaleDateString("id-ID", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   };
 
   const formatSimpleDate = (dateString: string) => {
     if (!dateString) return "";
-    try {
-      return new Date(dateString).toLocaleDateString("id-ID");
-    } catch {
-      return dateString;
-    }
+    const parsed = new Date(dateString);
+    if (Number.isNaN(parsed.getTime())) return dateString;
+    return parsed.toLocaleDateString("id-ID", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
   };
 
   if (isLoading) {
     return (
-      <div
-        className="
-          fixed inset-0 z-50
-          flex items-center justify-center
-          bg-black/40 dark:bg-black/70
-          backdrop-blur-sm
-        "
-      >
-        <div
-          className="
-            relative
-            w-64
-            rounded-3xl
-            p-8
-            text-center
-            shadow-2xl
-            bg-linear-to-br from-[#FFFDF8] via-[#FFF1E8] to-[#FEF3C7]
-            border border-[#FCA5A5]/40
-            dark:bg-linear-to-br dark:from-indigo-950 dark:via-indigo-900 dark:to-indigo-800
-            dark:border-indigo-500/30
-          "
-        >
-          <div
-            className="
-              pointer-events-none absolute inset-0 rounded-3xl
-              bg-linear-to-br from-[#F59E0B] to-[#7F1D1D]
-              dark:from-indigo-600 dark:to-violet-500
-              opacity-20 blur-xl
-            "
-          />
-
-          <div className="relative">
-            <div
-              className="
-                animate-spin
-                mx-auto
-                h-14 w-14
-                rounded-full
-                border-4 border-transparent
-                border-t-[#7F1D1D] border-r-[#F59E0B]
-                dark:border-t-indigo-400 dark:border-r-violet-400
-              "
-            />
-          </div>
-
-          <p className="relative mt-5 text-sm font-semibold text-[#7F1D1D] dark:text-indigo-300">
-            Memuat logbook...
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4">
+        <div className="w-72 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-8 text-center shadow-2xl">
+          <div className="animate-spin mx-auto h-10 w-10 rounded-full border-3 border-slate-200 border-t-[#0284c7]" />
+          <p className="mt-4 text-sm font-semibold text-slate-700 dark:text-slate-200">
+            Memuat detail logbook...
           </p>
         </div>
       </div>
@@ -307,150 +287,125 @@ export default function MentorLogbookModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-3 sm:p-6">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-3 sm:p-6"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+    >
       <div
-        className="
-          w-full max-w-3xl
-          rounded-3xl
-          bg-white dark:bg-slate-900
-          shadow-2xl
-          flex flex-col
-          max-h-[90vh]
-          overflow-hidden
-        "
+        className="w-full max-w-3xl rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col max-h-[90vh] overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
       >
-        <div
-          className="
-            px-5 sm:px-6 py-4
-            border-b border-slate-200 dark:border-slate-800
-            bg-linear-to-r
-            from-[#FCA5A5] via-[#FDE68A] to-[#FFF7ED]
-            dark:from-indigo-800 dark:via-indigo-700 dark:to-indigo-900
-            text-slate-900 dark:text-white
-            shadow-lg
-          "
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-white/20 rounded-lg">
-                <FiCalendar className="text-xl" />
-              </div>
-              <div>
-                <h2 className="text-lg sm:text-xl font-bold leading-tight">
-                  Logbook Peserta
-                </h2>
-                <p className="text-xs sm:text-sm opacity-90">
-                  {pesertaNama} • {formatSimpleDate(date)}
-                </p>
-              </div>
+        {/* ================= HEADER (TEMA BIRU SIDEBAR) ================= */}
+        <div className="px-5 sm:px-6 py-4 bg-linear-to-r from-[#0284c7] via-sky-600 to-blue-700 dark:from-[#0369a1] dark:to-blue-900 text-white flex items-center justify-between gap-3 shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="p-2.5 bg-white/20 rounded-xl shrink-0">
+              <Calendar className="w-5 h-5" />
             </div>
-            <button
-              onClick={onClose}
-              className="p-2 text-red-600 hover:bg-red-100 dark:text-red-400 dark:hover:bg-red-900/30 rounded-lg transition"
-            >
-              <FiX className="text-xl" />
-            </button>
+            <div className="min-w-0">
+              <h2 className="text-base sm:text-lg font-extrabold leading-tight truncate">
+                Verifikasi Logbook Harian
+              </h2>
+              <p className="text-xs sm:text-sm text-sky-100 truncate">
+                {pesertaNama} • {formatSimpleDate(date)}
+              </p>
+            </div>
           </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Tutup modal"
+            className="p-2 rounded-xl bg-white/15 hover:bg-white/25 text-white transition shrink-0"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
-          <div
-            className={`
-              rounded-xl border px-5 py-4
-              ${
-                approvalStatus === "disetujui"
-                  ? "border-emerald-300 bg-emerald-50 text-emerald-800 dark:bg-emerald-900/30 dark:border-emerald-600 dark:text-emerald-300"
-                  : approvalStatus === "ditolak"
-                    ? "border-red-300 bg-red-50 text-red-800 dark:bg-red-900/30 dark:border-red-600 dark:text-red-300"
-                    : approvalStatus === "revisi"
-                      ? "border-purple-300 bg-purple-50 text-purple-800 dark:bg-purple-900/30 dark:border-purple-600 dark:text-purple-300"
-                      : "border-amber-300 bg-amber-50 text-amber-800 dark:bg-amber-900/30 dark:border-amber-600 dark:text-amber-300"
-              }
-            `}
-          >
-            <div className="flex items-start gap-3">
-              <span className="text-xl mt-0.5">
-                {approvalStatus === "disetujui" ? (
-                  <FiCheck />
-                ) : approvalStatus === "ditolak" ? (
-                  <FiX />
-                ) : approvalStatus === "revisi" ? (
-                  <FiEdit />
-                ) : (
-                  <FiClock />
-                )}
-              </span>
-
-              <div className="flex-1">
-                <p className="font-semibold">
-                  {approvalStatus === "disetujui"
-                    ? "Logbook Disetujui"
-                    : approvalStatus === "ditolak"
-                      ? "Logbook Ditolak"
-                      : approvalStatus === "revisi"
-                        ? "Menunggu Revisi Peserta"
-                        : "Menunggu Persetujuan"}
-                </p>
-
-                {approvedAt && approvalStatus !== "menunggu" && (
-                  <p className="text-sm mt-1">
-                    Diproses pada: {formatDate(approvedAt)}
-                  </p>
-                )}
-              </div>
+        {/* ================= BODY ================= */}
+        <div className="flex-1 overflow-y-auto px-5 sm:px-6 py-5 space-y-5">
+          {notFound ? (
+            <div className="rounded-2xl bg-white dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 p-10 text-center space-y-2">
+              <FileText className="w-10 h-10 text-slate-400 mx-auto" />
+              <p className="font-bold text-slate-700 dark:text-slate-200">
+                Belum Ada Logbook pada Tanggal Ini
+              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Peserta belum mengisi catatan logbook untuk tanggal{" "}
+                {formatSimpleDate(date)}.
+              </p>
             </div>
-          </div>
-
-          {isFinalized && (
-            <div
-              className="
-                rounded-xl border px-4 py-3 text-sm
-                bg-slate-50 text-slate-700 border-slate-300
-                dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700
-              "
-            >
-              <div className="flex items-center gap-2">
-                <span className="text-lg">🔒</span>
-                <div>
-                  <p className="font-semibold">Logbook sudah diproses</p>
-                  <p className="text-slate-600 dark:text-slate-300">
-                    Status sudah final dan tidak dapat diubah kembali
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div className="space-y-6">
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <FiUserCheck className="text-slate-500 dark:text-white" />
-                <label className="font-semibold text-slate-700 dark:text-white">
-                  Status Kehadiran
-                </label>
-              </div>
+          ) : (
+            <>
+              {/* Status Approval Banner */}
               <div
-                className={`
-                  inline-flex items-center gap-2
-                  px-4 py-2.5 rounded-xl border
-                  text-sm font-semibold
-                  transition
-                  ${
-                    status === "hadir"
-                      ? "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-300 dark:border-emerald-700/40"
-                      : status === "tidak_hadir_keterangan"
-                        ? "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700/40"
-                        : "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/40 dark:text-red-300 dark:border-red-700/40"
-                  }
-                `}
+                className={`rounded-xl border px-4 py-3.5 flex items-start gap-3 ${
+                  approvalStatus === "disetujui"
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-300"
+                    : approvalStatus === "ditolak"
+                      ? "border-rose-200 bg-rose-50 text-rose-800 dark:bg-rose-950/40 dark:border-rose-800 dark:text-rose-300"
+                      : approvalStatus === "revisi"
+                        ? "border-purple-200 bg-purple-50 text-purple-800 dark:bg-purple-950/40 dark:border-purple-800 dark:text-purple-300"
+                        : "border-amber-200 bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:border-amber-800 dark:text-amber-300"
+                }`}
               >
-                {status === "hadir" ? (
-                  <FiUserCheck className="w-4 h-4" />
-                ) : (
-                  <FiUserX className="w-4 h-4" />
-                )}
+                <span className="mt-0.5 shrink-0">
+                  {approvalStatus === "disetujui" ? (
+                    <Check className="w-5 h-5" />
+                  ) : approvalStatus === "ditolak" ? (
+                    <X className="w-5 h-5" />
+                  ) : approvalStatus === "revisi" ? (
+                    <Edit3 className="w-5 h-5" />
+                  ) : (
+                    <Clock className="w-5 h-5" />
+                  )}
+                </span>
 
-                <span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold">
+                    {approvalStatus === "disetujui"
+                      ? "Logbook Disetujui"
+                      : approvalStatus === "ditolak"
+                        ? "Logbook Ditolak"
+                        : approvalStatus === "revisi"
+                          ? "Menunggu Revisi Peserta"
+                          : "Menunggu Persetujuan Mentor"}
+                  </p>
+                  {approvedAt && approvalStatus !== "menunggu" && (
+                    <p className="text-xs opacity-85 mt-0.5">
+                      Diproses pada: {formatDateTime(approvedAt)}
+                    </p>
+                  )}
+                </div>
+
+                {isFinalized && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-white/70 dark:bg-slate-900/60 shrink-0">
+                    <Lock className="w-3 h-3" />
+                    Final
+                  </span>
+                )}
+              </div>
+
+              {/* Kehadiran */}
+              <div className="rounded-xl bg-white dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-800 p-4 flex flex-wrap items-center justify-between gap-3">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  Status Kehadiran
+                </span>
+                <span
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border ${
+                    status === "hadir"
+                      ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800"
+                      : status === "tidak_hadir_keterangan"
+                        ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800"
+                        : "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/50 dark:text-rose-300 dark:border-rose-800"
+                  }`}
+                >
+                  {status === "hadir" ? (
+                    <UserCheck className="w-3.5 h-3.5" />
+                  ) : (
+                    <UserX className="w-3.5 h-3.5" />
+                  )}
                   {status === "hadir"
                     ? "Hadir"
                     : status === "tidak_hadir_keterangan"
@@ -458,527 +413,226 @@ export default function MentorLogbookModal({
                       : "Tidak Hadir (Tanpa Keterangan)"}
                 </span>
               </div>
-            </div>
 
-            {status === "hadir" && (
-              <>
-                <FieldSection
-                  icon={<FiFileText />}
-                  label="Uraian Aktivitas"
-                  value={judul}
-                />
+              {/* Konten Logbook */}
+              {status === "hadir" && (
+                <div className="space-y-4">
+                  <FieldSection label="Uraian Aktivitas" value={judul} />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FieldSection label="Pembelajaran" value={pengalaman} />
+                    <FieldSection label="Kendala" value={kendala} />
+                  </div>
+                </div>
+              )}
 
-                <FieldSection
-                  icon={<FiFileText />}
-                  label="Pembelajaran"
-                  value={pengalaman}
-                />
+              {status === "tidak_hadir_keterangan" && (
+                <FieldSection label="Alasan Tidak Hadir" value={keterangan} />
+              )}
 
-                <FieldSection
-                  icon={<FiFileText />}
-                  label="Kendala"
-                  value={kendala}
-                />
+              {/* Dokumentasi Foto */}
+              {status !== "tidak_hadir_tanpa_keterangan" && (
+                <div className="rounded-xl bg-white dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-800 p-4 space-y-3">
+                  <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    <ImageIcon className="w-4 h-4 text-[#0284c7]" />
+                    <span>
+                      {status === "hadir"
+                        ? "Dokumentasi Kegiatan"
+                        : "Bukti Pendukung"}
+                    </span>
+                  </div>
 
-                {files.length > 0 && (
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <FiImage className="flex items-center gap-2" />
-                      <label className="font-semibold text-slate-700 dark:text-white">
-                        Dokumentasi
-                      </label>
-                    </div>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {files.length > 0 ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                       {files.map((f, i) => {
                         const imageUrl = getImageUrl(f);
-
                         return (
-                          <div
+                          <button
+                            type="button"
                             key={i}
-                            className="relative group cursor-pointer"
                             onClick={() => setPreviewImage(imageUrl)}
+                            className="relative group overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700"
                           >
                             <img
                               src={imageUrl}
-                              className="w-full h-40 object-cover rounded-lg"
+                              className="w-full h-32 object-cover group-hover:scale-105 transition"
                               alt={`Dokumentasi ${i + 1}`}
                               onError={(e) => {
-                                e.currentTarget.src = `https://via.placeholder.com/300x200?text=Gambar+Tidak+Tersedia`;
+                                e.currentTarget.src =
+                                  "https://via.placeholder.com/300x200?text=Gambar+Tidak+Tersedia";
                               }}
                             />
-                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition rounded-lg flex items-center justify-center">
-                              <FiEye className="text-white opacity-0 group-hover:opacity-100 transition text-2xl" />
+                            <div className="absolute inset-0 bg-slate-950/0 group-hover:bg-slate-950/35 transition flex items-center justify-center">
+                              <Eye className="w-5 h-5 text-white opacity-0 group-hover:opacity-100 transition" />
                             </div>
-                          </div>
+                          </button>
                         );
                       })}
                     </div>
-                    <p className="text-sm text-slate-500">
-                      Klik gambar untuk melihat ukuran penuh
+                  ) : (
+                    <p className="text-xs text-slate-400">
+                      Tidak ada lampiran foto
                     </p>
-                  </div>
-                )}
-
-                {files.length === 0 && status === "hadir" && (
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <FiImage className="text-slate-500" />
-                      <label className="font-semibold text-slate-700 dark:text-white">
-                        Dokumentasi
-                      </label>
-                    </div>
-                    <div
-                      className="
-                        text-center py-8 rounded-xl border-2 border-dashed
-                        text-slate-400 border-slate-300
-                        dark:text-slate-300 dark:border-slate-700
-                      "
-                    >
-                      <FiImage className="text-3xl mx-auto mb-2" />
-                      <p>Tidak ada dokumentasi</p>
-                    </div>
-                  </div>
-                )}
-
-                {pdfFile && (
-                  <div className="mt-4 space-y-3">
-                    <div className="flex items-center gap-2">
-                      <FiFileText className="text-slate-500" />
-                      <span className="font-semibold">Dokumen PDF (Opsional)</span>
-                    </div>
-
-                    {pdfFile ? (
-                      <a
-                        href={getImageUrl(pdfFile)}
-                        target="_blank"
-                        className="
-                          flex items-center gap-4
-                          p-4 rounded-2xl
-                          border
-                          border-amber-200 dark:border-indigo-700
-                          bg-amber-50 dark:bg-indigo-900/30
-                          hover:shadow-md
-                          transition
-                          group
-                        "
-                      >
-                        <div
-                          className="
-                            w-12 h-12
-                            rounded-xl
-                            flex items-center justify-center
-                            bg-linear-to-br
-                            from-amber-500 to-orange-600
-                            dark:from-indigo-500 dark:to-violet-600
-                            text-white
-                            group-hover:scale-105
-                            transition
-                          "
-                        >
-                          <FiFileText className="text-xl" />
-                        </div>
-
-                        <div className="flex-1">
-                          <p className="font-semibold text-amber-800 dark:text-indigo-200">
-                            Dokumen PDF
-                          </p>
-                          <p className="text-xs text-amber-600 dark:text-indigo-400">
-                            Klik untuk melihat file
-                          </p>
-                        </div>
-
-                        <span
-                          className="
-                            text-xs font-semibold
-                            px-3 py-1 rounded-full
-                            bg-amber-200 text-amber-800
-                            dark:bg-indigo-800 dark:text-indigo-200
-                          "
-                        >
-                          📄 Lihat PDF
-                        </span>
-                      </a>
-                    ) : (
-                      <div
-                        className="
-                          text-center py-8 rounded-xl border-2 border-dashed
-                          text-slate-400 border-slate-300
-                          dark:text-slate-300 dark:border-slate-700
-                        "
-                      >
-                        <FiFileText className="text-3xl mx-auto mb-2" />
-                        <p>Tidak ada File</p>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </>
-            )}
-
-            {status === "tidak_hadir_keterangan" && (
-              <>
-                <FieldSection
-                  icon={<FiFileText />}
-                  label="Alasan Tidak Hadir"
-                  value={keterangan}
-                />
-
-                {files.length > 0 && (
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <FiImage />
-                      <label className="font-semibold">Bukti Pendukung</label>
-                    </div>
-
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                      {files.map((f, i) => {
-                        const imageUrl = getImageUrl(f);
-
-                        return (
-                          <div
-                            key={i}
-                            className="relative cursor-pointer"
-                            onClick={() => setPreviewImage(imageUrl)}
-                          >
-                            <img
-                              src={imageUrl}
-                              className="w-full h-40 object-cover rounded-lg"
-                              alt={`Bukti ${i + 1}`}
-                              onError={(e) => {
-                                e.currentTarget.src = `https://via.placeholder.com/300x200?text=Gambar+Tidak+Tersedia`;
-                              }}
-                            />
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {files.length === 0 && (
-                  <p className="text-sm text-slate-400">Tidak ada foto bukti</p>
-                )}
-
-                {pdfFile && (
-                  <div className="mt-4 space-y-3">
-                    <div className="flex items-center gap-2">
-                      <FiFileText className="text-slate-500" />
-                      <span className="font-semibold">Dokumen Bukti (PDF)</span>
-                    </div>
-
-                    {pdfFile ? (
-                      <a
-                        href={getImageUrl(pdfFile)}
-                        target="_blank"
-                        className="
-                          flex items-center gap-4
-                          p-4 rounded-2xl
-                          border
-                          border-amber-200 dark:border-indigo-700
-                          bg-amber-50 dark:bg-indigo-900/30
-                          hover:shadow-md
-                          transition
-                          group
-                        "
-                      >
-                        <div
-                          className="
-                            w-12 h-12
-                            rounded-xl
-                            flex items-center justify-center
-                            bg-linear-to-br
-                            from-amber-500 to-orange-600
-                            dark:from-indigo-500 dark:to-violet-600
-                            text-white
-                          "
-                        >
-                          <FiFileText className="text-xl" />
-                        </div>
-
-                        <div className="flex-1">
-                          <p className="font-semibold text-amber-800 dark:text-indigo-200">
-                            Dokumen PDF
-                          </p>
-                          <p className="text-xs text-amber-600 dark:text-indigo-400">
-                            Klik untuk melihat file
-                          </p>
-                        </div>
-
-                        <span
-                          className="
-                            text-xs font-semibold
-                            px-3 py-1 rounded-full
-                            bg-amber-200 text-amber-800
-                            dark:bg-indigo-800 dark:text-indigo-200
-                          "
-                        >
-                          📄 Lihat PDF
-                        </span>
-                      </a>
-                    ) : (
-                      <div
-                        className="
-                          text-center py-8 rounded-xl border-2 border-dashed
-                          text-slate-400 border-slate-300
-                          dark:text-slate-300 dark:border-slate-700
-                        "
-                      >
-                        <FiFileText className="text-3xl mx-auto mb-2" />
-                        <p>Tidak ada File</p>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-
-          <div className="space-y-4">
-            {isFinalized && mentorNote && (
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <FiEdit className="flex items-center gap-2" />
-                  <label className="font-semibold text-slate-700 dark:text-white">
-                    Catatan Mentor
-                  </label>
+                  )}
                 </div>
-                <div
-                  className="
-                    p-4 rounded-xl border
-                    bg-slate-50 text-slate-700
-                    dark:bg-slate-800 dark:text-slate-200
-                    border-slate-200 dark:border-slate-700
-                  "
+              )}
+
+              {/* Lampiran PDF */}
+              {pdfFile && (
+                <a
+                  href={getImageUrl(pdfFile)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-between gap-4 p-4 rounded-xl border border-sky-200 dark:border-sky-800 bg-sky-50/70 dark:bg-sky-950/40 hover:bg-sky-100/70 dark:hover:bg-sky-900/50 transition"
                 >
-                  <p className="whitespace-pre-line">{mentorNote}</p>
-                </div>
-              </div>
-            )}
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-xl bg-[#0284c7] text-white flex items-center justify-center shrink-0">
+                      <FileText className="w-5 h-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-slate-800 dark:text-slate-100">
+                        Lampiran Dokumen PDF
+                      </p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        Klik untuk membuka file di tab baru
+                      </p>
+                    </div>
+                  </div>
+                  <span className="px-3 py-1 rounded-full text-xs font-semibold bg-white dark:bg-slate-800 text-[#0284c7] dark:text-sky-300 border border-sky-200 dark:border-sky-700 shrink-0">
+                    Lihat PDF
+                  </span>
+                </a>
+              )}
 
-            {!isFinalized && (
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <FiEdit className="flex items-center gap-2" />
-                  <label className="font-semibold text-slate-700 dark:text-white">
-                    Catatan Mentor <span className="text-red-500">*</span>
-                  </label>
-                </div>
-                <textarea
-                  value={mentorNote}
-                  onChange={(e) => setMentorNote(e.target.value)}
-                  rows={4}
-                  placeholder="Berikan catatan atau komentar untuk peserta..."
-                  className="
-                    w-full px-4 py-3 rounded-xl resize-none outline-none transition
-                    bg-white text-slate-800
-                    dark:bg-slate-900 dark:text-slate-100
-                    border border-amber-400
-                    dark:border-indigo-500
-                    focus:border-amber-500 focus:ring-2 focus:ring-amber-200
-                    dark:focus:border-indigo-400 dark:focus:ring-indigo-400/30
-                  "
-                />
-                <p className="text-sm text-slate-500">
-                  *Catatan wajib diisi sebelum menyetujui atau menolak logbook
-                </p>
+              {/* Catatan Mentor */}
+              <div className="rounded-xl bg-white dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-800 p-4 space-y-3">
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+                  Catatan Mentor{" "}
+                  {!isFinalized && <span className="text-rose-500">*</span>}
+                </label>
+
+                {isFinalized ? (
+                  <p className="text-sm text-slate-700 dark:text-slate-200 whitespace-pre-line">
+                    {mentorNote || "-"}
+                  </p>
+                ) : (
+                  <>
+                    <div className="flex flex-wrap gap-1.5">
+                      {QUICK_NOTES.map((note) => (
+                        <button
+                          key={note}
+                          type="button"
+                          onClick={() => setMentorNote(note)}
+                          className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-sky-50 hover:text-[#0284c7] dark:hover:bg-sky-950/60 dark:hover:text-sky-300 border border-slate-200 dark:border-slate-700 transition"
+                        >
+                          + {note}
+                        </button>
+                      ))}
+                    </div>
+
+                    <textarea
+                      value={mentorNote}
+                      onChange={(e) => setMentorNote(e.target.value)}
+                      rows={3}
+                      placeholder="Tulis catatan evaluasi atau arahan untuk peserta..."
+                      className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40 focus:border-[#0284c7] resize-none transition"
+                    />
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                      * Catatan wajib diisi sebelum menyetujui, meminta revisi,
+                      atau menolak logbook. Keputusan Setujui/Tolak bersifat
+                      final.
+                    </p>
+                  </>
+                )}
               </div>
-            )}
-          </div>
+            </>
+          )}
         </div>
 
-        <div
-          className="
-            sticky bottom-0 z-20
-            px-5 sm:px-6 py-4
-            bg-white/80 dark:bg-slate-900/80
-            backdrop-blur
-            border-t border-amber-200/60 dark:border-indigo-700/40
-          "
-        >
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-between items-stretch sm:items-center">
-            <button
-              onClick={onClose}
-              className="
-                w-full sm:w-auto
-                inline-flex items-center justify-center
-                gap-2
-                px-5 py-2.5
-                rounded-xl
-                border
-                border-slate-300 dark:border-slate-700
-                bg-white dark:bg-slate-800
-                text-slate-600 dark:text-slate-300
-                hover:bg-slate-100 dark:hover:bg-slate-700
-                transition
-              "
-            >
-              Tutup
-            </button>
+        {/* ================= FOOTER ================= */}
+        <div className="px-5 sm:px-6 py-3.5 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-2.5 shrink-0">
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full sm:w-auto px-4 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+          >
+            Tutup
+          </button>
 
-            {!isFinalized && (
-              <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-                <button
-                  onClick={() => handleApprove(false)}
-                  disabled={isSubmitting || !mentorNote.trim()}
-                  className={`
-                    w-full sm:w-auto
-                    inline-flex items-center justify-center gap-2
-                    px-5 py-2.5 rounded-xl font-semibold
-                    transition-all
-                    ${
-                      isSubmitting || !mentorNote.trim()
-                        ? "bg-slate-200 dark:bg-slate-700 text-slate-400 cursor-not-allowed"
-                        : `
-                          bg-linear-to-r from-rose-500 to-red-600
-                          hover:from-rose-600 hover:to-red-700
-                          text-white shadow-md hover:shadow-xl
-                        `
-                    }
-                  `}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-                      <span>Memproses...</span>
-                    </>
-                  ) : (
-                    <>
-                      <FiX />
-                      Tolak
-                    </>
-                  )}
-                </button>
+          {!notFound && !isFinalized && (
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+              <button
+                type="button"
+                onClick={() => handleApprove(false)}
+                disabled={isSubmitting || !mentorNote.trim()}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white disabled:bg-slate-200 disabled:text-slate-400 dark:disabled:bg-slate-800 dark:disabled:text-slate-500 transition"
+              >
+                <X className="w-3.5 h-3.5" />
+                Tolak
+              </button>
 
-                <button
-                  onClick={handleRevision}
-                  disabled={isSubmitting || !mentorNote.trim()}
-                  className={`
-                    w-full sm:w-auto
-                    inline-flex items-center justify-center gap-2
-                    px-5 py-2.5 rounded-xl font-semibold
-                    transition-all
-                    ${
-                      isSubmitting || !mentorNote.trim()
-                        ? "bg-slate-200 dark:bg-slate-700 text-slate-400 cursor-not-allowed"
-                        : `
-                          bg-amber-500 hover:bg-amber-600
-                          text-white shadow-md hover:shadow-xl
-                        `
-                    }
-                  `}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-                      <span>Memproses...</span>
-                    </>
-                  ) : (
-                    <>
-                      <FiEdit />
-                      Revisi
-                    </>
-                  )}
-                </button>
+              <button
+                type="button"
+                onClick={handleRevision}
+                disabled={isSubmitting || !mentorNote.trim()}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-white disabled:bg-slate-200 disabled:text-slate-400 dark:disabled:bg-slate-800 dark:disabled:text-slate-500 transition"
+              >
+                <Edit3 className="w-3.5 h-3.5" />
+                Minta Revisi
+              </button>
 
-                <button
-                  onClick={() => handleApprove(true)}
-                  disabled={isSubmitting || !mentorNote.trim()}
-                  className={`
-                    w-full sm:w-auto
-                    inline-flex items-center justify-center gap-2
-                    px-5 py-2.5 rounded-xl font-semibold
-                    transition-all
-                    ${
-                      isSubmitting || !mentorNote.trim()
-                        ? "bg-slate-200 dark:bg-slate-700 text-slate-400 cursor-not-allowed"
-                        : `
-                          bg-linear-to-r from-emerald-500 to-green-600
-                          hover:from-emerald-600 hover:to-green-700
-                          text-white shadow-md hover:shadow-xl
-                        `
-                    }
-                  `}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-                      <span>Memproses...</span>
-                    </>
-                  ) : (
-                    <>
-                      <FiCheck />
-                      Setujui
-                    </>
-                  )}
-                </button>
-              </div>
-            )}
-          </div>
+              <button
+                type="button"
+                onClick={() => handleApprove(true)}
+                disabled={isSubmitting || !mentorNote.trim()}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white disabled:bg-slate-200 disabled:text-slate-400 dark:disabled:bg-slate-800 dark:disabled:text-slate-500 transition"
+              >
+                <Check className="w-3.5 h-3.5" />
+                Setujui
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
+      {/* ================= IMAGE PREVIEW LIGHTBOX ================= */}
       {previewImage && (
         <div
-          className="fixed inset-0 z-999 bg-black/90 flex items-center justify-center p-4"
+          className="fixed inset-0 z-60 bg-slate-950/90 flex items-center justify-center p-4"
           onClick={() => setPreviewImage(null)}
         >
           <button
+            type="button"
             onClick={() => setPreviewImage(null)}
-            className="absolute top-4 right-4 p-2 bg-white/20 hover:bg-white/30 rounded-full transition z-10"
+            aria-label="Tutup pratinjau gambar"
+            className="absolute top-4 right-4 p-2 bg-white/20 hover:bg-white/30 rounded-full text-white transition"
           >
-            <FiX className="text-white text-xl" />
+            <X className="w-5 h-5" />
           </button>
-          <div className="max-w-[90vw] max-h-[90vh] flex items-center justify-center">
-            <img
-              src={previewImage}
-              className="max-h-[85vh] max-w-full rounded-lg object-contain"
-              alt="Preview"
-              onError={(e) => {
-                e.currentTarget.src = `https://via.placeholder.com/800x600?text=Gambar+Tidak+Dapat+Dimuat`;
-              }}
-            />
-          </div>
+          <img
+            src={previewImage}
+            className="max-h-[85vh] max-w-full rounded-xl object-contain"
+            alt="Preview Dokumentasi"
+            onClick={(e) => e.stopPropagation()}
+            onError={(e) => {
+              e.currentTarget.src =
+                "https://via.placeholder.com/800x600?text=Gambar+Tidak+Dapat+Dimuat";
+            }}
+          />
         </div>
       )}
     </div>
   );
 }
 
-function FieldSection({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-}) {
+function FieldSection({ label, value }: { label: string; value: string }) {
   return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-2">
-        {icon}
-        <label className="font-semibold text-slate-700 dark:text-white">
-          {label}
-        </label>
-      </div>
-
-      <div
-        className="
-          w-full
-          px-4 py-3
-          rounded-2xl
-          min-h-25
-          whitespace-pre-line
-          text-sm sm:text-base
-          leading-relaxed sm:leading-loose
-          bg-white text-slate-800
-          dark:bg-slate-800 dark:text-slate-200
-          border border-slate-300 dark:border-slate-700
-          shadow-sm
-        "
-      >
+    <div className="rounded-xl bg-white dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-800 p-4 space-y-1.5">
+      <p className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+        {label}
+      </p>
+      <p className="text-sm leading-relaxed whitespace-pre-line text-slate-800 dark:text-slate-200">
         {value || <span className="text-slate-400">-</span>}
-      </div>
+      </p>
     </div>
   );
 }
