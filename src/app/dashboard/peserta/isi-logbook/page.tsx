@@ -7,12 +7,11 @@ import {
   Download,
   AlertCircle,
   Edit3,
-  PlusCircle,
   FileText,
   Check,
   X,
 } from "lucide-react";
-import LogbookModal from "@/components/logbook/LogbookModal";
+import InlineLogbookForm from "@/components/logbook/InlineLogbookForm";
 import { showToast } from "@/components/ui/toastDashboard";
 
 /* ================= TYPES ================= */
@@ -155,16 +154,9 @@ export default function IsiLogbookPage() {
   );
   const [detailData, setDetailData] = useState<LogbookDetail | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const [loadingInitial, setLoadingInitial] = useState(true);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
-
-  // Modal state for creating / editing logbook
-  const [openModal, setOpenModal] = useState(false);
-  const [modalMode, setModalMode] = useState<"create" | "view" | "edit">(
-    "create",
-  );
-  const [selectedLogbookId, setSelectedLogbookId] = useState<string | null>(
-    null,
-  );
+  const [isEditingRevisi, setIsEditingRevisi] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
 
   const todayWIB = useMemo(() => getNowWIB(), []);
@@ -219,12 +211,31 @@ export default function IsiLogbookPage() {
       }
     } catch (err) {
       console.error("Gagal memuat riwayat kehadiran:", err);
+    } finally {
+      setLoadingInitial(false);
     }
   }, []);
 
   useEffect(() => {
     refreshAll();
   }, [refreshAll]);
+
+  // Auto-scroll to inline attendance section when navigated from Beranda (?isi=1)
+  useEffect(() => {
+    if (loadingInitial) return;
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("isi") === "1") {
+      setSelectedDate(todayIso);
+      const timer = setTimeout(() => {
+        const el =
+          document.getElementById("form-kehadiran") ||
+          document.getElementById("detail-kehadiran-section");
+        el?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [loadingInitial, todayIso]);
 
   // Compute periods from internship dates
   const periods = useMemo(
@@ -628,7 +639,10 @@ export default function IsiLogbookPage() {
                     <button
                       key={iso}
                       type="button"
-                      onClick={() => setSelectedDate(iso)}
+                      onClick={() => {
+                        setSelectedDate(iso);
+                        setIsEditingRevisi(false);
+                      }}
                       className={`h-14 sm:h-16 flex flex-col items-center justify-center gap-1 transition cursor-pointer ${
                         isWeekend
                           ? "bg-slate-100/90 hover:bg-slate-200/70 dark:bg-slate-800/90 dark:hover:bg-slate-700/80"
@@ -750,14 +764,31 @@ export default function IsiLogbookPage() {
         </div>
       </div>
 
-      {/* ================= 4. SELECTED DATE DETAIL CARD ================= */}
+      {/* ================= 4. SELECTED DATE DETAIL / INLINE FORM CARD ================= */}
       {selectedDate && (
-        <div className="rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 p-4 sm:p-6 shadow-2xs space-y-4 sm:space-y-5 overflow-hidden">
-          {loadingDetail ? (
+        <div
+          id="detail-kehadiran-section"
+          className="rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 p-4 sm:p-6 shadow-2xs space-y-4 sm:space-y-5 overflow-hidden"
+        >
+          {loadingInitial || loadingDetail ? (
             <div className="py-8 text-center text-xs sm:text-sm text-slate-400">
               Memuat catatan kehadiran...
             </div>
           ) : selectedLogSummary && detailData ? (
+            isEditingRevisi && detailData.approvalStatus === "revisi" ? (
+              <InlineLogbookForm
+                date={selectedDate}
+                mode="edit"
+                initialData={detailData}
+                formattedDateLabel={formatLongDateID(selectedDate)}
+                onCancel={() => setIsEditingRevisi(false)}
+                onSuccess={() => {
+                  setIsEditingRevisi(false);
+                  refreshAll();
+                  fetchDateDetail(selectedDate);
+                }}
+              />
+            ) : (
             <>
               {/* Date & Status Badge */}
               <div className="flex items-center justify-between gap-2 pb-3 border-b border-slate-100 dark:border-slate-700/70">
@@ -907,12 +938,8 @@ export default function IsiLogbookPage() {
                 <div className="pt-2">
                   <button
                     type="button"
-                    onClick={() => {
-                      setSelectedLogbookId(detailData._id);
-                      setModalMode("edit");
-                      setOpenModal(true);
-                    }}
-                    className="w-full py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition"
+                    onClick={() => setIsEditingRevisi(true)}
+                    className="w-full py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xs transition"
                   >
                     <Edit3 className="w-4 h-4" />
                     <span>Perbaiki Laporan Harian</span>
@@ -920,44 +947,37 @@ export default function IsiLogbookPage() {
                 </div>
               )}
             </>
+            )
+          ) : isSelectedToday && !isSelectedWeekend ? (
+            /* Today's inline attendance & logbook form (disappears when clicking other dates, reappears on today) */
+            <InlineLogbookForm
+              date={selectedDate}
+              mode="create"
+              formattedDateLabel={formatLongDateID(selectedDate)}
+              onSuccess={() => {
+                refreshAll();
+                fetchDateDetail(selectedDate);
+              }}
+            />
           ) : (
-            /* Date not filled yet */
+            /* Other unfilled date or weekend/holiday */
             <div className="space-y-3">
               <div className="flex items-center justify-between gap-2 pb-2 border-b border-slate-100 dark:border-slate-700/70">
-                <h2 className="text-sm font-extrabold text-slate-900 dark:text-white">
+                <h2 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white">
                   {formatLongDateID(selectedDate)}
                 </h2>
-                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300">
+                <span className="px-2.5 py-0.5 rounded-full text-[11px] sm:text-xs font-semibold bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300">
                   {isSelectedWeekend ? "Hari Libur" : "Belum Diisi"}
                 </span>
               </div>
 
               {isSelectedWeekend ? (
-                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
                   Tanggal ini merupakan jadwal hari libur. Laporan harian dan
                   kehadiran tidak perlu diisi.
                 </p>
-              ) : isSelectedToday ? (
-                <div className="space-y-3">
-                  <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                    Anda belum mengisi kehadiran dan laporan aktivitas untuk
-                    hari ini.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedLogbookId(null);
-                      setModalMode("create");
-                      setOpenModal(true);
-                    }}
-                    className="w-full py-2.5 px-4 rounded-xl bg-[#1D64F2] hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition"
-                  >
-                    <PlusCircle className="w-4 h-4" />
-                    <span>Isi Kehadiran & Laporan Hari Ini</span>
-                  </button>
-                </div>
               ) : (
-                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
                   Tidak ada catatan kehadiran atau laporan harian pada tanggal
                   ini. Pengisian logbook baru hanya dapat dilakukan pada hari
                   yang bersangkutan.
@@ -989,23 +1009,6 @@ export default function IsiLogbookPage() {
             />
           </div>
         </div>
-      )}
-
-      {/* ================= LOGBOOK CREATE/EDIT MODAL ================= */}
-      {openModal && selectedDate && (
-        <LogbookModal
-          date={selectedDate}
-          mode={modalMode}
-          logbookId={selectedLogbookId ?? undefined}
-          onClose={() => {
-            setOpenModal(false);
-            setSelectedLogbookId(null);
-            refreshAll();
-            if (selectedDate) {
-              fetchDateDetail(selectedDate);
-            }
-          }}
-        />
       )}
     </div>
   );
