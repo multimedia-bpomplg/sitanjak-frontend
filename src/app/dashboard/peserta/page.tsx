@@ -217,6 +217,32 @@ export default function PesertaDashboard() {
 
   const todayLogbook = filledDates[todayIso];
 
+  // Check whether today is within participant's internship dates
+  const periodStatus = useMemo(() => {
+    if (!peserta?.tanggalMulaiMagang || !peserta?.tanggalSelesaiMagang) {
+      return { isBeforeStart: false, isAfterEnd: false, isWithinPeriod: true };
+    }
+    const sRaw = new Date(peserta.tanggalMulaiMagang);
+    const eRaw = new Date(peserta.tanggalSelesaiMagang);
+    if (isNaN(sRaw.getTime()) || isNaN(eRaw.getTime())) {
+      return { isBeforeStart: false, isAfterEnd: false, isWithinPeriod: true };
+    }
+    const fmt = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+        d.getDate(),
+      ).padStart(2, "0")}`;
+    const startIso = fmt(sRaw);
+    const endIso = fmt(eRaw);
+
+    const isBeforeStart = todayIso < startIso;
+    const isAfterEnd = todayIso > endIso;
+    return {
+      isBeforeStart,
+      isAfterEnd,
+      isWithinPeriod: !isBeforeStart && !isAfterEnd,
+    };
+  }, [peserta?.tanggalMulaiMagang, peserta?.tanggalSelesaiMagang, todayIso]);
+
   // Counts for "Informasi Aktivitas"
   const activityCounts = useMemo(() => {
     const entries = Object.values(filledDates);
@@ -415,13 +441,64 @@ export default function PesertaDashboard() {
             </div>
           </div>
 
-          <span className="inline-flex items-center px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full text-[11px] sm:text-xs font-semibold bg-emerald-50 text-emerald-600 border border-emerald-200/70 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800/60 shrink-0">
-            Aktif
+          <span
+            className={`inline-flex items-center px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full text-[11px] sm:text-xs font-semibold border shrink-0 ${
+              periodStatus.isAfterEnd
+                ? "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600"
+                : periodStatus.isBeforeStart
+                  ? "bg-amber-50 text-amber-700 border-amber-200/70 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800/60"
+                  : "bg-emerald-50 text-emerald-600 border-emerald-200/70 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800/60"
+            }`}
+          >
+            {periodStatus.isAfterEnd
+              ? "Selesai"
+              : periodStatus.isBeforeStart
+                ? "Belum Mulai"
+                : "Aktif"}
           </span>
         </div>
 
-        {/* Card Body: Holiday vs Workday */}
-        {isWeekend ? (
+        {/* Card Body: Period Check -> Holiday vs Workday */}
+        {periodStatus.isAfterEnd ? (
+          <div className="py-5 sm:py-6 px-3 text-center space-y-3 sm:space-y-3.5">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto">
+              <CalendarCheck2 className="w-6 h-6 sm:w-7 sm:h-7" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
+                Masa magang Anda telah selesai
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
+                Periode magang berakhir pada{" "}
+                <b>{formatShortPeriodDate(peserta.tanggalSelesaiMagang)}</b>.
+                Pengisian kehadiran dan laporan harian baru sudah ditutup.
+              </p>
+            </div>
+            <div className="pt-1">
+              <Link
+                href="/dashboard/peserta/isi-logbook"
+                className="inline-flex items-center justify-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white transition"
+              >
+                <FileText className="w-4 h-4" />
+                <span>Lihat Riwayat Kehadiran</span>
+              </Link>
+            </div>
+          </div>
+        ) : periodStatus.isBeforeStart ? (
+          <div className="py-5 sm:py-6 px-3 text-center space-y-2.5 sm:space-y-3">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto">
+              <Clock className="w-6 h-6 sm:w-7 sm:h-7" />
+            </div>
+            <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
+              Periode magang belum dimulai
+            </h3>
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
+              Jadwal magang Anda dimulai pada{" "}
+              <b>{formatShortPeriodDate(peserta.tanggalMulaiMagang)}</b>. Form
+              pengisian laporan harian akan aktif saat masa magang dimulai.
+            </p>
+          </div>
+        ) : isWeekend ? (
           <div className="py-6 sm:py-8 px-3 text-center space-y-2.5 sm:space-y-3">
             <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-slate-100 dark:bg-slate-700/70 text-slate-500 dark:text-slate-300 flex items-center justify-center mx-auto">
               <CalendarX2 className="w-6 h-6 sm:w-7 sm:h-7" />

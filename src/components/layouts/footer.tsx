@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Plus_Jakarta_Sans } from "next/font/google";
 import { FaFacebookF, FaInstagram, FaYoutube, FaGlobe } from "react-icons/fa";
 import {
   HiHome,
@@ -17,10 +16,7 @@ import {
   HiShieldCheck,
 } from "react-icons/hi";
 
-const plusJakarta = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
-});
+const plusJakarta = { className: "font-sans" };
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();

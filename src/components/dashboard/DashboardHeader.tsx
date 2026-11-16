@@ -506,7 +506,7 @@ export default function DashboardHeader({
                 className="
                   w-9 h-9 rounded-xl
                   flex items-center justify-center font-bold text-xs
-                  bg-gradient-to-br from-orange-500 to-amber-600
+                  bg-gradient-to-br from-sky-500 to-blue-600
                   text-white shadow-xs
                 "
               >
@@ -552,7 +552,7 @@ export default function DashboardHeader({
                 {/* Header Profile Card */}
                 <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl mb-2">
                   <div className="flex items-center gap-3">
-                    <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-orange-500 to-amber-600 text-white flex items-center justify-center font-bold text-sm shadow-xs">
+                    <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-sky-500 to-blue-600 text-white flex items-center justify-center font-bold text-sm shadow-xs">
                       {getInitials(user?.name)}
                     </div>
                     <div className="flex flex-col min-w-0">

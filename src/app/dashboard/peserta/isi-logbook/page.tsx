@@ -162,6 +162,25 @@ export default function IsiLogbookPage() {
   const todayWIB = useMemo(() => getNowWIB(), []);
   const todayIso = useMemo(() => toIsoDate(todayWIB), [todayWIB]);
 
+  const { mulaiIso, selesaiIso } = useMemo(() => {
+    const parseIso = (rawStr?: string) => {
+      if (!rawStr) return undefined;
+      const d = new Date(rawStr);
+      if (isNaN(d.getTime())) return undefined;
+      return toIsoDate(new Date(d.getFullYear(), d.getMonth(), d.getDate()));
+    };
+    return {
+      mulaiIso: parseIso(mulaiMagang),
+      selesaiIso: parseIso(selesaiMagang),
+    };
+  }, [mulaiMagang, selesaiMagang]);
+
+  const isTodayInPeriod = useMemo(() => {
+    if (mulaiIso && todayIso < mulaiIso) return false;
+    if (selesaiIso && todayIso > selesaiIso) return false;
+    return true;
+  }, [todayIso, mulaiIso, selesaiIso]);
+
   const refreshAll = useCallback(async () => {
     try {
       const token = localStorage.getItem("token");
@@ -220,9 +239,19 @@ export default function IsiLogbookPage() {
     refreshAll();
   }, [refreshAll]);
 
-  // Auto-scroll to inline attendance section when navigated from Beranda (?isi=1)
+  // Clamp initial selectedDate into internship period & auto-scroll if ?isi=1
   useEffect(() => {
     if (loadingInitial) return;
+
+    if (!isTodayInPeriod) {
+      if (selesaiIso && todayIso > selesaiIso) {
+        setSelectedDate(selesaiIso);
+      } else if (mulaiIso && todayIso < mulaiIso) {
+        setSelectedDate(mulaiIso);
+      }
+      return;
+    }
+
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
     if (params.get("isi") === "1") {
@@ -235,7 +264,7 @@ export default function IsiLogbookPage() {
       }, 150);
       return () => clearTimeout(timer);
     }
-  }, [loadingInitial, todayIso]);
+  }, [loadingInitial, todayIso, isTodayInPeriod, mulaiIso, selesaiIso]);
 
   // Compute periods from internship dates
   const periods = useMemo(
@@ -530,6 +559,12 @@ export default function IsiLogbookPage() {
     ? selectedDateObj.getDay() === 0 || selectedDateObj.getDay() === 6
     : false;
   const isSelectedToday = selectedDate === todayIso;
+  const isSelectedInPeriod = useMemo(() => {
+    if (!selectedDate) return false;
+    if (mulaiIso && selectedDate < mulaiIso) return false;
+    if (selesaiIso && selectedDate > selesaiIso) return false;
+    return true;
+  }, [selectedDate, mulaiIso, selesaiIso]);
 
   return (
     <div className="space-y-5 sm:space-y-6">
@@ -948,8 +983,8 @@ export default function IsiLogbookPage() {
               )}
             </>
             )
-          ) : isSelectedToday && !isSelectedWeekend ? (
-            /* Today's inline attendance & logbook form (disappears when clicking other dates, reappears on today) */
+          ) : isSelectedToday && isSelectedInPeriod && !isSelectedWeekend ? (
+            /* Today's inline attendance & logbook form (only active within internship dates, disappears on other dates) */
             <InlineLogbookForm
               date={selectedDate}
               mode="create"
@@ -960,18 +995,27 @@ export default function IsiLogbookPage() {
               }}
             />
           ) : (
-            /* Other unfilled date or weekend/holiday */
+            /* Other unfilled date, weekend/holiday, or outside internship period */
             <div className="space-y-3">
               <div className="flex items-center justify-between gap-2 pb-2 border-b border-slate-100 dark:border-slate-700/70">
                 <h2 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white">
                   {formatLongDateID(selectedDate)}
                 </h2>
                 <span className="px-2.5 py-0.5 rounded-full text-[11px] sm:text-xs font-semibold bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300">
-                  {isSelectedWeekend ? "Hari Libur" : "Belum Diisi"}
+                  {!isSelectedInPeriod
+                    ? "Di Luar Masa Magang"
+                    : isSelectedWeekend
+                      ? "Hari Libur"
+                      : "Belum Diisi"}
                 </span>
               </div>
 
-              {isSelectedWeekend ? (
+              {!isSelectedInPeriod ? (
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+                  Tanggal ini berada di luar periode magang Anda. Pengisian
+                  laporan harian baru tidak tersedia.
+                </p>
+              ) : isSelectedWeekend ? (
                 <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
                   Tanggal ini merupakan jadwal hari libur. Laporan harian dan
                   kehadiran tidak perlu diisi.
@@ -980,7 +1024,7 @@ export default function IsiLogbookPage() {
                 <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
                   Tidak ada catatan kehadiran atau laporan harian pada tanggal
                   ini. Pengisian logbook baru hanya dapat dilakukan pada hari
-                  yang bersangkutan.
+                  yang bersangkutan selama periode magang aktif.
                 </p>
               )}
             </div>

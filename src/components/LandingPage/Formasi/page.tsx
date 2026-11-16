@@ -1,7 +1,7 @@
 // components/LandingPage/Formasi/page.tsx
 "use client";
 
-import { Plus_Jakarta_Sans } from "next/font/google";
+const plusJakarta = { className: "font-sans" };
 import {
   HiOutlineOfficeBuilding,
   HiOutlineUsers,
@@ -19,10 +19,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { fetchFormasi, IFormasi } from "@/services/formasiService";
 import CalendarPopup from "@/components/calendar/CalendarPopup";
 
-const plusJakarta = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
-});
+
 
 // Fungsi untuk mendapatkan ikon sesuai nama formasi
 const getFormasiIcon = (title: string) => {

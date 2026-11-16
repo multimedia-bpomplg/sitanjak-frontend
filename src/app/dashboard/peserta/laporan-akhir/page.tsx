@@ -49,9 +49,17 @@ type Feedback = {
   };
 };
 
+type SuratSelesai = {
+  email: string;
+  nama: string;
+  file: string;
+  tanggalKirim: string;
+};
+
 export default function LaporanAkhirPage() {
   const [laporan, setLaporan] = useState<LaporanAkhir | null>(null);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
+  const [suratSelesai, setSuratSelesai] = useState<SuratSelesai | null>(null);
   const [loading, setLoading] = useState(true);
   const [dataLoaded, setDataLoaded] = useState(false);
 
@@ -65,6 +73,7 @@ export default function LaporanAkhirPage() {
   const [showPenilaianModal, setShowPenilaianModal] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [showSertifikatModal, setShowSertifikatModal] = useState(false);
+  const [showSuratSelesaiModal, setShowSuratSelesaiModal] = useState(false);
   const [pesertaInfo, setPesertaInfo] = useState<{
     nama: string;
     posisi: string;
@@ -138,12 +147,26 @@ export default function LaporanAkhirPage() {
       const email = payload?.email;
       if (!email) return;
 
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/pendaftaran/cek?email=${encodeURIComponent(email)}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
+      const [res, selesaiRes] = await Promise.all([
+        fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/pendaftaran/cek?email=${encodeURIComponent(email)}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        ),
+        fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/surat-selesai/cek?email=${encodeURIComponent(email)}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        ).catch(() => null),
+      ]);
+
+      if (selesaiRes && selesaiRes.ok) {
+        const sData = await selesaiRes.json().catch(() => null);
+        setSuratSelesai(sData || null);
+      }
+
       if (!res.ok) return;
       const data = await res.json();
       const found = data?.peserta?.find(
@@ -254,6 +277,33 @@ export default function LaporanAkhirPage() {
     showToast.success(
       "Mengunduh Sertifikat Magang (Integrasi backend segera hadir)",
     );
+  };
+
+  const suratSelesaiFileUrl = suratSelesai?.file
+    ? `${process.env.NEXT_PUBLIC_API_URL}/uploads/${suratSelesai.file}`
+    : null;
+
+  const handleDownloadSuratSelesai = async () => {
+    if (!suratSelesaiFileUrl || !suratSelesai?.file) {
+      showToast.error("Surat Selesai Magang belum tersedia");
+      return;
+    }
+    try {
+      const res = await fetch(suratSelesaiFileUrl);
+      if (!res.ok) throw new Error("Gagal mengunduh");
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Surat_Selesai_Magang_${pesertaInfo.nama.replace(/\s+/g, "_")}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      showToast.success("Surat Selesai Magang berhasil diunduh");
+    } catch {
+      window.open(suratSelesaiFileUrl, "_blank", "noopener,noreferrer");
+    }
   };
 
   if (loading) {
@@ -533,7 +583,7 @@ export default function LaporanAkhirPage() {
           )}
         </div>
 
-        {/* CARD 3: SERTIFIKAT */}
+        {/* CARD 3: SERTIFIKAT & SURAT SELESAI MAGANG */}
         <div className="rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs overflow-hidden">
           <button
             type="button"
@@ -546,7 +596,7 @@ export default function LaporanAkhirPage() {
                   <Award className="w-5 h-5" />
                 </div>
                 <span className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
-                  Sertifikat
+                  Sertifikat & Surat Selesai Magang
                 </span>
               </div>
               <ChevronRight
@@ -560,7 +610,7 @@ export default function LaporanAkhirPage() {
               <div className="flex items-center gap-1.5 truncate">
                 <BadgeCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600 shrink-0" />
                 <span className="truncate">
-                  Sertifikat Kelulusan Magang BBPOM di Palembang
+                  Sertifikat Kelulusan & Surat Keterangan Selesai Magang
                 </span>
               </div>
               <span className="px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold border shrink-0 bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800">
@@ -569,9 +619,10 @@ export default function LaporanAkhirPage() {
             </div>
           </button>
 
-          {/* Expanded Sertifikat Content */}
+          {/* Expanded Sertifikat & Surat Selesai Content */}
           {openSertifikatSection && (
-            <div className="px-4 sm:px-5 pb-4 sm:pb-5 pt-2.5 border-t border-slate-100 dark:border-slate-700/70 space-y-3 bg-slate-50/40 dark:bg-slate-800/40">
+            <div className="px-4 sm:px-5 pb-4 sm:pb-5 pt-2.5 border-t border-slate-100 dark:border-slate-700/70 space-y-3.5 bg-slate-50/40 dark:bg-slate-800/40">
+              {/* Item 1: Sertifikat Magang */}
               <div className="rounded-xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 p-4 space-y-3.5">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-3 min-w-0">
@@ -586,7 +637,7 @@ export default function LaporanAkhirPage() {
                         Sertifikat_{pesertaInfo.nama.replace(/\s+/g, "_")}.pdf
                       </p>
                       <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                        No: B-KP.04.01/BBPOM-PLG/2026/001 • PDF Resmi
+                        No: B-KP.04.01/BBPOM-PLG/2026/001 • Sertifikat Magang
                       </p>
                     </div>
                   </div>
@@ -613,7 +664,7 @@ export default function LaporanAkhirPage() {
                   </div>
                 </div>
 
-                {/* Action Buttons: Review & Download */}
+                {/* Action Buttons: Review & Download Sertifikat */}
                 <div className="flex flex-col sm:flex-row gap-2.5 pt-1">
                   <button
                     type="button"
@@ -621,7 +672,7 @@ export default function LaporanAkhirPage() {
                     className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white text-xs sm:text-sm font-bold transition"
                   >
                     <Eye className="w-4 h-4 text-[#1D64F2] dark:text-blue-400" />
-                    <span>Lihat / Review Sertifikat</span>
+                    <span>Review Sertifikat</span>
                   </button>
 
                   <button
@@ -633,6 +684,73 @@ export default function LaporanAkhirPage() {
                     <span>Unduh Sertifikat</span>
                   </button>
                 </div>
+              </div>
+
+              {/* Item 2: Surat Selesai Magang */}
+              <div className="rounded-xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 p-4 space-y-3.5">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                      <FileText className="w-5 h-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <p
+                        className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate"
+                        style={{ fontWeight: 700 }}
+                      >
+                        Surat Selesai Magang
+                      </p>
+                      <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        {suratSelesai?.tanggalKirim
+                          ? `Diterbitkan ${new Date(
+                              suratSelesai.tanggalKirim,
+                            ).toLocaleDateString("id-ID", {
+                              day: "numeric",
+                              month: "long",
+                              year: "numeric",
+                            })}`
+                          : "Surat Keterangan Telah Menyelesaikan Magang BBPOM"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <span
+                    className={`px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold border shrink-0 ${
+                      suratSelesai?.file
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800"
+                        : "bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600"
+                    }`}
+                  >
+                    {suratSelesai?.file ? "Tersedia" : "Belum Terbit"}
+                  </span>
+                </div>
+
+                {suratSelesai?.file ? (
+                  <div className="flex flex-col sm:flex-row gap-2.5 pt-0.5">
+                    <button
+                      type="button"
+                      onClick={() => setShowSuratSelesaiModal(true)}
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white text-xs sm:text-sm font-bold transition"
+                    >
+                      <Eye className="w-4 h-4 text-[#1D64F2] dark:text-blue-400" />
+                      <span>Review Surat Selesai</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleDownloadSuratSelesai}
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-3.5 rounded-xl bg-[#1D64F2] hover:bg-blue-700 text-white text-xs sm:text-sm font-bold shadow-2xs transition"
+                    >
+                      <Download className="w-4 h-4" />
+                      <span>Unduh Surat Selesai</span>
+                    </button>
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-500 dark:text-slate-400 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-700/70 px-3.5 py-2.5 leading-relaxed">
+                    Surat Keterangan Selesai Magang akan muncul di sini setelah
+                    diterbitkan oleh Admin BBPOM di Palembang.
+                  </p>
+                )}
               </div>
             </div>
           )}
@@ -802,6 +920,88 @@ export default function LaporanAkhirPage() {
               >
                 <Download className="w-4 h-4" />
                 <span>Unduh Sertifikat (PDF)</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================= MODAL REVIEW SURAT SELESAI MAGANG ================= */}
+      {showSuratSelesaiModal && suratSelesaiFileUrl && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/55 backdrop-blur-xs p-3 sm:p-5">
+          <div className="w-full max-w-2xl rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
+            {/* Header */}
+            <div className="px-5 sm:px-6 py-4 border-b border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                  <FileText className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <h2
+                    className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white leading-tight"
+                    style={{ fontWeight: 800 }}
+                  >
+                    Review Surat Selesai Magang
+                  </h2>
+                  <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5 truncate">
+                    Pratinjau dokumen Surat Selesai Magang BBPOM di Palembang
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowSuratSelesaiModal(false)}
+                className="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center transition shrink-0"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body: PDF Preview */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-5 bg-[#F8FAFC] dark:bg-slate-950/50 space-y-3">
+              <div className="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-white">
+                <iframe
+                  src={suratSelesaiFileUrl}
+                  title="Preview Surat Selesai Magang"
+                  className="w-full h-[55vh] sm:h-[60vh]"
+                />
+              </div>
+
+              <div className="flex items-center justify-between text-xs text-slate-500 px-1">
+                <span>
+                  Jika pratinjau tidak tampil di browser, buka langsung di tab
+                  baru.
+                </span>
+                <a
+                  href={suratSelesaiFileUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 font-bold text-[#1D64F2] hover:underline shrink-0"
+                >
+                  <span>Buka Tab Baru</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-5 sm:px-6 py-4 border-t border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2.5">
+              <button
+                type="button"
+                onClick={() => setShowSuratSelesaiModal(false)}
+                className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition"
+              >
+                Tutup
+              </button>
+
+              <button
+                type="button"
+                onClick={handleDownloadSuratSelesai}
+                className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-[#1D64F2] hover:bg-blue-700 shadow-2xs transition inline-flex items-center justify-center gap-2"
+              >
+                <Download className="w-4 h-4" />
+                <span>Unduh Surat Selesai (PDF)</span>
               </button>
             </div>
           </div>

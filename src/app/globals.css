@@ -855,21 +855,53 @@ span.flatpickr-weekday,
   animation: orbitSlow 1.6s linear infinite;
 }
 
-/* ================= TOAST PROGRESS BAR ================= */
+/* ================= TOAST NOTIFICATION & PROGRESS BAR ================= */
 
-/* SUCCESS → HIJAU */
+.Toastify__toast-container {
+  padding: 12px !important;
+  width: min(420px, 94vw) !important;
+}
+
+.Toastify__toast {
+  border-radius: 16px !important;
+  overflow: hidden !important;
+  margin-bottom: 10px !important;
+  min-height: 64px !important;
+  font-family: inherit !important;
+}
+
+.Toastify__toast-body {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.Toastify__close-button {
+  align-self: flex-start !important;
+  margin-top: 2px !important;
+  opacity: 0.45 !important;
+  transition: opacity 0.15s ease !important;
+}
+
+.Toastify__close-button:hover {
+  opacity: 0.9 !important;
+}
+
+/* SUCCESS → BIRU SITANJAK KE EMERALD */
 .toast-progress-success {
-  background: linear-gradient(to right, #22c55e, #16a34a) !important;
+  height: 3.5px !important;
+  background: linear-gradient(90deg, #1d64f2 0%, #0088ff 55%, #10b981 100%) !important;
 }
 
-/* LOADING → KUNING */
+/* LOADING → BIRU SITANJAK */
 .toast-progress-loading {
-  background: linear-gradient(to right, #facc15, #eab308) !important;
+  height: 3.5px !important;
+  background: linear-gradient(90deg, #1d64f2 0%, #38bdf8 100%) !important;
 }
 
-/* ERROR → MERAH */
+/* ERROR → MERAH ROSE */
 .toast-progress-error {
-  background: linear-gradient(to right, #f43f5e, #e11d48) !important;
+  height: 3.5px !important;
+  background: linear-gradient(90deg, #f43f5e 0%, #e11d48 100%) !important;
 }
 
 /* DARK MODE react-date-range */
