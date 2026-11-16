@@ -1,18 +1,29 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  HiDocumentText,
-  HiUser,
-  HiCalendar,
-  HiCheckCircle,
-  HiSearch,
-  HiClock,
-  HiDownload,
-} from "react-icons/hi";
-import { FiMessageCircle } from "react-icons/fi";
-import SuperadminFeedbackDetailModal from "@/components/superadmin/SuperadminFeedbackDetailModal";
+  Calendar,
+  CheckCircle2,
+  Clock,
+  Download,
+  Eye,
+  LayoutGrid,
+  MessageSquareHeart,
+  RefreshCw,
+  Search,
+  Star,
+  Table2,
+  Users,
+  X,
+} from "lucide-react";
+import AdminFeedbackModal, {
+  type AdminFeedbackItem,
+} from "@/components/admin/AdminFeedbackModal";
+import PaginationFooter from "@/components/dashboard/PaginationFooter";
+import { TablePageSkeleton } from "@/components/dashboard/skeletons";
 import { showToast } from "@/components/ui/toastDashboard";
+
+/* ================= TYPES ================= */
 
 type PesertaFeedback = {
   _id: string;
@@ -27,131 +38,235 @@ type PesertaFeedback = {
   lastFeedbackDate: string | null;
 };
 
-type FeedbackDetail = {
-  _id: string;
-  month: string;
-  survey: {
-    kepuasanMagang: number;
-    rekomendasiProgram: number;
-    kemudahanProses: number;
-    peningkatanSkill: number;
-  };
+type FilterTab = "Semua" | "Menunggu Respon" | "Sudah Direspon";
+type ViewMode = "tabel" | "kartu";
 
-  feedbackBPOM: string;
-  feedbackMentor: string;
-  isFeedbackMentorSent: boolean;
-  status: string;
-  mentorResponse?: string;
-  user: {
-    _id: string;
-    name: string;
-    email: string;
-  };
-  mentorRespondedBy?: {
-    _id: string;
-    name: string;
-    email: string;
-  };
-  feedbackMentorSentAt?: string;
-  mentorRespondedAt?: string;
-  createdAt: string;
-};
+/* ================= CONSTANTS & HELPERS ================= */
 
-export default function ViewFeedbackSuperadmin() {
-  const [feedbackList, setFeedbackList] = useState<FeedbackDetail[]>([]);
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
+const ITEMS_PER_PAGE = 10;
+
+function getInitials(name = "P"): string {
+  return (
+    name
+      .split(" ")
+      .filter(Boolean)
+      .map((part) => part[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase() || "P"
+  );
+}
+
+function getAverageRating(survey?: AdminFeedbackItem["survey"]): number | null {
+  if (!survey) return null;
+  const scores = [
+    survey.kepuasanMagang,
+    survey.rekomendasiProgram,
+    survey.kemudahanProses,
+    survey.peningkatanSkill,
+  ].filter((n): n is number => typeof n === "number" && n > 0);
+  if (scores.length === 0) return null;
+  return Math.round((scores.reduce((a, b) => a + b, 0) / scores.length) * 10) / 10;
+}
+
+function formatMonthLabel(monthStr?: string): string {
+  if (!monthStr) return "-";
+  const match = /^(\d{4})-(\d{2})$/.exec(monthStr.trim());
+  if (!match) return monthStr;
+  const d = new Date(Number(match[1]), Number(match[2]) - 1, 1);
+  if (Number.isNaN(d.getTime())) return monthStr;
+  return d.toLocaleDateString("id-ID", { month: "long", year: "numeric" });
+}
+
+function StarRow({ rating }: { rating: number }) {
+  const rounded = Math.round(rating);
+  return (
+    <div className="inline-flex items-center gap-0.5">
+      {[1, 2, 3, 4, 5].map((star) => (
+        <Star
+          key={star}
+          className={`w-3.5 h-3.5 ${
+            star <= rounded
+              ? "fill-amber-400 text-amber-400"
+              : "text-slate-200 dark:text-slate-700"
+          }`}
+        />
+      ))}
+    </div>
+  );
+}
+
+/* ================= COMPONENT ================= */
+
+export default function ViewFeedbackAdminPage() {
+  const [feedbackList, setFeedbackList] = useState<AdminFeedbackItem[]>([]);
   const [pesertaFeedback, setPesertaFeedback] = useState<PesertaFeedback[]>([]);
-  const [filteredPeserta, setFilteredPeserta] = useState<PesertaFeedback[]>([]);
+  const [statistics, setStatistics] = useState<Record<string, unknown> | null>(
+    null,
+  );
+
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [downloading, setDownloading] = useState(false);
+
   const [search, setSearch] = useState("");
-  const [selectedPeserta, setSelectedPeserta] =
-    useState<PesertaFeedback | null>(null);
-  const [selectedFeedback, setSelectedFeedback] =
-    useState<FeedbackDetail | null>(null);
-  const [statistics, setStatistics] = useState<any>(null);
+  const [filterTab, setFilterTab] = useState<FilterTab>("Semua");
+  const [viewMode, setViewMode] = useState<ViewMode>("tabel");
+  const [currentPage, setCurrentPage] = useState(1);
 
-  // Pagination state
-  const [page, setPage] = useState(1);
-  const itemsPerPage = 10;
+  const [modalTarget, setModalTarget] = useState<{
+    peserta: PesertaFeedback;
+    feedbacks: AdminFeedbackItem[];
+  } | null>(null);
 
-  const loadData = async () => {
-    setLoading(true);
+  /* ================= FETCH ================= */
+
+  const loadData = useCallback(async (isManual = false) => {
     try {
-      const token = localStorage.getItem("token");
+      if (isManual) setRefreshing(true);
+      else setLoading(true);
 
-      // Load peserta summary
-      const pesertaRes = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/superadmin/feedback/peserta-summary`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
+      const token = localStorage.getItem("token");
+      const headers = { Authorization: `Bearer ${token}` };
+
+      const [pesertaRes, statsRes, feedbackRes] = await Promise.all([
+        fetch(`${API_BASE}/superadmin/feedback/peserta-summary`, { headers }),
+        fetch(`${API_BASE}/superadmin/feedback/statistics`, { headers }),
+        fetch(`${API_BASE}/superadmin/feedback`, { headers }),
+      ]);
 
       if (pesertaRes.ok) {
         const pesertaData = await pesertaRes.json();
-        setPesertaFeedback(pesertaData);
-        setFilteredPeserta(pesertaData);
+        setPesertaFeedback(Array.isArray(pesertaData) ? pesertaData : []);
       }
-
-      // Load statistics
-      const statsRes = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/superadmin/feedback/statistics`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
 
       if (statsRes.ok) {
         const statsData = await statsRes.json();
         setStatistics(statsData);
       }
 
-      // Load all feedback
-      const feedbackRes = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/superadmin/feedback`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
-
       if (feedbackRes.ok) {
         const feedbackData = await feedbackRes.json();
-        setFeedbackList(feedbackData);
+        setFeedbackList(Array.isArray(feedbackData) ? feedbackData : []);
       }
-    } catch (error) {
-      console.error("Gagal memuat data feedback", error);
+    } catch (err) {
+      console.error("Gagal memuat feedback:", err);
+      showToast.error("Gagal memuat data feedback peserta");
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
-  };
+  }, []);
 
-  const getFeedbackByPeserta = (pesertaId: string) => {
-    return feedbackList.filter(
-      (feedback) => feedback.user && feedback.user._id === pesertaId,
-    );
-  };
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
-  const handleViewFeedback = (peserta: PesertaFeedback) => {
-    const feedbackDetails = getFeedbackByPeserta(peserta._id).sort((a, b) => {
-      const [yearA, monthA] = a.month.split("-").map(Number);
-      const [yearB, monthB] = b.month.split("-").map(Number);
-      if (yearA !== yearB) return yearB - yearA;
-      return monthB - monthA;
+  /* ================= HELPERS PER PESERTA ================= */
+
+  const feedbackByUserMap = useMemo(() => {
+    const map = new Map<string, AdminFeedbackItem[]>();
+
+    for (const fb of feedbackList) {
+      const uid = fb.user?._id;
+      if (!uid) continue;
+      const arr = map.get(uid) || [];
+      arr.push(fb);
+      map.set(uid, arr);
+    }
+
+    for (const [, arr] of map.entries()) {
+      arr.sort((a, b) => {
+        const [yA, mA] = (a.month || "0-0").split("-").map(Number);
+        const [yB, mB] = (b.month || "0-0").split("-").map(Number);
+        if (yA !== yB) return yB - yA;
+        return mB - mA;
+      });
+    }
+
+    return map;
+  }, [feedbackList]);
+
+  /* ================= STATS & FILTERING ================= */
+
+  const stats = useMemo(() => {
+    let totalResponded = 0;
+    let totalUnresponded = 0;
+    const allRatings: number[] = [];
+
+    for (const p of pesertaFeedback) {
+      totalResponded += p.responded || 0;
+      totalUnresponded += p.unresponded || 0;
+    }
+
+    for (const fb of feedbackList) {
+      const avg = getAverageRating(fb.survey);
+      if (avg !== null) allRatings.push(avg);
+    }
+
+    const overallRating =
+      allRatings.length > 0
+        ? (
+            allRatings.reduce((a, b) => a + b, 0) / allRatings.length
+          ).toFixed(1)
+        : "0.0";
+
+    const counts: Record<FilterTab, number> = {
+      Semua: pesertaFeedback.length,
+      "Menunggu Respon": pesertaFeedback.filter((p) => p.unresponded > 0)
+        .length,
+      "Sudah Direspon": pesertaFeedback.filter(
+        (p) => p.totalFeedback > 0 && p.unresponded === 0,
+      ).length,
+    };
+
+    return {
+      totalPeserta: pesertaFeedback.length,
+      totalFeedback: feedbackList.length,
+      totalResponded,
+      totalUnresponded,
+      overallRating,
+      counts,
+    };
+  }, [pesertaFeedback, feedbackList]);
+
+  const filteredPeserta = useMemo(() => {
+    const q = search.trim().toLowerCase();
+
+    return pesertaFeedback.filter((p) => {
+      if (filterTab === "Menunggu Respon" && p.unresponded === 0) return false;
+      if (filterTab === "Sudah Direspon" && p.unresponded > 0) return false;
+
+      if (!q) return true;
+      return (
+        p.name.toLowerCase().includes(q) || p.email.toLowerCase().includes(q)
+      );
     });
+  }, [pesertaFeedback, search, filterTab]);
 
-    if (feedbackDetails.length === 0) {
-      showToast.error("Peserta belum memiliki feedback");
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredPeserta.length / ITEMS_PER_PAGE),
+  );
+  const safePage = Math.min(currentPage, totalPages);
+
+  const paginatedPeserta = useMemo(() => {
+    const start = (safePage - 1) * ITEMS_PER_PAGE;
+    return filteredPeserta.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredPeserta, safePage]);
+
+  /* ================= HANDLERS ================= */
+
+  const handleOpenDetail = (peserta: PesertaFeedback) => {
+    const list = feedbackByUserMap.get(peserta._id) || [];
+    if (list.length === 0) {
+      showToast.error("Peserta belum memiliki detail feedback");
       return;
     }
-
-    // Ambil feedback terbaru
-    const latestFeedback = feedbackDetails[0];
-
-    setSelectedPeserta(peserta);
-    setSelectedFeedback(latestFeedback);
+    setModalTarget({ peserta, feedbacks: list });
   };
 
-  // ✅ FUNGSI DOWNLOAD SEMUA FEEDBACK DALAM BENTUK PDF
   const handleDownloadAllFeedback = async () => {
     if (feedbackList.length === 0) {
       showToast.error("Tidak ada data feedback untuk diunduh");
@@ -159,26 +274,22 @@ export default function ViewFeedbackSuperadmin() {
     }
 
     setDownloading(true);
-    const toastId = showToast.loading("Menyiapkan laporan feedback...");
+    const toastId = showToast.loading("Menyiapkan laporan feedback PDF...");
 
     try {
       const token = localStorage.getItem("token");
-
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/superadmin/feedback/download-pdf`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            feedbackList,
-            statistics,
-            date: new Date().toISOString(),
-          }),
+      const res = await fetch(`${API_BASE}/superadmin/feedback/download-pdf`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
-      );
+        body: JSON.stringify({
+          feedbackList,
+          statistics,
+          date: new Date().toISOString(),
+        }),
+      });
 
       if (!res.ok) throw new Error("Gagal mengunduh PDF");
 
@@ -193,558 +304,526 @@ export default function ViewFeedbackSuperadmin() {
       window.URL.revokeObjectURL(url);
 
       showToast.updateSuccess(toastId, "Laporan feedback berhasil diunduh");
-    } catch (error) {
-      console.error("Error downloading feedback PDF:", error);
+    } catch {
       showToast.updateError(toastId, "Gagal mengunduh laporan feedback");
     } finally {
       setDownloading(false);
     }
   };
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  /* ================= RENDER ================= */
 
-  useEffect(() => {
-    if (!search.trim()) {
-      setFilteredPeserta(pesertaFeedback);
-      setPage(1);
-      return;
-    }
-
-    const query = search.toLowerCase();
-    const filtered = pesertaFeedback.filter(
-      (p) =>
-        p.name.toLowerCase().includes(query) ||
-        p.email.toLowerCase().includes(query),
-    );
-    setFilteredPeserta(filtered);
-    setPage(1);
-  }, [search, pesertaFeedback]);
-
-  // Calculate pagination
-  const totalPage = Math.ceil(filteredPeserta.length / itemsPerPage);
-  const indexOfLastItem = page * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = filteredPeserta.slice(indexOfFirstItem, indexOfLastItem);
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("id-ID", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
-  };
-
-  const getTotalSurveyScore = (survey: FeedbackDetail["survey"]) => {
-    if (!survey) return 0;
-
+  if (loading) {
     return (
-      survey.kepuasanMagang +
-      survey.rekomendasiProgram +
-      survey.kemudahanProses +
-      survey.peningkatanSkill
+      <TablePageSkeleton
+        title="Evaluasi & Feedback Peserta"
+        subtitle="Memuat ringkasan feedback dan rating survei peserta..."
+        columnsCount={6}
+        rowsCount={8}
+      />
     );
-  };
-
-  const getSurveyCategory = (total: number) => {
-    if (total >= 17) return "Sangat Baik";
-    if (total >= 13) return "Baik";
-    if (total >= 9) return "Cukup";
-    if (total >= 5) return "Kurang";
-    return "Buruk";
-  };
+  }
 
   return (
-    <div
-      className="
-        min-h-screen p-4 sm:p-6 lg:p-10
-        bg-linear-to-br
-        from-slate-50 via-white to-indigo-100
-        dark:from-[#0B0614] dark:via-[#120A24] dark:to-[#1E0F3D]
-        text-slate-800 dark:text-slate-100
-        transition-colors
-      "
-    >
-      {/* HEADER */}
-      <div className="mb-10">
+    <div className="space-y-6">
+      {/* ================= HEADER ================= */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-3 border-b border-slate-100 dark:border-slate-800">
         <div>
-          <h1 className="flex items-center gap-3 tracking-tight mb-2">
-            <FiMessageCircle className="text-[#B91C1C] dark:text-indigo-500 text-4xl" />
-
-            <span
-              className="
-                text-2xl sm:text-3xl lg:text-4xl
-                font-extrabold leading-tight
-                bg-clip-text text-transparent
-                bg-linear-to-r
-                from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
-                dark:from-indigo-400 dark:via-violet-400 dark:to-purple-400
-              "
-            >
-              Monitoring Feedback Peserta
-            </span>
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+            Evaluasi & Feedback Peserta
           </h1>
-          <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 mt-2">
-            Pantau feedback dari peserta untuk BPOM dan mentor
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
+            Tinjau rating kepuasan (1–5 bintang), masukan untuk instansi &
+            mentor, serta respon pembimbing
           </p>
         </div>
-      </div>
 
-      {/* Stats */}
-      {statistics && (
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
-          <StatCard
-            title="Total Feedback"
-            value={statistics.total}
-            icon={<HiDocumentText className="w-7 h-7" />}
-            note="Jumlah seluruh feedback"
-            color="indigo"
-          />
-
-          <StatCard
-            title="Ke Mentor"
-            value={statistics.sentToMentor}
-            icon={<FiMessageCircle className="w-7 h-7" />}
-            note="Feedback terkirim ke mentor"
-            color="amber"
-          />
-
-          <StatCard
-            title="Ke BPOM"
-            value={statistics.sentToMentor}
-            icon={<HiDocumentText className="w-7 h-7" />}
-            note="Feedback untuk BPOM"
-            color="slate"
-          />
-
-          <StatCard
-            title="Direspon"
-            value={statistics.responded}
-            icon={<HiCheckCircle className="w-7 h-7" />}
-            note="Feedback direspon mentor"
-            color="emerald"
-          />
-
-          <StatCard
-            title="Menunggu"
-            value={statistics.unresponded}
-            icon={<HiClock className="w-7 h-7" />}
-            note="Menunggu respon mentor"
-            color="slate"
-          />
-        </div>
-      )}
-
-      {/* Search Bar */}
-      <div className="mb-1">
-        <div className="relative">
-          <HiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-[#7F1D1D] dark:text-indigo-400 w-5 h-5 z-10" />
-          <input
-            type="text"
-            placeholder="Cari peserta berdasarkan nama atau email..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="
-              w-full pl-11 pr-10 py-3
-              rounded-2xl
-              bg-white/90 dark:bg-white/5
-              backdrop-blur
-              border border-[#F59E0B]/40 dark:border-indigo-500/40
-              text-slate-700 dark:text-slate-100
-              placeholder:text-slate-400
-              focus:outline-none focus:ring-2
-              focus:ring-[#B91C1C]/60 dark:focus:ring-indigo-500/60
-              transition
-            "
-          />
-        </div>
-        <div className="mt-2 text-sm text-slate-500">
-          Total {filteredPeserta.length} peserta dengan feedback
-        </div>
-      </div>
-
-      {/* ✅ BUTTON DOWNLOAD ALL FEEDBACK */}
-      <div className="flex justify-end mb-4">
-        <button
-          onClick={handleDownloadAllFeedback}
-          disabled={downloading || feedbackList.length === 0}
-          className="
-            inline-flex items-center justify-center gap-2
-            px-6 py-3
-            rounded-xl
-            text-sm font-semibold
-            text-white
-            bg-linear-to-r from-emerald-500 to-green-600
-            hover:from-emerald-600 hover:to-green-700
-            dark:from-indigo-600 dark:to-violet-500
-            dark:hover:from-indigo-500 dark:hover:to-violet-400
-            shadow-lg hover:shadow-xl
-            transition-all
-            disabled:opacity-50 disabled:cursor-not-allowed
-            min-w-45
-          "
-        >
-          {downloading ? (
-            <>
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-              <span>Menyiapkan...</span>
-            </>
-          ) : (
-            <>
-              <HiDownload className="w-5 h-5" />
-              <span>Download Laporan PDF</span>
-            </>
-          )}
-        </button>
-      </div>
-
-      {/* ===================== TABLE ===================== */}
-      {!loading && currentItems.length === 0 ? (
-        <div
-          className="
-            rounded-3xl
-            bg-white/80 dark:bg-white/5
-            backdrop-blur
-            border border-[#F59E0B]/30 dark:border-indigo-500/30
-            shadow-xl
-            p-12 text-center
-          "
-        >
-          <div
-            className="
-              w-16 h-16 sm:w-20 sm:h-20
-              mx-auto mb-5
-              rounded-full
-              bg-linear-to-br
-              from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
-              dark:from-indigo-600 dark:to-violet-500
-              flex items-center justify-center
-              shadow-lg
-              animate-pulse
-            "
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => loadData(true)}
+            disabled={refreshing}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition disabled:opacity-60"
           >
-            <HiUser className="w-7 h-7 sm:w-10 sm:h-10 text-white" />
+            <RefreshCw
+              className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`}
+            />
+            Refresh
+          </button>
+
+          <button
+            type="button"
+            disabled={downloading}
+            onClick={handleDownloadAllFeedback}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-[#0284c7] hover:bg-sky-700 text-white shadow-xs transition disabled:opacity-60"
+          >
+            <Download className="w-3.5 h-3.5" />
+            {downloading ? "Menyiapkan..." : "Unduh PDF"}
+          </button>
+        </div>
+      </div>
+
+      {/* ================= KPI CARDS ================= */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="rounded-2xl p-5 bg-linear-to-br from-[#0284c7] to-blue-700 text-white shadow-sm">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-medium text-sky-100">
+                Total Peserta Mengisi
+              </p>
+              <p className="text-3xl font-extrabold tracking-tight mt-2">
+                {stats.totalPeserta}
+              </p>
+              <p className="text-[11px] text-sky-100 mt-1.5">
+                {stats.totalFeedback} total feedback bulanan
+              </p>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
+              <Users className="w-5 h-5" />
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-2xl p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                Rata-rata Rating Survei
+              </p>
+              <p className="text-3xl font-extrabold text-amber-500 tracking-tight mt-2">
+                {stats.overallRating}
+                <span className="text-sm font-semibold text-slate-400 ml-1">
+                  / 5.0
+                </span>
+              </p>
+              <div className="mt-1.5">
+                <StarRow rating={Number(stats.overallRating)} />
+              </div>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-500 flex items-center justify-center shrink-0">
+              <Star className="w-5 h-5 fill-amber-400 text-amber-400" />
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-2xl p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                Sudah Direspon Mentor
+              </p>
+              <p className="text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 tracking-tight mt-2">
+                {stats.totalResponded}
+              </p>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1.5">
+                Feedback ditindaklanjuti
+              </p>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+              <CheckCircle2 className="w-5 h-5" />
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-2xl p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                Belum Direspon Mentor
+              </p>
+              <p className="text-3xl font-extrabold text-rose-600 dark:text-rose-400 tracking-tight mt-2">
+                {stats.totalUnresponded}
+              </p>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1.5">
+                {stats.counts["Menunggu Respon"]} peserta menunggu respon
+              </p>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+              <Clock className="w-5 h-5" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ================= FILTER, VIEW TOGGLE & SEARCH ================= */}
+      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/30 p-3.5 flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-1.5">
+          {(["Semua", "Menunggu Respon", "Sudah Direspon"] as FilterTab[]).map(
+            (tab) => {
+              const active = filterTab === tab;
+              return (
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => {
+                    setFilterTab(tab);
+                    setCurrentPage(1);
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition inline-flex items-center gap-1.5 ${
+                    active
+                      ? "bg-[#0284c7] text-white shadow-xs"
+                      : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  }`}
+                >
+                  <span>{tab}</span>
+                  <span
+                    className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold ${
+                      active
+                        ? "bg-white/20 text-white"
+                        : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+                    }`}
+                  >
+                    {stats.counts[tab]}
+                  </span>
+                </button>
+              );
+            },
+          )}
+        </div>
+
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">
+          {/* View Toggle */}
+          <div className="inline-flex rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-1 self-start sm:self-auto">
+            <button
+              type="button"
+              onClick={() => setViewMode("tabel")}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                viewMode === "tabel"
+                  ? "bg-[#0284c7] text-white shadow-xs"
+                  : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+              }`}
+            >
+              <Table2 className="w-3.5 h-3.5" />
+              Tabel
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("kartu")}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                viewMode === "kartu"
+                  ? "bg-[#0284c7] text-white shadow-xs"
+                  : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+              }`}
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+              Kartu
+            </button>
           </div>
 
-          <h3 className="text-lg sm:text-xl font-bold text-[#7F1D1D] dark:text-indigo-300 mb-2">
-            {search ? "Peserta tidak ditemukan" : "Belum ada data feedback"}
-          </h3>
-
-          <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 max-w-md mx-auto">
-            {search
-              ? `Tidak ada peserta yang sesuai dengan pencarian "${search}".`
-              : "Saat ini belum ada data feedback dari peserta."}
-          </p>
+          {/* Search */}
+          <div className="relative w-full sm:w-72">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setCurrentPage(1);
+              }}
+              placeholder="Cari nama atau email peserta..."
+              className="w-full pl-9 pr-9 py-2 rounded-xl text-xs sm:text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40 focus:border-[#0284c7]"
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearch("");
+                  setCurrentPage(1);
+                }}
+                aria-label="Hapus pencarian"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
         </div>
-      ) : (
-        <div
-          className="
-            rounded-2xl
-            bg-white/90 dark:bg-white/5
-            backdrop-blur
-            border border-slate-200 dark:border-indigo-500/30
-            shadow-lg
-            overflow-hidden
-          "
-        >
+      </div>
+
+      {/* ================= DATA VIEW: TABEL OR KARTU ================= */}
+      {viewMode === "tabel" ? (
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-xs">
           <div className="overflow-x-auto">
-            <table className="min-w-200 w-full text-sm sm:text-base">
+            <table className="w-full text-left border-collapse">
               <thead>
-                <tr
-                  className="
-                    bg-slate-50 dark:bg-indigo-500/10
-                    border-b border-slate-200 dark:border-indigo-500/30
-                  "
-                >
-                  <th className="w-[6%] py-4 px-4 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
-                    No
-                  </th>
-                  <th className="w-[32%] py-4 px-4 text-left text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
-                    Peserta
-                  </th>
-                  <th className="w-[28%] py-4 px-4 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
-                    Status Feedback
-                  </th>
-                  <th className="w-[18%] py-4 px-4 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
-                    Feedback Terakhir
-                  </th>
-                  <th className="w-[16%] py-4 px-4 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
-                    Aksi
-                  </th>
+                <tr className="bg-slate-50 dark:bg-slate-800/70 border-b border-slate-200 dark:border-slate-800 text-[11px] uppercase tracking-wider font-bold text-slate-500 dark:text-slate-400">
+                  <th className="py-3.5 px-4 w-12 text-center">No</th>
+                  <th className="py-3.5 px-4">Peserta</th>
+                  <th className="py-3.5 px-4">Periode Terbaru</th>
+                  <th className="py-3.5 px-4">Rating (1–5 Bintang)</th>
+                  <th className="py-3.5 px-4">Status Respon</th>
+                  <th className="py-3.5 px-4 text-right">Aksi</th>
                 </tr>
               </thead>
-
-              <tbody className="divide-y divide-slate-100 dark:divide-indigo-500/20">
-                {currentItems.map((peserta, index) => (
-                  <tr
-                    key={peserta._id}
-                    className="hover:bg-[#FEF3C7]/40 dark:hover:bg-indigo-500/10 transition"
-                  >
-                    <td className="py-4 px-4 text-center align-middle font-medium text-slate-500 dark:text-slate-300">
-                      {indexOfFirstItem + index + 1}
-                    </td>
-
-                    <td className="py-4 px-4 text-left align-middle">
-                      <div className="flex items-center gap-3">
-                        <div
-                          className="
-                            shrink-0 w-10 h-10
-                            rounded-full
-                            bg-linear-to-br from-[#7F1D1D] to-[#F59E0B]
-                            dark:from-indigo-600 dark:to-violet-500
-                            flex items-center justify-center
-                            text-white shadow
-                          "
-                        >
-                          <HiUser className="w-5 h-5" />
-                        </div>
-                        <div className="text-left leading-tight">
-                          <p className="font-medium text-slate-800 dark:text-slate-100">
-                            {peserta.name}
-                          </p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">
-                            {peserta.email}
-                          </p>
-                        </div>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
+                {paginatedPeserta.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={6}
+                      className="py-14 px-4 text-center text-slate-500 dark:text-slate-400"
+                    >
+                      <div className="flex flex-col items-center gap-2">
+                        <MessageSquareHeart className="w-8 h-8 text-slate-300 dark:text-slate-600" />
+                        <p className="font-semibold text-slate-700 dark:text-slate-200">
+                          Tidak ada data feedback peserta
+                        </p>
+                        <p className="text-xs text-slate-400">
+                          Ubah filter atau kata kunci pencarian.
+                        </p>
                       </div>
-                    </td>
-
-                    <td className="py-4 px-4 text-center align-middle">
-                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-center flex-wrap gap-2">
-                          {peserta.responded > 0 && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-700">
-                              <HiCheckCircle className="w-3 h-3" />
-                              {peserta.responded} Direspon
-                            </span>
-                          )}
-                          {peserta.unresponded > 0 && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-700">
-                              <HiClock className="w-3 h-3" />
-                              {peserta.unresponded} Menunggu
-                            </span>
-                          )}
-                          {peserta.notSentToMentor > 0 && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-100 text-blue-700">
-                              <HiDocumentText className="w-3 h-3" />
-                              {peserta.notSentToMentor} Draft
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </td>
-
-                    <td className="py-4 px-4 text-center align-middle">
-                      {peserta.lastFeedbackDate ? (
-                        <div className="flex justify-center items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-                          <HiCalendar className="w-4 h-4" />
-                          {formatDate(peserta.lastFeedbackDate)}
-                        </div>
-                      ) : (
-                        <span className="text-sm text-slate-400 italic">
-                          Belum ada
-                        </span>
-                      )}
-                    </td>
-
-                    <td className="py-4 px-6 text-center">
-                      <button
-                        onClick={() => handleViewFeedback(peserta)}
-                        disabled={peserta.totalFeedback === 0}
-                        className="
-                          inline-flex items-center gap-2
-                          px-4 py-2
-                          rounded-xl
-                          text-sm font-semibold
-                          text-white
-                          bg-linear-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
-                          dark:from-indigo-600 dark:to-violet-500
-                          shadow hover:shadow-xl
-                          hover:-translate-y-0.5
-                          transition
-                          disabled:opacity-50 disabled:cursor-not-allowed
-                        "
-                      >
-                        <FiMessageCircle className="w-4 h-4" />
-                        {peserta.totalFeedback === 0
-                          ? "Belum Ada"
-                          : "Lihat Feedback"}
-                      </button>
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  paginatedPeserta.map((p, idx) => {
+                    const rowNo = (safePage - 1) * ITEMS_PER_PAGE + idx + 1;
+                    const userFeedbacks = feedbackByUserMap.get(p._id) || [];
+                    const latest = userFeedbacks[0];
+                    const avgRating = latest
+                      ? getAverageRating(latest.survey)
+                      : null;
+
+                    return (
+                      <tr
+                        key={p._id}
+                        className="hover:bg-sky-50/40 dark:hover:bg-slate-800/40 transition-colors"
+                      >
+                        <td className="py-3.5 px-4 text-center text-xs font-semibold text-slate-500 dark:text-slate-400">
+                          {rowNo}
+                        </td>
+
+                        <td className="py-3.5 px-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-full bg-linear-to-br from-[#0284c7] to-blue-700 text-white text-xs font-bold flex items-center justify-center shrink-0">
+                              {getInitials(p.name)}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-bold text-slate-900 dark:text-white truncate">
+                                {p.name}
+                              </p>
+                              <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                                {p.email}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+
+                        <td className="py-3.5 px-4 text-xs">
+                          <p className="font-semibold text-slate-800 dark:text-slate-100">
+                            {latest ? formatMonthLabel(latest.month) : "-"}
+                          </p>
+                          <p className="text-[11px] text-slate-400 mt-0.5">
+                            Total: {p.totalFeedback} bulan
+                          </p>
+                        </td>
+
+                        <td className="py-3.5 px-4">
+                          {avgRating !== null ? (
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-1.5">
+                                <StarRow rating={avgRating} />
+                                <span className="text-xs font-bold text-slate-800 dark:text-white">
+                                  {avgRating.toFixed(1)}
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-slate-400">
+                                Kepuasan {latest?.survey?.kepuasanMagang || 0} •
+                                Skill {latest?.survey?.peningkatanSkill || 0}
+                              </p>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-slate-400">-</span>
+                          )}
+                        </td>
+
+                        <td className="py-3.5 px-4">
+                          <div className="flex flex-wrap items-center gap-1.5 text-[11px] font-semibold">
+                            {p.responded > 0 && (
+                              <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800">
+                                {p.responded} direspon
+                              </span>
+                            )}
+                            {p.unresponded > 0 && (
+                              <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800">
+                                {p.unresponded} menunggu
+                              </span>
+                            )}
+                          </div>
+                        </td>
+
+                        <td className="py-3.5 px-4 text-right">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenDetail(p)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-[#0284c7] hover:bg-sky-700 text-white shadow-xs transition"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            Detail
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
             </table>
           </div>
 
-          {/* Pagination */}
-          {totalPage > 1 && (
-            <div className="flex flex-wrap items-center justify-center gap-2 py-5">
-              <button
-                disabled={page === 1}
-                onClick={() => setPage((p) => p - 1)}
-                className="
-                  px-4 py-2 rounded-lg text-sm font-medium
-                  border border-slate-300 dark:border-indigo-500/30
-                  bg-white dark:bg-indigo-950
-                  text-slate-700 dark:text-indigo-200
-                  hover:bg-[#FFF1F2] dark:hover:bg-indigo-900/40
-                  disabled:opacity-40 disabled:cursor-not-allowed
-                  transition
-                "
-              >
-                Prev
-              </button>
+          <PaginationFooter
+            currentPage={safePage}
+            totalItems={filteredPeserta.length}
+            itemsPerPage={ITEMS_PER_PAGE}
+            itemLabel="peserta"
+            onPageChange={setCurrentPage}
+          />
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {paginatedPeserta.length === 0 ? (
+            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-14 px-4 text-center">
+              <MessageSquareHeart className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+              <p className="font-semibold text-slate-700 dark:text-slate-200">
+                Tidak ada data feedback peserta
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {paginatedPeserta.map((p) => {
+                const userFeedbacks = feedbackByUserMap.get(p._id) || [];
+                const latest = userFeedbacks[0];
+                const avgRating = latest
+                  ? getAverageRating(latest.survey)
+                  : null;
 
-              {Array.from({ length: totalPage }).map((_, i) => {
-                const active = page === i + 1;
                 return (
-                  <button
-                    key={i}
-                    onClick={() => setPage(i + 1)}
-                    className={`
-                      min-w-9.5 h-9.5 rounded-lg text-sm font-semibold transition
-                      ${
-                        active
-                          ? "bg-[#B91C1C] text-white shadow dark:bg-indigo-600"
-                          : `
-                            bg-white dark:bg-indigo-950
-                            text-[#7F1D1D] dark:text-indigo-200
-                            border border-slate-300 dark:border-indigo-500/30
-                            hover:bg-[#FFF1F2] dark:hover:bg-indigo-900/40
-                          `
-                      }
-                    `}
+                  <div
+                    key={p._id}
+                    className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-xs hover:shadow-md transition flex flex-col justify-between gap-4"
                   >
-                    {i + 1}
-                  </button>
+                    <div className="space-y-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-10 h-10 rounded-full bg-linear-to-br from-[#0284c7] to-blue-700 text-white text-xs font-bold flex items-center justify-center shrink-0">
+                            {getInitials(p.name)}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-bold text-slate-900 dark:text-white truncate">
+                              {p.name}
+                            </p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                              {p.email}
+                            </p>
+                          </div>
+                        </div>
+
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-sky-50 text-[#0284c7] border border-sky-200 dark:bg-sky-950/50 dark:text-sky-300 dark:border-sky-800 shrink-0">
+                          <Calendar className="w-3 h-3" />
+                          {latest ? formatMonthLabel(latest.month) : "-"}
+                        </span>
+                      </div>
+
+                      {/* Star Ratings Breakdown */}
+                      {avgRating !== null && latest?.survey && (
+                        <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                              Rating Survei
+                            </span>
+                            <div className="flex items-center gap-1.5">
+                              <StarRow rating={avgRating} />
+                              <span className="text-xs font-bold text-amber-600 dark:text-amber-400">
+                                {avgRating.toFixed(1)} / 5
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-1.5 text-[11px] text-slate-500 dark:text-slate-400">
+                            <span>
+                              Kepuasan:{" "}
+                              <strong className="text-slate-700 dark:text-slate-200">
+                                {latest.survey.kepuasanMagang || 0}/5
+                              </strong>
+                            </span>
+                            <span>
+                              Rekomendasi:{" "}
+                              <strong className="text-slate-700 dark:text-slate-200">
+                                {latest.survey.rekomendasiProgram || 0}/5
+                              </strong>
+                            </span>
+                            <span>
+                              Kemudahan:{" "}
+                              <strong className="text-slate-700 dark:text-slate-200">
+                                {latest.survey.kemudahanProses || 0}/5
+                              </strong>
+                            </span>
+                            <span>
+                              Skill:{" "}
+                              <strong className="text-slate-700 dark:text-slate-200">
+                                {latest.survey.peningkatanSkill || 0}/5
+                              </strong>
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      {latest?.feedbackBPOM && (
+                        <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-2 italic">
+                          &ldquo;{latest.feedbackBPOM}&rdquo;
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800">
+                      <div className="flex flex-wrap items-center gap-1.5 text-[11px] font-semibold">
+                        <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                          {p.totalFeedback} feedback
+                        </span>
+                        {p.unresponded > 0 ? (
+                          <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800">
+                            {p.unresponded} menunggu
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800">
+                            Sudah direspon
+                          </span>
+                        )}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleOpenDetail(p)}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-[#0284c7] hover:bg-sky-700 text-white shadow-xs transition"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                        Detail
+                      </button>
+                    </div>
+                  </div>
                 );
               })}
-
-              <button
-                disabled={page === totalPage}
-                onClick={() => setPage((p) => p + 1)}
-                className="
-                  px-4 py-2 rounded-lg text-sm font-medium
-                  border border-slate-300 dark:border-indigo-500/30
-                  bg-white dark:bg-indigo-950
-                  text-slate-700 dark:text-indigo-200
-                  hover:bg-[#FFF1F2] dark:hover:bg-indigo-900/40
-                  disabled:opacity-40 disabled:cursor-not-allowed
-                  transition
-                "
-              >
-                Next
-              </button>
             </div>
           )}
+
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
+            <PaginationFooter
+              currentPage={safePage}
+              totalItems={filteredPeserta.length}
+              itemsPerPage={ITEMS_PER_PAGE}
+              itemLabel="peserta"
+              onPageChange={setCurrentPage}
+            />
+          </div>
         </div>
       )}
 
-      {/* Info jumlah data */}
-      <div className="text-center mt-2 text-sm text-slate-500">
-        {filteredPeserta.length <= itemsPerPage ? (
-          <span>Menampilkan semua {filteredPeserta.length} peserta</span>
-        ) : (
-          <span>
-            Menampilkan {indexOfFirstItem + 1}-
-            {Math.min(indexOfLastItem, filteredPeserta.length)} dari{" "}
-            {filteredPeserta.length} peserta
-          </span>
-        )}
-      </div>
-
-      {/* Modal Detail Feedback */}
-      {selectedFeedback && selectedPeserta && (
-        <SuperadminFeedbackDetailModal
-          feedback={selectedFeedback}
-          totalSurveyScore={
-            selectedFeedback ? getTotalSurveyScore(selectedFeedback.survey) : 0
-          }
-          surveyCategory={
-            selectedFeedback
-              ? getSurveyCategory(getTotalSurveyScore(selectedFeedback.survey))
-              : ""
-          }
-          onClose={() => {
-            setSelectedFeedback(null);
-            setSelectedPeserta(null);
-          }}
+      {/* ================= DETAIL MODAL ================= */}
+      {modalTarget && (
+        <AdminFeedbackModal
+          pesertaName={modalTarget.peserta.name}
+          pesertaEmail={modalTarget.peserta.email}
+          feedbacks={modalTarget.feedbacks}
+          onClose={() => setModalTarget(null)}
         />
       )}
-    </div>
-  );
-}
-
-type StatCardColor = "indigo" | "emerald" | "amber" | "slate" | "blue";
-
-type StatCardProps = {
-  title: string;
-  value: number | string;
-  icon: React.ReactNode;
-  note: string;
-  color: StatCardColor;
-};
-
-function StatCard({ title, value, icon, note, color }: StatCardProps) {
-  const iconColorMap: Record<StatCardColor, string> = {
-    indigo: "bg-[#B91C1C]/90 dark:bg-indigo-600",
-    emerald: "bg-emerald-500 dark:bg-emerald-600",
-    amber: "bg-amber-500 dark:bg-violet-500",
-    slate: "bg-slate-500 dark:bg-indigo-700",
-    blue: "bg-blue-500 dark:bg-blue-600",
-  };
-
-  const textColorMap: Record<StatCardColor, string> = {
-    indigo: "text-[#7F1D1D] dark:text-white",
-    emerald: "text-[#7F1D1D] dark:text-white",
-    amber: "text-[#7F1D1D] dark:text-white",
-    slate: "text-[#7F1D1D] dark:text-white",
-    blue: "text-[#7F1D1D] dark:text-white",
-  };
-
-  return (
-    <div
-      className="
-        group relative
-        rounded-2xl
-        border border-[#FCA5A5]/40 dark:border-indigo-500/30
-        bg-linear-to-br
-        from-[#FFFDF8] via-[#FFF4EC] to-white
-        dark:from-indigo-950 dark:via-indigo-900 dark:to-indigo-800
-        p-6
-        shadow-sm hover:shadow-xl
-        transition
-      "
-    >
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-wide text-[#7F1D1D] dark:text-indigo-300">
-            {title}
-          </p>
-          <p className={`text-4xl font-extrabold mt-1 ${textColorMap[color]}`}>
-            {value}
-          </p>
-        </div>
-
-        <div
-          className={`
-            w-14 h-14 rounded-2xl
-            text-white
-            flex items-center justify-center
-            shadow
-            group-hover:scale-110 transition
-            ${iconColorMap[color]}
-          `}
-        >
-          {icon}
-        </div>
-      </div>
-
-      <div className="mt-4 pt-4 border-t border-[#FCA5A5]/40 dark:border-indigo-500/30">
-        <p className="text-xs text-slate-600 dark:text-slate-300">{note}</p>
-      </div>
     </div>
   );
 }

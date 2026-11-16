@@ -1,13 +1,27 @@
 "use client";
 
-import ProcessPopup from "@/components/ui/ProcessPopup";
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  AlertTriangle,
+  Briefcase,
+  CheckCircle2,
+  Eye,
+  KeyRound,
+  Plus,
+  RefreshCw,
+  Search,
+  Sparkles,
+  UserCheck,
+  Users,
+  X,
+  XCircle,
+} from "lucide-react";
+import PaginationFooter from "@/components/dashboard/PaginationFooter";
+import { TablePageSkeleton } from "@/components/dashboard/skeletons";
 import { showToast } from "@/components/ui/toastDashboard";
-import { useConfirm } from "@/components/ui/ConfirmProvider";
-import { useSearchParams } from "next/navigation";
-import { HiUser, HiUsers, HiCheck, HiX, HiSearch } from "react-icons/hi";
 
-/* ================= TYPE ================= */
+/* ================= TYPES ================= */
+
 type MentorAkun = {
   _id: string;
   name: string;
@@ -16,22 +30,64 @@ type MentorAkun = {
   posisiMentor: string;
 };
 
+type FilterTab = "Semua" | "Aktif" | "Nonaktif";
+
+/* ================= CONSTANTS & HELPERS ================= */
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
+const ITEMS_PER_PAGE = 10;
+
+const POSISI_MENTOR_OPTIONS = [
+  "Fungsi Penindakan",
+  "Fungsi Pengujian",
+  "Fungsi Pemeriksaan (Inspeksi dan sertifikasi)",
+  "Fungsi Informasi dan Komunikasi",
+  "Bagian Tata Usaha",
+];
+
+function generateStrongPassword(length = 10): string {
+  const upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+  const lower = "abcdefghijkmnopqrstuvwxyz";
+  const digits = "23456789";
+  const all = upper + lower + digits;
+
+  let pwd =
+    upper[Math.floor(Math.random() * upper.length)] +
+    lower[Math.floor(Math.random() * lower.length)] +
+    digits[Math.floor(Math.random() * digits.length)];
+
+  while (pwd.length < length) {
+    pwd += all[Math.floor(Math.random() * all.length)];
+  }
+  return pwd;
+}
+
+function getInitials(name = "M"): string {
+  return (
+    name
+      .split(" ")
+      .filter(Boolean)
+      .map((part) => part[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase() || "M"
+  );
+}
+
 /* ================= PAGE ================= */
-export default function BuatAkunMentorPage() {
+
+export default function BuatAkunMentorAdminPage() {
   const [data, setData] = useState<MentorAkun[]>([]);
-  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
   const [search, setSearch] = useState("");
+  const [filterTab, setFilterTab] = useState<FilterTab>("Semua");
+  const [currentPage, setCurrentPage] = useState(1);
 
-  // Pagination state
-  const [page, setPage] = useState(1);
-  const itemsPerPage = 10;
-
-  /* ===== MODAL AKSI ===== */
-  const [openAksi, setOpenAksi] = useState(false);
-  const [selected, setSelected] = useState<MentorAkun | null>(null);
-
-  const [loadingPopup, setLoadingPopup] = useState(false);
-
+  /* ---------- Create Modal State ---------- */
+  const [openCreate, setOpenCreate] = useState(false);
+  const [creating, setCreating] = useState(false);
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -39,959 +95,790 @@ export default function BuatAkunMentorPage() {
     posisiMentor: "",
   });
 
-  const confirm = useConfirm();
+  /* ---------- Detail & Confirm Status Toggle ---------- */
+  const [selected, setSelected] = useState<MentorAkun | null>(null);
+  const [confirmToggle, setConfirmToggle] = useState<{
+    mentor: MentorAkun;
+    targetStatus: "Aktif" | "Nonaktif";
+  } | null>(null);
+  const [toggling, setToggling] = useState(false);
 
-  /* ================= FETCH DATA ================= */
-  const fetchMentor = async () => {
+  /* ================= FETCH ================= */
+
+  const fetchMentor = useCallback(async (isManual = false) => {
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/admin/mentor`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
+      if (isManual) setRefreshing(true);
+      else setLoading(true);
+
+      const res = await fetch(`${API_BASE}/admin/mentor`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
-      );
+      });
 
       const result = await res.json();
-
       if (!res.ok) {
-        throw new Error(result.message || "Gagal memuat data mentor");
+        throw new Error(result?.message || "Gagal memuat data mentor");
       }
 
-      const mapped: MentorAkun[] = result.map((item: any) => ({
-        _id: item._id,
-        name: item.name,
-        email: item.email,
-        status: item.status || "Aktif",
-        posisiMentor: item.posisiMentor || "-",
-      }));
+      const mapped: MentorAkun[] = (Array.isArray(result) ? result : []).map(
+        (item: {
+          _id: string;
+          name: string;
+          email: string;
+          status?: "Aktif" | "Nonaktif";
+          posisiMentor?: string;
+        }) => ({
+          _id: item._id,
+          name: item.name,
+          email: item.email,
+          status: item.status === "Nonaktif" ? "Nonaktif" : "Aktif",
+          posisiMentor: item.posisiMentor || "-",
+        }),
+      );
 
       setData(mapped);
-    } catch (error: any) {
-      showToast.error(error.message || "Terjadi kesalahan saat memuat data");
+    } catch (err) {
+      showToast.error(
+        err instanceof Error ? err.message : "Gagal memuat data mentor",
+      );
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchMentor();
-  }, []);
+  }, [fetchMentor]);
 
-  /* ================= GENERATE PASSWORD ================= */
-  const generatePassword = () => {
-    const upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    const lower = "abcdefghijklmnopqrstuvwxyz";
-    const numbers = "0123456789";
-    const all = upper + lower + numbers;
-
-    let password =
-      upper[Math.floor(Math.random() * upper.length)] +
-      lower[Math.floor(Math.random() * lower.length)] +
-      numbers[Math.floor(Math.random() * numbers.length)];
-
-    for (let i = password.length; i < 10; i++) {
-      password += all[Math.floor(Math.random() * all.length)];
-    }
-
-    setForm({ ...form, password });
-  };
-
-  /* ================= CREATE AKUN ================= */
-  const handleCreate = async () => {
-    if (!form.name || !form.email || !form.password || !form.posisiMentor) {
-      showToast.error("Semua field wajib diisi");
-      return;
-    }
-
-    setLoadingPopup(true); // 🔥 SHOW POPUP
-
-    try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/superadmin/buat-mentor`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-          body: JSON.stringify(form),
-        },
-      );
-
-      const result = await res.json();
-
-      // ✅ INI TEMPAT YANG BENAR UNTUK if (!res.ok)
-      if (!res.ok) {
-        throw new Error(result.message || "Gagal membuat akun mentor");
-      }
-
-      showToast.success("Akun mentor berhasil dibuat");
-
-      setOpen(false);
-      setForm({
-        name: "",
-        email: "",
-        password: "",
-        posisiMentor: "",
-      });
-
-      fetchMentor();
-    } catch (error: any) {
-      // ✅ SEMUA ERROR MASUK SINI
-      showToast.error(error.message || "Terjadi kesalahan server");
-    } finally {
-      // ✅ PASTI DIJALANKAN (SUKSES / ERROR)
-      setLoadingPopup(false); // 🔥 HIDE POPUP
-    }
-  };
-
-  /* ================= NONAKTIFKAN ================= */
-  const handleNonaktifkan = (id: string) => {
-    confirm({
-      title: "Nonaktifkan Akun",
-      message: "Yakin ingin menonaktifkan akun mentor ini?",
-      onConfirm: () => prosesNonaktifkan(id),
-    });
-  };
-
-  const prosesNonaktifkan = async (id: string) => {
-    const loadingToast = showToast.loading("Menonaktifkan akun mentor...");
-
-    try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/admin/mentor/${id}/nonaktif`,
-        {
-          method: "PATCH",
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        },
-      );
-
-      const result = await res.json();
-
-      if (!res.ok) {
-        throw new Error(result.message || "Gagal menonaktifkan akun mentor");
-      }
-
-      setData((prev) =>
-        prev.map((m) => (m._id === id ? { ...m, status: "Nonaktif" } : m)),
-      );
-
-      setSelected((prev) => (prev ? { ...prev, status: "Nonaktif" } : prev));
-
-      showToast.updateSuccess(
-        loadingToast,
-        "Akun mentor berhasil dinonaktifkan",
-      );
-
-      setOpenAksi(false);
-    } catch (error: any) {
-      showToast.updateError(
-        loadingToast,
-        error.message || "Terjadi kesalahan server",
-      );
-    }
-  };
-
-  /* ================= AKTIFKAN ================= */
-  const handleAktifkan = (id: string) => {
-    confirm({
-      title: "Aktifkan Akun",
-      message: "Yakin ingin mengaktifkan kembali akun mentor ini?",
-      onConfirm: () => prosesAktifkan(id),
-    });
-  };
-
-  const prosesAktifkan = async (id: string) => {
-    const loadingToast = showToast.loading("Mengaktifkan akun mentor...");
-
-    try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/admin/mentor/${id}/aktif`,
-        {
-          method: "PATCH",
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        },
-      );
-
-      const result = await res.json();
-
-      if (!res.ok) {
-        throw new Error(result.message || "Gagal mengaktifkan akun mentor");
-      }
-
-      setData((prev) =>
-        prev.map((m) => (m._id === id ? { ...m, status: "Aktif" } : m)),
-      );
-
-      setSelected((prev) => (prev ? { ...prev, status: "Aktif" } : prev));
-
-      showToast.updateSuccess(loadingToast, "Akun mentor berhasil diaktifkan");
-
-      setOpenAksi(false);
-    } catch (error: any) {
-      showToast.updateError(
-        loadingToast,
-        error.message || "Terjadi kesalahan server",
-      );
-    }
-  };
-
-  /* ================= SUMMARY ================= */
-  const totalMentor = data.length;
-  const mentorAktif = data.filter((m) => m.status === "Aktif").length;
-  const mentorNonaktif = data.filter((m) => m.status === "Nonaktif").length;
-
-  const searchParams = useSearchParams();
+  /* ================= QUERY PREFILL (SAFE) ================= */
 
   useEffect(() => {
-    const email = searchParams.get("email");
-    const name = searchParams.get("name");
+    const params = new URLSearchParams(window.location.search);
+    const email = params.get("email");
+    const name = params.get("name");
 
     if (email && name) {
       setForm({
         name,
         email,
-        password: "",
+        password: generateStrongPassword(10),
         posisiMentor: "",
       });
-
-      setOpen(true); // 🔥 BUKA MODAL OTOMATIS
+      setOpenCreate(true);
     }
-  }, [searchParams]);
+  }, []);
 
-  const filteredData = data.filter((item) => {
-    const q = search.toLowerCase();
-    return (
-      item.name.toLowerCase().includes(q) ||
-      item.email.toLowerCase().includes(q)
-    );
-  });
+  /* ================= ESCAPE KEY HANDLER ================= */
 
-  const totalPage = Math.ceil(filteredData.length / itemsPerPage);
-  const startIndex = (page - 1) * itemsPerPage;
-  const paginatedData = filteredData.slice(
-    startIndex,
-    startIndex + itemsPerPage,
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (confirmToggle) setConfirmToggle(null);
+      else if (openCreate && !creating) setOpenCreate(false);
+      else if (selected) setSelected(null);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [confirmToggle, openCreate, creating, selected]);
+
+  /* ================= STATS & FILTERING ================= */
+
+  const stats = useMemo(() => {
+    const aktif = data.filter((m) => m.status === "Aktif").length;
+    const nonaktif = data.filter((m) => m.status === "Nonaktif").length;
+
+    return {
+      Semua: data.length,
+      Aktif: aktif,
+      Nonaktif: nonaktif,
+    };
+  }, [data]);
+
+  const filteredData = useMemo(() => {
+    const q = search.trim().toLowerCase();
+
+    return data.filter((item) => {
+      if (filterTab !== "Semua" && item.status !== filterTab) return false;
+      if (!q) return true;
+      return (
+        item.name.toLowerCase().includes(q) ||
+        item.email.toLowerCase().includes(q) ||
+        item.posisiMentor.toLowerCase().includes(q)
+      );
+    });
+  }, [data, search, filterTab]);
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredData.length / ITEMS_PER_PAGE),
   );
+  const safePage = Math.min(currentPage, totalPages);
+
+  const paginatedData = useMemo(() => {
+    const start = (safePage - 1) * ITEMS_PER_PAGE;
+    return filteredData.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredData, safePage]);
+
+  /* ================= ACTIONS ================= */
+
+  const handleOpenCreate = () => {
+    setForm({
+      name: "",
+      email: "",
+      password: generateStrongPassword(10),
+      posisiMentor: "",
+    });
+    setOpenCreate(true);
+  };
+
+  const handleCreate = async () => {
+    if (
+      !form.name.trim() ||
+      !form.email.trim() ||
+      !form.password.trim() ||
+      !form.posisiMentor
+    ) {
+      showToast.error("Semua field wajib diisi");
+      return;
+    }
+
+    try {
+      setCreating(true);
+      const res = await fetch(`${API_BASE}/admin/buat-mentor`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({
+          name: form.name.trim(),
+          email: form.email.trim().toLowerCase(),
+          password: form.password.trim(),
+          posisiMentor: form.posisiMentor,
+        }),
+      });
+
+      const result = await res.json();
+      if (!res.ok) {
+        throw new Error(result?.message || "Gagal membuat akun mentor");
+      }
+
+      showToast.success("Akun mentor berhasil dibuat & email terkirim");
+      setOpenCreate(false);
+      setForm({ name: "", email: "", password: "", posisiMentor: "" });
+      await fetchMentor(true);
+    } catch (err) {
+      showToast.error(
+        err instanceof Error ? err.message : "Gagal membuat akun mentor",
+      );
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const executeToggleStatus = async () => {
+    if (!confirmToggle) return;
+    const { mentor, targetStatus } = confirmToggle;
+    const actionSegment = targetStatus === "Nonaktif" ? "nonaktif" : "aktif";
+    const toastId = showToast.loading(
+      targetStatus === "Nonaktif"
+        ? "Menonaktifkan akun mentor..."
+        : "Mengaktifkan akun mentor...",
+    );
+
+    try {
+      setToggling(true);
+      const res = await fetch(
+        `${API_BASE}/admin/mentor/${mentor._id}/${actionSegment}`,
+        {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        },
+      );
+
+      const result = await res.json();
+      if (!res.ok) {
+        throw new Error(
+          result?.message || "Gagal memperbarui status akun mentor",
+        );
+      }
+
+      setData((prev) =>
+        prev.map((m) =>
+          m._id === mentor._id ? { ...m, status: targetStatus } : m,
+        ),
+      );
+      setSelected((prev) =>
+        prev && prev._id === mentor._id
+          ? { ...prev, status: targetStatus }
+          : prev,
+      );
+
+      showToast.updateSuccess(
+        toastId,
+        targetStatus === "Nonaktif"
+          ? "Akun mentor berhasil dinonaktifkan"
+          : "Akun mentor berhasil diaktifkan",
+      );
+      setConfirmToggle(null);
+      setSelected(null);
+    } catch (err) {
+      showToast.updateError(
+        toastId,
+        err instanceof Error ? err.message : "Terjadi kesalahan server",
+      );
+    } finally {
+      setToggling(false);
+    }
+  };
 
   /* ================= RENDER ================= */
+
+  if (loading) {
+    return (
+      <TablePageSkeleton
+        title="Manajemen Akun Mentor"
+        subtitle="Memuat daftar mentor pembimbing..."
+        columnsCount={5}
+        rowsCount={8}
+      />
+    );
+  }
+
   return (
-    <div
-      className="
-      min-h-screen p-4 sm:p-6
-      bg-linear-to-br
-      from-slate-50 via-white to-indigo-50
-      dark:from-[#020617] dark:via-[#020617] dark:to-[#1E1B4B]
-      text-slate-800 dark:text-slate-100
-      transition-colors
-    "
-    >
-      {/* HEADER */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+    <div className="space-y-6">
+      {/* ================= HEADER ================= */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-3 border-b border-slate-100 dark:border-slate-800">
         <div>
-          <h1 className="
-            text-3xl lg:text-4xl 
-            font-extrabold 
-            leading-tight
-            bg-clip-text text-transparent 
-            bg-linear-to-r 
-            from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
-            dark:from-indigo-400 dark:via-violet-400 dark:to-purple-400
-          ">
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
             Manajemen Akun Mentor
           </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
-            Kelola akun mentor magang
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
+            Kelola akun mentor pembimbing, divisi fungsi penempatan, dan status
+            aktif akun
           </p>
         </div>
 
-        <button
-          onClick={() => setOpen(true)}
-          className="
-            inline-flex items-center gap-3
-            px-5 py-2.5 rounded-xl
-            bg-linear-to-r
-            from-[#F59E0B] via-[#B91C1C] to-[#7F1D1D]
-            dark:from-indigo-600 dark:via-violet-600 dark:to-indigo-700
-            text-white font-semibold
-            shadow-lg shadow-[#B91C1C]/30 dark:shadow-indigo-600/30
-            hover:opacity-90
-            hover:scale-[1.02]
-            transition
-          "
-        >
-          <span
-            className="
-              w-6 h-6 flex items-center justify-center
-              rounded-full
-              bg-white/90 text-[#7F1D1D]
-              dark:bg-indigo-950 dark:text-indigo-300
-              font-bold text-lg
-            "
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => fetchMentor(true)}
+            disabled={refreshing}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition disabled:opacity-60"
           >
-            +
-          </span>
-          <span>Buat Akun Mentor</span>
-        </button>
-      </div>
+            <RefreshCw
+              className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`}
+            />
+            Refresh
+          </button>
 
-      {/* SUMMARY BOX */}
-      <div
-        className="
-        grid
-        grid-cols-1
-        sm:grid-cols-2
-        xl:grid-cols-3
-        gap-8
-        mb-8
-      "
-      >
-        <StatCard
-          title="Jumlah Mentor"
-          value={totalMentor}
-          icon={<HiUsers className="w-7 h-7" />}
-          note="Jumlah seluruh mentor"
-          color="amber"
-        />
-        <StatCard
-          title="Mentor Aktif"
-          value={mentorAktif}
-          icon={<HiCheck className="w-7 h-7" />}
-          note="Mentor yang masih aktif"
-          color="emerald"
-        />
-        <StatCard
-          title="Mentor Tidak Aktif"
-          value={mentorNonaktif}
-          icon={<HiX className="w-7 h-7" />}
-          note="Mentor tidak aktif"
-          color="indigo"
-        />
-      </div>
-
-      {/* SEARCH BAR */}
-      <div className="mb-6">
-        <div className="relative">
-          <HiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-[#7F1D1D] dark:text-indigo-400 w-5 h-5 z-10" />
-          <input
-            type="text"
-            placeholder="Cari mentor berdasarkan nama atau email..."
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1); // reset ke halaman 1 saat search
-            }}
-            className="
-              w-full pl-11 pr-10 py-3
-              rounded-2xl
-              bg-white/90 dark:bg-white/5
-              backdrop-blur
-              border border-[#F59E0B]/40 dark:border-indigo-500/40
-              text-slate-700 dark:text-slate-100
-              placeholder:text-slate-400
-              focus:outline-none focus:ring-2
-              focus:ring-[#B91C1C]/60 dark:focus:ring-indigo-500/60
-              transition
-            "
-          />
+          <button
+            type="button"
+            onClick={handleOpenCreate}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-[#0284c7] hover:bg-sky-700 text-white shadow-xs transition"
+          >
+            <Plus className="w-4 h-4" />
+            Tambah Mentor
+          </button>
         </div>
       </div>
 
-      {/* TABLE */}
-      <div
-        className="
-          rounded-2xl
-          bg-white/90 dark:bg-white/5
-          backdrop-blur
-          border border-slate-200 dark:border-indigo-500/30
-          shadow-lg
-          overflow-hidden
-        "
-      >
-        <div className="overflow-x-auto">
-          <table className="min-w-180 w-full text-sm sm:text-base">
-            {/* ================= HEAD ================= */}
-            <thead>
-              <tr
-                className="
-                  bg-slate-50 dark:bg-indigo-500/10
-                  border-b border-slate-200 dark:border-indigo-500/30
-                "
+      {/* ================= KPI CARDS ================= */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="rounded-2xl p-5 bg-linear-to-br from-[#0284c7] to-blue-700 text-white shadow-sm">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-medium text-sky-100">Total Mentor</p>
+              <p className="text-3xl font-extrabold tracking-tight mt-2">
+                {stats.Semua}
+              </p>
+              <p className="text-[11px] text-sky-100 mt-1.5">
+                Mentor pembimbing terdaftar
+              </p>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
+              <Users className="w-5 h-5" />
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-2xl p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                Mentor Aktif
+              </p>
+              <p className="text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 tracking-tight mt-2">
+                {stats.Aktif}
+              </p>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1.5">
+                Dapat login dan membimbing
+              </p>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+              <UserCheck className="w-5 h-5" />
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-2xl p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                Mentor Nonaktif
+              </p>
+              <p className="text-3xl font-extrabold text-rose-600 dark:text-rose-400 tracking-tight mt-2">
+                {stats.Nonaktif}
+              </p>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1.5">
+                Akses sementara ditangguhkan
+              </p>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+              <XCircle className="w-5 h-5" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ================= FILTER & SEARCH ================= */}
+      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/30 p-3.5 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-1.5">
+          {(["Semua", "Aktif", "Nonaktif"] as FilterTab[]).map((tab) => {
+            const active = filterTab === tab;
+            return (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => {
+                  setFilterTab(tab);
+                  setCurrentPage(1);
+                }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition inline-flex items-center gap-1.5 ${
+                  active
+                    ? "bg-[#0284c7] text-white shadow-xs"
+                    : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
+                }`}
               >
-                <th className="w-[6%] py-4 px-4 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
-                  No
-                </th>
-                <th className="w-[32%] py-4 px-4 text-left text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
-                  Nama
-                </th>
-                <th className="w-[28%] py-4 px-4 text-left text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
-                  Email
-                </th>
-                <th className="w-[20%] py-4 px-4 text-left text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
-                  Posisi Mentor
-                </th>
-                <th className="w-[14%] py-4 px-4 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
-                  Status
-                </th>
+                <span>{tab}</span>
+                <span
+                  className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold ${
+                    active
+                      ? "bg-white/20 text-white"
+                      : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+                  }`}
+                >
+                  {stats[tab]}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="relative w-full lg:w-80">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setCurrentPage(1);
+            }}
+            placeholder="Cari nama, email, atau fungsi mentor..."
+            className="w-full pl-9 pr-9 py-2 rounded-xl text-xs sm:text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40 focus:border-[#0284c7]"
+          />
+          {search && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearch("");
+                setCurrentPage(1);
+              }}
+              aria-label="Hapus pencarian"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* ================= TABLE ================= */}
+      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-xs">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-50 dark:bg-slate-800/70 border-b border-slate-200 dark:border-slate-800 text-[11px] uppercase tracking-wider font-bold text-slate-500 dark:text-slate-400">
+                <th className="py-3.5 px-4 w-12 text-center">No</th>
+                <th className="py-3.5 px-4">Mentor</th>
+                <th className="py-3.5 px-4">Posisi / Fungsi</th>
+                <th className="py-3.5 px-4">Status</th>
+                <th className="py-3.5 px-4 text-right">Aksi</th>
               </tr>
             </thead>
-
-            <tbody className="divide-y divide-slate-100 dark:divide-indigo-500/20">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
               {paginatedData.length === 0 ? (
                 <tr>
                   <td
                     colSpan={5}
-                    className="py-14 text-center text-slate-500 dark:text-slate-400"
+                    className="py-14 px-4 text-center text-slate-500 dark:text-slate-400"
                   >
-                    Belum ada akun mentor
+                    <Users className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+                    <p className="font-semibold text-slate-700 dark:text-slate-200">
+                      Tidak ada akun mentor yang sesuai
+                    </p>
                   </td>
                 </tr>
               ) : (
-                paginatedData.map((item, index) => (
-                  <tr
-                    key={item._id}
-                    className="
-                      hover:bg-[#FEF3C7]/40
-                      dark:hover:bg-indigo-500/10
-                      transition
-                    "
-                  >
-                    <td className="py-4 px-4 text-center align-middle font-medium text-slate-500">
-                      {index + 1}
-                    </td>
+                paginatedData.map((m, idx) => {
+                  const rowNo = (safePage - 1) * ITEMS_PER_PAGE + idx + 1;
+                  return (
+                    <tr
+                      key={m._id}
+                      className="hover:bg-sky-50/40 dark:hover:bg-slate-800/40 transition-colors"
+                    >
+                      <td className="py-3.5 px-4 text-center text-xs font-semibold text-slate-500 dark:text-slate-400">
+                        {rowNo}
+                      </td>
 
-                    <td className="py-4 px-4 text-left align-middle">
-                      <div
-                        onClick={() => {
-                          setSelected(item);
-                          setOpenAksi(true);
-                        }}
-                        className="flex items-center gap-3 cursor-pointer group"
-                      >
-                        <div
-                          className="
-                            shrink-0 w-10 h-10 min-w-10 min-h-10
-                            rounded-full
-                            bg-linear-to-br from-[#7F1D1D] to-[#F59E0B]
-                            dark:from-indigo-600 dark:to-violet-500
-                            flex items-center justify-center
-                            text-white shadow
-                            group-hover:scale-110 transition
-                          "
+                      <td className="py-3.5 px-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-full bg-linear-to-br from-[#0284c7] to-blue-700 text-white text-xs font-bold flex items-center justify-center shrink-0">
+                            {getInitials(m.name)}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-bold text-slate-900 dark:text-white truncate">
+                              {m.name}
+                            </p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                              {m.email}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+
+                      <td className="py-3.5 px-4">
+                        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-700 dark:text-slate-200">
+                          <Briefcase className="w-3.5 h-3.5 text-[#0284c7] shrink-0" />
+                          <span>{m.posisiMentor}</span>
+                        </span>
+                      </td>
+
+                      <td className="py-3.5 px-4">
+                        {m.status === "Aktif" ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800">
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            Aktif
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/50 dark:text-rose-300 dark:border-rose-800">
+                            <XCircle className="w-3.5 h-3.5" />
+                            Nonaktif
+                          </span>
+                        )}
+                      </td>
+
+                      <td className="py-3.5 px-4 text-right">
+                        <button
+                          type="button"
+                          onClick={() => setSelected(m)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-[#0284c7] hover:bg-sky-700 text-white shadow-xs transition"
                         >
-                          <HiUser className="w-5 h-5" />
-                        </div>
-
-                        <div className="text-left">
-                          <p className="font-medium text-slate-800 dark:text-slate-100">
-                            {item.name}
-                          </p>
-                          <p className="text-xs text-[#7F1D1D]">
-                            Klik untuk lihat detail
-                          </p>
-                        </div>
-                      </div>
-                    </td>
-
-                    <td className="py-4 px-4 text-left align-middle text-slate-600 dark:text-slate-300">
-                      {item.email}
-                    </td>
-
-                    <td className="py-4 px-4 text-left align-middle">
-                      <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
-                        {item.posisiMentor}
-                      </span>
-                    </td>
-
-                    <td className="py-4 px-6 text-center">
-                      <span
-                        className={`
-                          inline-flex items-center justify-center
-                          px-3 py-1.5 rounded-full
-                          text-xs font-semibold
-                          ${
-                            item.status === "Aktif"
-                              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300"
-                              : "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300"
-                          }
-                        `}
-                      >
-                        {item.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))
+                          <Eye className="w-3.5 h-3.5" />
+                          Kelola
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
         </div>
 
-        {/* ================= PAGINATION ================= */}
-        {totalPage > 1 && (
-          <div className="flex flex-wrap items-center justify-center gap-2 py-6">
-            <button
-              disabled={page === 1}
-              onClick={() => setPage((p) => p - 1)}
-              className="
-                px-4 py-2
-                rounded-lg
-                text-sm font-medium
-                border
-                border-slate-300 dark:border-indigo-500/30
-                bg-white dark:bg-indigo-950
-                text-slate-700 dark:text-indigo-200
-                hover:bg-[#FFF1F2] dark:hover:bg-indigo-900/40
-                disabled:opacity-40 disabled:cursor-not-allowed
-                transition
-              "
-            >
-              Prev
-            </button>
-
-            {Array.from({ length: totalPage }).map((_, i) => {
-              const active = page === i + 1;
-              return (
-                <button
-                  key={i}
-                  onClick={() => setPage(i + 1)}
-                  className={`
-                    min-w-9 h-9
-                    rounded-lg
-                    text-sm font-semibold
-                    transition
-                    ${
-                      active
-                        ? `
-                          bg-[#B91C1C] text-white shadow
-                          dark:bg-indigo-600 dark:text-white
-                        `
-                        : `
-                          bg-white dark:bg-indigo-950
-                          text-[#7F1D1D] dark:text-indigo-200
-                          border border-slate-300 dark:border-indigo-500/30
-                          hover:bg-[#FFF1F2] dark:hover:bg-indigo-900/40
-                        `
-                    }
-                  `}
-                >
-                  {i + 1}
-                </button>
-              );
-            })}
-
-            <button
-              disabled={page === totalPage}
-              onClick={() => setPage((p) => p + 1)}
-              className="
-                px-4 py-2
-                rounded-lg
-                text-sm font-medium
-                border
-                border-slate-300 dark:border-indigo-500/30
-                bg-white dark:bg-indigo-950
-                text-slate-700 dark:text-indigo-200
-                hover:bg-[#FFF1F2] dark:hover:bg-indigo-900/40
-                disabled:opacity-40 disabled:cursor-not-allowed
-                transition
-              "
-            >
-              Next
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* MODAL BUAT AKUN */}
-      {open && (
-        <Modal title="Buat Akun Mentor" onClose={() => setOpen(false)}>
-          <Input
-            label="Nama Mentor"
-            value={form.name}
-            onChange={(v) => setForm({ ...form, name: v })}
-          />
-
-          <Input
-            label="Email Mentor"
-            value={form.email}
-            onChange={(v) => setForm({ ...form, email: v })}
-          />
-
-          <PasswordInput value={form.password} onGenerate={generatePassword} />
-
-          <div>
-            <label className="block mb-1 text-sm font-medium">
-              Posisi Mentor
-            </label>
-            <select
-              value={form.posisiMentor}
-              onChange={(e) =>
-                setForm({ ...form, posisiMentor: e.target.value })
-              }
-              className="
-      w-full px-4 py-2.5 rounded-xl
-      bg-white dark:bg-slate-800
-      border border-slate-300 dark:border-slate-700
-    "
-            >
-              <option value="">-- Pilih Posisi Mentor --</option>
-              <option value="Fungsi Penindakan">Fungsi Penindakan</option>
-              <option value="Fungsi Pengujian">Fungsi Pengujian</option>
-              <option value="Fungsi Pemeriksaan (Inspeksi dan sertifikasi)">
-                Fungsi Pemeriksaan (Inspeksi dan sertifikasi)
-              </option>
-              <option value="Fungsi Informasi dan Komunikasi">
-                Fungsi Informasi dan Komunikasi
-              </option>
-              <option value="Bagian Tata Usaha">Bagian Tata Usaha</option>
-            </select>
-          </div>
-
-          <ModalAction
-            onCancel={() => setOpen(false)}
-            onSubmit={handleCreate}
-            submitText="Buat Akun Mentor"
-          />
-        </Modal>
-      )}
-
-      {/* MODAL AKSI */}
-      {openAksi && selected && (
-        <Modal title="Detail Akun Mentor" onClose={() => setOpenAksi(false)}>
-          <Detail label="Nama" value={selected.name} />
-          <Detail label="Email" value={selected.email} />
-          <Detail label="Posisi Mentor" value={selected.posisiMentor} />
-
-          <div
-            className="
-            rounded-xl
-            p-4
-            bg-slate-50 dark:bg-slate-800/60
-            border border-slate-200 dark:border-slate-700
-          "
-          >
-            <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
-              Status
-            </p>
-
-            <p
-              className={`mt-1 text-base font-semibold ${
-                selected.status === "Aktif"
-                  ? "text-emerald-600 dark:text-emerald-400"
-                  : "text-rose-600 dark:text-rose-400"
-              }`}
-            >
-              {selected.status}
-            </p>
-          </div>
-
-          <div className="flex justify-end gap-3 pt-4">
-            {selected.status === "Aktif" ? (
-              <button
-                onClick={() => handleNonaktifkan(selected._id)}
-                className="
-                  px-5 py-2.5 rounded-xl
-                  bg-red-600 text-white
-                  hover:opacity-90 transition
-                "
-              >
-                Nonaktifkan Akun
-              </button>
-            ) : (
-              <button
-                onClick={() => handleAktifkan(selected._id)}
-                className="
-                  px-5 py-2.5 rounded-xl
-                  bg-emerald-600 text-white
-                  hover:opacity-90 transition
-                "
-              >
-                Aktifkan Akun
-              </button>
-            )}
-          </div>
-        </Modal>
-      )}
-
-      <ProcessPopup
-        open={loadingPopup}
-        title="Membuat Akun Mentor"
-        message="Sedang menyimpan data ke sistem, mohon tunggu..."
-      />
-    </div>
-  );
-}
-
-type StatCardColor = "indigo" | "emerald" | "amber" | "slate";
-
-type StatCardProps = {
-  title: string;
-  value: number | string;
-  icon: React.ReactNode;
-  note: string;
-  color: StatCardColor;
-};
-
-function StatCard({ title, value, icon, note, color }: StatCardProps) {
-  const iconColorMap: Record<StatCardColor, string> = {
-    indigo: "bg-[#B91C1C]/90 dark:bg-indigo-600",
-    emerald: "bg-emerald-500 dark:bg-emerald-600",
-    amber: "bg-amber-500 dark:bg-violet-500",
-    slate: "bg-slate-500 dark:bg-indigo-700",
-  };
-
-  const textColorMap: Record<StatCardColor, string> = {
-    indigo: "text-[#7F1D1D] dark:text-white",
-    emerald: "text-[#7F1D1D] dark:text-white",
-    amber: "text-[#7F1D1D] dark:text-white",
-    slate: "text-[#7F1D1D] dark:text-white",
-  };
-
-  return (
-    <div
-      className="
-        group relative
-        rounded-2xl
-        border border-[#FCA5A5]/40 dark:border-indigo-500/30
-        bg-linear-to-br
-        from-[#FFFDF8] via-[#FFF4EC] to-white
-        dark:from-indigo-950 dark:via-indigo-900 dark:to-indigo-800
-        p-6
-        shadow-sm hover:shadow-xl
-        transition
-      "
-    >
-      {/* TOP */}
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-wide text-[#7F1D1D] dark:text-indigo-300">
-            {title}
-          </p>
-          <p className={`text-4xl font-extrabold mt-1 ${textColorMap[color]}`}>
-            {value}
-          </p>
-        </div>
-
-        <div
-          className={`
-            w-14 h-14 rounded-2xl
-            text-white
-            flex items-center justify-center
-            shadow
-            group-hover:scale-110 transition
-            ${iconColorMap[color]}
-          `}
-        >
-          {icon}
-        </div>
-      </div>
-
-      {/* FOOTER */}
-      <div className="mt-4 pt-4 border-t border-[#FCA5A5]/40 dark:border-indigo-500/30">
-        <p className="text-xs text-slate-600 dark:text-slate-300">{note}</p>
-      </div>
-    </div>
-  );
-}
-
-function Modal({
-  title,
-  children,
-  onClose,
-}: {
-  title: string;
-  children: React.ReactNode;
-  onClose: () => void;
-}) {
-  return (
-    <div
-      className="
-      fixed inset-0 z-50
-      bg-black/40 backdrop-blur-sm
-      flex items-center justify-center
-      px-4
-    "
-    >
-      <div
-        className="
-        relative w-full max-w-md
-        rounded-3xl
-        bg-white/95 dark:bg-slate-900/95
-        shadow-[0_20px_60px_-15px_rgba(0,0,0,0.35)]
-        border border-slate-200 dark:border-slate-800
-        overflow-hidden
-      "
-      >
-        {/* HEADER */}
-        <div
-          className="
-          flex items-center justify-between
-          px-6 py-4
-          border-b border-slate-200 dark:border-slate-800
-          bg-linear-to-r
-          from-indigo-50 to-blue-50
-          dark:from-indigo-500/10 dark:to-blue-500/10
-        "
-        >
-          <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
-            {title}
-          </h2>
-
-          <button
-            onClick={onClose}
-            className="
-              w-9 h-9 flex items-center justify-center
-              rounded-full
-              text-slate-500 dark:text-slate-300
-              hover:bg-slate-200 dark:hover:bg-slate-800
-              transition
-            "
-          >
-            ✕
-          </button>
-        </div>
-
-        {/* CONTENT */}
-        <div className="px-6 py-5 space-y-4">{children}</div>
-      </div>
-    </div>
-  );
-}
-
-function Input({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-}) {
-  return (
-    <div>
-      <label className="block mb-1 text-sm font-medium text-slate-600 dark:text-slate-300">
-        {label}
-      </label>
-      <input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="
-          w-full px-4 py-2.5 rounded-xl
-          bg-white dark:bg-slate-800
-          text-slate-800 dark:text-slate-100
-          border border-slate-300 dark:border-slate-700
-          focus:ring-2 focus:ring-indigo-500
-          outline-none transition
-        "
-      />
-    </div>
-  );
-}
-
-function PasswordInput({
-  value,
-  onGenerate,
-}: {
-  value: string;
-  onGenerate: () => void;
-}) {
-  return (
-    <div>
-      <label className="block mb-1 text-sm font-medium text-slate-600 dark:text-slate-300">
-        Password
-      </label>
-
-      <div className="flex flex-col sm:flex-row gap-2">
-        <input
-          readOnly
-          value={value}
-          className="
-            flex-1 px-4 py-2.5 rounded-xl
-            bg-white dark:bg-slate-800
-            text-slate-800 dark:text-slate-100
-            border border-slate-300 dark:border-slate-700
-          "
+        <PaginationFooter
+          currentPage={safePage}
+          totalItems={filteredData.length}
+          itemsPerPage={ITEMS_PER_PAGE}
+          itemLabel="mentor"
+          onPageChange={setCurrentPage}
         />
-        <button
-          onClick={onGenerate}
-          className="
-            px-4 py-2.5 rounded-xl
-            bg-slate-200 dark:bg-slate-700
-            text-slate-700 dark:text-slate-200
-            font-medium
-            hover:opacity-90
-            transition
-          "
-        >
-          Generate
-        </button>
       </div>
-    </div>
-  );
-}
 
-function ModalAction({
-  onCancel,
-  onSubmit,
-  submitText,
-}: {
-  onCancel: () => void;
-  onSubmit: () => void;
-  submitText: string;
-}) {
-  return (
-    <div className="flex justify-end gap-3 pt-4">
-      <button
-        onClick={onCancel}
-        className="
-          px-4 py-2 rounded-xl
-          text-slate-600 dark:text-slate-300
-          hover:bg-slate-100 dark:hover:bg-slate-800
-          transition
-        "
-      >
-        Batal
-      </button>
+      {/* ================= MODAL CREATE MENTOR ================= */}
+      {openCreate && (
+        <div
+          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !creating) setOpenCreate(false);
+          }}
+        >
+          <div className="w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden">
+            <div className="bg-linear-to-r from-[#0284c7] to-blue-700 px-5 py-4 text-white flex items-center justify-between">
+              <h3 className="text-base font-bold">Buat Akun Mentor Baru</h3>
+              <button
+                type="button"
+                disabled={creating}
+                onClick={() => setOpenCreate(false)}
+                className="p-1.5 rounded-lg bg-white/15 hover:bg-white/25"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
 
-      <button
-        onClick={onSubmit}
-        className="
-          px-6 py-2.5 rounded-xl
-          font-semibold text-white
-          bg-linear-to-r
-          from-[#F59E0B] via-[#B91C1C] to-[#7F1D1D]
-          dark:from-indigo-600 dark:via-violet-600 dark:to-indigo-800
-          shadow-lg shadow-[#B91C1C]/30
-          dark:shadow-indigo-600/30
-          hover:opacity-90
-          transition
-        "
-      >
-        {submitText}
-      </button>
-    </div>
-  );
-}
+            <div className="p-5 space-y-4 text-sm">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Nama Lengkap Mentor
+                </label>
+                <input
+                  type="text"
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  placeholder="Contoh: Dr. Budi Santoso"
+                  className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40 focus:border-[#0284c7]"
+                />
+              </div>
 
-function Detail({ label, value }: { label: string; value: string }) {
-  return (
-    <div
-      className="
-      rounded-xl
-      p-4
-      bg-slate-50 dark:bg-slate-800/60
-      border border-slate-200 dark:border-slate-700
-    "
-    >
-      <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
-        {label}
-      </p>
-      <p className="mt-1 text-base font-semibold text-slate-800 dark:text-slate-100">
-        {value}
-      </p>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Email Mentor
+                </label>
+                <input
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  placeholder="nama@pom.go.id"
+                  className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40 focus:border-[#0284c7]"
+                />
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                    <KeyRound className="w-3.5 h-3.5 text-[#0284c7]" />
+                    Password Awal
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setForm({ ...form, password: generateStrongPassword(10) })
+                    }
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#0284c7] hover:underline"
+                  >
+                    <Sparkles className="w-3 h-3" />
+                    Generate Acak
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  value={form.password}
+                  onChange={(e) =>
+                    setForm({ ...form, password: e.target.value })
+                  }
+                  placeholder="Minimal 8 karakter (huruf & angka)"
+                  className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40 focus:border-[#0284c7]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Posisi / Fungsi Pembimbing
+                </label>
+                <select
+                  value={form.posisiMentor}
+                  onChange={(e) =>
+                    setForm({ ...form, posisiMentor: e.target.value })
+                  }
+                  className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40 focus:border-[#0284c7]"
+                >
+                  <option value="">-- Pilih Posisi Mentor --</option>
+                  {POSISI_MENTOR_OPTIONS.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  disabled={creating}
+                  onClick={() => setOpenCreate(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  disabled={creating}
+                  onClick={handleCreate}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold bg-[#0284c7] hover:bg-sky-700 text-white shadow-xs transition disabled:opacity-60"
+                >
+                  {creating ? "Menyimpan..." : "Buat Akun Mentor"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================= MODAL DETAIL AKUN ================= */}
+      {selected && (
+        <div
+          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setSelected(null);
+          }}
+        >
+          <div className="w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden">
+            <div className="bg-linear-to-r from-[#0284c7] to-blue-700 px-5 py-4 text-white flex items-center justify-between">
+              <h3 className="text-base font-bold">Detail Akun Mentor</h3>
+              <button
+                type="button"
+                onClick={() => setSelected(null)}
+                className="p-1.5 rounded-lg bg-white/15 hover:bg-white/25"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-3 text-sm">
+              <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800">
+                <p className="text-xs text-slate-400">Nama</p>
+                <p className="font-bold text-slate-900 dark:text-white">
+                  {selected.name}
+                </p>
+              </div>
+              <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800">
+                <p className="text-xs text-slate-400">Email</p>
+                <p className="font-semibold text-slate-800 dark:text-slate-100">
+                  {selected.email}
+                </p>
+              </div>
+              <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800">
+                <p className="text-xs text-slate-400">Posisi / Fungsi</p>
+                <p className="font-semibold text-slate-800 dark:text-slate-100">
+                  {selected.posisiMentor}
+                </p>
+              </div>
+              <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                <span className="text-xs text-slate-500 font-medium">
+                  Status Akun
+                </span>
+                <span
+                  className={`text-xs font-bold ${
+                    selected.status === "Aktif"
+                      ? "text-emerald-600 dark:text-emerald-400"
+                      : "text-rose-600 dark:text-rose-400"
+                  }`}
+                >
+                  {selected.status}
+                </span>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3">
+                <button
+                  type="button"
+                  onClick={() => setSelected(null)}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                >
+                  Tutup
+                </button>
+                {selected.status === "Aktif" ? (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setConfirmToggle({
+                        mentor: selected,
+                        targetStatus: "Nonaktif",
+                      })
+                    }
+                    className="px-4 py-2 rounded-xl text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white shadow-xs transition"
+                  >
+                    Nonaktifkan Akun
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setConfirmToggle({
+                        mentor: selected,
+                        targetStatus: "Aktif",
+                      })
+                    }
+                    className="px-4 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition"
+                  >
+                    Aktifkan Akun
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================= CONFIRM STATUS TOGGLE ================= */}
+      {confirmToggle && (
+        <div className="fixed inset-0 z-60 bg-slate-900/65 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-4">
+            <div className="flex items-start gap-3">
+              <div
+                className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                  confirmToggle.targetStatus === "Nonaktif"
+                    ? "bg-rose-100 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400"
+                    : "bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400"
+                }`}
+              >
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  {confirmToggle.targetStatus === "Nonaktif"
+                    ? "Nonaktifkan Akun Mentor?"
+                    : "Aktifkan Akun Mentor?"}
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-1">
+                  Apakah Anda yakin ingin mengubah status akun{" "}
+                  <strong className="text-slate-900 dark:text-white">
+                    {confirmToggle.mentor.name}
+                  </strong>{" "}
+                  menjadi{" "}
+                  <strong>{confirmToggle.targetStatus}</strong>?
+                </p>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                disabled={toggling}
+                onClick={() => setConfirmToggle(null)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                disabled={toggling}
+                onClick={executeToggleStatus}
+                className={`px-4 py-2 rounded-xl text-xs font-semibold text-white shadow-xs disabled:opacity-60 ${
+                  confirmToggle.targetStatus === "Nonaktif"
+                    ? "bg-rose-600 hover:bg-rose-700"
+                    : "bg-emerald-600 hover:bg-emerald-700"
+                }`}
+              >
+                {toggling ? "Memproses..." : "Ya, Lanjutkan"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

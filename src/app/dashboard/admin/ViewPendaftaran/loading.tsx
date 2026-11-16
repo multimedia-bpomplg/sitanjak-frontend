@@ -3,11 +3,10 @@ import { TablePageSkeleton } from "@/components/dashboard/skeletons";
 export default function Loading() {
   return (
     <TablePageSkeleton
-      title="📋 Pendaftaran Magang"
+      title="Manajemen Pendaftaran Magang"
       subtitle="Memuat data pendaftaran magang..."
-      columnsCount={7}
-      rowsCount={6}
+      columnsCount={6}
+      rowsCount={8}
     />
   );
 }
-

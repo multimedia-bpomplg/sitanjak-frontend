@@ -1,483 +1,821 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import {
-  HiUserGroup,
-  HiUserAdd,
-  HiClipboardList,
-  HiShieldCheck,
-  HiDocumentReport,
-  HiCalendar,
-  HiMail,
-  HiPhone,
-} from "react-icons/hi";
+  AlertCircle,
+  BookOpenCheck,
+  Building2,
+  Calendar,
+  ChevronRight,
+  ClipboardList,
+  GraduationCap,
+  Mail,
+  MessageSquareHeart,
+  Phone,
+  RefreshCw,
+  UserCheck,
+  UserPlus,
+  Users,
+} from "lucide-react";
 import AnnouncementBox from "@/components/AnnouncementBox";
 import { AdminDashboardSkeleton } from "@/components/dashboard/skeletons";
 
-/* ================= TYPE ================= */
-type Peserta = {
-  nama: string;
-  email: string;
-  posisi: string;
-  status: "Aktif" | "Selesai" | "Menunggu";
-};
+/* ================= TYPES ================= */
 
-type Mentor = {
-  nama: string;
-  email: string;
-};
+type PendaftaranStatus =
+  | "Menunggu"
+  | "Sedang Diproses"
+  | "Disetujui"
+  | "Ditolak";
 
 type PendaftaranTerbaru = {
   _id: string;
+  kategori: "sendiri" | "bersama" | string;
+  status: PendaftaranStatus;
+  createdAt: string;
+  jumlahPeserta: number;
   peserta: Array<{
     nama: string;
     email: string;
     wa: string;
     posisi: string;
+    jurusan?: string;
+    asal?: { jenis: string; nama: string } | null;
     tanggalMulaiMagang: string;
     tanggalSelesaiMagang: string;
-    asal?: {
-      jenis: string;
-      nama: string;
-    };
+    mentor?: { name: string } | null;
   }>;
-  kategori: string;
-  status: "Menunggu" | "Sedang Diproses" | "Disetujui" | "Ditolak";
-  createdAt: string;
 };
 
+type AdminDashboardSummary = {
+  totalPendaftaran: number;
+  pendaftaranMenunggu: number;
+  pendaftaranSedangDiproses: number;
+  pendaftaranDisetujui: number;
+  pendaftaranDitolak: number;
+  pendaftaranHariIni: number;
+  totalPesertaDisetujui: number;
+  pesertaSedangMagang: number;
+  pesertaBelumMulai: number;
+  pesertaSelesai: number;
+  pesertaTanpaMentor: number;
+  totalAkunPeserta: number;
+  akunPesertaAktif: number;
+  totalMentor: number;
+  mentorAktif: number;
+  totalLogbook: number;
+  logbookMenunggu: number;
+  totalLaporanAkhir: number;
+  laporanAkhirMenunggu: number;
+  totalFeedback: number;
+  feedbackBelumDirespon: number;
+};
+
+type AdminDashboardResponse = {
+  admin: {
+    name: string;
+    email: string;
+  } | null;
+  summary: AdminDashboardSummary;
+  pendaftaranTerbaru: PendaftaranTerbaru[];
+};
+
+/* ================= HELPERS ================= */
+
+function getNowWIB(): Date {
+  return new Date(
+    new Date().toLocaleString("en-US", { timeZone: "Asia/Jakarta" }),
+  );
+}
+
+function getInitials(name = "A"): string {
+  return (
+    name
+      .split(" ")
+      .filter(Boolean)
+      .map((part) => part[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase() || "A"
+  );
+}
+
+function formatTanggal(dateString: string): string {
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return "-";
+  return date.toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function hitungHariLalu(dateString: string): string {
+  const now = getNowWIB();
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return "-";
+  const diffDays = Math.floor(
+    (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24),
+  );
+  if (diffDays <= 0) return "Hari ini";
+  if (diffDays === 1) return "Kemarin";
+  return `${diffDays} hari lalu`;
+}
+
+function getStatusBadgeClass(status: string): string {
+  switch (status) {
+    case "Menunggu":
+      return "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800";
+    case "Sedang Diproses":
+      return "bg-sky-50 text-[#0284c7] border-sky-200 dark:bg-sky-950/50 dark:text-sky-300 dark:border-sky-800";
+    case "Disetujui":
+      return "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800";
+    case "Ditolak":
+      return "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/50 dark:text-rose-300 dark:border-rose-800";
+    default:
+      return "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700";
+  }
+}
+
+const EMPTY_SUMMARY: AdminDashboardSummary = {
+  totalPendaftaran: 0,
+  pendaftaranMenunggu: 0,
+  pendaftaranSedangDiproses: 0,
+  pendaftaranDisetujui: 0,
+  pendaftaranDitolak: 0,
+  pendaftaranHariIni: 0,
+  totalPesertaDisetujui: 0,
+  pesertaSedangMagang: 0,
+  pesertaBelumMulai: 0,
+  pesertaSelesai: 0,
+  pesertaTanpaMentor: 0,
+  totalAkunPeserta: 0,
+  akunPesertaAktif: 0,
+  totalMentor: 0,
+  mentorAktif: 0,
+  totalLogbook: 0,
+  logbookMenunggu: 0,
+  totalLaporanAkhir: 0,
+  laporanAkhirMenunggu: 0,
+  totalFeedback: 0,
+  feedbackBelumDirespon: 0,
+};
+
+/* ================= PAGE ================= */
+
 export default function AdminDashboard() {
-  const [peserta, setPeserta] = useState<Peserta[]>([]);
-  const [mentor, setMentor] = useState<Mentor[]>([]);
-  const [pendaftaranTerbaru, setPendaftaranTerbaru] = useState<
-    PendaftaranTerbaru[]
-  >([]);
+  const [dashboard, setDashboard] = useState<AdminDashboardResponse | null>(
+    null,
+  );
   const [loading, setLoading] = useState(true);
-  const API_BASE = process.env.NEXT_PUBLIC_API_URL;
+  const [error, setError] = useState<string | null>(null);
+  const [nameFromToken, setNameFromToken] = useState("Administrator");
 
-  /* ================= FETCH DATA ================= */
   useEffect(() => {
-    const fetchDashboard = async () => {
-      try {
-        const token = localStorage.getItem("token");
-
-        const [pesertaRes, mentorRes, pendaftaranRes] = await Promise.all([
-          fetch(`${API_BASE}/admin/peserta`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          fetch(`${API_BASE}/admin/mentor`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          fetch(`${API_BASE}/admin/pendaftaran`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-        ]);
-
-        if (!pesertaRes.ok || !mentorRes.ok || !pendaftaranRes.ok) {
-          throw new Error("Gagal memuat data dashboard");
-        }
-
-        const pesertaData = await pesertaRes.json();
-        const mentorData = await mentorRes.json();
-        const pendaftaranData = await pendaftaranRes.json();
-
-        setPeserta(pesertaData);
-        setMentor(mentorData);
-        setPendaftaranTerbaru(pendaftaranData.slice(0, 6)); // Ambil 6 pendaftaran terbaru
-      } catch (err) {
-        console.error("❌ Gagal memuat dashboard admin", err);
-      } finally {
-        setLoading(false);
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      if (payload?.name || payload?.nama) {
+        setNameFromToken(payload.name || payload.nama);
       }
-    };
-
-    fetchDashboard();
+    } catch {
+      // Abaikan jika token gagal di-parse
+    }
   }, []);
 
-  /* ================= SUMMARY ================= */
-  const totalPeserta = peserta.length;
-  const pesertaAktif = peserta.filter((p) => p.status === "Aktif").length;
-  const totalMentor = mentor.length;
-  const menungguVerifikasi = pendaftaranTerbaru.filter(
-    (p) => p.status === "Menunggu",
-  ).length;
+  const fetchDashboard = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/admin/dashboard-summary`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
 
-  const summary = [
-    {
-      label: "Total Peserta",
-      value: totalPeserta,
-      icon: <HiUserGroup />,
-      color: "from-indigo-500 to-blue-500",
-    },
-    {
-      label: "Peserta Aktif",
-      value: pesertaAktif,
-      icon: <HiShieldCheck />,
-      color: "from-emerald-500 to-green-500",
-    },
-    {
-      label: "Total Mentor",
-      value: totalMentor,
-      icon: <HiUserAdd />,
-      color: "from-purple-500 to-fuchsia-500",
-    },
-    {
-      label: "Menunggu Verifikasi",
-      value: menungguVerifikasi,
-      icon: <HiClipboardList />,
-      color: "from-orange-500 to-amber-500",
-    },
-  ];
+      if (!res.ok) {
+        throw new Error("Gagal memuat ringkasan dashboard admin");
+      }
 
-  /* ================= TASK ADMIN (HANYA TAMPILAN) ================= */
-  const tasks = [
-    {
-      title: "Verifikasi Pendaftaran",
-      desc: "Setujui atau tolak pendaftaran peserta magang",
-      icon: <HiClipboardList />,
-    },
-    {
-      title: "Kelola Mentor",
-      desc: "Tambah, edit, dan hapus akun mentor",
-      icon: <HiUserAdd />,
-    },
-    {
-      title: "Kelola Peserta",
-      desc: "Kelola seluruh akun peserta magang",
-      icon: <HiUserGroup />,
-    },
-    {
-      title: "Laporan & Statistik",
-      desc: "Rekap dan analisis data magang",
-      icon: <HiDocumentReport />,
-    },
-  ];
-
-  /* ================= FUNGSI UTILITAS ================= */
-  const formatTanggal = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("id-ID", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
-  };
-
-  const hitungHariLalu = (dateString: string) => {
-    const now = new Date();
-    const date = new Date(dateString);
-    const diffTime = now.getTime() - date.getTime();
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-    if (diffDays === 0) return "Hari ini";
-    if (diffDays === 1) return "Kemarin";
-    return `${diffDays} hari lalu`;
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Menunggu":
-        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300";
-      case "Sedang Diproses":
-        return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300";
-      case "Disetujui":
-        return "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300";
-      case "Ditolak":
-        return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300";
-      default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300";
+      const data: AdminDashboardResponse = await res.json();
+      setDashboard(data);
+    } catch (err: unknown) {
+      console.error("Gagal memuat dashboard admin:", err);
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Terjadi kesalahan saat memuat dashboard.",
+      );
+    } finally {
+      setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchDashboard();
+  }, [fetchDashboard]);
+
+  const todayWIB = useMemo(() => getNowWIB(), []);
+  const formattedToday = useMemo(
+    () =>
+      todayWIB.toLocaleDateString("id-ID", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      }),
+    [todayWIB],
+  );
 
   if (loading) {
     return <AdminDashboardSkeleton />;
   }
 
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 px-4 text-center space-y-4">
+        <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 flex items-center justify-center">
+          <AlertCircle className="w-6 h-6" />
+        </div>
+        <div className="space-y-1">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            Gagal Memuat Dashboard
+          </h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md">
+            {error}
+          </p>
+        </div>
+        <button
+          onClick={fetchDashboard}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-[#0284c7] hover:bg-sky-700 text-white transition"
+        >
+          <RefreshCw className="w-4 h-4" />
+          Coba Lagi
+        </button>
+      </div>
+    );
+  }
+
+  const summary = dashboard?.summary || EMPTY_SUMMARY;
+  const pendaftaranTerbaru = dashboard?.pendaftaranTerbaru || [];
+  const displayName = dashboard?.admin?.name || nameFromToken;
+  const firstName = displayName.trim().split(" ")[0] || displayName;
+
   return (
-    <div className="min-h-screen p-4 sm:p-6 lg:p-8 bg-linear-to-br from-slate-50 via-white to-indigo-50 dark:from-[#0B0614] dark:via-[#120A24] dark:to-[#1E0F3D] text-slate-800 dark:text-slate-100 transition-colors">
-      {/* HEADER */}
-      <div className="mb-8">
-        <h1 className="flex items-center gap-3 tracking-tight mb-2">
-          <p className="text-3xl">📊</p>
-          <span
-            className="
-                text-2xl sm:text-3xl lg:text-4xl
-                font-extrabold leading-tight
-                bg-clip-text text-transparent
-                bg-linear-to-r
-                from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
-                dark:from-indigo-400 dark:via-violet-400 dark:to-purple-400
-              "
+    <div className="space-y-6">
+      {/* ================= 1. HEADER ================= */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-3 border-b border-slate-100 dark:border-slate-800">
+        <div className="space-y-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+              Halo, {firstName} 👋
+            </h1>
+            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-sky-50 text-[#0284c7] border border-sky-200 dark:bg-sky-950/60 dark:text-sky-300 dark:border-sky-800">
+              Administrator
+            </span>
+          </div>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+            {formattedToday} • Ringkasan pendaftaran, peserta, dan operasional
+            magang
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3 self-start sm:self-auto">
+          <button
+            onClick={fetchDashboard}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
           >
-            Dashboard Admin
-          </span>
-        </h1>
-        <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 mt-2">
-          Selamat datang! Kelola semua aktivitas magang dari sini.
-        </p>
+            <RefreshCw className="w-3.5 h-3.5" />
+            Refresh
+          </button>
+
+          <div
+            title={displayName}
+            className="w-10 h-10 rounded-full bg-linear-to-br from-[#0284c7] to-blue-700 text-white font-bold text-xs flex items-center justify-center shadow-sm ring-2 ring-white dark:ring-slate-800 shrink-0"
+          >
+            {getInitials(displayName)}
+          </div>
+        </div>
       </div>
 
+      {/* ================= 2. PENGUMUMAN ================= */}
       <AnnouncementBox type="admin" />
 
-      {/* SUMMARY CARDS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {summary.map((s, i) => (
-          <div
-            key={i}
-            className="group relative rounded-2xl bg-white/80 dark:bg-white/5 backdrop-blur border border-slate-200 dark:border-slate-700 shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
-          >
-            <div
-              className={`absolute inset-0 rounded-2xl bg-linear-to-br ${s.color} opacity-0 group-hover:opacity-10 transition-opacity duration-300`}
-            />
-            <div className="relative p-5 flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                  {s.label}
-                </p>
-                <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
-                  {s.value}
-                </h2>
-              </div>
-              <div
-                className={`w-12 h-12 rounded-xl bg-linear-to-br ${s.color} text-white flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}
-              >
-                <span className="text-xl">{s.icon}</span>
-              </div>
-            </div>
-          </div>
-        ))}
+      {/* ================= 3. 4 KPI CARDS ================= */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <AdminStatCard
+          href="/dashboard/admin/ViewPeserta"
+          title="Peserta Magang Disetujui"
+          value={summary.totalPesertaDisetujui}
+          unit="peserta"
+          subtitle={`${summary.pesertaSedangMagang} aktif • ${summary.pesertaBelumMulai} belum mulai • ${summary.pesertaSelesai} selesai`}
+          icon={<Users className="w-5 h-5" />}
+          accent="blue"
+        />
+
+        <AdminStatCard
+          href="/dashboard/admin/ViewPendaftaran"
+          title="Pendaftaran Menunggu"
+          value={summary.pendaftaranMenunggu}
+          unit="berkas"
+          subtitle={`${summary.pendaftaranSedangDiproses} diproses • ${summary.totalPendaftaran} total pendaftar`}
+          icon={<ClipboardList className="w-5 h-5" />}
+          accent={summary.pendaftaranMenunggu > 0 ? "amber" : "emerald"}
+          highlight={summary.pendaftaranMenunggu > 0}
+        />
+
+        <AdminStatCard
+          href="/dashboard/admin/ManajemenAkun/buatmentor"
+          title="Mentor Aktif"
+          value={summary.mentorAktif}
+          unit="mentor"
+          subtitle={`Dari ${summary.totalMentor} mentor • ${summary.pesertaTanpaMentor} peserta tanpa mentor`}
+          icon={<UserCheck className="w-5 h-5" />}
+          accent="sky"
+        />
+
+        <AdminStatCard
+          href="/dashboard/admin/ViewLogbook"
+          title="Logbook & Laporan Menunggu"
+          value={summary.logbookMenunggu + summary.laporanAkhirMenunggu}
+          unit="antrian"
+          subtitle={`${summary.logbookMenunggu} logbook • ${summary.laporanAkhirMenunggu} laporan akhir`}
+          icon={<BookOpenCheck className="w-5 h-5" />}
+          accent={
+            summary.logbookMenunggu + summary.laporanAkhirMenunggu > 0
+              ? "purple"
+              : "emerald"
+          }
+          highlight={summary.logbookMenunggu + summary.laporanAkhirMenunggu > 0}
+        />
       </div>
 
-      {/* NOTIFIKASI PENTING */}
-      {menungguVerifikasi > 0 && (
-        <div className="mt-6 mb-6 p-4 rounded-xl bg-linear-to-r from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 border border-amber-200 dark:border-amber-700/30">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
-                <span className="text-amber-600 dark:text-amber-400">!</span>
-              </div>
-              <div>
-                <p className="font-semibold text-slate-900 dark:text-white">
-                  Ada {menungguVerifikasi} pendaftaran menunggu verifikasi
-                </p>
-                <p className="text-sm text-slate-600 dark:text-slate-400">
-                  Segera tinjau pendaftaran terbaru
-                </p>
-              </div>
+      {/* ================= 4. ALERT VERIFIKASI ================= */}
+      {(summary.pendaftaranMenunggu > 0 || summary.pesertaTanpaMentor > 0) && (
+        <div className="rounded-2xl border border-amber-200 dark:border-amber-800/70 bg-amber-50/80 dark:bg-amber-950/30 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="flex items-start sm:items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 flex items-center justify-center shrink-0">
+              <AlertCircle className="w-5 h-5" />
             </div>
-            <a
-              href="/dashboard/admin/ViewPendaftaran"
-              className="px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium transition-colors"
-            >
-              Verifikasi Sekarang
-            </a>
+            <div>
+              <p className="text-sm font-bold text-slate-900 dark:text-white">
+                {summary.pendaftaranMenunggu > 0
+                  ? `Ada ${summary.pendaftaranMenunggu} pendaftaran menunggu verifikasi`
+                  : `Ada ${summary.pesertaTanpaMentor} peserta disetujui belum memiliki mentor`}
+              </p>
+              <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">
+                {summary.pendaftaranMenunggu > 0 && summary.pesertaTanpaMentor > 0
+                  ? `Selain itu, ${summary.pesertaTanpaMentor} peserta disetujui belum ditugaskan mentor.`
+                  : "Segera tinjau dan tindak lanjuti di halaman Pendaftaran."}
+              </p>
+            </div>
           </div>
+
+          <Link
+            href="/dashboard/admin/ViewPendaftaran"
+            className="self-start sm:self-auto inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-amber-600 hover:bg-amber-700 text-white transition shrink-0"
+          >
+            Kelola Pendaftaran
+            <ChevronRight className="w-3.5 h-3.5" />
+          </Link>
         </div>
       )}
 
-      {/* GRID UTAMA */}
+      {/* ================= 5. PERLU TINDAK LANJUT & RINGKASAN SISTEM (ATAS) ================= */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* PENDAFTARAN TERBARU */}
-        <div className="lg:col-span-2">
-          <div className="rounded-2xl bg-white/80 dark:bg-white/5 backdrop-blur border border-slate-200 dark:border-slate-700 shadow-lg p-4 sm:p-6 h-full">
-            {/* HEADER */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-              <h3 className="text-base sm:text-lg font-bold flex items-center gap-2">
-                📋 Pendaftaran Terbaru
-              </h3>
-              <a
-                href="/dashboard/admin/ViewPendaftaran"
-                className="
-                  w-full sm:w-auto
-                  text-center
-                  inline-flex items-center justify-center gap-2
-                  px-4 py-2
-                  rounded-xl
-                  text-sm font-semibold
-                  transition-all duration-300
-                  shadow-sm hover:shadow-md
-                  active:scale-95
+        {/* KIRI (2 cols): PERLU TINDAK LANJUT */}
+        <div className="lg:col-span-2 rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/30 p-5 space-y-4">
+          <div>
+            <h2 className="text-base font-bold text-slate-900 dark:text-white">
+              Perlu Tindak Lanjut
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Pintasan cepat manajemen operasional admin
+            </p>
+          </div>
 
-                  bg-[#FFF4EC] 
-                  text-[#7F1D1D]
-                  border border-[#FDE68A]
-                  hover:bg-linear-to-r hover:from-[#B91C1C] hover:to-[#F59E0B]
-                  hover:text-white
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <QuickActionLink
+              href="/dashboard/admin/ViewPendaftaran"
+              icon={<ClipboardList className="w-4 h-4" />}
+              iconBg="bg-amber-50 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400"
+              title="Verifikasi Pendaftaran"
+              desc={
+                summary.pendaftaranMenunggu > 0
+                  ? `${summary.pendaftaranMenunggu} menunggu • ${summary.pendaftaranSedangDiproses} diproses`
+                  : "Semua pendaftaran baru sudah ditinjau"
+              }
+            />
 
-                  dark:bg-indigo-900/30
-                  dark:text-indigo-300
-                  dark:border-indigo-700/40
-                  dark:hover:bg-linear-to-r
-                  dark:hover:from-indigo-600
-                  dark:hover:to-violet-500
-                  dark:hover:text-white
-                "
-              >
-                Lihat Semua →
-              </a>
-            </div>
+            <QuickActionLink
+              href="/dashboard/admin/ManajemenAkun/buatpeserta"
+              icon={<UserPlus className="w-4 h-4" />}
+              iconBg="bg-sky-50 text-[#0284c7] dark:bg-sky-950/60 dark:text-sky-400"
+              title="Kelola Akun Peserta & Mentor"
+              desc={`${summary.akunPesertaAktif} akun peserta aktif • ${summary.mentorAktif} mentor aktif`}
+            />
 
-            {pendaftaranTerbaru.length === 0 ? (
-              <div className="text-center py-10">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                  <HiUserGroup className="text-2xl text-slate-400" />
-                </div>
-                <p className="text-sm text-slate-500 dark:text-slate-400">
-                  Belum ada pendaftaran baru
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {pendaftaranTerbaru.map((pendaftaran) => (
-                  <div
-                    key={pendaftaran._id}
-                    className="group rounded-xl border border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-white/5 hover:bg-white dark:hover:bg-white/10 p-4 transition-all duration-300 hover:shadow-md"
-                  >
-                    {/* TOP INFO */}
-                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-3">
-                      <div>
-                        <p className="font-semibold text-slate-900 dark:text-white text-sm sm:text-base">
-                          {pendaftaran.peserta[0]?.nama ||
-                            "Nama tidak tersedia"}
-                        </p>
+            <QuickActionLink
+              href="/dashboard/admin/ViewLaporanAkhir"
+              icon={<GraduationCap className="w-4 h-4" />}
+              iconBg="bg-purple-50 text-purple-600 dark:bg-purple-950/60 dark:text-purple-400"
+              title="Monitoring Laporan Akhir"
+              desc={`${summary.laporanAkhirMenunggu} menunggu • ${summary.totalLaporanAkhir} total terkumpul`}
+            />
 
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                          {pendaftaran.kategori === "bersama"
-                            ? "Pendaftaran Bersama"
-                            : "Pendaftaran Individu"}{" "}
-                          • {pendaftaran.peserta.length} peserta
-                        </p>
-                      </div>
-
-                      <span
-                        className={`self-start sm:self-auto text-xs font-medium px-3 py-1 rounded-full ${getStatusColor(
-                          pendaftaran.status,
-                        )}`}
-                      >
-                        {pendaftaran.status}
-                      </span>
-                    </div>
-
-                    {/* EMAIL & WA */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm mb-3">
-                      <div className="flex items-center gap-2">
-                        <HiMail className="w-4 h-4 text-slate-400 shrink-0" />
-                        <span className="truncate">
-                          {pendaftaran.peserta[0]?.email || "-"}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <HiPhone className="w-4 h-4 text-slate-400 shrink-0" />
-                        <span>{pendaftaran.peserta[0]?.wa || "-"}</span>
-                      </div>
-                    </div>
-
-                    {/* FOOTER */}
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                      <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-                        <HiCalendar className="w-3 h-3" />
-                        <span>{formatTanggal(pendaftaran.createdAt)}</span>
-                        <span>•</span>
-                        <span>{hitungHariLalu(pendaftaran.createdAt)}</span>
-                      </div>
-
-                      <a
-                        href={`/dashboard/admin/ViewPendaftaran#${pendaftaran._id}`}
-                        className="
-                          w-full sm:w-auto
-                          text-center
-                          inline-flex items-center justify-center gap-1
-                          px-3 py-2
-                          rounded-lg
-                          text-xs font-semibold
-                          transition-all duration-300
-
-                          bg-linear-to-r from-[#B91C1C] to-[#F59E0B]
-                          text-white
-                          border border-transparent
-
-                          hover:bg-none
-                          hover:bg-[#FEF3C7]
-                          hover:text-[#7F1D1D]
-                          hover:border-[#FDE68A]
-
-                          dark:bg-linear-to-r
-                          dark:from-indigo-600
-                          dark:to-violet-500
-                          dark:text-white
-
-                          dark:hover:bg-none
-                          dark:hover:bg-indigo-900/30
-                          dark:hover:text-indigo-300
-                          dark:hover:border-indigo-700/40
-                        "
-                      >
-                        Detail →
-                      </a>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            <QuickActionLink
+              href="/dashboard/admin/ViewFeedback"
+              icon={<MessageSquareHeart className="w-4 h-4" />}
+              iconBg="bg-rose-50 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400"
+              title="Feedback & Ulasan"
+              desc={`${summary.feedbackBelumDirespon} belum direspon dari ${summary.totalFeedback} feedback`}
+            />
           </div>
         </div>
 
-        {/* TUGAS CEPAT (HANYA TAMPILAN) */}
-        <div>
-          <div className="rounded-2xl bg-white/80 dark:bg-white/5 backdrop-blur border border-slate-200 dark:border-slate-700 shadow-lg p-6 h-full">
-            <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
-              ⚡ Tugas Cepat
-            </h3>
+        {/* KANAN (1 col): RINGKASAN SISTEM */}
+        <div className="rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/30 p-5 space-y-4">
+          <div>
+            <h2 className="text-base font-bold text-slate-900 dark:text-white">
+              Ringkasan Sistem
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Statistik ringkas aktivitas hari ini & sistem
+            </p>
+          </div>
 
-            <div className="space-y-4">
-              {tasks.map((task, i) => (
-                <div
-                  key={i}
-                  className="flex items-center gap-4 p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-white/5 transition-all duration-300"
-                >
-                  <div className="w-10 h-10 rounded-lg bg-linear-to-br from-[#7F1D1D] to-[#F59E0B] dark:from-indigo-600 dark:to-violet-500 text-white flex items-center justify-center shadow">
-                    {task.icon}
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-semibold text-slate-900 dark:text-white">
-                      {task.title}
-                    </p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      {task.desc}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* STATISTIK SINGKAT */}
-            <div className="mt-8 pt-6 border-t border-slate-200 dark:border-slate-700">
-              <h4 className="text-sm font-semibold mb-4">
-                📈 Statistik Hari Ini
-              </h4>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="text-center p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                  <p className="text-2xl font-bold">{menungguVerifikasi}</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Menunggu
-                  </p>
-                </div>
-                <div className="text-center p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                  <p className="text-2xl font-bold">
-                    {
-                      pendaftaranTerbaru.filter((p) => p.status === "Disetujui")
-                        .length
-                    }
-                  </p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Disetujui
-                  </p>
-                </div>
-              </div>
-            </div>
+          <div className="grid grid-cols-2 gap-2.5">
+            <MiniMetric
+              label="Daftar Hari Ini"
+              value={summary.pendaftaranHariIni}
+            />
+            <MiniMetric
+              label="Pendaftar Disetujui"
+              value={summary.pendaftaranDisetujui}
+            />
+            <MiniMetric
+              label="Total Logbook"
+              value={summary.totalLogbook}
+            />
+            <MiniMetric
+              label="Tanpa Mentor"
+              value={summary.pesertaTanpaMentor}
+              highlight={summary.pesertaTanpaMentor > 0}
+            />
           </div>
         </div>
       </div>
+
+      {/* ================= 6. TABEL PENDAFTARAN TERBARU (BAWAH) ================= */}
+      <div className="rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900/90 shadow-2xs overflow-hidden">
+        <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
+              Pendaftaran Terbaru
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              6 pengajuan magang paling baru masuk ke sistem
+            </p>
+          </div>
+
+          <Link
+            href="/dashboard/admin/ViewPendaftaran"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-sky-50 text-[#0284c7] border border-sky-200 hover:bg-[#0284c7] hover:text-white dark:bg-sky-950/60 dark:text-sky-300 dark:border-sky-800 transition"
+          >
+            Lihat Semua
+            <ChevronRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+
+        {pendaftaranTerbaru.length === 0 ? (
+          <div className="py-12 text-center space-y-2">
+            <Users className="w-8 h-8 text-slate-400 mx-auto" />
+            <p className="text-sm font-semibold text-slate-600 dark:text-slate-300">
+              Belum ada pendaftaran masuk
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-225 w-full text-sm">
+              <thead>
+                <tr className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  <th className="w-[5%] py-3.5 px-4 text-center">No</th>
+                  <th className="w-[24%] py-3.5 px-4 text-left">Pendaftar</th>
+                  <th className="w-[16%] py-3.5 px-4 text-left">
+                    Kategori & Posisi
+                  </th>
+                  <th className="w-[22%] py-3.5 px-4 text-left">Kontak</th>
+                  <th className="w-[14%] py-3.5 px-4 text-left">
+                    Tanggal Daftar
+                  </th>
+                  <th className="w-[11%] py-3.5 px-4 text-center">Status</th>
+                  <th className="w-[8%] py-3.5 px-4 text-center">Aksi</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/70">
+                {pendaftaranTerbaru.map((item, idx) => {
+                  const lead = item.peserta[0];
+                  const asalNama = lead?.asal?.nama;
+                  return (
+                    <tr
+                      key={item._id}
+                      className="hover:bg-sky-50/50 dark:hover:bg-sky-950/20 transition"
+                    >
+                      <td className="py-3.5 px-4 text-center font-medium text-slate-500 dark:text-slate-400">
+                        {idx + 1}
+                      </td>
+
+                      <td className="py-3.5 px-4 text-left">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-9 h-9 rounded-full bg-linear-to-br from-[#0284c7] to-blue-700 text-white font-bold text-xs flex items-center justify-center shrink-0">
+                            {getInitials(lead?.nama || "P")}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-bold text-slate-900 dark:text-white truncate">
+                              {lead?.nama || "Nama tidak tersedia"}
+                            </p>
+                            {asalNama && (
+                              <p className="inline-flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 truncate max-w-48">
+                                <Building2 className="w-3 h-3 shrink-0" />
+                                <span className="truncate">{asalNama}</span>
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+
+                      <td className="py-3.5 px-4 text-left">
+                        <p className="text-xs font-semibold text-slate-800 dark:text-slate-100">
+                          {item.kategori === "bersama"
+                            ? `Kelompok (${item.jumlahPeserta} peserta)`
+                            : "Mandiri (1 peserta)"}
+                        </p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-40">
+                          {lead?.posisi || "-"}
+                        </p>
+                      </td>
+
+                      <td className="py-3.5 px-4 text-left">
+                        <div className="space-y-0.5 text-xs text-slate-600 dark:text-slate-300">
+                          <p className="inline-flex items-center gap-1.5 max-w-48">
+                            <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                            <span className="truncate">
+                              {lead?.email || "-"}
+                            </span>
+                          </p>
+                          {lead?.wa && (
+                            <p className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
+                              <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                              <span>{lead.wa}</span>
+                            </p>
+                          )}
+                        </div>
+                      </td>
+
+                      <td className="py-3.5 px-4 text-left whitespace-nowrap text-xs text-slate-600 dark:text-slate-300">
+                        <p className="inline-flex items-center gap-1.5 font-medium">
+                          <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                          {formatTanggal(item.createdAt)}
+                        </p>
+                        <p className="text-[11px] text-slate-400 mt-0.5">
+                          {hitungHariLalu(item.createdAt)}
+                        </p>
+                      </td>
+
+                      <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                        <span
+                          className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold border ${getStatusBadgeClass(
+                            item.status,
+                          )}`}
+                        >
+                          {item.status}
+                        </span>
+                      </td>
+
+                      <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                        <Link
+                          href={`/dashboard/admin/ViewPendaftaran#${item._id}`}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold bg-[#0284c7] hover:bg-sky-700 text-white transition"
+                        >
+                          Detail
+                          <ChevronRight className="w-3.5 h-3.5" />
+                        </Link>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ================= SUB-COMPONENTS ================= */
+
+function AdminStatCard({
+  href,
+  title,
+  value,
+  unit,
+  subtitle,
+  icon,
+  accent,
+  highlight = false,
+}: {
+  href: string;
+  title: string;
+  value: number;
+  unit: string;
+  subtitle: string;
+  icon: React.ReactNode;
+  accent: "blue" | "sky" | "amber" | "purple" | "emerald";
+  highlight?: boolean;
+}) {
+  const styles: Record<
+    typeof accent,
+    {
+      cardBg: string;
+      border: string;
+      iconBg: string;
+      titleText: string;
+      valueText: string;
+      unitText: string;
+      divider: string;
+      subtitleText: string;
+      chevron: string;
+    }
+  > = {
+    blue: {
+      cardBg:
+        "bg-linear-to-br from-[#0284c7] via-sky-600 to-blue-700 dark:from-[#0369a1] dark:to-blue-800",
+      border: "border-sky-500/30",
+      iconBg: "bg-white/20 text-white",
+      titleText: "text-sky-100",
+      valueText: "text-white",
+      unitText: "text-sky-100",
+      divider: "border-white/20",
+      subtitleText: "text-sky-100/90",
+      chevron: "text-sky-100",
+    },
+    sky: {
+      cardBg: "bg-white dark:bg-slate-900/90",
+      border: "border-slate-200/80 dark:border-slate-800",
+      iconBg: "bg-sky-50 text-[#0284c7] dark:bg-sky-950/60 dark:text-sky-400",
+      titleText: "text-slate-500 dark:text-slate-400",
+      valueText: "text-slate-900 dark:text-white",
+      unitText: "text-slate-500 dark:text-slate-400",
+      divider: "border-slate-100 dark:border-slate-800",
+      subtitleText: "text-slate-500 dark:text-slate-400",
+      chevron: "text-slate-400",
+    },
+    amber: {
+      cardBg: "bg-white dark:bg-slate-900/90",
+      border: highlight
+        ? "border-amber-300/80 dark:border-amber-700/70"
+        : "border-slate-200/80 dark:border-slate-800",
+      iconBg:
+        "bg-amber-50 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400",
+      titleText: "text-slate-500 dark:text-slate-400",
+      valueText: "text-amber-700 dark:text-amber-300",
+      unitText: "text-slate-500 dark:text-slate-400",
+      divider: "border-slate-100 dark:border-slate-800",
+      subtitleText: "text-slate-500 dark:text-slate-400",
+      chevron: "text-slate-400",
+    },
+    purple: {
+      cardBg: "bg-white dark:bg-slate-900/90",
+      border: highlight
+        ? "border-purple-300/80 dark:border-purple-700/70"
+        : "border-slate-200/80 dark:border-slate-800",
+      iconBg:
+        "bg-purple-50 text-purple-600 dark:bg-purple-950/60 dark:text-purple-400",
+      titleText: "text-slate-500 dark:text-slate-400",
+      valueText: "text-purple-700 dark:text-purple-300",
+      unitText: "text-slate-500 dark:text-slate-400",
+      divider: "border-slate-100 dark:border-slate-800",
+      subtitleText: "text-slate-500 dark:text-slate-400",
+      chevron: "text-slate-400",
+    },
+    emerald: {
+      cardBg: "bg-white dark:bg-slate-900/90",
+      border: "border-slate-200/80 dark:border-slate-800",
+      iconBg:
+        "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400",
+      titleText: "text-slate-500 dark:text-slate-400",
+      valueText: "text-slate-900 dark:text-white",
+      unitText: "text-slate-500 dark:text-slate-400",
+      divider: "border-slate-100 dark:border-slate-800",
+      subtitleText: "text-slate-500 dark:text-slate-400",
+      chevron: "text-slate-400",
+    },
+  };
+
+  const s = styles[accent];
+
+  return (
+    <Link
+      href={href}
+      className={`group rounded-2xl border ${s.border} ${s.cardBg} p-4 sm:p-5 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between gap-3`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className={`text-xs font-semibold ${s.titleText}`}>{title}</p>
+          <div className="flex items-baseline gap-1.5 mt-1.5">
+            <span className={`text-3xl font-extrabold ${s.valueText}`}>
+              {value}
+            </span>
+            <span className={`text-xs font-medium ${s.unitText}`}>{unit}</span>
+          </div>
+        </div>
+        <div
+          className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${s.iconBg}`}
+        >
+          {icon}
+        </div>
+      </div>
+
+      <div
+        className={`flex items-center justify-between gap-2 pt-2.5 border-t ${s.divider}`}
+      >
+        <span className={`text-[11px] sm:text-xs truncate ${s.subtitleText}`}>
+          {subtitle}
+        </span>
+        <ChevronRight
+          className={`w-3.5 h-3.5 ${s.chevron} group-hover:translate-x-0.5 transition shrink-0`}
+        />
+      </div>
+    </Link>
+  );
+}
+
+function QuickActionLink({
+  href,
+  icon,
+  iconBg,
+  title,
+  desc,
+}: {
+  href: string;
+  icon: React.ReactNode;
+  iconBg: string;
+  title: string;
+  desc: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="group flex items-center justify-between gap-3 p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 hover:border-sky-300 dark:hover:border-sky-700 hover:shadow-2xs transition"
+    >
+      <div className="flex items-center gap-3 min-w-0">
+        <div
+          className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${iconBg}`}
+        >
+          {icon}
+        </div>
+        <div className="min-w-0">
+          <p className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-100 truncate">
+            {title}
+          </p>
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+            {desc}
+          </p>
+        </div>
+      </div>
+      <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition shrink-0" />
+    </Link>
+  );
+}
+
+function MiniMetric({
+  label,
+  value,
+  highlight = false,
+}: {
+  label: string;
+  value: number;
+  highlight?: boolean;
+}) {
+  return (
+    <div className="rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-3 text-center">
+      <p
+        className={`text-xl font-extrabold ${
+          highlight
+            ? "text-amber-600 dark:text-amber-400"
+            : "text-slate-900 dark:text-white"
+        }`}
+      >
+        {value}
+      </p>
+      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+        {label}
+      </p>
     </div>
   );
 }

@@ -1,835 +1,595 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
-  HiUser,
-  HiMail,
-  HiPhone,
-  HiBriefcase,
-  HiAcademicCap,
-  HiCalendar,
-  HiSearch,
-  HiDocumentText,
-} from "react-icons/hi";
-import SuperadminPesertaModal from "@/components/superadmin/SuperadminPesertaModal";
+  Briefcase,
+  Calendar,
+  CheckCircle2,
+  Clock,
+  Eye,
+  FileCheck2,
+  GraduationCap,
+  RefreshCw,
+  Search,
+  UserCheck,
+  Users,
+  X,
+} from "lucide-react";
+import AdminPesertaModal, {
+  PesertaDisetujuiItem,
+} from "@/components/admin/AdminPesertaModal";
+import PaginationFooter from "@/components/dashboard/PaginationFooter";
+import { TablePageSkeleton } from "@/components/dashboard/skeletons";
+import { showToast } from "@/components/ui/toastDashboard";
 
-// ================ TYPES ================
-type Peserta = {
-  pendaftaranId: string;
-  pesertaId: string;
-  nama: string;
+/* ================= TYPES & CONSTANTS ================= */
+
+type SuratSelesaiItem = {
   email: string;
-  wa: string;
-  posisi: string;
-  jurusan: string;
-  kategori: string;
-  statusMagang?:
-    | "Menunggu"
-    | "Belum Waktu Magang"
-    | "Sedang Magang"
-    | "Selesai Magang"
-    | "Tidak Magang";
-  mentor?: {
-    _id: string;
-    name: string;
-    email: string;
-  };
-  isTerdaftar: boolean;
-  tanggalMulaiMagang: string;
-  tanggalSelesaiMagang: string;
-  statusPendaftaran?: "Disetujui" | "Ditolak" | "Menunggu";
-  createdAt: string;
+  file?: string;
+  tanggalKirim?: string;
 };
 
-type SuratSelesaiStatus = {
-  [email: string]: {
-    status: "Sudah Terkirim" | "Belum Ada Surat";
-    file?: string;
-    tanggalKirim?: string;
-  };
-};
+type FilterTab =
+  | "Semua"
+  | "Sedang Magang"
+  | "Belum Waktu Magang"
+  | "Selesai"
+  | "Tanpa Mentor";
 
-// ================ MAIN COMPONENT ================
-export default function ViewPesertaSuperadmin() {
-  const abortControllerRef = useRef<AbortController | null>(null);
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
+const ITEMS_PER_PAGE = 10;
 
-  const [pesertaList, setPesertaList] = useState<Peserta[]>([]);
-  const [filteredPeserta, setFilteredPeserta] = useState<Peserta[]>([]);
+function getTodayWibIso(): string {
+  return new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
+}
+
+function getEffectiveStatusMagang(p: PesertaDisetujuiItem): string {
+  if (p.statusMagang === "Tidak Magang") return "Tidak Magang";
+  if (p.tanggalMulaiMagang && p.tanggalSelesaiMagang) {
+    const todayIso = getTodayWibIso();
+    if (todayIso < p.tanggalMulaiMagang) return "Belum Waktu Magang";
+    if (todayIso <= p.tanggalSelesaiMagang) return "Sedang Magang";
+    return "Selesai";
+  }
+  return p.statusMagang || "Menunggu";
+}
+
+function getStatusBadgeClass(status: string) {
+  switch (status) {
+    case "Sedang Magang":
+      return "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800";
+    case "Belum Waktu Magang":
+      return "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800";
+    case "Selesai":
+      return "bg-sky-50 text-[#0284c7] border-sky-200 dark:bg-sky-950/50 dark:text-sky-300 dark:border-sky-800";
+    default:
+      return "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700";
+  }
+}
+
+function getInitials(name = "P"): string {
+  return (
+    name
+      .split(" ")
+      .filter(Boolean)
+      .map((part) => part[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase() || "P"
+  );
+}
+
+/* ================= COMPONENT ================= */
+
+export default function ViewPesertaAdminPage() {
+  const router = useRouter();
+
+  const [data, setData] = useState<PesertaDisetujuiItem[]>([]);
+  const [suratSelesaiMap, setSuratSelesaiMap] = useState<
+    Record<string, SuratSelesaiItem>
+  >({});
+
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
   const [search, setSearch] = useState("");
-  const [selectedPeserta, setSelectedPeserta] = useState<Peserta | null>(null);
-  const [suratSelesaiStatus, setSuratSelesaiStatus] =
-    useState<SuratSelesaiStatus>({});
-  const [loadingSurat, setLoadingSurat] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [filterTab, setFilterTab] = useState<FilterTab>("Semua");
+  const [currentPage, setCurrentPage] = useState(1);
 
-  // Pagination state
-  const [page, setPage] = useState(1);
-  const itemsPerPage = 10;
+  const [selectedPeserta, setSelectedPeserta] =
+    useState<PesertaDisetujuiItem | null>(null);
 
-  // Fungsi untuk memformat tanggal
-  const formatTanggal = (tanggal: string) => {
-    if (!tanggal) return "-";
-    const date = new Date(tanggal);
-    return date.toLocaleDateString("id-ID", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    });
-  };
+  /* ================= FETCH ================= */
 
-  // Ambil token dengan safe check
-  const getToken = () => {
-    if (typeof window === "undefined") return null;
-    return localStorage.getItem("token");
-  };
-
-  // Fetch semua data surat selesai
-  const fetchAllSuratSelesai = useCallback(async (signal?: AbortSignal) => {
+  const fetchPeserta = useCallback(async (isManual = false) => {
     try {
-      const token = getToken();
-      if (!token) {
-        console.warn("Token tidak ditemukan");
-        return {};
-      }
+      if (isManual) setRefreshing(true);
+      else setLoading(true);
 
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/surat-selesai/all`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          signal,
-        },
-      );
+      const token = localStorage.getItem("token");
+      const headers = {
+        Authorization: `Bearer ${token}`,
+      };
 
-      if (!res.ok) {
-        throw new Error(`Gagal fetch surat: ${res.status}`);
-      }
-
-      const data = await res.json();
-
-      // Konversi ke object dengan key email
-      const statusMap: SuratSelesaiStatus = {};
-
-      if (Array.isArray(data)) {
-        data.forEach((surat: any) => {
-          if (surat?.email) {
-            statusMap[surat.email] = {
-              status: "Sudah Terkirim",
-              file: surat.file,
-              tanggalKirim: surat.tanggalKirim,
-            };
-          }
-        });
-      }
-
-      return statusMap;
-    } catch (err: any) {
-      if (err.name === "AbortError") {
-        console.log("Fetch surat dibatalkan");
-        return {};
-      }
-      console.error("Gagal fetch data surat selesai", err);
-      return {};
-    }
-  }, []);
-
-  // Fetch data peserta
-  const fetchPeserta = useCallback(async (signal?: AbortSignal) => {
-    try {
-      const token = getToken();
-      if (!token) {
-        throw new Error("Token tidak ditemukan");
-      }
-
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/superadmin/peserta/disetujui`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          signal,
-        },
-      );
-
-      if (!res.ok) {
-        throw new Error(`Gagal fetch peserta: ${res.status}`);
-      }
-
-      const data: Peserta[] = await res.json();
-      return Array.isArray(data) ? data : [];
-    } catch (err: any) {
-      if (err.name === "AbortError") {
-        console.log("Fetch peserta dibatalkan");
-        return [];
-      }
-      throw err;
-    }
-  }, []);
-
-  // Load data utama
-  const loadData = useCallback(async () => {
-    // Cancel previous request
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-
-    // Create new abort controller
-    abortControllerRef.current = new AbortController();
-    const signal = abortControllerRef.current.signal;
-
-    setLoading(true);
-    setLoadingSurat(true);
-    setError(null);
-
-    try {
-      // Fetch peserta dan surat selesai bersamaaan
-      const [pesertaData, suratStatusMap] = await Promise.all([
-        fetchPeserta(signal),
-        fetchAllSuratSelesai(signal),
+      const [resPeserta, resSurat] = await Promise.all([
+        fetch(`${API_BASE}/admin/peserta/disetujui`, { headers }),
+        fetch(`${API_BASE}/surat-selesai/all`, { headers }).catch(() => null),
       ]);
 
-      // Set surat status
-      setSuratSelesaiStatus(suratStatusMap);
-
-      // Sort dari terbaru ke terlama
-      const sortedData = [...pesertaData].sort(
-        (a, b) =>
-          new Date(b.createdAt || 0).getTime() -
-          new Date(a.createdAt || 0).getTime(),
-      );
-
-      setPesertaList(sortedData);
-      setFilteredPeserta(sortedData);
-      setPage(1);
-    } catch (error: any) {
-      if (error.name !== "AbortError") {
-        console.error("Gagal memuat data peserta", error);
-        setError(error.message || "Gagal memuat data");
+      if (!resPeserta.ok) {
+        throw new Error("Gagal mengambil data peserta magang");
       }
+
+      const jsonPeserta = await resPeserta.json();
+      setData(Array.isArray(jsonPeserta) ? jsonPeserta : []);
+
+      if (resSurat && resSurat.ok) {
+        const jsonSurat = await resSurat.json();
+        const map: Record<string, SuratSelesaiItem> = {};
+        if (Array.isArray(jsonSurat)) {
+          for (const item of jsonSurat) {
+            if (item?.email) {
+              map[item.email.trim().toLowerCase()] = item;
+            }
+          }
+        }
+        setSuratSelesaiMap(map);
+      }
+    } catch (err) {
+      console.error("Error fetch ViewPeserta:", err);
+      showToast.error("Gagal memuat data peserta magang");
     } finally {
       setLoading(false);
-      setLoadingSurat(false);
+      setRefreshing(false);
     }
-  }, [fetchPeserta, fetchAllSuratSelesai]);
+  }, []);
 
-  // Cleanup effect
   useEffect(() => {
-    loadData();
+    fetchPeserta();
+  }, [fetchPeserta]);
 
-    // Cleanup function
-    return () => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
+  /* ================= STATS & FILTERING ================= */
+
+  const stats = useMemo(() => {
+    let sedangMagang = 0;
+    let belumMulai = 0;
+    let selesai = 0;
+    let tanpaMentor = 0;
+    let suratTerkirim = 0;
+
+    for (const p of data) {
+      const effectiveStatus = getEffectiveStatusMagang(p);
+      if (effectiveStatus === "Sedang Magang") sedangMagang += 1;
+      else if (effectiveStatus === "Belum Waktu Magang") belumMulai += 1;
+      else if (effectiveStatus === "Selesai") selesai += 1;
+
+      if (!p.mentor) tanpaMentor += 1;
+      if (p.email && suratSelesaiMap[p.email.trim().toLowerCase()]) {
+        suratTerkirim += 1;
       }
-    };
-  }, [loadData]);
-
-  // Search effect
-  useEffect(() => {
-    if (!search.trim()) {
-      setFilteredPeserta(pesertaList);
-      setPage(1);
-      return;
     }
 
-    const query = search.toLowerCase();
-    const filtered = pesertaList.filter(
-      (p) =>
-        p.nama?.toLowerCase().includes(query) ||
-        p.email?.toLowerCase().includes(query) ||
-        p.posisi?.toLowerCase().includes(query) ||
-        p.jurusan?.toLowerCase().includes(query),
-    );
-    setFilteredPeserta(filtered);
-    setPage(1);
-  }, [search, pesertaList]);
+    return {
+      Semua: data.length,
+      "Sedang Magang": sedangMagang,
+      "Belum Waktu Magang": belumMulai,
+      Selesai: selesai,
+      "Tanpa Mentor": tanpaMentor,
+      suratTerkirim,
+    };
+  }, [data, suratSelesaiMap]);
 
-  // Calculate pagination
-  const totalPage = Math.ceil(filteredPeserta.length / itemsPerPage);
-  const indexOfLastItem = page * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = filteredPeserta.slice(indexOfFirstItem, indexOfLastItem);
+  const filteredData = useMemo(() => {
+    const q = search.trim().toLowerCase();
 
-  // ================ HANDLERS ================
+    return data.filter((p) => {
+      const effectiveStatus = getEffectiveStatusMagang(p);
+
+      if (filterTab === "Tanpa Mentor" && p.mentor) return false;
+      if (
+        filterTab !== "Semua" &&
+        filterTab !== "Tanpa Mentor" &&
+        effectiveStatus !== filterTab
+      ) {
+        return false;
+      }
+
+      if (!q) return true;
+
+      return (
+        p.nama?.toLowerCase().includes(q) ||
+        p.email?.toLowerCase().includes(q) ||
+        p.wa?.toLowerCase().includes(q) ||
+        p.posisi?.toLowerCase().includes(q) ||
+        p.jurusan?.toLowerCase().includes(q) ||
+        p.mentor?.name?.toLowerCase().includes(q)
+      );
+    });
+  }, [data, search, filterTab]);
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredData.length / ITEMS_PER_PAGE),
+  );
+  const safePage = Math.min(currentPage, totalPages);
+
+  const paginatedData = useMemo(() => {
+    const start = (safePage - 1) * ITEMS_PER_PAGE;
+    return filteredData.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredData, safePage]);
+
+  /* ================= NAVIGATION HANDLERS ================= */
+
   const handleViewLogbook = (email: string) => {
-    window.location.href = `/dashboard/superadmin/ViewLogbook?email=${encodeURIComponent(email)}`;
+    router.push(
+      `/dashboard/admin/ViewLogbook?email=${encodeURIComponent(email)}`,
+    );
   };
 
   const handleViewLaporanAkhir = (email: string) => {
-    window.location.href = `/dashboard/superadmin/ViewLaporanAkhir?email=${encodeURIComponent(email)}`;
+    router.push(
+      `/dashboard/admin/ViewLaporanAkhir?email=${encodeURIComponent(email)}`,
+    );
   };
 
-  // Handler untuk refresh data
-  const handleSuratSelesaiSuccess = () => {
-    loadData();
-  };
+  /* ================= RENDER ================= */
 
-  // ================ RENDER ================
+  if (loading) {
+    return (
+      <TablePageSkeleton
+        title="Data Peserta Magang"
+        subtitle="Memuat daftar peserta magang yang telah disetujui..."
+        columnsCount={6}
+        rowsCount={8}
+      />
+    );
+  }
+
   return (
-    <div
-      className="
-          min-h-screen p-4 sm:p-6 lg:p-10
-          bg-linear-to-br
-          from-slate-50 via-white to-indigo-100
-          dark:from-[#0B0614] dark:via-[#120A24] dark:to-[#1E0F3D]
-          text-slate-800 dark:text-slate-100
-          transition-colors
-        "
-    >
-      {/* HEADER */}
-      <div className="mb-10">
-        <h1 className="flex items-center gap-3 tracking-tight mb-2">
-          <span
-            className="
-              text-2xl sm:text-3xl lg:text-4xl
-              font-extrabold leading-tight
-              bg-clip-text text-transparent
-              bg-linear-to-r
-              from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
-              dark:from-indigo-400 dark:via-violet-400 dark:to-purple-400
-            "
-          >
-            Data Peserta Disetujui
-          </span>
-        </h1>
-        <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400">
-          Kelola semua peserta yang sudah disetujui
-        </p>
-      </div>
-
-      {/* ERROR STATE */}
-      {error && (
-        <div className="mb-6 p-4 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800">
-          <p className="text-sm">Error: {error}</p>
-          <button
-            onClick={() => loadData()}
-            className="mt-2 text-sm font-semibold underline hover:no-underline"
-          >
-            Coba lagi
-          </button>
-        </div>
-      )}
-
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
-        <StatCard
-          title="Total Peserta"
-          value={pesertaList.length}
-          icon={<HiUser className="w-7 h-7" />}
-          note="Jumlah seluruh peserta"
-          color="indigo"
-        />
-
-        <StatCard
-          title="Punya Mentor"
-          value={pesertaList.filter((p) => p.mentor).length}
-          icon={<HiAcademicCap className="w-7 h-7" />}
-          note="Peserta dengan mentor aktif"
-          color="emerald"
-        />
-
-        <StatCard
-          title="Aktif Magang"
-          value={
-            pesertaList.filter(
-              (p) =>
-                p.statusMagang === "Sedang Magang" ||
-                p.statusMagang === "Belum Waktu Magang",
-            ).length
-          }
-          icon={<HiCalendar className="w-7 h-7" />}
-          note="Sedang / akan menjalani magang"
-          color="amber"
-        />
-
-        <StatCard
-          title="Sudah Selesai"
-          value={
-            pesertaList.filter((p) => p.statusMagang === "Selesai Magang")
-              .length
-          }
-          icon={<HiBriefcase className="w-7 h-7" />}
-          note="Magang telah selesai"
-          color="slate"
-        />
-
-        <StatCard
-          title="Surat Terkirim"
-          value={Object.keys(suratSelesaiStatus).length}
-          icon={<HiDocumentText className="w-7 h-7" />}
-          note="Surat selesai magang terkirim"
-          color="emerald"
-        />
-      </div>
-
-      {/* SEARCH BAR */}
-      <div className="mb-8">
-        <div className="relative">
-          <HiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-[#7F1D1D] dark:text-indigo-400 w-5 h-5 z-10" />
-          <input
-            type="text"
-            placeholder="Cari peserta berdasarkan nama, email, atau posisi..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="
-                w-full pl-11 pr-10 py-3
-                rounded-2xl
-                bg-white/90 dark:bg-white/5
-                backdrop-blur
-                border border-[#F59E0B]/40 dark:border-indigo-500/40
-                text-slate-700 dark:text-slate-100
-                placeholder:text-slate-400
-                focus:outline-none focus:ring-2
-                focus:ring-[#B91C1C]/60 dark:focus:ring-indigo-500/60
-                transition
-              "
-          />
-        </div>
-      </div>
-
-      {/* TABLE */}
-      {!loading && currentItems.length === 0 ? (
-        <div
-          className="
-              rounded-3xl
-              bg-white/80 dark:bg-white/5
-              backdrop-blur
-              border border-[#F59E0B]/30 dark:border-indigo-500/30
-              shadow-xl
-              p-12 text-center
-            "
-        >
-          <div
-            className="
-                w-16 h-16 sm:w-20 sm:h-20
-                mx-auto mb-5
-                rounded-full
-                bg-linear-to-br
-                from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
-                dark:from-indigo-600 dark:to-violet-500
-                flex items-center justify-center
-                shadow-lg
-                animate-pulse
-              "
-          >
-            <HiUser className="w-7 h-7 sm:w-10 sm:h-10 text-white" />
-          </div>
-
-          <h3 className="text-lg sm:text-xl font-bold text-[#7F1D1D] dark:text-indigo-300 mb-2">
-            {search ? "Peserta tidak ditemukan" : "Belum ada data peserta"}
-          </h3>
-
-          <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 max-w-md mx-auto">
-            {search
-              ? `Tidak ada peserta yang sesuai dengan pencarian "${search}".`
-              : "Saat ini belum ada peserta yang terdaftar."}
+    <div className="space-y-6">
+      {/* ================= HEADER ================= */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-3 border-b border-slate-100 dark:border-slate-800">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+            Data Peserta Magang
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
+            Pantau peserta yang telah disetujui, mentor pembimbing, logbook,
+            laporan akhir, dan surat selesai magang
           </p>
         </div>
-      ) : (
-        <div
-          className="
-              rounded-2xl
-              bg-white/90 dark:bg-white/5
-              backdrop-blur
-              border border-slate-200 dark:border-indigo-500/30
-              shadow-lg
-              overflow-hidden
-            "
+
+        <button
+          type="button"
+          onClick={() => fetchPeserta(true)}
+          disabled={refreshing}
+          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition self-start sm:self-auto disabled:opacity-60"
         >
-          {/* LOADING OVERLAY */}
-          {loading && (
-            <div className="flex items-center justify-center py-20">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#B91C1C] dark:border-indigo-400"></div>
+          <RefreshCw
+            className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`}
+          />
+          Refresh
+        </button>
+      </div>
+
+      {/* ================= KPI CARDS ================= */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="rounded-2xl p-5 bg-linear-to-br from-[#0284c7] to-blue-700 text-white shadow-sm">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-medium text-sky-100">
+                Total Peserta Disetujui
+              </p>
+              <p className="text-3xl font-extrabold tracking-tight mt-2">
+                {stats.Semua}
+              </p>
+              <p className="text-[11px] text-sky-100 mt-1.5">
+                {stats.suratTerkirim} surat selesai telah terkirim
+              </p>
             </div>
-          )}
+            <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
+              <Users className="w-5 h-5" />
+            </div>
+          </div>
+        </div>
 
-          {!loading && (
-            <>
-              <div className="overflow-x-auto">
-                <table className="min-w-200 w-full text-sm sm:text-base">
-                  <thead>
-                    <tr
-                      className="
-                          bg-slate-50 dark:bg-indigo-500/10
-                          border-b border-slate-200 dark:border-indigo-500/30
-                        "
-                    >
-                      <th className="w-[5%] py-4 px-3 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
-                        No
-                      </th>
-                      <th className="w-[18%] py-4 px-3 text-left text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
-                        Peserta
-                      </th>
-                      <th className="w-[18%] py-4 px-3 text-left text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
-                        Kontak
-                      </th>
-                      <th className="w-[12%] py-4 px-3 text-left text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
-                        Posisi
-                      </th>
-                      <th className="w-[13%] py-4 px-3 text-left text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
-                        Mentor
-                      </th>
-                      <th className="w-[8%] py-4 px-3 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
-                        Tgl Mulai
-                      </th>
-                      <th className="w-[8%] py-4 px-3 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
-                        Tgl Selesai
-                      </th>
-                      <th className="w-[9%] py-4 px-3 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
-                        Status Magang
-                      </th>
-                      <th className="w-[9%] py-4 px-3 text-center text-xs font-semibold uppercase text-slate-600 dark:text-indigo-200">
-                        Status Surat
-                      </th>
-                    </tr>
-                  </thead>
+        <div className="rounded-2xl p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                Sedang Magang
+              </p>
+              <p className="text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 tracking-tight mt-2">
+                {stats["Sedang Magang"]}
+              </p>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1.5">
+                Aktif melaksanakan magang
+              </p>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+              <CheckCircle2 className="w-5 h-5" />
+            </div>
+          </div>
+        </div>
 
-                  <tbody className="divide-y divide-slate-100 dark:divide-indigo-500/20">
-                    {currentItems.map((p, index) => {
-                      const suratStatus =
-                        suratSelesaiStatus[p.email]?.status ||
-                        "Belum Ada Surat";
+        <div className="rounded-2xl p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                Belum Mulai
+              </p>
+              <p className="text-3xl font-extrabold text-amber-600 dark:text-amber-400 tracking-tight mt-2">
+                {stats["Belum Waktu Magang"]}
+              </p>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1.5">
+                Menunggu jadwal mulai magang
+              </p>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+              <Clock className="w-5 h-5" />
+            </div>
+          </div>
+        </div>
 
-                      return (
-                        <tr
-                          key={p.pesertaId || index}
-                          className="hover:bg-[#FEF3C7]/40 dark:hover:bg-indigo-500/10 transition"
-                        >
-                          <td className="py-4 px-3 text-center align-middle font-medium text-slate-500 dark:text-slate-400">
-                            {indexOfFirstItem + index + 1}
-                          </td>
+        <div className="rounded-2xl p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                Selesai / Tanpa Mentor
+              </p>
+              <p className="text-3xl font-extrabold text-[#0284c7] dark:text-sky-400 tracking-tight mt-2">
+                {stats.Selesai}
+              </p>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1.5">
+                {stats["Tanpa Mentor"]} peserta belum memiliki mentor
+              </p>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-sky-50 dark:bg-sky-950/60 text-[#0284c7] dark:text-sky-400 flex items-center justify-center shrink-0">
+              <UserCheck className="w-5 h-5" />
+            </div>
+          </div>
+        </div>
+      </div>
 
-                          <td className="py-4 px-3 text-left align-middle">
-                            <div
-                              onClick={() => setSelectedPeserta(p)}
-                              className="flex items-center gap-3 cursor-pointer group"
-                            >
-                              <div
-                                className="
-                                  shrink-0 w-10 h-10 min-w-10 min-h-10
-                                  rounded-full
-                                  bg-linear-to-br from-[#7F1D1D] to-[#F59E0B]
-                                  dark:from-indigo-600 dark:to-violet-500
-                                  flex items-center justify-center
-                                  text-white shadow
-                                  group-hover:scale-110 transition
-                                "
-                              >
-                                <HiUser className="w-5 h-5" />
-                              </div>
+      {/* ================= FILTER TABS & SEARCH ================= */}
+      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/30 p-3.5 flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-1.5">
+          {(
+            [
+              "Semua",
+              "Sedang Magang",
+              "Belum Waktu Magang",
+              "Selesai",
+              "Tanpa Mentor",
+            ] as FilterTab[]
+          ).map((tab) => {
+            const active = filterTab === tab;
+            return (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => {
+                  setFilterTab(tab);
+                  setCurrentPage(1);
+                }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition inline-flex items-center gap-1.5 ${
+                  active
+                    ? "bg-[#0284c7] text-white shadow-xs"
+                    : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
+                }`}
+              >
+                <span>{tab}</span>
+                <span
+                  className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold ${
+                    active
+                      ? "bg-white/20 text-white"
+                      : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+                  }`}
+                >
+                  {stats[tab]}
+                </span>
+              </button>
+            );
+          })}
+        </div>
 
-                              <div className="text-left leading-tight">
-                                <p className="font-medium text-slate-800 dark:text-slate-100">
-                                  {p.nama || "-"}
-                                </p>
-                                <p className="text-xs text-[#7F1D1D]">
-                                  Klik untuk lihat detail
-                                </p>
-                              </div>
-                            </div>
-                          </td>
-
-                          <td className="py-4 px-3 text-left align-middle">
-                            <div className="space-y-1 text-slate-600 dark:text-slate-300 text-xs">
-                              <div className="flex items-center gap-1.5">
-                                <HiMail className="w-3.5 h-3.5 shrink-0 text-slate-400" />
-                                <span className="truncate max-w-44">
-                                  {p.email || "-"}
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-1.5">
-                                <HiPhone className="w-3.5 h-3.5 shrink-0 text-slate-400" />
-                                <span className="truncate max-w-44">
-                                  {p.wa || "-"}
-                                </span>
-                              </div>
-                            </div>
-                          </td>
-
-                          <td className="py-4 px-3 text-left align-middle">
-                            <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
-                              {p.posisi || "-"}
-                            </span>
-                          </td>
-
-                          <td className="py-4 px-3 text-left align-middle">
-                            {p.mentor ? (
-                              <div className="text-xs space-y-0.5">
-                                <p className="font-medium text-slate-800 dark:text-slate-100 truncate max-w-36">
-                                  {p.mentor.name || "-"}
-                                </p>
-                                <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate max-w-36">
-                                  {p.mentor.email || "-"}
-                                </p>
-                              </div>
-                            ) : (
-                              <span className="text-slate-400 italic text-xs">
-                                -
-                              </span>
-                            )}
-                          </td>
-
-                          <td className="py-4 px-3 text-center align-middle">
-                            <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
-                              {formatTanggal(p.tanggalMulaiMagang)}
-                            </span>
-                          </td>
-
-                          <td className="py-4 px-3 text-center align-middle">
-                            <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
-                              {formatTanggal(p.tanggalSelesaiMagang)}
-                            </span>
-                          </td>
-
-                          <td className="py-4 px-3 text-center align-middle">
-                            <StatusMagangBadge
-                              status={p.statusMagang || "Menunggu"}
-                            />
-                          </td>
-
-                          <td className="py-4 px-3 text-center align-middle">
-                            {loadingSurat ? (
-                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">
-                                <span className="animate-pulse">Memuat...</span>
-                              </span>
-                            ) : (
-                              <SuratSelesaiBadge status={suratStatus} />
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* PAGINATION */}
-              {totalPage > 1 && (
-                <div className="flex flex-wrap items-center justify-center gap-2 py-5">
-                  <button
-                    disabled={page === 1}
-                    onClick={() => setPage((p) => p - 1)}
-                    className="
-                        px-4 py-2
-                        rounded-lg
-                        text-sm font-medium
-                        border
-                        border-slate-300 dark:border-indigo-500/30
-                        bg-white dark:bg-indigo-950
-                        text-slate-700 dark:text-indigo-200
-                        hover:bg-[#FFF1F2] dark:hover:bg-indigo-900/40
-                        disabled:opacity-40 disabled:cursor-not-allowed
-                        transition
-                      "
-                  >
-                    Prev
-                  </button>
-
-                  {Array.from({ length: Math.min(totalPage, 5) }).map(
-                    (_, i) => {
-                      let pageNum = i + 1;
-                      if (totalPage > 5) {
-                        if (page > 3) {
-                          pageNum = page - 3 + i;
-                        }
-                      }
-
-                      if (pageNum > totalPage) return null;
-
-                      const active = page === pageNum;
-                      return (
-                        <button
-                          key={pageNum}
-                          onClick={() => setPage(pageNum)}
-                          className={`
-                            min-w-9.5 h-9.5 px-3
-                            rounded-lg
-                            text-sm font-semibold
-                            transition
-                            ${
-                              active
-                                ? `
-                                  bg-[#B91C1C] text-white shadow
-                                  dark:bg-indigo-600
-                                `
-                                : `
-                                  bg-white dark:bg-indigo-950
-                                  text-[#7F1D1D] dark:text-indigo-200
-                                  border border-slate-300 dark:border-indigo-500/30
-                                  hover:bg-[#FFF1F2] dark:hover:bg-indigo-900/40
-                                `
-                            }
-                          `}
-                        >
-                          {pageNum}
-                        </button>
-                      );
-                    },
-                  )}
-
-                  <button
-                    disabled={page === totalPage}
-                    onClick={() => setPage((p) => p + 1)}
-                    className="
-                        px-4 py-2
-                        rounded-lg
-                        text-sm font-medium
-                        border
-                        border-slate-300 dark:border-indigo-500/30
-                        bg-white dark:bg-indigo-950
-                        text-slate-700 dark:text-indigo-200
-                        hover:bg-[#FFF1F2] dark:hover:bg-indigo-900/40
-                        disabled:opacity-40 disabled:cursor-not-allowed
-                        transition
-                      "
-                  >
-                    Next
-                  </button>
-                </div>
-              )}
-            </>
+        <div className="relative w-full xl:w-80">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setCurrentPage(1);
+            }}
+            placeholder="Cari nama, email, posisi, mentor..."
+            className="w-full pl-9 pr-9 py-2 rounded-xl text-xs sm:text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40 focus:border-[#0284c7]"
+          />
+          {search && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearch("");
+                setCurrentPage(1);
+              }}
+              aria-label="Hapus pencarian"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+            >
+              <X className="w-4 h-4" />
+            </button>
           )}
         </div>
-      )}
+      </div>
 
-      {/* Modal */}
+      {/* ================= TABLE ================= */}
+      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-xs">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-50 dark:bg-slate-800/70 border-b border-slate-200 dark:border-slate-800 text-[11px] uppercase tracking-wider font-bold text-slate-500 dark:text-slate-400">
+                <th className="py-3.5 px-4 w-12 text-center">No</th>
+                <th className="py-3.5 px-4">Peserta</th>
+                <th className="py-3.5 px-4">Posisi & Jurusan</th>
+                <th className="py-3.5 px-4">Mentor</th>
+                <th className="py-3.5 px-4">Periode & Status</th>
+                <th className="py-3.5 px-4 text-right">Aksi</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
+              {paginatedData.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={6}
+                    className="py-14 px-4 text-center text-slate-500 dark:text-slate-400"
+                  >
+                    <div className="flex flex-col items-center gap-2">
+                      <Users className="w-8 h-8 text-slate-300 dark:text-slate-600" />
+                      <p className="font-semibold text-slate-700 dark:text-slate-200">
+                        Tidak ada peserta yang sesuai
+                      </p>
+                      <p className="text-xs text-slate-400">
+                        Ubah filter atau kata kunci pencarian untuk melihat data
+                        lain.
+                      </p>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                paginatedData.map((p, idx) => {
+                  const rowNo = (safePage - 1) * ITEMS_PER_PAGE + idx + 1;
+                  const effectiveStatus = getEffectiveStatusMagang(p);
+                  const hasSuratSelesai = Boolean(
+                    p.email && suratSelesaiMap[p.email.trim().toLowerCase()],
+                  );
+
+                  return (
+                    <tr
+                      key={`${p.pendaftaranId}-${p.pesertaId || p.email}-${idx}`}
+                      className="hover:bg-sky-50/40 dark:hover:bg-slate-800/40 transition-colors"
+                    >
+                      <td className="py-3.5 px-4 text-center text-xs font-semibold text-slate-500 dark:text-slate-400">
+                        {rowNo}
+                      </td>
+
+                      <td className="py-3.5 px-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-full bg-linear-to-br from-[#0284c7] to-blue-700 text-white text-xs font-bold flex items-center justify-center shrink-0">
+                            {getInitials(p.nama)}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-bold text-slate-900 dark:text-white truncate">
+                              {p.nama}
+                            </p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                              {p.email}
+                            </p>
+                            <div className="flex flex-wrap items-center gap-2 mt-1">
+                              <span className="text-[11px] text-slate-400">
+                                {p.wa}
+                              </span>
+                              {hasSuratSelesai && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800">
+                                  <FileCheck2 className="w-3 h-3" />
+                                  Surat Selesai
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+
+                      <td className="py-3.5 px-4">
+                        <div className="space-y-1 text-xs">
+                          <p className="font-semibold text-slate-800 dark:text-slate-100 inline-flex items-center gap-1.5">
+                            <Briefcase className="w-3.5 h-3.5 text-[#0284c7] shrink-0" />
+                            <span>{p.posisi || "-"}</span>
+                          </p>
+                          <p className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                            <GraduationCap className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                            <span>{p.jurusan || "-"}</span>
+                          </p>
+                        </div>
+                      </td>
+
+                      <td className="py-3.5 px-4 text-xs">
+                        {p.mentor ? (
+                          <div>
+                            <p className="font-semibold text-slate-800 dark:text-slate-100">
+                              {p.mentor.name}
+                            </p>
+                            {p.mentor.email && (
+                              <p className="text-[11px] text-slate-400">
+                                {p.mentor.email}
+                              </p>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800">
+                            Belum Ditetapkan
+                          </span>
+                        )}
+                      </td>
+
+                      <td className="py-3.5 px-4">
+                        <div className="space-y-1.5 text-xs">
+                          <p className="inline-flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
+                            <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                            <span>
+                              {p.tanggalMulaiMagang || "-"} s/d{" "}
+                              {p.tanggalSelesaiMagang || "-"}
+                            </span>
+                          </p>
+                          <div>
+                            <span
+                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full border text-[11px] font-semibold ${getStatusBadgeClass(
+                                effectiveStatus,
+                              )}`}
+                            >
+                              {effectiveStatus}
+                            </span>
+                          </div>
+                        </div>
+                      </td>
+
+                      <td className="py-3.5 px-4 text-right">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedPeserta(p)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-[#0284c7] hover:bg-sky-700 text-white shadow-xs transition"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          Detail
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <PaginationFooter
+          currentPage={safePage}
+          totalItems={filteredData.length}
+          itemsPerPage={ITEMS_PER_PAGE}
+          itemLabel="peserta"
+          onPageChange={setCurrentPage}
+        />
+      </div>
+
+      {/* ================= DETAIL MODAL ================= */}
       {selectedPeserta && (
-        <SuperadminPesertaModal
+        <AdminPesertaModal
           peserta={selectedPeserta}
           onClose={() => setSelectedPeserta(null)}
           onViewLogbook={handleViewLogbook}
           onViewLaporanAkhir={handleViewLaporanAkhir}
-          onSuratSelesaiSuccess={handleSuratSelesaiSuccess}
+          onSuratSelesaiSuccess={() => fetchPeserta(true)}
         />
       )}
     </div>
-  );
-}
-
-// ================ STAT CARD COMPONENT ================
-type StatCardColor = "indigo" | "emerald" | "amber" | "slate";
-
-type StatCardProps = {
-  title: string;
-  value: number | string;
-  icon: React.ReactNode;
-  note: string;
-  color: StatCardColor;
-};
-
-function StatCard({ title, value, icon, note, color }: StatCardProps) {
-  const iconColorMap: Record<StatCardColor, string> = {
-    indigo: "bg-[#B91C1C]/90 dark:bg-indigo-600",
-    emerald: "bg-emerald-500 dark:bg-emerald-600",
-    amber: "bg-amber-500 dark:bg-violet-500",
-    slate: "bg-slate-500 dark:bg-indigo-700",
-  };
-
-  const textColorMap: Record<StatCardColor, string> = {
-    indigo: "text-[#7F1D1D] dark:text-white",
-    emerald: "text-[#7F1D1D] dark:text-white",
-    amber: "text-[#7F1D1D] dark:text-white",
-    slate: "text-[#7F1D1D] dark:text-white",
-  };
-
-  return (
-    <div
-      className="
-          group relative
-          rounded-2xl
-          border border-[#FCA5A5]/40 dark:border-indigo-500/30
-          bg-linear-to-br
-          from-[#FFFDF8] via-[#FFF4EC] to-white
-          dark:from-indigo-950 dark:via-indigo-900 dark:to-indigo-800
-          p-6
-          shadow-sm hover:shadow-xl
-          transition
-        "
-    >
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-wide text-[#7F1D1D] dark:text-indigo-300">
-            {title}
-          </p>
-          <p className={`text-4xl font-extrabold mt-1 ${textColorMap[color]}`}>
-            {value}
-          </p>
-        </div>
-
-        <div
-          className={`
-              w-14 h-14 rounded-2xl
-              text-white
-              flex items-center justify-center
-              shadow
-              group-hover:scale-110 transition
-              ${iconColorMap[color]}
-            `}
-        >
-          {icon}
-        </div>
-      </div>
-
-      <div className="mt-4 pt-4 border-t border-[#FCA5A5]/40 dark:border-indigo-500/30">
-        <p className="text-xs text-slate-600 dark:text-slate-300">{note}</p>
-      </div>
-    </div>
-  );
-}
-
-// ================ STATUS MAGANG BADGE ================
-function StatusMagangBadge({ status }: { status: string }) {
-  switch (status) {
-    case "Belum Waktu Magang":
-      return (
-        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
-          Belum Waktu Magang
-        </span>
-      );
-    case "Sedang Magang":
-      return (
-        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
-          Sedang Magang
-        </span>
-      );
-    case "Tidak Magang":
-      return (
-        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
-          Tidak
-        </span>
-      );
-    case "Selesai Magang":
-      return (
-        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
-          Selesai
-        </span>
-      );
-    default:
-      return (
-        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400">
-          Menunggu
-        </span>
-      );
-  }
-}
-
-// ================ SURAT SELESAI BADGE ================
-function SuratSelesaiBadge({ status }: { status: string }) {
-  if (status === "Sudah Terkirim") {
-    return (
-      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
-        <HiDocumentText className="w-3 h-3" />
-        Terkirim
-      </span>
-    );
-  }
-
-  return (
-    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
-      <HiDocumentText className="w-3 h-3" />
-      Belum
-    </span>
   );
 }

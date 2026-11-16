@@ -1,12 +1,12 @@
-import { FormPageSkeleton } from "@/components/dashboard/skeletons";
+import { TablePageSkeleton } from "@/components/dashboard/skeletons";
 
 export default function Loading() {
   return (
-    <FormPageSkeleton
-      title="🎨 Manajemen Tampilan"
-      subtitle="Memuat pengaturan tampilan landing page..."
-      fieldsCount={5}
+    <TablePageSkeleton
+      title="Manajemen Tampilan & Pengumuman"
+      subtitle="Memuat daftar banner dan pengumuman sistem..."
+      columnsCount={5}
+      rowsCount={6}
     />
   );
 }
-
