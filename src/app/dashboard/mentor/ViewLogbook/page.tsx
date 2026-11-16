@@ -21,8 +21,11 @@ import {
 } from "lucide-react";
 import Calendar from "@/components/logbook/Calendar";
 import MentorLogbookModal from "@/components/logbook/MentorLogbookModal";
+import PaginationFooter from "@/components/dashboard/PaginationFooter";
 import { TablePageSkeleton } from "@/components/dashboard/skeletons";
 import { showToast } from "@/components/ui/toastDashboard";
+
+const ITEMS_PER_PAGE = 10;
 
 /* ================= TYPES ================= */
 
@@ -155,6 +158,7 @@ export default function ViewLogbookMentor() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [pesertaFilter, setPesertaFilter] = useState<PesertaFilterTab>("semua");
+  const [pesertaPage, setPesertaPage] = useState(1);
 
   const [selectedPeserta, setSelectedPeserta] =
     useState<PesertaLogbookRow | null>(null);
@@ -164,6 +168,7 @@ export default function ViewLogbookMentor() {
     useState<DetailViewMode>("kalender");
   const [logbookListFilter, setLogbookListFilter] =
     useState<LogbookListFilter>("semua");
+  const [logbookPage, setLogbookPage] = useState(1);
 
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [downloadingKey, setDownloadingKey] = useState<string | null>(null);
@@ -277,6 +282,7 @@ export default function ViewLogbookMentor() {
     const updated = { ...p, userId: resolvedUserId };
     setSelectedPeserta(updated);
     setLogbookListFilter("semua");
+    setLogbookPage(1);
     await loadPesertaLogbook(updated.email);
   };
 
@@ -354,6 +360,20 @@ export default function ViewLogbookMentor() {
     });
   }, [pesertaList, pesertaFilter, searchQuery]);
 
+  useEffect(() => {
+    setPesertaPage(1);
+  }, [pesertaFilter, searchQuery]);
+
+  const totalPesertaPages = Math.max(
+    1,
+    Math.ceil(filteredPeserta.length / ITEMS_PER_PAGE),
+  );
+  const safePesertaPage = Math.min(pesertaPage, totalPesertaPages);
+  const paginatedPeserta = filteredPeserta.slice(
+    (safePesertaPage - 1) * ITEMS_PER_PAGE,
+    safePesertaPage * ITEMS_PER_PAGE,
+  );
+
   /* ================= DETAIL COMPUTED DATA ================= */
   const filledDates = useMemo(() => {
     const map: Record<string, FilledDateType> = {};
@@ -398,6 +418,20 @@ export default function ViewLogbookMentor() {
     if (logbookListFilter === "semua") return logbooks;
     return logbooks.filter((l) => l.approvalStatus === logbookListFilter);
   }, [logbooks, logbookListFilter]);
+
+  useEffect(() => {
+    setLogbookPage(1);
+  }, [logbookListFilter]);
+
+  const totalLogbookPages = Math.max(
+    1,
+    Math.ceil(filteredLogbooks.length / ITEMS_PER_PAGE),
+  );
+  const safeLogbookPage = Math.min(logbookPage, totalLogbookPages);
+  const paginatedLogbooks = filteredLogbooks.slice(
+    (safeLogbookPage - 1) * ITEMS_PER_PAGE,
+    safeLogbookPage * ITEMS_PER_PAGE,
+  );
 
   /* ================= RENDER STATES ================= */
   if (loading) {
@@ -683,7 +717,7 @@ export default function ViewLogbookMentor() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/70">
-                  {filteredLogbooks.map((item) => {
+                  {paginatedLogbooks.map((item) => {
                     const badge = getApprovalBadge(item.approvalStatus);
                     return (
                       <tr
@@ -728,6 +762,13 @@ export default function ViewLogbookMentor() {
                 </tbody>
               </table>
             </div>
+            <PaginationFooter
+              currentPage={safeLogbookPage}
+              totalItems={filteredLogbooks.length}
+              itemsPerPage={ITEMS_PER_PAGE}
+              itemLabel="logbook"
+              onPageChange={setLogbookPage}
+            />
           </div>
         )}
 
@@ -946,7 +987,8 @@ export default function ViewLogbookMentor() {
               </thead>
 
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/70">
-                {filteredPeserta.map((p, i) => {
+                {paginatedPeserta.map((p, i) => {
+                  const rowNumber = (safePesertaPage - 1) * ITEMS_PER_PAGE + i + 1;
                   const stats = p.logbookStats;
                   return (
                     <tr
@@ -954,7 +996,7 @@ export default function ViewLogbookMentor() {
                       className="hover:bg-sky-50/50 dark:hover:bg-sky-950/20 transition"
                     >
                       <td className="py-3.5 px-4 text-center font-medium text-slate-500 dark:text-slate-400">
-                        {i + 1}
+                        {rowNumber}
                       </td>
 
                       <td className="py-3.5 px-4 text-left">
@@ -1048,6 +1090,13 @@ export default function ViewLogbookMentor() {
               </tbody>
             </table>
           </div>
+          <PaginationFooter
+            currentPage={safePesertaPage}
+            totalItems={filteredPeserta.length}
+            itemsPerPage={ITEMS_PER_PAGE}
+            itemLabel="peserta"
+            onPageChange={setPesertaPage}
+          />
         </div>
       )}
     </div>

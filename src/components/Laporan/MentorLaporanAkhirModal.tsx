@@ -1,18 +1,20 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
-  FiX,
-  FiFileText,
-  FiUser,
-  FiMail,
-  FiCheckCircle,
-  FiXCircle,
-  FiStar,
-  FiDownload,
-  FiEye,
-  FiLock,
-} from "react-icons/fi";
+  AlertTriangle,
+  CheckCircle2,
+  Clock,
+  Download,
+  ExternalLink,
+  Eye,
+  FileText,
+  Lock,
+  Paperclip,
+  Star,
+  X,
+  XCircle,
+} from "lucide-react";
 import { showToast } from "@/components/ui/toastDashboard";
 
 type Props = {
@@ -37,85 +39,157 @@ type Penilaian = {
   kerjaSamaTim: string;
 };
 
+type LaporanData = {
+  _id: string;
+  status: "Menunggu" | "Disetujui" | "Ditolak";
+  filePdf: string;
+  fileName?: string;
+  fileSize?: number;
+  lampiran1Pdf?: string | null;
+  lampiran1Name?: string | null;
+  lampiran1Size?: number | null;
+  lampiran2Pdf?: string | null;
+  lampiran2Name?: string | null;
+  lampiran2Size?: number | null;
+  mentorNote?: string;
+  submittedAt?: string;
+  createdAt?: string;
+  approvedAt?: string;
+  penilaian?: Partial<Penilaian>;
+};
+
+const EMPTY_PENILAIAN: Penilaian = {
+  kehadiranDisiplin: "",
+  sikapPerilaku: "",
+  kemampuanKomunikasi: "",
+  inisiatifTanggungJawab: "",
+  kemampuanAdaptasi: "",
+  pengetahuanTeknis: "",
+  produktivitasKetepatanWaktu: "",
+  kerjaSamaTim: "",
+};
+
 const penilaianOptions = [
-  { value: "sangat buruk", label: "Sangat Buruk", color: "rose" },
-  { value: "buruk", label: "Buruk", color: "amber" },
-  { value: "baik", label: "Baik", color: "blue" },
-  { value: "sangat baik", label: "Sangat Baik", color: "emerald" },
+  {
+    value: "sangat buruk",
+    label: "Sangat Buruk",
+    activeClass: "bg-rose-600 text-white border-rose-600",
+  },
+  {
+    value: "buruk",
+    label: "Buruk",
+    activeClass: "bg-amber-500 text-white border-amber-500",
+  },
+  {
+    value: "baik",
+    label: "Baik",
+    activeClass: "bg-[#0284c7] text-white border-[#0284c7]",
+  },
+  {
+    value: "sangat baik",
+    label: "Sangat Baik",
+    activeClass: "bg-emerald-600 text-white border-emerald-600",
+  },
 ];
+
+const penilaianLabels: Record<keyof Penilaian, string> = {
+  kehadiranDisiplin: "Kehadiran & Disiplin",
+  sikapPerilaku: "Sikap & Perilaku",
+  kemampuanKomunikasi: "Kemampuan Komunikasi",
+  inisiatifTanggungJawab: "Inisiatif & Tanggung Jawab",
+  kemampuanAdaptasi: "Kemampuan Adaptasi",
+  pengetahuanTeknis: "Pengetahuan Teknis",
+  produktivitasKetepatanWaktu: "Produktivitas & Ketepatan Waktu",
+  kerjaSamaTim: "Kerja Sama Tim",
+};
+
+function formatFileSize(bytes?: number | null): string {
+  if (!bytes) return "-";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function formatDateId(dateStr?: string, withTime = false): string {
+  if (!dateStr) return "-";
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return dateStr;
+  return d.toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    ...(withTime ? { hour: "2-digit", minute: "2-digit" } : {}),
+  });
+}
+
+function getFileUrl(filePath?: string | null): string {
+  if (!filePath) return "";
+  const normalized = filePath.replace(/\\/g, "/");
+  if (normalized.startsWith("http://") || normalized.startsWith("https://")) {
+    return normalized;
+  }
+  const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+  return `${baseUrl}/${normalized.replace(/^\//, "")}`;
+}
 
 export default function MentorLaporanAkhirModal({
   peserta,
   onClose,
   onStatusUpdate,
 }: Props) {
-  const [laporan, setLaporan] = useState<any>(null);
+  const [laporan, setLaporan] = useState<LaporanData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [mentorNote, setMentorNote] = useState("");
-  const [status, setStatus] = useState("Menunggu");
+  const [status, setStatus] = useState<"Disetujui" | "Ditolak">("Disetujui");
   const [showConfirm, setShowConfirm] = useState(false);
-  const [showPdf, setShowPdf] = useState(false); // ✅ TAMBAH STATE UNTUK PREVIEW PDF
-  const [penilaian, setPenilaian] = useState<Penilaian>({
-    kehadiranDisiplin: "",
-    sikapPerilaku: "",
-    kemampuanKomunikasi: "",
-    inisiatifTanggungJawab: "",
-    kemampuanAdaptasi: "",
-    pengetahuanTeknis: "",
-    produktivitasKetepatanWaktu: "",
-    kerjaSamaTim: "",
-  });
+  const [showPdf, setShowPdf] = useState(false);
+  const [penilaian, setPenilaian] = useState<Penilaian>(EMPTY_PENILAIAN);
 
-  /* ================= FETCH LAPORAN AKHIR PESERTA ================= */
-  const fetchLaporanAkhirPeserta = async () => {
+  const fetchLaporanAkhirPeserta = useCallback(async () => {
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
 
       if (!peserta.email || !peserta.email.includes("@")) {
-        console.error("Email peserta tidak valid:", peserta.email);
         setLaporan(null);
-        setLoading(false);
         return;
       }
 
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/laporan-akhir/mentor/peserta-email/${encodeURIComponent(peserta.email)}`,
         {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         },
       );
 
-      if (res.ok) {
-        const data = await res.json();
-        setLaporan(data);
-        setMentorNote(data.mentorNote || "");
-        if (data.status === "Menunggu") {
-          setStatus("Disetujui"); // hanya tampilan
-        } else {
-          setStatus(data.status);
-        }
-
-        // 🔥 LOAD PENILAIAN JIKA ADA
-        if (data.penilaian) {
-          setPenilaian({
-            kehadiranDisiplin: data.penilaian.kehadiranDisiplin || "",
-            sikapPerilaku: data.penilaian.sikapPerilaku || "",
-            kemampuanKomunikasi: data.penilaian.kemampuanKomunikasi || "",
-            inisiatifTanggungJawab: data.penilaian.inisiatifTanggungJawab || "",
-            kemampuanAdaptasi: data.penilaian.kemampuanAdaptasi || "",
-            pengetahuanTeknis: data.penilaian.pengetahuanTeknis || "",
-            produktivitasKetepatanWaktu:
-              data.penilaian.produktivitasKetepatanWaktu || "",
-            kerjaSamaTim: data.penilaian.kerjaSamaTim || "",
-          });
-        }
-      } else {
+      if (!res.ok) {
         setLaporan(null);
         setMentorNote("");
-        setStatus("Menunggu");
+        setStatus("Disetujui");
+        setPenilaian(EMPTY_PENILAIAN);
+        return;
+      }
+
+      const data: LaporanData = await res.json();
+      setLaporan(data);
+      setMentorNote(data.mentorNote || "");
+      setStatus(data.status === "Ditolak" ? "Ditolak" : "Disetujui");
+
+      if (data.penilaian) {
+        setPenilaian({
+          kehadiranDisiplin: data.penilaian.kehadiranDisiplin || "",
+          sikapPerilaku: data.penilaian.sikapPerilaku || "",
+          kemampuanKomunikasi: data.penilaian.kemampuanKomunikasi || "",
+          inisiatifTanggungJawab: data.penilaian.inisiatifTanggungJawab || "",
+          kemampuanAdaptasi: data.penilaian.kemampuanAdaptasi || "",
+          pengetahuanTeknis: data.penilaian.pengetahuanTeknis || "",
+          produktivitasKetepatanWaktu:
+            data.penilaian.produktivitasKetepatanWaktu || "",
+          kerjaSamaTim: data.penilaian.kerjaSamaTim || "",
+        });
+      } else {
+        setPenilaian(EMPTY_PENILAIAN);
       }
     } catch (error) {
       console.error("Gagal memuat laporan akhir:", error);
@@ -123,51 +197,65 @@ export default function MentorLaporanAkhirModal({
     } finally {
       setLoading(false);
     }
-  };
+  }, [peserta.email]);
 
   useEffect(() => {
     fetchLaporanAkhirPeserta();
-  }, [peserta]);
+  }, [fetchLaporanAkhirPeserta]);
 
-  /* ================= CEK APAKAH SUDAH DIREVIEW ================= */
-  const isAlreadyReviewed = () => {
-    return laporan?.status === "Disetujui" || laporan?.status === "Ditolak";
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (showConfirm) {
+          setShowConfirm(false);
+        } else {
+          onClose();
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [showConfirm, onClose]);
+
+  const alreadyReviewed =
+    laporan?.status === "Disetujui" || laporan?.status === "Ditolak";
+
+  const filledPenilaianCount = Object.values(penilaian).filter(
+    (v) => v !== "",
+  ).length;
+  const isPenilaianComplete = filledPenilaianCount === 8;
+  const isCommentFilled = mentorNote.trim().length > 0;
+  const canSubmit =
+    !submitting &&
+    !alreadyReviewed &&
+    isCommentFilled &&
+    (status === "Ditolak" || isPenilaianComplete);
+
+  const updatePenilaian = (key: keyof Penilaian, value: string) => {
+    if (alreadyReviewed) return;
+    setPenilaian((prev) => ({ ...prev, [key]: value }));
   };
 
-  /* ================= UPDATE STATUS & PENILAIAN ================= */
   const handleUpdateStatus = async () => {
-    if (!laporan) return;
+    if (!laporan || alreadyReviewed) return;
 
-    // 🔥 VALIDASI KOMENTAR WAJIB
     if (!mentorNote.trim()) {
       showToast.error("Komentar mentor wajib diisi");
       return;
     }
 
-    // 🔥 CEK SUDAH DIREVIEW
-    if (isAlreadyReviewed()) {
-      showToast.error("Laporan ini sudah direview dan tidak dapat diubah lagi");
+    if (status === "Disetujui" && !isPenilaianComplete) {
+      showToast.error(
+        "Semua aspek penilaian harus diisi untuk menyetujui laporan",
+      );
       return;
     }
 
-    // 🔥 VALIDASI: jika status Disetujui, penilaian harus lengkap
-    if (status === "Disetujui") {
-      const isPenilaianComplete = Object.values(penilaian).every(
-        (v) => v !== "",
-      );
-      if (!isPenilaianComplete) {
-        showToast.error(
-          "Semua aspek penilaian harus diisi untuk menyetujui laporan",
-        );
-        return;
-      }
-    }
-
-    const toastId = showToast.loading("Mengupdate status laporan...");
+    setSubmitting(true);
+    const toastId = showToast.loading("Menyimpan review laporan akhir...");
 
     try {
       const token = localStorage.getItem("token");
-
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/laporan-akhir/mentor/update-status-penilaian/${laporan._id}`,
         {
@@ -178,7 +266,7 @@ export default function MentorLaporanAkhirModal({
           },
           body: JSON.stringify({
             status,
-            mentorNote,
+            mentorNote: mentorNote.trim(),
             penilaian: status === "Disetujui" ? penilaian : undefined,
           }),
         },
@@ -189,25 +277,22 @@ export default function MentorLaporanAkhirModal({
         throw new Error(error.message || "Gagal mengupdate status");
       }
 
-      showToast.updateSuccess(toastId, "Status laporan berhasil diupdate!");
-
-      // Refresh data
-      fetchLaporanAkhirPeserta();
-
-      // Trigger callback untuk refresh parent
-      if (onStatusUpdate) {
-        onStatusUpdate();
-      }
-    } catch (error: any) {
-      showToast.updateError(
-        toastId,
-        error.message || "Terjadi kesalahan saat mengupdate status",
-      );
+      showToast.updateSuccess(toastId, "Review laporan akhir berhasil disimpan");
+      await fetchLaporanAkhirPeserta();
+      onStatusUpdate?.();
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Terjadi kesalahan saat mengupdate status";
+      showToast.updateError(toastId, message);
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  /* ================= DOWNLOAD PDF ================= */
   const handleDownloadPdf = async () => {
+    if (!laporan) return;
     try {
       const token = localStorage.getItem("token");
       const res = await fetch(
@@ -223,815 +308,460 @@ export default function MentorLaporanAkhirModal({
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = laporan?.fileName || "Laporan_Akhir.pdf";
+      a.download = laporan.fileName || "Laporan_Akhir.pdf";
       document.body.appendChild(a);
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
-    } catch (error) {
+    } catch {
       showToast.error("Gagal mengunduh PDF");
     }
   };
 
-  /* ================= VIEW PDF ================= */
-  const handleViewPdf = () => {
-    window.open(
-      `${process.env.NEXT_PUBLIC_API_URL}/laporan-akhir/mentor/view/${laporan._id}`,
-      "_blank",
-    );
-  };
-
-  /* ================= UPDATE PENILAIAN ================= */
-  const updatePenilaian = (key: keyof Penilaian, value: string) => {
-    if (isAlreadyReviewed()) return; // Tidak bisa ubah jika sudah direview
-    setPenilaian((prev) => ({ ...prev, [key]: value }));
-  };
-
-  /* ================= FORMAT FILE SIZE ================= */
-  const formatFileSize = (bytes: number) => {
-    if (bytes < 1024) return bytes + " B";
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
-    return (bytes / (1024 * 1024)).toFixed(1) + " MB";
-  };
-
-  /* ================= GET STATUS COLOR ================= */
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Disetujui":
-        return {
-          bg: "bg-emerald-500/20 dark:bg-emerald-400/20",
-          text: "text-emerald-700 dark:text-emerald-300",
-          border: "border-emerald-400/40",
-          icon: "text-emerald-500",
-        };
-      case "Ditolak":
-        return {
-          bg: "bg-red-500/20 dark:bg-red-400/20",
-          text: "text-red-700 dark:text-red-300",
-          border: "border-red-400/40",
-          icon: "text-red-500",
-        };
-      default:
-        return {
-          bg: "bg-amber-500/20 dark:bg-amber-400/20",
-          text: "text-amber-700 dark:text-amber-300",
-          border: "border-amber-400/40",
-          icon: "text-amber-500",
-        };
-    }
-  };
-
-  /* ================= GET STATUS ICON ================= */
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "Disetujui":
-        return <FiCheckCircle className="w-5 h-5" />;
-      case "Ditolak":
-        return <FiXCircle className="w-5 h-5" />;
-      default:
-        return <FiFileText className="w-5 h-5" />;
-    }
-  };
-
-  /* ================= GET FILE URL ================= */
-  const getFileUrl = (filePath: string) => {
-    if (!filePath) return "";
-    if (filePath.startsWith("http")) return filePath;
-    return `${process.env.NEXT_PUBLIC_API_URL || window.location.origin}/${filePath}`;
-  };
-
-  /* ================= LABEL PENILAIAN ================= */
-  const penilaianLabels: Record<keyof Penilaian, string> = {
-    kehadiranDisiplin: "Kehadiran dan Disiplin",
-    sikapPerilaku: "Sikap dan Perilaku",
-    kemampuanKomunikasi: "Kemampuan Komunikasi",
-    inisiatifTanggungJawab: "Inisiatif dan Tanggung Jawab",
-    kemampuanAdaptasi: "Kemampuan Adaptasi",
-    pengetahuanTeknis: "Pengetahuan Teknis",
-    produktivitasKetepatanWaktu: "Produktivitas dan Ketepatan Waktu",
-    kerjaSamaTim: "Kerja Sama Tim",
-  };
-
-  const alreadyReviewed = isAlreadyReviewed();
-  const isCommentFilled = mentorNote.trim().length > 0;
+  const lampiranList = [
+    laporan?.lampiran1Pdf
+      ? {
+          label: "Lampiran 1",
+          name: laporan.lampiran1Name || "Lampiran_1.pdf",
+          size: laporan.lampiran1Size,
+          url: getFileUrl(laporan.lampiran1Pdf),
+        }
+      : null,
+    laporan?.lampiran2Pdf
+      ? {
+          label: "Lampiran 2",
+          name: laporan.lampiran2Name || "Lampiran_2.pdf",
+          size: laporan.lampiran2Size,
+          url: getFileUrl(laporan.lampiran2Pdf),
+        }
+      : null,
+  ].filter(Boolean) as Array<{
+    label: string;
+    name: string;
+    size?: number | null;
+    url: string;
+  }>;
 
   return (
     <div
-      className="
-        fixed inset-0 z-50
-        bg-black/40 dark:bg-black/70
-        backdrop-blur-md
-        flex items-center justify-center
-        p-2 sm:p-4
-      "
+      className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-5"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
     >
       <div
-        className="
-          w-full max-w-4xl
-          bg-white dark:bg-slate-900
-          rounded-2xl sm:rounded-3xl
-          border border-slate-200 dark:border-slate-800
-          shadow-2xl
-          overflow-hidden
-          max-h-[95vh]
-          flex flex-col
-        "
+        className="w-full max-w-4xl bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden max-h-[92vh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
       >
-        {/* HEADER */}
-        <div
-          className="
-            px-4 sm:px-6 py-4
-            bg-linear-to-r
-            from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
-            dark:from-indigo-700 dark:to-violet-600
-            text-white
-            flex items-center justify-between
-            gap-3
-          "
-        >
+        {/* ================= HEADER (TEMA BIRU SIDEBAR) ================= */}
+        <div className="px-5 sm:px-6 py-4 bg-linear-to-r from-[#0284c7] via-sky-600 to-blue-700 dark:from-[#0369a1] dark:to-blue-900 text-white flex items-center justify-between gap-3 shrink-0">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="p-2 bg-white/20 rounded-xl shrink-0">
-              <FiFileText className="text-lg" />
+            <div className="p-2.5 bg-white/20 rounded-xl shrink-0">
+              <FileText className="w-5 h-5" />
             </div>
-
             <div className="min-w-0">
-              <h2 className="text-base sm:text-lg font-bold truncate">
-                Review Laporan Akhir
+              <h2 className="text-base sm:text-lg font-extrabold truncate">
+                Review & Penilaian Laporan Akhir
               </h2>
-              <p className="text-xs opacity-80 truncate">
+              <p className="text-xs sm:text-sm text-sky-100 truncate">
                 {peserta.nama} • {peserta.posisi}
               </p>
             </div>
           </div>
 
           <button
+            type="button"
             onClick={onClose}
-            className="p-2 rounded-full bg-white/30 hover:bg-white/50 transition"
+            aria-label="Tutup modal"
+            className="p-2 rounded-xl bg-white/15 hover:bg-white/25 text-white transition shrink-0"
           >
-            <FiX className="text-xl text-red-500" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* BODY */}
-        <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 space-y-6">
+        {/* ================= BODY ================= */}
+        <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-5 space-y-5">
           {loading ? (
-            <div className="text-center py-10">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-              <p className="mt-4 text-slate-600">Memuat laporan...</p>
+            <div className="py-14 text-center">
+              <div className="animate-spin rounded-full h-10 w-10 border-3 border-slate-200 border-t-[#0284c7] mx-auto" />
+              <p className="mt-3 text-sm font-medium text-slate-600 dark:text-slate-300">
+                Memuat laporan akhir...
+              </p>
             </div>
-          ) : laporan ? (
+          ) : !laporan ? (
+            <div className="rounded-2xl bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 py-14 px-4 text-center space-y-2">
+              <FileText className="w-10 h-10 text-slate-400 mx-auto" />
+              <p className="text-base font-bold text-slate-700 dark:text-slate-200">
+                Belum Ada Laporan Akhir
+              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Peserta belum mengunggah dokumen laporan akhir magang.
+              </p>
+            </div>
+          ) : (
             <>
-              {/* 🔥 NOTIFIKASI SUDAH DIREVIEW */}
-              {alreadyReviewed && (
-                <div className="rounded-2xl bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="p-1 bg-indigo-100 dark:bg-indigo-800 rounded-lg">
-                      <FiLock className="w-4 h-4 text-indigo-600 dark:text-indigo-300" />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-indigo-800 dark:text-indigo-200">
-                        Laporan Telah Direview
-                      </p>
-                      <p className="text-xs text-indigo-600 dark:text-indigo-300 mt-1">
-                        Status:{" "}
-                        {laporan.status === "Disetujui"
-                          ? "✅ Disetujui"
-                          : "❌ Ditolak"}{" "}
-                        •{" "}
-                        {laporan.approvedAt &&
-                          new Date(laporan.approvedAt).toLocaleDateString(
-                            "id-ID",
-                            {
-                              day: "numeric",
-                              month: "long",
-                              year: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            },
-                          )}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* STATUS & FILE INFO */}
+              {/* Status Banner */}
               <div
-                className={`
-                  rounded-2xl
-                  border
-                  px-5 py-4
-                  backdrop-blur
-                  shadow-md
-                  transition
-                  bg-white/80 dark:bg-indigo-950/40
-                  ${getStatusColor(laporan.status).border}
-                `}
+                className={`rounded-xl border px-4 py-3.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 ${
+                  laporan.status === "Disetujui"
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-300"
+                    : laporan.status === "Ditolak"
+                      ? "border-rose-200 bg-rose-50 text-rose-800 dark:bg-rose-950/40 dark:border-rose-800 dark:text-rose-300"
+                      : "border-amber-200 bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:border-amber-800 dark:text-amber-300"
+                }`}
               >
-                <div
-                  className="
-                    flex flex-col sm:flex-row
-                    sm:items-center sm:justify-between
-                    gap-4
-                  "
-                >
-                  {/* LEFT - STATUS */}
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`
-                        w-12 h-12
-                        rounded-2xl
-                        flex items-center justify-center
-                        shadow-inner
-                        ${getStatusColor(laporan.status).bg}
-                      `}
-                    >
-                      <span
-                        className={`
-                          text-xl
-                          ${getStatusColor(laporan.status).icon}
-                        `}
-                      >
-                        {getStatusIcon(laporan.status)}
-                      </span>
-                    </div>
-                    <div>
-                      <p className="text-[10px] sm:text-xs uppercase tracking-wider text-slate-500 dark:text-indigo-300">
-                        Status Laporan
-                      </p>
-                      <p
-                        className={`
-                          mt-0.5 text-sm sm:text-base font-bold
-                          ${getStatusColor(laporan.status).text}
-                        `}
-                      >
-                        {laporan.status === "Disetujui"
-                          ? "✅ Disetujui"
-                          : laporan.status === "Ditolak"
-                            ? "❌ Ditolak"
-                            : "⏳ Menunggu Review"}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* RIGHT - FILE INFO */}
-                  <div className="flex flex-col sm:items-end gap-1">
-                    <div
-                      className="
-                        inline-flex items-center gap-2
-                        px-3 py-1.5
-                        rounded-full
-                        bg-slate-100 dark:bg-white/10
-                        text-slate-700 dark:text-slate-200
-                        text-xs sm:text-sm
-                        font-medium
-                      "
-                    >
-                      <FiFileText className="text-sm" />
-                      <span className="truncate max-w-45">
-                        {laporan.fileName || "Laporan_Akhir.pdf"}
-                      </span>
-                    </div>
-
-                    <div className="mt-1 me-2 text-[11px] sm:text-xs text-slate-500 flex items-center gap-2 sm:justify-end">
-                      <span>
-                        {laporan.fileSize
-                          ? formatFileSize(laporan.fileSize)
-                          : "-"}
-                      </span>
-                      <span>
-                        {new Date(
-                          laporan.submittedAt || laporan.createdAt,
-                        ).toLocaleDateString("id-ID")}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* ✅ PDF VIEWER - SAMA SEPERTI DI SUPERADMIN */}
-              {laporan?.filePdf && (
-                <div className="space-y-4">
-                  {/* ACTION BUTTONS PDF */}
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <button
-                      onClick={handleDownloadPdf}
-                      className="
-                        flex-1 sm:flex-none
-                        inline-flex items-center justify-center gap-2
-                        px-5 py-3
-                        rounded-xl
-                        text-sm font-semibold
-                        text-white
-                        bg-emerald-600 hover:bg-emerald-700
-                        shadow-lg hover:shadow-xl
-                        transition-all
-                        transform hover:scale-105
-                      "
-                    >
-                      <FiDownload className="w-5 h-5" />
-                      <span>Download PDF</span>
-                    </button>
-
-                    <button
-                      onClick={() => setShowPdf(!showPdf)}
-                      className="
-                        flex-1 sm:flex-none
-                        inline-flex items-center justify-center gap-2
-                        px-5 py-3
-                        rounded-xl
-                        text-sm font-semibold
-                        text-white
-                        bg-purple-600 hover:bg-purple-700
-                        shadow-lg hover:shadow-xl
-                        transition-all
-                        transform hover:scale-105
-                      "
-                    >
-                      <FiEye className="w-5 h-5" />
-                      <span>{showPdf ? "Sembunyikan" : "Preview"}</span>
-                    </button>
-                  </div>
-
-                  {/* PDF PREVIEW - SAMA SEPERTI DI SUPERADMIN */}
-                  {showPdf && (
-                    <div className="rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 border-2 border-emerald-200 dark:border-indigo-500/30 shadow-inner">
-                      <iframe
-                        src={`${getFileUrl(laporan.filePdf)}#toolbar=0&navpanes=0`}
-                        className="w-full h-[500px] sm:h-[600px]"
-                        title="PDF Preview"
-                      />
-                      <div className="p-3 text-center text-xs text-slate-500 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700">
-                        * Gunakan tombol Download untuk menyimpan file
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* FORM REVIEW MENTOR + PENILAIAN */}
-              <div
-                className={`
-                  rounded-2xl
-                  border border-slate-200 dark:border-slate-700
-                  bg-white dark:bg-slate-800
-                  p-4 sm:p-6
-                  shadow-sm
-                  ${
-                    alreadyReviewed
-                      ? "bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700"
-                      : "bg-white/80 dark:bg-indigo-950/40 border-slate-200 dark:border-indigo-500/30"
-                  }
-                `}
-              >
-                <div className="flex items-center gap-3 mb-6">
-                  <div
-                    className={`p-2 rounded-lg ${
-                      alreadyReviewed
-                        ? "bg-slate-200 dark:bg-slate-700"
-                        : "bg-amber-100 dark:bg-indigo-500/20"
-                    }`}
-                  >
-                    <FiStar
-                      className={`w-5 h-5 ${
-                        alreadyReviewed
-                          ? "text-slate-500 dark:text-slate-400"
-                          : "text-amber-600 dark:text-violet-300"
-                      }`}
-                    />
-                  </div>
+                <div className="flex items-start gap-3">
+                  <span className="mt-0.5 shrink-0">
+                    {laporan.status === "Disetujui" ? (
+                      <CheckCircle2 className="w-5 h-5" />
+                    ) : laporan.status === "Ditolak" ? (
+                      <XCircle className="w-5 h-5" />
+                    ) : (
+                      <Clock className="w-5 h-5" />
+                    )}
+                  </span>
                   <div>
-                    <h3
-                      className={`font-bold ${
-                        alreadyReviewed
-                          ? "text-slate-600 dark:text-slate-400"
-                          : "text-slate-800 dark:text-indigo-200"
-                      }`}
-                    >
-                      Review & Penilaian Mentor
-                    </h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      {alreadyReviewed
-                        ? "Anda sudah memberikan review untuk laporan ini"
-                        : "Berikan penilaian dan status untuk laporan ini"}
+                    <p className="text-sm font-bold">
+                      {laporan.status === "Disetujui"
+                        ? "Laporan Disetujui"
+                        : laporan.status === "Ditolak"
+                          ? "Laporan Ditolak"
+                          : "Menunggu Review & Penilaian"}
+                    </p>
+                    <p className="text-xs opacity-85 mt-0.5">
+                      {alreadyReviewed && laporan.approvedAt
+                        ? `Direview pada ${formatDateId(laporan.approvedAt, true)}`
+                        : `Diunggah pada ${formatDateId(laporan.submittedAt || laporan.createdAt, true)}`}
                     </p>
                   </div>
                 </div>
 
-                <div className="space-y-6">
-                  {/* STATUS SELECTION - DISABLE JIKA SUDAH DIREVIEW */}
-                  <div>
-                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3">
-                      Status Laporan
-                    </label>
-                    <div className="flex flex-wrap gap-2">
-                      {["Disetujui", "Ditolak"].map((s) => (
-                        <button
-                          key={s}
-                          type="button"
-                          onClick={() => !alreadyReviewed && setStatus(s)}
-                          disabled={alreadyReviewed}
-                          className={`
-                            px-5 py-2.5
-                            rounded-xl
-                            text-sm font-semibold
-                            transition-all
-                            ${
-                              alreadyReviewed
-                                ? "opacity-50 cursor-not-allowed bg-slate-200 text-slate-500 dark:bg-slate-700 dark:text-slate-400"
-                                : status === s
-                                  ? s === "Disetujui"
-                                    ? "bg-emerald-500 text-white shadow-lg"
-                                    : "bg-red-500 text-white shadow-lg"
-                                  : "bg-slate-100 text-slate-600 dark:bg-white/5 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/10"
-                            }
-                          `}
-                        >
-                          {s}
-                        </button>
-                      ))}
-                    </div>
-                    {alreadyReviewed && (
-                      <div
-                        className="
-                          mt-3
-                          flex items-start gap-3
-                          rounded-xl
-                          border border-amber-300
-                          bg-amber-50
-                          dark:border-amber-600
-                          dark:bg-amber-900/20
-                          p-3 sm:p-4
-                        "
-                      >
-                        <div
-                          className="
-                            shrink-0
-                            w-8 h-8
-                            rounded-lg
-                            bg-amber-100
-                            dark:bg-amber-800/40
-                            flex items-center justify-center
-                            text-amber-600
-                            dark:text-amber-300
-                            text-sm
-                          "
-                        >
-                          ⚠️
-                        </div>
-
-                        <div className="text-left">
-                          <p className="text-xs sm:text-sm font-semibold text-amber-700 dark:text-amber-300">
-                            Laporan sudah direview
-                          </p>
-                          <p className="text-[11px] sm:text-xs text-amber-600 dark:text-amber-400 mt-0.5">
-                            Status tidak dapat diubah karena laporan sudah
-                            disetujui atau ditolak.
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* PENILAIAN GRID - DISABLE JIKA SUDAH DIREVIEW */}
-                  {status === "Disetujui" && (
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-2">
-                        <div
-                          className={`p-1 rounded ${
-                            alreadyReviewed
-                              ? "bg-slate-200 dark:bg-slate-700"
-                              : "bg-amber-100 dark:bg-amber-900/30"
-                          }`}
-                        >
-                          <FiStar
-                            className={`w-4 h-4 ${
-                              alreadyReviewed
-                                ? "text-slate-500 dark:text-slate-400"
-                                : "text-amber-600 dark:text-amber-400"
-                            }`}
-                          />
-                        </div>
-                        <label
-                          className={`text-sm font-semibold ${
-                            alreadyReviewed
-                              ? "text-slate-500 dark:text-slate-400"
-                              : "text-slate-700 dark:text-slate-200"
-                          }`}
-                        >
-                          Aspek Penilaian
-                        </label>
-                        {!alreadyReviewed && (
-                          <span className="text-xs text-red-500">
-                            *Wajib diisi semua
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="grid grid-cols-1 gap-4">
-                        {(
-                          Object.keys(penilaianLabels) as Array<keyof Penilaian>
-                        ).map((key) => (
-                          <div
-                            key={key}
-                            className="
-                              flex flex-col sm:flex-row sm:items-center 
-                              gap-2 sm:gap-4
-                              p-3
-                              rounded-xl
-                              bg-slate-50 dark:bg-slate-800/50
-                              border border-slate-200 dark:border-slate-700
-                            "
-                          >
-                            <span className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 sm:w-48 font-medium">
-                              {penilaianLabels[key]}
-                            </span>
-                            <select
-                              value={penilaian[key]}
-                              onChange={(e) =>
-                                updatePenilaian(key, e.target.value)
-                              }
-                              disabled={alreadyReviewed}
-                              className={`
-                                flex-1
-                                px-4 py-2.5
-                                rounded-lg
-                                text-sm
-                                border-2
-                                bg-white dark:bg-slate-900
-                                text-slate-700 dark:text-slate-100
-                                focus:ring-2 focus:ring-offset-2
-                                outline-none
-                                transition
-                                ${
-                                  alreadyReviewed
-                                    ? "border-slate-300 dark:border-slate-600 opacity-70 cursor-not-allowed"
-                                    : penilaian[key]
-                                      ? "border-emerald-400 dark:border-emerald-500 focus:ring-emerald-400"
-                                      : "border-amber-400 dark:border-indigo-500 focus:ring-amber-400 dark:focus:ring-indigo-500"
-                                }
-                              `}
-                            >
-                              <option value="" disabled>
-                                Pilih nilai
-                              </option>
-                              {penilaianOptions.map((opt) => (
-                                <option key={opt.value} value={opt.value}>
-                                  {opt.label}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* INFO VALIDASI */}
-                      {status === "Disetujui" && !alreadyReviewed && (
-                        <div
-                          className={`
-                          mt-2 p-3 rounded-lg text-xs
-                          ${
-                            Object.values(penilaian).every((v) => v !== "")
-                              ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300 border border-emerald-200"
-                              : "bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-300 border border-amber-200"
-                          }
-                        `}
-                        >
-                          {Object.values(penilaian).every((v) => v !== "")
-                            ? "✓ Semua aspek penilaian telah diisi"
-                            : `⚠️ ${Object.values(penilaian).filter((v) => v === "").length} aspek penilaian belum diisi`}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* KOMENTAR - DISABLE JIKA SUDAH DIREVIEW */}
-                  <div>
-                    <label
-                      className={`block text-sm font-semibold mb-2 ${
-                        alreadyReviewed
-                          ? "text-slate-500 dark:text-slate-400"
-                          : "text-slate-700 dark:text-slate-200"
-                      }`}
-                    >
-                      Komentar / Catatan <span className="text-red-500">*</span>
-                    </label>
-                    <textarea
-                      value={mentorNote}
-                      onChange={(e) =>
-                        !alreadyReviewed && setMentorNote(e.target.value)
-                      }
-                      disabled={alreadyReviewed}
-                      rows={4}
-                      className={`
-                        w-full px-4 py-3
-                        rounded-xl
-                        bg-white dark:bg-white/5
-                        border-2
-                        text-slate-700 dark:text-slate-100
-                        placeholder:text-slate-400
-                        focus:ring-2
-                        outline-none
-                        transition
-                        resize-none
-                        ${
-                          alreadyReviewed
-                            ? "border-slate-300 dark:border-slate-600 opacity-70 cursor-not-allowed"
-                            : "border-amber-400/70 dark:border-indigo-500/60 focus:ring-amber-300 dark:focus:ring-indigo-500/60"
-                        }
-                      `}
-                      placeholder={
-                        alreadyReviewed
-                          ? "Catatan mentor"
-                          : "Berikan komentar atau catatan untuk peserta..."
-                      }
-                      readOnly={alreadyReviewed}
-                    />
-                  </div>
-
-                  {/* ACTION BUTTONS - HILANGKAN JIKA SUDAH DIREVIEW */}
-                  {!alreadyReviewed && (
-                    <div className="flex flex-col sm:flex-row gap-3 justify-end pt-4 border-t border-slate-200 dark:border-slate-700">
-                      <button
-                        onClick={onClose}
-                        className="
-                          px-6 py-2.5
-                          rounded-xl
-                          border-2 border-slate-300
-                          text-slate-600 dark:text-slate-300
-                          hover:bg-slate-100 dark:hover:bg-white/10
-                          font-semibold
-                          transition
-                        "
-                      >
-                        Batal
-                      </button>
-
-                      <button
-                        onClick={() => setShowConfirm(true)}
-                        disabled={
-                          !isCommentFilled ||
-                          (status === "Disetujui" &&
-                            !Object.values(penilaian).every((v) => v !== ""))
-                        }
-                        className={`
-                          px-8 py-2.5
-                          rounded-xl
-                          font-semibold
-                          shadow-md hover:shadow-xl
-                          transition-all duration-300
-                          ${
-                            !isCommentFilled ||
-                            (status === "Disetujui" &&
-                              !Object.values(penilaian).every((v) => v !== ""))
-                              ? "bg-slate-400 cursor-not-allowed text-white"
-                              : status === "Disetujui"
-                                ? "bg-emerald-600 hover:bg-emerald-700 text-white"
-                                : "bg-red-600 hover:bg-red-700 text-white"
-                          }
-                        `}
-                      >
-                        {status === "Disetujui"
-                          ? "✅ Setujui & Beri Nilai"
-                          : "❌ Tolak Laporan"}
-                      </button>
-                    </div>
-                  )}
-                </div>
+                {alreadyReviewed && (
+                  <span className="self-start sm:self-center inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-white/75 dark:bg-slate-900/60 shrink-0">
+                    <Lock className="w-3 h-3" />
+                    Review Final
+                  </span>
+                )}
               </div>
 
-              {/* TAMPILKAN PENILAIAN LAMA (JIKA ADA) */}
-              {laporan.status === "Disetujui" && laporan.penilaian && (
-                <div className="mt-6 p-5 rounded-2xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800">
-                  <h4 className="font-bold text-emerald-800 dark:text-emerald-200 mb-3 flex items-center gap-2">
-                    <FiStar className="w-4 h-4" />
-                    Penilaian yang sudah diberikan
-                  </h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {Object.entries(penilaianLabels).map(([key, label]) => (
-                      <div
-                        key={key}
-                        className="flex justify-between items-center p-2 bg-white dark:bg-slate-800 rounded-lg"
+              {/* File Laporan Utama + Preview */}
+              <div className="rounded-xl bg-white dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-800 p-4 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-xl bg-sky-50 text-[#0284c7] dark:bg-sky-950/60 dark:text-sky-300 flex items-center justify-center shrink-0">
+                      <FileText className="w-5 h-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-slate-900 dark:text-white truncate">
+                        {laporan.fileName || "Laporan_Akhir.pdf"}
+                      </p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        Ukuran: {formatFileSize(laporan.fileSize)} • Diunggah{" "}
+                        {formatDateId(laporan.submittedAt || laporan.createdAt)}
+                      </p>
+                    </div>
+                  </div>
+
+                  {laporan.filePdf && (
+                    <div className="flex flex-wrap items-center gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setShowPdf((v) => !v)}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-sky-50 text-[#0284c7] border border-sky-200 hover:bg-[#0284c7] hover:text-white dark:bg-sky-950/60 dark:text-sky-300 dark:border-sky-800 transition"
                       >
-                        <span className="text-xs text-slate-600 dark:text-slate-400">
-                          {label}:
-                        </span>
-                        <span className="text-xs font-semibold px-2 py-1 rounded-full bg-emerald-100 text-emerald-700">
-                          {laporan.penilaian[key] || "-"}
-                        </span>
-                      </div>
-                    ))}
+                        <Eye className="w-3.5 h-3.5" />
+                        {showPdf ? "Tutup Preview" : "Preview PDF"}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleDownloadPdf}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        Unduh PDF
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {showPdf && laporan.filePdf && (
+                  <div className="rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-700">
+                    <iframe
+                      src={`${getFileUrl(laporan.filePdf)}#toolbar=0&navpanes=0`}
+                      className="w-full h-[460px] sm:h-[540px]"
+                      title="Preview Laporan Akhir PDF"
+                    />
+                  </div>
+                )}
+
+                {/* Lampiran Tambahan (jika ada) */}
+                {lampiranList.length > 0 && (
+                  <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
+                    <p className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                      <Paperclip className="w-3.5 h-3.5" />
+                      Lampiran Tambahan
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {lampiranList.map((lamp) => (
+                        <a
+                          key={lamp.label}
+                          href={lamp.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 hover:border-sky-300 dark:hover:border-sky-700 transition text-xs"
+                        >
+                          <div className="min-w-0">
+                            <p className="font-semibold text-slate-700 dark:text-slate-200 truncate">
+                              {lamp.label}: {lamp.name}
+                            </p>
+                            <p className="text-[11px] text-slate-400">
+                              {formatFileSize(lamp.size)}
+                            </p>
+                          </div>
+                          <ExternalLink className="w-3.5 h-3.5 text-[#0284c7] shrink-0" />
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Form Review & Penilaian */}
+              <div className="rounded-xl bg-white dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-800 p-4 sm:p-5 space-y-5">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-sky-50 text-[#0284c7] dark:bg-sky-950/60 dark:text-sky-300 flex items-center justify-center shrink-0">
+                      <Star className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                        Keputusan & Penilaian Mentor
+                      </h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        {alreadyReviewed
+                          ? "Review sudah bersifat final dan tidak dapat diubah"
+                          : "Pilih status keputusan, isi penilaian (jika disetujui), dan berikan catatan"}
+                      </p>
+                    </div>
                   </div>
                 </div>
-              )}
+
+                {/* Pilihan Status */}
+                <div className="space-y-2">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+                    Keputusan Review
+                  </label>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    {(["Disetujui", "Ditolak"] as const).map((option) => {
+                      const active = status === option;
+                      return (
+                        <button
+                          key={option}
+                          type="button"
+                          disabled={alreadyReviewed}
+                          onClick={() => setStatus(option)}
+                          className={`flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-semibold border transition ${
+                            alreadyReviewed
+                              ? active
+                                ? option === "Disetujui"
+                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
+                                  : "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800"
+                                : "bg-slate-100 text-slate-400 border-slate-200 dark:bg-slate-800 dark:border-slate-700 opacity-60 cursor-not-allowed"
+                              : active
+                                ? option === "Disetujui"
+                                  ? "bg-emerald-600 text-white border-emerald-600 shadow-xs"
+                                  : "bg-rose-600 text-white border-rose-600 shadow-xs"
+                                : "bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
+                          }`}
+                        >
+                          {option === "Disetujui" ? (
+                            <CheckCircle2 className="w-4 h-4" />
+                          ) : (
+                            <XCircle className="w-4 h-4" />
+                          )}
+                          {option}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 8 Aspek Penilaian (muncul jika Disetujui) */}
+                {status === "Disetujui" && (
+                  <div className="space-y-3 pt-1">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+                        Aspek Penilaian Kinerja{" "}
+                        {!alreadyReviewed && (
+                          <span className="text-rose-500">*</span>
+                        )}
+                      </span>
+                      <span
+                        className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${
+                          isPenilaianComplete
+                            ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300"
+                            : "bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300"
+                        }`}
+                      >
+                        {filledPenilaianCount}/8 aspek terisi
+                      </span>
+                    </div>
+
+                    <div className="space-y-2.5">
+                      {(
+                        Object.keys(penilaianLabels) as Array<keyof Penilaian>
+                      ).map((key) => (
+                        <div
+                          key={key}
+                          className="rounded-xl border border-slate-200/80 dark:border-slate-700/80 bg-slate-50/70 dark:bg-slate-900/60 p-3 flex flex-col md:flex-row md:items-center md:justify-between gap-2.5"
+                        >
+                          <span className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200">
+                            {penilaianLabels[key]}
+                          </span>
+
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                            {penilaianOptions.map((opt) => {
+                              const selected = penilaian[key] === opt.value;
+                              return (
+                                <button
+                                  key={opt.value}
+                                  type="button"
+                                  disabled={alreadyReviewed}
+                                  onClick={() => updatePenilaian(key, opt.value)}
+                                  className={`px-2.5 py-1.5 rounded-lg text-[11px] font-semibold border transition ${
+                                    selected
+                                      ? opt.activeClass
+                                      : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700"
+                                  } ${
+                                    alreadyReviewed && !selected
+                                      ? "opacity-45 cursor-not-allowed"
+                                      : ""
+                                  }`}
+                                >
+                                  {opt.label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Komentar Mentor */}
+                <div className="space-y-2">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+                    Catatan / Komentar Mentor{" "}
+                    {!alreadyReviewed && <span className="text-rose-500">*</span>}
+                  </label>
+                  <textarea
+                    value={mentorNote}
+                    onChange={(e) =>
+                      !alreadyReviewed && setMentorNote(e.target.value)
+                    }
+                    disabled={alreadyReviewed}
+                    readOnly={alreadyReviewed}
+                    rows={3}
+                    placeholder="Berikan catatan evaluasi atau alasan keputusan..."
+                    className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40 focus:border-[#0284c7] resize-none disabled:opacity-75 transition"
+                  />
+                </div>
+              </div>
             </>
-          ) : (
-            <div className="text-center py-16">
-              <div className="text-6xl mb-4">📭</div>
-              <p className="text-slate-700 font-medium text-lg">
-                Belum ada laporan akhir
-              </p>
-              <p className="text-slate-500 text-sm mt-2">
-                Peserta belum mengupload laporan akhir magang
-              </p>
-            </div>
+          )}
+        </div>
+
+        {/* ================= FOOTER ================= */}
+        <div className="px-5 sm:px-6 py-3.5 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-2.5 shrink-0">
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full sm:w-auto px-4 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+          >
+            Tutup
+          </button>
+
+          {laporan && !alreadyReviewed && (
+            <button
+              type="button"
+              disabled={!canSubmit}
+              onClick={() => setShowConfirm(true)}
+              className={`w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-5 py-2 rounded-xl text-xs font-semibold text-white transition ${
+                !canSubmit
+                  ? "bg-slate-300 dark:bg-slate-700 text-slate-500 cursor-not-allowed"
+                  : status === "Disetujui"
+                    ? "bg-emerald-600 hover:bg-emerald-700"
+                    : "bg-rose-600 hover:bg-rose-700"
+              }`}
+            >
+              {status === "Disetujui" ? (
+                <>
+                  <CheckCircle2 className="w-4 h-4" />
+                  Setujui & Simpan Nilai
+                </>
+              ) : (
+                <>
+                  <XCircle className="w-4 h-4" />
+                  Tolak Laporan
+                </>
+              )}
+            </button>
           )}
         </div>
       </div>
 
-      {/* CONFIRMATION MODAL */}
+      {/* ================= MODAL KONFIRMASI ================= */}
       {showConfirm && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+        <div
+          className="fixed inset-0 z-60 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4"
+          onClick={() => setShowConfirm(false)}
+        >
           <div
-            className="
-              w-full max-w-sm
-              rounded-3xl
-              bg-white dark:bg-slate-900
-              border border-slate-200 dark:border-slate-700
-              shadow-2xl
-              p-6
-              space-y-5
-              text-center
-            "
+            className="w-full max-w-sm rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl p-6 text-center space-y-4"
+            onClick={(e) => e.stopPropagation()}
           >
-            {/* ICON */}
             <div
-              className={`
-                mx-auto
-                w-14 h-14
-                rounded-2xl
-                flex items-center justify-center
-                text-white
-                shadow-lg
-                ${status === "Disetujui" ? "bg-emerald-500" : "bg-red-500"}
-              `}
+              className={`mx-auto w-12 h-12 rounded-2xl flex items-center justify-center ${
+                status === "Disetujui"
+                  ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400"
+                  : "bg-rose-50 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400"
+              }`}
             >
-              {status === "Disetujui" ? (
-                <FiCheckCircle className="text-2xl" />
-              ) : (
-                <FiXCircle className="text-2xl" />
-              )}
+              <AlertTriangle className="w-6 h-6" />
             </div>
 
-            {/* TITLE */}
-            <div>
-              <h3 className="text-lg font-bold text-slate-800 dark:text-white">
-                Konfirmasi{" "}
-                {status === "Disetujui" ? "Persetujuan" : "Penolakan"}
+            <div className="space-y-1">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                Konfirmasi {status === "Disetujui" ? "Persetujuan" : "Penolakan"}
               </h3>
-              <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">
-                Apakah Anda yakin ingin{" "}
-                <span
-                  className={`font-semibold ${
-                    status === "Disetujui"
-                      ? "text-emerald-600 dark:text-emerald-400"
-                      : "text-red-600 dark:text-red-400"
-                  }`}
-                >
-                  {status === "Disetujui" ? "menyetujui" : "menolak"}
-                </span>{" "}
-                laporan ini?
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Keputusan ini bersifat final dan tidak dapat diubah kembali.
+                Lanjutkan {status === "Disetujui" ? "menyetujui" : "menolak"}{" "}
+                laporan akhir ini?
               </p>
             </div>
 
-            {/* ACTIONS */}
-            <div className="flex flex-col sm:flex-row gap-3 pt-2">
+            <div className="flex gap-2 pt-1">
               <button
+                type="button"
                 onClick={() => setShowConfirm(false)}
-                className="
-                  w-full
-                  py-2.5
-                  rounded-xl
-                  border
-                  border-slate-300 dark:border-slate-600
-                  text-slate-600 dark:text-slate-300
-                  hover:bg-slate-100 dark:hover:bg-slate-800
-                  font-semibold
-                  transition
-                "
+                className="flex-1 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
               >
                 Batal
               </button>
-
               <button
+                type="button"
                 onClick={() => {
                   setShowConfirm(false);
                   handleUpdateStatus();
                 }}
-                className={`
-                  w-full
-                  py-2.5
-                  rounded-xl
-                  text-white
-                  font-semibold
-                  shadow-md hover:shadow-xl
-                  transition
-                  ${
-                    status === "Disetujui"
-                      ? "bg-emerald-600 hover:bg-emerald-700"
-                      : "bg-red-600 hover:bg-red-700"
-                  }
-                `}
+                className={`flex-1 py-2 rounded-xl text-xs font-semibold text-white transition ${
+                  status === "Disetujui"
+                    ? "bg-emerald-600 hover:bg-emerald-700"
+                    : "bg-rose-600 hover:bg-rose-700"
+                }`}
               >
                 Ya, Lanjutkan
               </button>

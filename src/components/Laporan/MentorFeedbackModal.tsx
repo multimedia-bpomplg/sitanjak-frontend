@@ -1,22 +1,74 @@
-// components/Feedback/MentorFeedbackModal.tsx
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
-  FiX,
-  FiUser,
-  FiMail,
-  FiCalendar,
-  FiSend,
-  FiCheckCircle,
-} from "react-icons/fi";
+  Calendar,
+  CheckCircle2,
+  Mail,
+  MessageSquareHeart,
+  Send,
+  Star,
+  User,
+  X,
+} from "lucide-react";
 import { showToast } from "@/components/ui/toastDashboard";
 
+export type MentorFeedbackItem = {
+  _id: string;
+  month: string;
+  feedbackMentor: string;
+  status: string;
+  mentorResponse?: string;
+  mentorRespondedAt?: string;
+  feedbackMentorSentAt?: string;
+  createdAt?: string;
+  isFeedbackMentorSent?: boolean;
+  survey?: {
+    kepuasanMagang?: number;
+    rekomendasiProgram?: number;
+    kemudahanProses?: number;
+    peningkatanSkill?: number;
+  };
+  user?: {
+    _id: string;
+    name: string;
+    email: string;
+  };
+};
+
 type Props = {
-  feedback: any;
+  feedback: MentorFeedbackItem;
   onClose: () => void;
   onResponseSent?: () => void;
 };
+
+const QUICK_RESPONSES = [
+  "Terima kasih atas feedback yang diberikan. Semoga ilmu selama magang bermanfaat.",
+  "Masukan Anda sangat kami hargai dan akan menjadi bahan evaluasi bimbingan ke depan.",
+  "Terima kasih, jika ada kendala selama magang silakan diskusikan langsung bersama kami.",
+];
+
+function formatMonthLabel(monthStr?: string): string {
+  if (!monthStr) return "-";
+  const match = /^(\d{4})-(\d{2})$/.exec(monthStr.trim());
+  if (!match) return monthStr;
+  const d = new Date(Number(match[1]), Number(match[2]) - 1, 1);
+  if (Number.isNaN(d.getTime())) return monthStr;
+  return d.toLocaleDateString("id-ID", { month: "long", year: "numeric" });
+}
+
+function formatDateTime(dateStr?: string): string {
+  if (!dateStr) return "-";
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return dateStr;
+  return d.toLocaleString("id-ID", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 
 export default function MentorFeedbackModal({
   feedback,
@@ -26,14 +78,24 @@ export default function MentorFeedbackModal({
   const [response, setResponse] = useState(feedback.mentorResponse || "");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
+  const alreadyResponded = Boolean(feedback.mentorResponse?.trim());
+
   const handleSubmit = async () => {
     if (!response.trim()) {
-      showToast.error("Response tidak boleh kosong");
+      showToast.error("Tanggapan tidak boleh kosong");
       return;
     }
 
     setIsSubmitting(true);
-    const toastId = showToast.loading("Mengirim response...");
+    const toastId = showToast.loading("Mengirim tanggapan...");
 
     try {
       const token = localStorage.getItem("token");
@@ -45,192 +107,224 @@ export default function MentorFeedbackModal({
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ response }),
+          body: JSON.stringify({ response: response.trim() }),
         },
       );
 
       if (!res.ok) {
-        throw new Error("Gagal mengirim response");
+        const errData = await res.json().catch(() => null);
+        throw new Error(errData?.message || "Gagal mengirim tanggapan");
       }
 
-      showToast.updateSuccess(toastId, "✅ Response berhasil dikirim!");
-
-      if (onResponseSent) {
-        onResponseSent();
-      }
+      showToast.updateSuccess(toastId, "Tanggapan berhasil dikirim");
+      onResponseSent?.();
 
       setTimeout(() => {
         onClose();
-      }, 1500);
-    } catch (error: any) {
-      showToast.updateError(toastId, error.message || "Terjadi kesalahan");
+      }, 900);
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Terjadi kesalahan";
+      showToast.updateError(toastId, message);
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const surveyItems = feedback.survey
+    ? [
+        { label: "Kepuasan Magang", value: feedback.survey.kepuasanMagang },
+        { label: "Rekomendasi", value: feedback.survey.rekomendasiProgram },
+        { label: "Kemudahan Proses", value: feedback.survey.kemudahanProses },
+        { label: "Peningkatan Skill", value: feedback.survey.peningkatanSkill },
+      ].filter((item) => typeof item.value === "number")
+    : [];
+
   return (
-    <div className="fixed inset-0 z-50 bg-black/40 dark:bg-black/70 backdrop-blur-md flex items-center justify-center p-3 sm:p-6">
-      <div className="w-full max-w-3xl bg-white/90 dark:bg-white/5 backdrop-blur rounded-3xl border border-slate-200 dark:border-indigo-500/30 shadow-2xl overflow-hidden max-h-[92vh] flex flex-col">
-        {/* HEADER */}
-        <div className="px-5 sm:px-6 py-4 sm:py-5 bg-linear-to-r from-[#FCA5A5] via-[#FDE68A] to-[#FFF7ED] dark:from-indigo-800 dark:via-indigo-700 dark:to-indigo-900 text-slate-900 dark:text-white flex items-center justify-between gap-3">
-          <div className="flex items-start sm:items-center gap-3 min-w-0">
-            <div className="p-2 bg-white/20 rounded-xl shrink-0">
-              <FiCalendar className="text-xl" />
+    <div
+      className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+    >
+      <div
+        className="w-full max-w-3xl bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* ================= HEADER (TEMA BIRU SIDEBAR) ================= */}
+        <div className="px-5 sm:px-6 py-4 bg-linear-to-r from-[#0284c7] via-sky-600 to-blue-700 dark:from-[#0369a1] dark:to-blue-900 text-white flex items-start justify-between gap-3 shrink-0">
+          <div className="flex items-start gap-3 min-w-0">
+            <div className="p-2.5 bg-white/20 rounded-xl shrink-0">
+              <MessageSquareHeart className="w-5 h-5" />
             </div>
-
             <div className="min-w-0">
-              <h2 className="text-lg sm:text-xl font-bold leading-tight truncate">
-                Feedback dari Peserta
+              <h2 className="text-base sm:text-lg font-extrabold truncate">
+                Feedback Peserta Bimbingan
               </h2>
-
-              <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs sm:text-sm opacity-90">
-                <div className="flex items-center gap-1 min-w-0">
-                  <FiUser className="shrink-0" />
-                  <span className="truncate">{feedback.user?.name}</span>
-                </div>
-
-                <div className="flex items-center gap-1 min-w-0">
-                  <FiMail className="shrink-0" />
-                  <span className="truncate max-w-55 sm:max-w-none">
-                    {feedback.user?.email}
+              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-sky-100">
+                <span className="inline-flex items-center gap-1">
+                  <User className="w-3.5 h-3.5 shrink-0" />
+                  {feedback.user?.name || "Peserta"}
+                </span>
+                {feedback.user?.email && (
+                  <span className="inline-flex items-center gap-1">
+                    <Mail className="w-3.5 h-3.5 shrink-0" />
+                    <span className="truncate max-w-52">
+                      {feedback.user.email}
+                    </span>
                   </span>
-                </div>
-
-                <div className="flex items-center gap-1">
-                  <FiCalendar className="shrink-0" />
-                  <span>{feedback.month}</span>
-                </div>
+                )}
+                <span className="inline-flex items-center gap-1">
+                  <Calendar className="w-3.5 h-3.5 shrink-0" />
+                  {formatMonthLabel(feedback.month)}
+                </span>
               </div>
             </div>
           </div>
 
           <button
+            type="button"
             onClick={onClose}
-            className="p-2 text-red-600 hover:bg-red-100 dark:text-red-400 dark:hover:bg-red-900/30 rounded-lg transition"
+            aria-label="Tutup modal"
+            className="p-2 rounded-xl bg-white/15 hover:bg-white/25 text-white transition shrink-0"
           >
-            <FiX className="text-xl" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* BODY */}
-        <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 space-y-6">
-          {/* FEEDBACK CARD */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <span className="text-lg">💬</span>
-              <h3 className="font-bold text-slate-800 dark:text-indigo-200">
-                Feedback dari Peserta
+        {/* ================= BODY ================= */}
+        <div className="flex-1 overflow-y-auto px-5 sm:px-6 py-5 space-y-5">
+          {/* Survey Rating Ringkas (1–5 Bintang) */}
+          {surveyItems.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+              {surveyItems.map((item) => {
+                const score = Number(item.value || 0);
+                return (
+                  <div
+                    key={item.label}
+                    className="rounded-xl bg-white dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-800 p-3 space-y-1.5"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 truncate">
+                        {item.label}
+                      </p>
+                      <span className="text-xs font-extrabold text-slate-900 dark:text-white shrink-0">
+                        {score}/5
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-0.5">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Star
+                          key={star}
+                          className={`w-3.5 h-3.5 ${
+                            star <= score
+                              ? "text-amber-500 fill-amber-400"
+                              : "text-slate-300 dark:text-slate-600"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Isi Feedback untuk Mentor */}
+          <div className="rounded-xl bg-white dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-800 p-4 sm:p-5 space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+                Pesan / Masukan untuk Mentor
               </h3>
-            </div>
-
-            <div className="p-5 rounded-2xl bg-white/80 dark:bg-indigo-950/40 border border-amber-400/30 dark:border-indigo-500/30 shadow-sm">
-              <p className="text-sm leading-relaxed whitespace-pre-line text-slate-700 dark:text-slate-200">
-                {feedback.feedbackMentor}
-              </p>
-
-              <div className="mt-3 pt-3 border-t border-slate-200 dark:border-indigo-500/30 text-xs text-slate-500">
+              <span className="text-[11px] text-slate-400">
                 Dikirim:{" "}
-                {new Date(feedback.feedbackMentorSentAt).toLocaleString(
-                  "id-ID",
+                {formatDateTime(
+                  feedback.feedbackMentorSentAt || feedback.createdAt,
                 )}
-              </div>
+              </span>
             </div>
+
+            <p className="text-sm leading-relaxed whitespace-pre-line text-slate-800 dark:text-slate-200">
+              {feedback.feedbackMentor || "-"}
+            </p>
           </div>
 
-          {/* RESPONSE SECTION */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <span className="text-lg">✍️</span>
-              <h3 className="font-bold text-slate-800 dark:text-indigo-200">
-                Response Mentor
-              </h3>
-            </div>
+          {/* Bagian Tanggapan Mentor */}
+          <div className="rounded-xl bg-white dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-800 p-4 sm:p-5 space-y-3">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+              Tanggapan Mentor
+            </h3>
 
-            {feedback.mentorResponse ? (
-              <div className="p-5 rounded-2xl bg-emerald-50/80 dark:bg-emerald-900/20 border border-emerald-400/30">
-                <div className="flex items-start gap-3">
-                  <FiCheckCircle className="text-emerald-600 text-xl mt-0.5" />
-                  <div>
-                    <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
-                      Response telah dikirim
-                    </p>
-                    <p className="text-sm mt-2 whitespace-pre-line text-slate-700 dark:text-slate-200">
-                      {feedback.mentorResponse}
-                    </p>
-                    <p className="text-xs mt-3 text-slate-500">
-                      {new Date(feedback.mentorRespondedAt).toLocaleString(
-                        "id-ID",
-                      )}
-                    </p>
-                  </div>
+            {alreadyResponded ? (
+              <div className="rounded-xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 p-4 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-300">
+                    <CheckCircle2 className="w-4 h-4" />
+                    Tanggapan Telah Dikirim
+                  </span>
+                  {feedback.mentorRespondedAt && (
+                    <span className="text-[11px] text-emerald-700/80 dark:text-emerald-300/80">
+                      {formatDateTime(feedback.mentorRespondedAt)}
+                    </span>
+                  )}
                 </div>
+                <p className="text-sm leading-relaxed whitespace-pre-line text-slate-800 dark:text-slate-200">
+                  {feedback.mentorResponse}
+                </p>
               </div>
             ) : (
               <div className="space-y-3">
+                <div className="flex flex-wrap gap-1.5">
+                  {QUICK_RESPONSES.map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setResponse(preset)}
+                      className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-sky-50 hover:text-[#0284c7] dark:hover:bg-sky-950/60 dark:hover:text-sky-300 border border-slate-200 dark:border-slate-700 transition text-left"
+                    >
+                      + {preset}
+                    </button>
+                  ))}
+                </div>
+
                 <textarea
                   value={response}
                   onChange={(e) => setResponse(e.target.value)}
-                  rows={6}
-                  className="
-                    w-full px-4 py-3
-                    rounded-xl
-                    bg-white dark:bg-white/5
-                    border border-amber-400/70 dark:border-indigo-500/60
-                    text-slate-700 dark:text-slate-100
-                    placeholder:text-slate-400
-                    focus:ring-2 focus:ring-amber-300 dark:focus:ring-indigo-500/60
-                    outline-none
-                    transition
-                    resize-none
-                  "
-                  placeholder="Tulis response Anda untuk peserta..."
+                  rows={4}
+                  placeholder="Tulis tanggapan Anda untuk peserta..."
+                  className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40 focus:border-[#0284c7] resize-none transition"
                 />
 
-                <div className="text-xs text-slate-500">
-                  Response Anda akan dikirimkan ke peserta dan ditampilkan di
-                  dashboard mereka.
-                </div>
-
-                <div className="flex flex-col sm:flex-row gap-3 justify-end pt-2">
-                  <button
-                    onClick={onClose}
-                    className="
-                      px-5 py-2.5
-                      rounded-xl
-                      border border-red-500
-                      text-red-600 dark:text-red-500
-                      hover:bg-slate-100 dark:hover:bg-white/10
-                      transition
-                    "
-                  >
-                    Batal
-                  </button>
-
-                  <button
-                    onClick={handleSubmit}
-                    disabled={isSubmitting || !response.trim()}
-                    className={`
-                      px-6 py-2.5
-                      rounded-xl
-                      flex items-center justify-center gap-2
-                      text-white font-semibold
-                      shadow-md hover:shadow-xl
-                      transition-all duration-300
-                      ${
-                        isSubmitting || !response.trim()
-                          ? "bg-slate-400 cursor-not-allowed"
-                          : "bg-emerald-600 hover:bg-emerald-700"
-                      }
-                    `}
-                  >
-                    <FiSend />
-                    {isSubmitting ? "Mengirim..." : "Kirim Response"}
-                  </button>
-                </div>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Tanggapan akan ditampilkan langsung di halaman feedback
+                  peserta.
+                </p>
               </div>
             )}
           </div>
+        </div>
+
+        {/* ================= FOOTER ================= */}
+        <div className="px-5 sm:px-6 py-3.5 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-2.5 shrink-0">
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full sm:w-auto px-4 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+          >
+            {alreadyResponded ? "Tutup" : "Batal"}
+          </button>
+
+          {!alreadyResponded && (
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={isSubmitting || !response.trim()}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-5 py-2 rounded-xl text-xs font-semibold bg-[#0284c7] hover:bg-sky-700 text-white disabled:bg-slate-200 disabled:text-slate-400 dark:disabled:bg-slate-800 dark:disabled:text-slate-500 transition"
+            >
+              <Send className="w-3.5 h-3.5" />
+              {isSubmitting ? "Mengirim..." : "Kirim Tanggapan"}
+            </button>
+          )}
         </div>
       </div>
     </div>

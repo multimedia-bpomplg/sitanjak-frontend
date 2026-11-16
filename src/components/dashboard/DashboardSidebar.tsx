@@ -306,7 +306,7 @@ export default function DashboardSidebar({
             <div className="flex items-center justify-between px-2 py-1.5">
               <div className="flex flex-col">
                 <span className="text-[11px] font-semibold text-white">
-                  SI TANJAK v1.0
+                  SI TANJAK v2.0
                 </span>
                 <span className="text-[10px] text-sky-100/80">
                   BBPOM Palembang
