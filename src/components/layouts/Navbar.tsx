@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import { useState, useEffect } from "react";
 import { HiMenu, HiX } from "react-icons/hi";
@@ -20,47 +21,121 @@ const navItems = [
 ];
 
 export default function Navbar() {
+  const pathname = usePathname();
+  const isPendaftaran = pathname === "/pendaftaran" || pathname?.startsWith("/pendaftaran/");
   const [open, setOpen] = useState(false);
-  const [hide, setHide] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [lastY, setLastY] = useState(0);
   const [activeId, setActiveId] = useState("home");
 
   useEffect(() => {
     const onScroll = () => {
-      const currentY = window.scrollY;
+      const scrollY = window.scrollY;
+      setScrolled(scrollY > 20);
 
-      setScrolled(currentY > 20);
+      if (isPendaftaran) return;
 
-      if (currentY > lastY && currentY > 80) {
-        setHide(true);
-      } else {
-        setHide(false);
+      // Scroll spy untuk otomatis update menu aktif saat di-scroll
+      const sectionIds = ["peraturan", "manfaat", "formasi", "profil", "home"];
+      for (const sId of sectionIds) {
+        if (sId === "home") {
+          if (scrollY < 300) {
+            setActiveId("home");
+            break;
+          }
+        } else {
+          const el = document.getElementById(sId);
+          if (el) {
+            let top = 0;
+            let current: HTMLElement | null = el as HTMLElement;
+            while (current) {
+              top += current.offsetTop;
+              current = current.offsetParent as HTMLElement | null;
+            }
+            if (scrollY >= top - 150) {
+              setActiveId(sId);
+              break;
+            }
+          }
+        }
       }
-
-      setLastY(currentY);
     };
 
-    window.addEventListener("scroll", onScroll);
-    return () => window.removeEventListener("scroll", onScroll);
-  }, [lastY]);
+    // Deteksi hash URL saat komponen mount / redirect dari halaman lain (misal /#profil)
+    const handleHashAndInit = () => {
+      if (typeof window === "undefined") return;
+
+      const hash = window.location.hash.replace("#", "");
+      if (hash && ["profil", "formasi", "manfaat", "peraturan", "home"].includes(hash)) {
+        setActiveId(hash);
+        setTimeout(() => {
+          const el = document.getElementById(hash);
+          if (el) {
+            let top = 0;
+            let current: HTMLElement | null = el as HTMLElement;
+            while (current) {
+              top += current.offsetTop;
+              current = current.offsetParent as HTMLElement | null;
+            }
+            const targetY = top || (el.getBoundingClientRect().top + window.scrollY);
+            window.scrollTo({
+              top: targetY,
+              behavior: "smooth",
+            });
+          }
+        }, 100);
+      } else {
+        onScroll();
+      }
+    };
+
+    handleHashAndInit();
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("hashchange", handleHashAndInit);
+
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("hashchange", handleHashAndInit);
+    };
+  }, [pathname, isPendaftaran]);
 
   // ===============================
   // 🔥 FUNGSI SCROLL + ANIMASI
   // ===============================
   const scrollToSection = (id: string) => {
     setActiveId(id);
-    const el = document.getElementById(id);
-    if (!el) {
-      window.location.href = id === "home" ? "/" : `/#${id}`;
+
+    if (id === "home") {
+      if (pathname !== "/") {
+        window.location.href = "/";
+        return;
+      }
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
+      setOpen(false);
       return;
     }
 
-    const yOffset = -100;
-    const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
+    const el = document.getElementById(id);
+    if (!el) {
+      window.location.href = `/#${id}`;
+      return;
+    }
+
+    // Hitung posisi absolut elemen dari atas dokumen (bebas distorsi CSS transform)
+    let top = 0;
+    let current: HTMLElement | null = el as HTMLElement;
+    while (current) {
+      top += current.offsetTop;
+      current = current.offsetParent as HTMLElement | null;
+    }
+
+    const targetY = top || (el.getBoundingClientRect().top + window.scrollY);
 
     window.scrollTo({
-      top: y,
+      top: targetY,
       behavior: "smooth",
     });
 
@@ -74,8 +149,7 @@ export default function Navbar() {
         fixed left-0 right-0 top-0
         z-100
         flex justify-center
-        transition-all duration-500 ease-in-out
-        ${hide ? "-translate-y-full" : "translate-y-0"}
+        transition-all duration-300 ease-in-out
         ${scrolled ? "bg-white/95 backdrop-blur-md shadow-sm" : "bg-white"}
       `}
     >
@@ -111,7 +185,7 @@ export default function Navbar() {
         {/* MENU DESKTOP */}
         <ul className="hidden lg:flex items-center gap-8 text-[15px] font-normal">
           {navItems.map((item) => {
-            const isActive = activeId === item.id;
+            const isActive = !isPendaftaran && activeId === item.id;
             return (
               <li key={item.id}>
                 <button
@@ -152,28 +226,49 @@ export default function Navbar() {
           <Link
             href="/auth/login"
             className="
-              px-7 py-2 rounded-full
+              w-28 py-2 rounded-full
               border-[1.8px] border-[#0088FF]
               text-[#0B1B3D] font-bold text-sm
+              flex items-center justify-center
               hover:bg-[#0088FF]/5
               transition
             "
           >
             Login
           </Link>
-          <Link
-            href="/pendaftaran"
-            className="
-              px-7 py-2 rounded-full
-              bg-[#0088FF] text-white
-              font-bold text-sm
-              shadow-md shadow-[#0088FF]/25
-              hover:bg-[#0073E6] hover:shadow-lg
-              transition
-            "
-          >
-            Daftar
-          </Link>
+          {isPendaftaran ? (
+            <Link
+              href="/"
+              className="
+                w-28 py-2 rounded-full
+                border-[1.8px] border-[#0088FF]
+                bg-[#0088FF] text-white
+                font-bold text-sm
+                flex items-center justify-center
+                shadow-md shadow-[#0088FF]/25
+                hover:bg-[#0073E6] hover:border-[#0073E6] hover:shadow-lg
+                transition
+              "
+            >
+              Home
+            </Link>
+          ) : (
+            <Link
+              href="/pendaftaran"
+              className="
+                w-28 py-2 rounded-full
+                border-[1.8px] border-[#0088FF]
+                bg-[#0088FF] text-white
+                font-bold text-sm
+                flex items-center justify-center
+                shadow-md shadow-[#0088FF]/25
+                hover:bg-[#0073E6] hover:border-[#0073E6] hover:shadow-lg
+                transition
+              "
+            >
+              Daftar
+            </Link>
+          )}
         </div>
 
         {/* MOBILE BUTTON */}
@@ -191,7 +286,7 @@ export default function Navbar() {
         <div className="lg:hidden absolute top-full left-0 right-0 bg-white border-t border-slate-100 px-6 py-6 shadow-xl">
           <ul className="flex flex-col space-y-4 font-normal text-[#0B1B3D]">
             {navItems.map((item) => {
-              const isActive = activeId === item.id;
+              const isActive = !isPendaftaran && activeId === item.id;
               return (
                 <li key={item.id}>
                   <button
@@ -229,12 +324,23 @@ export default function Navbar() {
               Login
             </Link>
 
-            <Link
-              href="/pendaftaran"
-              className="flex items-center justify-center bg-[#0088FF] text-white px-4 py-2.5 rounded-full w-full hover:bg-[#0073E6] shadow-md shadow-[#0088FF]/25 transition font-bold text-sm"
-            >
-              Daftar
-            </Link>
+            {isPendaftaran ? (
+              <Link
+                href="/"
+                onClick={() => setOpen(false)}
+                className="flex items-center justify-center border-[1.8px] border-[#0088FF] bg-[#0088FF] text-white px-4 py-2.5 rounded-full w-full hover:bg-[#0073E6] hover:border-[#0073E6] shadow-md shadow-[#0088FF]/25 transition font-bold text-sm"
+              >
+                Home
+              </Link>
+            ) : (
+              <Link
+                href="/pendaftaran"
+                onClick={() => setOpen(false)}
+                className="flex items-center justify-center border-[1.8px] border-[#0088FF] bg-[#0088FF] text-white px-4 py-2.5 rounded-full w-full hover:bg-[#0073E6] hover:border-[#0073E6] shadow-md shadow-[#0088FF]/25 transition font-bold text-sm"
+              >
+                Daftar
+              </Link>
+            )}
           </div>
         </div>
       )}
