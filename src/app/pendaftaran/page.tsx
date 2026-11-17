@@ -30,7 +30,13 @@ import {
   HiOutlineExclamationCircle,
 } from "react-icons/hi";
 import { FaMars, FaVenus } from "react-icons/fa";
-import { fetchFormasi, IFormasi } from "@/services/formasiService";
+import {
+  fetchFormasi,
+  IFormasi,
+  hitungKuotaBulan,
+  simulasiKuotaBulanan,
+  cekSlotMagangByBulan,
+} from "@/services/formasiService";
 import { useSearchParams } from "next/navigation";
 import CalendarPopup from "@/components/calendar/CalendarPopup";
 
@@ -304,7 +310,7 @@ function PendaftaranForm() {
       const formasi = formasiList.find((f) => f.title === p.posisi);
       if (!formasi) return;
 
-      const cek = cekSlotMagang(
+      const cek = cekSlotMagangByBulan(
         formasi,
         p.tanggalMulaiMagang,
         p.tanggalSelesaiMagang,
@@ -313,7 +319,7 @@ function PendaftaranForm() {
       if (cek.penuh) {
         setSlotPenuh(true);
         setSlotWarning(
-          `Posisi ${p.posisi} pada tanggal ${p.tanggalMulaiMagang} hingga ${p.tanggalSelesaiMagang} sudah penuh.`,
+          `Posisi ${p.posisi} pada periode ${p.tanggalMulaiMagang} hingga ${p.tanggalSelesaiMagang} sudah penuh${cek.bulanPenuh ? ` (kuota bulan ${cek.bulanPenuh} telah terpenuhi)` : ""}.`,
         );
         warningFound = true;
       } else if (cek.aktif > 0) {
@@ -667,104 +673,6 @@ function PendaftaranForm() {
 
   const today = new Date().toISOString().split("T")[0];
 
-  function simulasiKuotaBulanan(formasi: IFormasi) {
-    const kuota = formasi.kuota;
-    const mulaiList = formasi.tanggalMulaiMagang || [];
-    const selesaiList = formasi.tanggalSelesaiMagang || [];
-
-    const hasil: {
-      bulan: string;
-      bulanSingkat: string;
-      aktif: number;
-      sisaKuota: number;
-    }[] = [];
-
-    const sekarang = new Date();
-
-    for (let idx = 0; idx < 4; idx++) {
-      const bulanStart = new Date(
-        sekarang.getFullYear(),
-        sekarang.getMonth() + idx,
-        1,
-      );
-
-      const bulanEnd = new Date(
-        sekarang.getFullYear(),
-        sekarang.getMonth() + idx + 1,
-        0,
-      );
-
-      const aktif = mulaiList.reduce((acc, mulai, mIdx) => {
-        const start = new Date(mulai);
-        const end = new Date(selesaiList[mIdx]);
-        const overlap = start <= bulanEnd && end >= bulanStart;
-        return overlap ? acc + 1 : acc;
-      }, 0);
-
-      hasil.push({
-        bulan: bulanStart.toLocaleDateString("id-ID", {
-          month: "long",
-          year: "numeric",
-        }),
-        bulanSingkat: bulanStart.toLocaleDateString("id-ID", {
-          month: "short",
-          year: "numeric",
-        }),
-        aktif,
-        sisaKuota: Math.max(0, kuota - aktif),
-      });
-    }
-
-    return hasil;
-  }
-
-  function hitungKuotaBulanIni(formasi: IFormasi) {
-    const kuota = formasi.kuota;
-    const mulaiList = formasi.tanggalMulaiMagang || [];
-    const selesaiList = formasi.tanggalSelesaiMagang || [];
-
-    const now = new Date();
-    const bulanStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const bulanEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-
-    let aktif = 0;
-
-    mulaiList.forEach((mulai, idx) => {
-      const start = new Date(mulai);
-      const end = new Date(selesaiList[idx]);
-      const overlap = start <= bulanEnd && end >= bulanStart;
-      if (overlap) aktif++;
-    });
-
-    const sisa = Math.max(0, kuota - aktif);
-    return { aktif, sisa };
-  }
-
-  function cekSlotMagang(formasi: IFormasi, mulai: string, selesai: string) {
-    if (!mulai || !selesai) return { penuh: false, aktif: 0 };
-
-    const kuota = formasi.kuota;
-    const mulaiList = formasi.tanggalMulaiMagang || [];
-    const selesaiList = formasi.tanggalSelesaiMagang || [];
-
-    let aktif = 0;
-
-    mulaiList.forEach((m, idx) => {
-      const start = new Date(m);
-      const end = new Date(selesaiList[idx]);
-      const newStart = new Date(mulai);
-      const newEnd = new Date(selesai);
-
-      const overlap = newStart <= end && newEnd >= start;
-      if (overlap) aktif++;
-    });
-
-    return {
-      aktif,
-      penuh: aktif >= kuota,
-    };
-  }
-
   function getStatusKuota(sisa: number, total: number) {
     if (sisa <= 0) {
       return {
@@ -1048,8 +956,8 @@ function PendaftaranForm() {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                     {formasiList.map((item) => {
-                      const kuota = item.kuota;
-                      const kuotaRealtime = hitungKuotaBulanIni(item);
+                      const kuotaRealtime = hitungKuotaBulan(item);
+                      const kuota = kuotaRealtime.kuotaBulan;
                       const aktif = kuotaRealtime.aktif;
                       const sisa = kuotaRealtime.sisa;
                       const status = getStatusKuota(sisa, kuota);

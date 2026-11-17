@@ -16,7 +16,13 @@ import {
   HiOutlineCheckCircle,
 } from "react-icons/hi";
 import { useEffect, useRef, useState, useCallback } from "react";
-import { fetchFormasi, IFormasi } from "@/services/formasiService";
+import {
+  fetchFormasi,
+  IFormasi,
+  hitungKuotaBulan,
+  simulasiKuotaBulanan,
+  SimulasiKuotaBulanItem,
+} from "@/services/formasiService";
 import CalendarPopup from "@/components/calendar/CalendarPopup";
 
 
@@ -42,7 +48,9 @@ export default function Formasi() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [prediksi, setPrediksi] = useState<Record<string, any[]>>({});
+  const [prediksi, setPrediksi] = useState<
+    Record<string, SimulasiKuotaBulanItem[]>
+  >({});
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [selectedFormasi, setSelectedFormasi] = useState<IFormasi | null>(null);
@@ -57,57 +65,6 @@ export default function Formasi() {
     });
   };
 
-  function simulasiKuotaBulanan(formasi: IFormasi) {
-    const kuota = formasi.kuota;
-    const mulaiList = formasi.tanggalMulaiMagang || [];
-    const selesaiList = formasi.tanggalSelesaiMagang || [];
-
-    const hasil: {
-      bulan: string;
-      bulanSingkat: string;
-      aktif: number;
-      sisaKuota: number;
-    }[] = [];
-
-    const sekarang = new Date();
-
-    for (let i = 0; i < 6; i++) {
-      const bulanStart = new Date(
-        sekarang.getFullYear(),
-        sekarang.getMonth() + i,
-        1,
-      );
-
-      const bulanEnd = new Date(
-        sekarang.getFullYear(),
-        sekarang.getMonth() + i + 1,
-        0,
-      );
-
-      const aktif = mulaiList.reduce((acc, mulai, idx) => {
-        const start = new Date(mulai);
-        const end = new Date(selesaiList[idx]);
-        const overlap = start <= bulanEnd && end >= bulanStart;
-        return overlap ? acc + 1 : acc;
-      }, 0);
-
-      hasil.push({
-        bulan: bulanStart.toLocaleDateString("id-ID", {
-          month: "long",
-          year: "numeric",
-        }),
-        bulanSingkat: bulanStart.toLocaleDateString("id-ID", {
-          month: "short",
-          year: "numeric",
-        }),
-        aktif,
-        sisaKuota: Math.max(0, kuota - aktif),
-      });
-    }
-
-    return hasil;
-  }
-
   const loadFormasi = useCallback(async (isAutoRefresh = false) => {
     if (isAutoRefresh) {
       setRefreshing(true);
@@ -121,9 +78,9 @@ export default function Formasi() {
       setFormasiList(formasiData);
       setLastUpdated(new Date());
 
-      const simulasi: Record<string, any> = {};
+      const simulasi: Record<string, SimulasiKuotaBulanItem[]> = {};
       formasiData.forEach((f: IFormasi) => {
-        simulasi[f.title] = simulasiKuotaBulanan(f);
+        simulasi[f.title] = simulasiKuotaBulanan(f, 6);
       });
 
       setPrediksi(simulasi);
@@ -173,60 +130,14 @@ export default function Formasi() {
     loadFormasi(true);
   };
 
-  function getKuotaBulanIni(formasi: IFormasi) {
-    const kuota = formasi.kuota;
-    const mulaiList = formasi.tanggalMulaiMagang || [];
-    const selesaiList = formasi.tanggalSelesaiMagang || [];
-
-    const sekarang = new Date();
-    const awalBulan = new Date(sekarang.getFullYear(), sekarang.getMonth(), 1);
-    const akhirBulan = new Date(
-      sekarang.getFullYear(),
-      sekarang.getMonth() + 1,
-      0,
-    );
-
-    const aktif = mulaiList.reduce((total, mulai, idx) => {
-      const start = new Date(mulai);
-      const end = new Date(selesaiList[idx]);
-      const overlap = start <= akhirBulan && end >= awalBulan;
-      return overlap ? total + 1 : total;
-    }, 0);
-
-    return {
-      aktif,
-      sisaKuota: Math.max(0, kuota - aktif),
-    };
-  }
-
-  function getPendaftarBulanIni(formasi: IFormasi) {
-    const mulaiList = formasi.tanggalMulaiMagang || [];
-    const selesaiList = formasi.tanggalSelesaiMagang || [];
-
-    const sekarang = new Date();
-    const awalBulan = new Date(sekarang.getFullYear(), sekarang.getMonth(), 1);
-    const akhirBulan = new Date(
-      sekarang.getFullYear(),
-      sekarang.getMonth() + 1,
-      0,
-    );
-
-    return mulaiList.reduce((total, mulai, idx) => {
-      const start = new Date(mulai);
-      const end = new Date(selesaiList[idx]);
-      const overlap = start <= akhirBulan && end >= awalBulan;
-      return overlap ? total + 1 : total;
-    }, 0);
-  }
-
   // Hitung statistik ringkasan atas
   const totalBidang = formasiList.length;
   const totalDayaTampung = formasiList.reduce(
-    (sum, item) => sum + (item.kuota || 0),
+    (sum, item) => sum + hitungKuotaBulan(item).kuotaBulan,
     0,
   );
   const totalSisaBulanIni = formasiList.reduce(
-    (sum, item) => sum + getKuotaBulanIni(item).sisaKuota,
+    (sum, item) => sum + hitungKuotaBulan(item).sisa,
     0,
   );
 
@@ -426,14 +337,16 @@ export default function Formasi() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-7">
               {formasiList.map((item) => {
                 const IconComponent = getFormasiIcon(item.title);
-                const kuotaBulanIni = getKuotaBulanIni(item);
-                const terisiBulanIni = getPendaftarBulanIni(item);
-                const isFull = kuotaBulanIni.sisaKuota === 0;
-                const isAlmostFull =
-                  !isFull && kuotaBulanIni.sisaKuota <= 2;
+                const kuotaBulanIni = hitungKuotaBulan(item);
+                const terisiBulanIni = kuotaBulanIni.aktif;
+                const kuotaEfektifBulanIni = kuotaBulanIni.kuotaBulan;
+                const isFull = kuotaBulanIni.sisa === 0;
+                const isAlmostFull = !isFull && kuotaBulanIni.sisa <= 2;
                 const fillPercentage = Math.min(
                   100,
-                  item.kuota > 0 ? (terisiBulanIni / item.kuota) * 100 : 0,
+                  kuotaEfektifBulanIni > 0
+                    ? (terisiBulanIni / kuotaEfektifBulanIni) * 100
+                    : 0,
                 );
 
                 return (
@@ -525,7 +438,7 @@ export default function Formasi() {
                                       : "text-[#0B1B3D]"
                                 }`}
                               >
-                                {kuotaBulanIni.sisaKuota}
+                                {kuotaBulanIni.sisa}
                               </span>
                               <span className="text-xs font-semibold text-[#64748B]">
                                 kursi tersedia
@@ -542,7 +455,7 @@ export default function Formasi() {
                               <span className="text-[#94A3B8] font-normal">
                                 /
                               </span>{" "}
-                              {item.kuota}
+                              {kuotaEfektifBulanIni}
                             </p>
                           </div>
                         </div>

@@ -553,13 +553,17 @@ export default function PesertaDashboard() {
                 hari ini.
               </p>
             </div>
-            <div className="pt-1">
+            <div className="pt-1 space-y-2.5">
               <Link
                 href="/dashboard/peserta/isi-logbook?isi=1"
                 className="inline-flex items-center justify-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-bold bg-[#1D64F2] hover:bg-blue-700 text-white shadow-xs transition"
               >
                 <span>Isi Kehadiran & Laporan Hari Ini</span>
               </Link>
+              <p className="text-[11px] sm:text-xs font-medium text-slate-500 dark:text-slate-400 flex items-center justify-center gap-1.5">
+                <Clock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                <span>Batas waktu pengisian sampai jam 23.00 WIB</span>
+              </p>
             </div>
           </div>
         )}

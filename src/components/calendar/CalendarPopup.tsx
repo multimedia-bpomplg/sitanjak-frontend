@@ -5,6 +5,11 @@ import { createPortal } from "react-dom";
 import Link from "next/link";
 import { plusJakarta, caveat } from '@/lib/font';
 import {
+  getKuotaUntukBulan,
+  getMonthKeyFromDate,
+  IKuotaBulanan,
+} from "@/services/formasiService";
+import {
   HiChevronLeft,
   HiChevronRight,
   HiX,
@@ -35,6 +40,8 @@ interface CalendarPopupProps {
   formasi?: {
     title: string;
     kuota: number;
+    kuotaDefault?: number;
+    kuotaBulanan?: IKuotaBulanan[];
     jumlahPendaftar: number;
     sisaKuota: number;
     jumlahSelesaiMagang?: number;
@@ -192,6 +199,9 @@ export default function CalendarPopup({
   if (!isOpen || !mounted) return null;
 
   const today = new Date();
+  const kuotaBulanTampil = formasi
+    ? getKuotaUntukBulan(formasi, getMonthKeyFromDate(currentDate))
+    : 0;
 
   // Bangun daftar range dari data pendaftar formasi
   const internRanges: InternRange[] = (() => {
@@ -212,7 +222,7 @@ export default function CalendarPopup({
           mulai,
           selesai,
           kuotaTerisi: 0,
-          kuotaTotal: formasi.kuota,
+          kuotaTotal: kuotaBulanTampil,
           durasi: hitungDurasi(mulai, selesai),
           statusMagang: status,
         };
@@ -696,7 +706,7 @@ export default function CalendarPopup({
                 </p>
                 <p className="text-xs text-[#475569] mt-1">
                   Belum ada jadwal terisi di <strong>{formasi.title}</strong>.
-                  Tersedia penuh <strong>{formasi.kuota} kursi</strong>.
+                  Tersedia penuh <strong>{kuotaBulanTampil} kursi</strong>.
                 </p>
               </div>
             )

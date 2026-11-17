@@ -31,7 +31,11 @@ import {
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
-import { fetchFormasi, IFormasi } from "@/services/formasiService";
+import {
+  fetchFormasi,
+  IFormasi,
+  validasiApprovalFormasi,
+} from "@/services/formasiService";
 import PaginationFooter from "@/components/dashboard/PaginationFooter";
 import { TablePageSkeleton } from "@/components/dashboard/skeletons";
 import { showToast } from "@/components/ui/toastDashboard";
@@ -500,22 +504,12 @@ export default function ViewPendaftaranAdminPage() {
         return;
       }
 
-      // Validasi kuota formasi
-      const neededByPosisi = new Map<string, number>();
-      for (const p of selected.peserta) {
-        const key = (p.posisi || "").trim();
-        if (!key) continue;
-        neededByPosisi.set(key, (neededByPosisi.get(key) || 0) + 1);
-      }
-
-      for (const [posisiName, neededCount] of neededByPosisi.entries()) {
-        const formasi = findFormasiByPosisi(posisiName);
-        if (formasi && formasi.sisaKuota < neededCount) {
-          const msg = `Kuota formasi "${formasi.title}" tidak mencukupi (tersisa ${formasi.sisaKuota}, dibutuhkan ${neededCount}).`;
-          setFormError(msg);
-          showToast.error(msg);
-          return;
-        }
+      // Validasi kuota formasi per bulan/periode magang peserta
+      const kuotaError = validasiApprovalFormasi(selected.peserta, formasiList);
+      if (kuotaError) {
+        setFormError(kuotaError);
+        showToast.error(kuotaError);
+        return;
       }
     }
 

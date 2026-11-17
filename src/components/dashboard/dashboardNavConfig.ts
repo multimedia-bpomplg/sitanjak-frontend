@@ -11,6 +11,7 @@ import {
   Megaphone,
   Wrench,
   Sliders,
+  SlidersHorizontal,
   MessageCircle,
   KeyRound,
   FileText,
@@ -74,6 +75,11 @@ export const ROLE_NAVIGATION_CONFIG: Record<RoleType, RoleConfig> = {
             title: "Pendaftaran",
             href: "/dashboard/superadmin/ViewPendaftaran",
             icon: ClipboardList,
+          },
+          {
+            title: "Kelola Kuota",
+            href: "/dashboard/superadmin/KelolaKuota",
+            icon: SlidersHorizontal,
           },
           {
             title: "Data Peserta",
@@ -199,6 +205,11 @@ export const ROLE_NAVIGATION_CONFIG: Record<RoleType, RoleConfig> = {
             title: "Pendaftaran",
             href: "/dashboard/admin/ViewPendaftaran",
             icon: ClipboardList,
+          },
+          {
+            title: "Kelola Kuota",
+            href: "/dashboard/admin/KelolaKuota",
+            icon: SlidersHorizontal,
           },
           {
             title: "Data Peserta",
