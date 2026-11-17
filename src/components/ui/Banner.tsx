@@ -90,7 +90,7 @@ export default function PopupPromo() {
             flex items-center justify-center
             bg-white/80 dark:bg-slate-800/80
             text-gray-700 dark:text-gray-200
-            hover:text-red-600
+            hover:text-sky-600
             hover:scale-110
             transition
           "
@@ -131,18 +131,18 @@ export default function PopupPromo() {
               px-4 py-1.5
               rounded-full
               text-xs font-bold
-              bg-linear-to-r from-[#FACC15] to-[#F59E0B]
-              text-[#7F1D1D]
+              bg-linear-to-r from-sky-500 to-blue-600
+              text-white
               shadow-lg
             "
           >
-            🎉 {data.subtitle || "INFO PENTING"}
+          {data.subtitle || "INFO PENTING"}
           </div>
         </div>
 
         {/* CONTENT */}
         <div className="px-6 py-7 text-center">
-          <h3 className="text-2xl font-extrabold text-[#7F1D1D] mb-3">
+          <h3 className="text-2xl font-extrabold text-slate-900 dark:text-white mb-3">
             {data.title}
           </h3>
 
@@ -158,13 +158,13 @@ export default function PopupPromo() {
               py-3 rounded-xl
               font-bold text-sm
               text-white
-              bg-linear-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B]
-              hover:shadow-xl
+              bg-linear-to-r from-[#0284c7] via-sky-600 to-blue-700 dark:from-[#0369a1] dark:to-blue-800
+              hover:shadow-xl hover:shadow-sky-500/25
               hover:-translate-y-0.5
               transition-all
             "
           >
-            🚀 Saya Mengerti
+          Saya Mengerti
           </button>
 
           {/* SECONDARY */}
@@ -172,7 +172,7 @@ export default function PopupPromo() {
             onClick={hideForToday}
             className="
               mt-4 text-xs
-              text-slate-500 hover:text-[#7F1D1D]
+              text-slate-500 hover:text-sky-600
               transition
             "
           >

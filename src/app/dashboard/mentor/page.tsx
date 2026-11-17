@@ -444,13 +444,6 @@ export default function MentorDashboard() {
             <RefreshCw className="w-3.5 h-3.5" />
             Refresh
           </button>
-
-          <div
-            title={displayName}
-            className="w-10 h-10 rounded-full bg-linear-to-br from-emerald-600 to-teal-600 text-white font-bold text-xs flex items-center justify-center shadow-sm ring-2 ring-white dark:ring-slate-800 shrink-0"
-          >
-            {getInitials(displayName)}
-          </div>
         </div>
       </div>
 
@@ -790,15 +783,15 @@ function SummaryStatCard({
   > = {
     blue: {
       cardBg:
-        "bg-linear-to-br from-blue-600 via-blue-600 to-indigo-700 dark:from-blue-600 dark:via-blue-700 dark:to-indigo-800",
+        "bg-linear-to-br from-[#0284c7] via-sky-600 to-blue-700 dark:from-[#0369a1] dark:to-blue-800",
       iconBg: "bg-white/20 text-white backdrop-blur-xs",
-      border: "border-blue-500/40 dark:border-blue-400/30",
-      titleText: "text-blue-100",
+      border: "border-sky-500/30",
+      titleText: "text-sky-100",
       valueText: "text-white",
-      unitText: "text-blue-100",
+      unitText: "text-sky-100",
       divider: "border-white/20",
-      subtitleText: "text-blue-100/90",
-      chevron: "text-blue-100",
+      subtitleText: "text-sky-100/90",
+      chevron: "text-sky-100",
     },
     amber: {
       cardBg: "bg-white dark:bg-slate-900/90",
@@ -921,7 +914,7 @@ function PesertaBimbinganCard({
       {/* Top: Identitas & Status Magang */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3 min-w-0">
-          <div className="w-11 h-11 rounded-full bg-linear-to-br from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B] dark:from-indigo-600 dark:to-violet-500 text-white font-bold text-sm flex items-center justify-center shrink-0 shadow-xs">
+          <div className="w-11 h-11 rounded-full bg-linear-to-br from-[#0284c7] via-sky-600 to-blue-700 dark:from-[#0369a1] dark:to-blue-800 text-white font-bold text-sm flex items-center justify-center shrink-0 shadow-xs">
             {getInitials(peserta.nama)}
           </div>
           <div className="min-w-0">

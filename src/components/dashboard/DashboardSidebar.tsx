@@ -76,12 +76,12 @@ export default function DashboardSidebar({
         />
       )}
 
-      {/* Sidebar Container (Biru Tua - Pas & Tidak Terlalu Gelap: #1E40AF / Blue-800) */}
+      {/* Sidebar Container (Senada Card Dashboard: from-[#0284c7] via-sky-600 to-blue-700) */}
       <aside
         className={`
           fixed top-0 left-0 z-50 h-screen
-          bg-[#1E40AF] dark:bg-[#1E3A8A]
-          border-r border-blue-700/40 dark:border-blue-900/60
+          bg-linear-to-br from-[#0284c7] via-sky-600 to-blue-700 dark:from-[#0369a1] dark:to-blue-800
+          border-r border-sky-500/30
           shadow-md
           flex flex-col
           transition-all duration-300 ease-in-out
@@ -215,7 +215,7 @@ export default function DashboardSidebar({
                                   transition-all duration-150
                                   ${
                                     childActive
-                                      ? "bg-white text-[#1E40AF] font-bold shadow-xs"
+                                      ? "bg-white text-sky-700 font-bold shadow-xs"
                                       : "text-white/90 hover:bg-white/15 hover:text-white"
                                   }
                                 `}
@@ -224,7 +224,7 @@ export default function DashboardSidebar({
                                   <ChildIcon
                                     size={15}
                                     className={`shrink-0 ${
-                                      childActive ? "text-[#1E40AF]" : "text-white"
+                                      childActive ? "text-sky-700" : "text-white"
                                     }`}
                                   />
                                 )}
@@ -261,7 +261,7 @@ export default function DashboardSidebar({
                         transition-all duration-150
                         ${
                           active
-                            ? "bg-white text-[#1E40AF] font-bold shadow-sm"
+                            ? "bg-white text-sky-700 font-bold shadow-sm"
                             : "text-white hover:bg-white/15 hover:text-white"
                         }
                         ${collapsed ? "justify-center" : "justify-between"}
@@ -271,7 +271,7 @@ export default function DashboardSidebar({
                         <ItemIcon
                           size={19}
                           className={`shrink-0 transition-colors ${
-                            active ? "text-[#1E40AF]" : "text-white"
+                            active ? "text-sky-700" : "text-white"
                           }`}
                         />
                         {!collapsed && <span className="truncate">{item.title}</span>}
@@ -281,7 +281,7 @@ export default function DashboardSidebar({
                         <ExternalLink
                           size={14}
                           className={`shrink-0 ${
-                            active ? "text-[#1E40AF]/80" : "text-white/80"
+                            active ? "text-sky-700/80" : "text-white/80"
                           }`}
                         />
                       )}
