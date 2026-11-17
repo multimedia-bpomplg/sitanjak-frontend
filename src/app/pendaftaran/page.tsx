@@ -5,7 +5,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { useEffect, useState, useRef } from "react";
 import { toast } from "react-toastify";
-import { Plus_Jakarta_Sans } from "next/font/google";
+import { plusJakarta, caveat } from '@/lib/font';
 import Navbar from "@/components/layouts/Navbar";
 import {
   HiUser,
@@ -34,10 +34,7 @@ import { fetchFormasi, IFormasi } from "@/services/formasiService";
 import { useSearchParams } from "next/navigation";
 import CalendarPopup from "@/components/calendar/CalendarPopup";
 
-const plusJakarta = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
-});
+
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const waRegex = /^08[0-9]{8,11}$/;

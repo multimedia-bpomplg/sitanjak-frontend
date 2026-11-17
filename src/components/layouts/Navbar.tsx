@@ -3,14 +3,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Plus_Jakarta_Sans } from "next/font/google";
+import { plusJakarta, caveat } from '@/lib/font';
 import { useState, useEffect } from "react";
 import { HiMenu, HiX } from "react-icons/hi";
 
-const plusJakarta = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
-});
+
 
 const navItems = [
   { label: "Home", id: "home" },

@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { Plus_Jakarta_Sans } from "next/font/google";
+import { plusJakarta, caveat } from '@/lib/font';
 import Navbar from "@/components/layouts/Navbar";
 import {
   HiMail,
@@ -24,10 +24,7 @@ import {
   HiChatAlt2,
 } from "react-icons/hi";
 
-const plusJakarta = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
-});
+
 
 export default function RiwayatPendaftaran() {
   const [email, setEmail] = useState("");

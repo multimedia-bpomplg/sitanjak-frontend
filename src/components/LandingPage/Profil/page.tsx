@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
-import { Plus_Jakarta_Sans, Caveat } from "next/font/google";
+import { plusJakarta, caveat } from '@/lib/font';
 import {
   HiOutlineShieldCheck,
   HiOutlineBeaker,
@@ -11,15 +11,9 @@ import {
   HiOutlineCheckCircle,
 } from "react-icons/hi";
 
-const plusJakarta = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
-});
 
-const caveat = Caveat({
-  subsets: ["latin"],
-  weight: ["600", "700"],
-});
+
+
 
 const tabs = [
   { key: "profil", label: "Profil" },

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { Plus_Jakarta_Sans } from "next/font/google";
+import { plusJakarta, caveat } from '@/lib/font';
 import {
   HiMail,
   HiLockClosed,
@@ -21,10 +21,7 @@ import TurnstileCaptcha from "@/components/TurnstileCaptcha";
 import { loginApi } from "@/app/lib/api";
 import OtpLogin from "./components/OtpLogin";
 
-const plusJakarta = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
-});
+
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 

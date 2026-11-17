@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus_Jakarta_Sans } from "next/font/google";
+import { plusJakarta, caveat } from '@/lib/font';
 import {
   HiOutlineBriefcase,
   HiOutlineUsers,
@@ -10,10 +10,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { fetchFormasi, IFormasi } from "@/services/formasiService";
 
-const plusJakarta = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
-});
+
 
 export default function Statistik() {
   const sectionRef = useRef<HTMLDivElement | null>(null);

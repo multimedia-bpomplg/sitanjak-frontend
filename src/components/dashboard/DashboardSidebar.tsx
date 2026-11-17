@@ -76,12 +76,12 @@ export default function DashboardSidebar({
         />
       )}
 
-      {/* Sidebar Container (Biru Muda) */}
+      {/* Sidebar Container (Biru Tua - Pas & Tidak Terlalu Gelap: #1E40AF / Blue-800) */}
       <aside
         className={`
           fixed top-0 left-0 z-50 h-screen
-          bg-[#0284c7] dark:bg-[#0369a1]
-          border-r border-sky-600/30 dark:border-sky-800/60
+          bg-[#1E40AF] dark:bg-[#1E3A8A]
+          border-r border-blue-700/40 dark:border-blue-900/60
           shadow-md
           flex flex-col
           transition-all duration-300 ease-in-out
@@ -95,7 +95,7 @@ export default function DashboardSidebar({
             href={config.homeUrl}
             className="flex items-center gap-3 overflow-hidden group py-1"
           >
-            <div className="relative shrink-0 flex items-center justify-center w-10 h-10 rounded-xl bg-white/20 dark:bg-white/15 border border-white/30 p-1 group-hover:scale-105 transition-transform duration-200 shadow-xs">
+            <div className="relative shrink-0 flex items-center justify-center w-10 h-10 rounded-xl bg-white/15 dark:bg-white/10 border border-white/25 p-1 group-hover:scale-105 transition-transform duration-200 shadow-xs">
               <img
                 src="/images/icons/sitanjak.png"
                 alt="SI TANJAK Logo"
@@ -108,7 +108,7 @@ export default function DashboardSidebar({
                 <span className="font-bold text-base tracking-tight text-white leading-tight">
                   SI TANJAK
                 </span>
-                <span className="text-[11px] font-medium text-sky-100/90 truncate">
+                <span className="text-[11px] font-medium text-blue-100/90 truncate">
                   BBPOM di Palembang
                 </span>
               </div>
@@ -136,12 +136,12 @@ export default function DashboardSidebar({
         )}
 
         {/* ===================== NAVIGATION MENU ===================== */}
-        <div className="flex-1 overflow-y-auto px-3 py-3 space-y-6 scrollbar-thin scrollbar-thumb-sky-700/50 scrollbar-track-transparent">
+        <div className="flex-1 overflow-y-auto px-3 py-3 space-y-6 scrollbar-thin scrollbar-thumb-blue-600/50 scrollbar-track-transparent">
           {config.sections.map((section, sIdx) => (
             <div key={sIdx} className="space-y-1">
               {/* Section Title */}
               {section.sectionTitle && !collapsed && (
-                <div className="px-3 pt-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-sky-100/75">
+                <div className="px-3 pt-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-blue-100/75">
                   {section.sectionTitle}
                 </div>
               )}
@@ -169,7 +169,7 @@ export default function DashboardSidebar({
                           ${
                             active
                               ? "bg-white/20 text-white font-semibold backdrop-blur-xs"
-                              : "text-white hover:bg-white/20 hover:text-white"
+                              : "text-white hover:bg-white/15 hover:text-white"
                           }
                           ${collapsed ? "justify-center" : ""}
                         `}
@@ -215,8 +215,8 @@ export default function DashboardSidebar({
                                   transition-all duration-150
                                   ${
                                     childActive
-                                      ? "bg-white text-[#0284c7] font-bold shadow-xs"
-                                      : "text-white/90 hover:bg-white/20 hover:text-white"
+                                      ? "bg-white text-[#1E40AF] font-bold shadow-xs"
+                                      : "text-white/90 hover:bg-white/15 hover:text-white"
                                   }
                                 `}
                               >
@@ -224,7 +224,7 @@ export default function DashboardSidebar({
                                   <ChildIcon
                                     size={15}
                                     className={`shrink-0 ${
-                                      childActive ? "text-[#0284c7]" : "text-white"
+                                      childActive ? "text-[#1E40AF]" : "text-white"
                                     }`}
                                   />
                                 )}
@@ -261,8 +261,8 @@ export default function DashboardSidebar({
                         transition-all duration-150
                         ${
                           active
-                            ? "bg-white text-[#0284c7] font-bold shadow-sm"
-                            : "text-white hover:bg-white/20 hover:text-white"
+                            ? "bg-white text-[#1E40AF] font-bold shadow-sm"
+                            : "text-white hover:bg-white/15 hover:text-white"
                         }
                         ${collapsed ? "justify-center" : "justify-between"}
                       `}
@@ -271,7 +271,7 @@ export default function DashboardSidebar({
                         <ItemIcon
                           size={19}
                           className={`shrink-0 transition-colors ${
-                            active ? "text-[#0284c7]" : "text-white"
+                            active ? "text-[#1E40AF]" : "text-white"
                           }`}
                         />
                         {!collapsed && <span className="truncate">{item.title}</span>}
@@ -281,7 +281,7 @@ export default function DashboardSidebar({
                         <ExternalLink
                           size={14}
                           className={`shrink-0 ${
-                            active ? "text-[#0284c7]/80" : "text-white/80"
+                            active ? "text-[#1E40AF]/80" : "text-white/80"
                           }`}
                         />
                       )}
@@ -306,9 +306,9 @@ export default function DashboardSidebar({
             <div className="flex items-center justify-between px-2 py-1.5">
               <div className="flex flex-col">
                 <span className="text-[11px] font-semibold text-white">
-                  SI TANJAK v2.0
+                  SI TANJAK v1.0
                 </span>
-                <span className="text-[10px] text-sky-100/80">
+                <span className="text-[10px] text-blue-100/80">
                   BBPOM Palembang
                 </span>
               </div>

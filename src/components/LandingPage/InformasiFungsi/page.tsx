@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus_Jakarta_Sans } from "next/font/google";
+import { plusJakarta, caveat } from '@/lib/font';
 import {
   HiOutlineOfficeBuilding,
   HiOutlineShieldCheck,
@@ -14,10 +14,7 @@ import {
 import { motion } from "framer-motion";
 import { useInView } from "react-intersection-observer";
 
-const plusJakarta = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
-});
+
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 

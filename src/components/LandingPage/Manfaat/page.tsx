@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Plus_Jakarta_Sans } from "next/font/google";
+import { plusJakarta, caveat } from '@/lib/font';
 import {
   HiOutlineBriefcase,
   HiOutlineAcademicCap,
@@ -15,10 +15,7 @@ import {
 } from "react-icons/hi";
 import { useEffect, useRef, useState } from "react";
 
-const plusJakarta = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
-});
+
 
 const manfaatList = [
   {
