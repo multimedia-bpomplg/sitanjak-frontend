@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import {
   FileText,
   ClipboardCheck,
@@ -16,6 +16,7 @@ import {
   Eye,
   X,
   BadgeCheck,
+  Lock,
 } from "lucide-react";
 import LaporanAkhirUploadModal from "@/components/Laporan/LaporanAkhirModal";
 import PenilaianModal from "@/components/Laporan/PenilaianModal";
@@ -56,10 +57,66 @@ type SuratSelesai = {
   tanggalKirim: string;
 };
 
+function getTodayWibIso(): string {
+  const now = new Date(
+    new Date().toLocaleString("en-US", { timeZone: "Asia/Jakarta" }),
+  );
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function parseDateIso(raw?: string): string | null {
+  if (!raw || raw === "-") return null;
+  const parsed = new Date(raw);
+  if (isNaN(parsed.getTime())) return null;
+  const y = parsed.getFullYear();
+  const m = String(parsed.getMonth() + 1).padStart(2, "0");
+  const d = String(parsed.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function shiftIsoDate(dateIso: string, deltaDays: number): string {
+  const [y, m, d] = dateIso.split("-").map(Number);
+  const dt = new Date(y, m - 1, d + deltaDays);
+  const yy = dt.getFullYear();
+  const mm = String(dt.getMonth() + 1).padStart(2, "0");
+  const dd = String(dt.getDate()).padStart(2, "0");
+  return `${yy}-${mm}-${dd}`;
+}
+
+function diffDaysIso(fromIso: string, toIso: string): number {
+  const [fy, fm, fd] = fromIso.split("-").map(Number);
+  const [ty, tm, td] = toIso.split("-").map(Number);
+  const fromMs = Date.UTC(fy, fm - 1, fd);
+  const toMs = Date.UTC(ty, tm - 1, td);
+  return Math.round((toMs - fromMs) / (24 * 60 * 60 * 1000));
+}
+
+function formatIsoToIndo(dateIso: string): string {
+  const [y, m, d] = dateIso.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
 export default function LaporanAkhirPage() {
   const [laporan, setLaporan] = useState<LaporanAkhir | null>(null);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [suratSelesai, setSuratSelesai] = useState<SuratSelesai | null>(null);
+  const [sertifikat, setSertifikat] = useState<{
+    email: string;
+    nama: string;
+    nomorSertifikat?: string;
+    file: string;
+    tanggalKirim: string;
+  } | null>(null);
+  const [sertifikatPreviewUrl, setSertifikatPreviewUrl] = useState<string | null>(
+    null,
+  );
   const [loading, setLoading] = useState(true);
   const [dataLoaded, setDataLoaded] = useState(false);
 
@@ -79,11 +136,13 @@ export default function LaporanAkhirPage() {
     posisi: string;
     mulai: string;
     selesai: string;
+    statusMagang?: string;
   }>({
     nama: "Peserta Magang",
     posisi: "Peserta Magang BBPOM",
     mulai: "-",
     selesai: "-",
+    statusMagang: "",
   });
   const [feedbackModalMode, setFeedbackModalMode] = useState<"create" | "view">(
     "create",
@@ -147,7 +206,7 @@ export default function LaporanAkhirPage() {
       const email = payload?.email;
       if (!email) return;
 
-      const [res, selesaiRes] = await Promise.all([
+      const [res, selesaiRes, sertifikatRes] = await Promise.all([
         fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/pendaftaran/cek?email=${encodeURIComponent(email)}`,
           {
@@ -160,11 +219,22 @@ export default function LaporanAkhirPage() {
             headers: { Authorization: `Bearer ${token}` },
           },
         ).catch(() => null),
+        fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/sertifikat/cek?email=${encodeURIComponent(email)}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        ).catch(() => null),
       ]);
 
       if (selesaiRes && selesaiRes.ok) {
         const sData = await selesaiRes.json().catch(() => null);
         setSuratSelesai(sData || null);
+      }
+
+      if (sertifikatRes && sertifikatRes.ok) {
+        const certData = await sertifikatRes.json().catch(() => null);
+        setSertifikat(certData || null);
       }
 
       if (!res.ok) return;
@@ -178,6 +248,7 @@ export default function LaporanAkhirPage() {
           posisi: found.posisi || "Peserta Magang BBPOM",
           mulai: found.tanggalMulaiMagang || "-",
           selesai: found.tanggalSelesaiMagang || "-",
+          statusMagang: found.statusMagang || "",
         });
       }
     } catch {
@@ -202,12 +273,47 @@ export default function LaporanAkhirPage() {
     hasShownPopupRef.current = false;
   }, [loadAllData]);
 
-  // Prompt to fill feedback if laporan is uploaded and feedback is not yet filled
+  const uploadScheduleInfo = useMemo(() => {
+    if (pesertaInfo.statusMagang === "Tidak Magang") {
+      return {
+        canUpload: false,
+        reason: "inactive" as const,
+        openDateLabel: "-",
+        daysUntilOpen: 0,
+      };
+    }
+
+    const endIso = parseDateIso(pesertaInfo.selesai);
+    if (!endIso) {
+      return {
+        canUpload: true,
+        reason: "ok" as const,
+        openDateLabel: "-",
+        daysUntilOpen: 0,
+      };
+    }
+
+    const todayIso = getTodayWibIso();
+    const openUploadIso = shiftIsoDate(endIso, -10);
+    const daysUntilOpen = Math.max(0, diffDaysIso(todayIso, openUploadIso));
+
+    return {
+      canUpload: todayIso >= openUploadIso,
+      reason: todayIso >= openUploadIso ? ("ok" as const) : ("too_early" as const),
+      openDateLabel: formatIsoToIndo(openUploadIso),
+      daysUntilOpen,
+    };
+  }, [pesertaInfo.selesai, pesertaInfo.statusMagang]);
+
+  const isLaporanApproved = laporan?.status === "Disetujui";
+  const isSurveyDone = feedback !== null;
+  const canDownloadCompletionDocs = isLaporanApproved && isSurveyDone;
+
+  // Prompt to fill feedback only after laporan is approved and feedback is not yet filled
   useEffect(() => {
     if (!dataLoaded) return;
-    const isFeedbackFilled = feedback !== null;
 
-    if (laporan && laporan.status === "Menunggu" && !isFeedbackFilled) {
+    if (isLaporanApproved && !isSurveyDone) {
       if (!hasShownPopupRef.current) {
         hasShownPopupRef.current = true;
         setShowFeedbackPopup(true);
@@ -215,9 +321,16 @@ export default function LaporanAkhirPage() {
     } else {
       setShowFeedbackPopup(false);
     }
-  }, [dataLoaded, laporan, feedback]);
+  }, [dataLoaded, isLaporanApproved, isSurveyDone]);
 
   const handleOpenFeedbackModal = () => {
+    if (!feedback && !isLaporanApproved) {
+      showToast.error(
+        "Survei dan feedback hanya dapat diisi setelah Laporan Akhir disetujui oleh Mentor.",
+      );
+      return;
+    }
+
     if (feedback) {
       setSelectedMonth(feedback.month);
       setFeedbackModalMode("view");
@@ -273,10 +386,83 @@ export default function LaporanAkhirPage() {
     }
   };
 
-  const handleDownloadSertifikat = () => {
-    showToast.success(
-      "Mengunduh Sertifikat Magang (Integrasi backend segera hadir)",
-    );
+  const handleOpenPreviewSertifikat = async () => {
+    if (!canDownloadCompletionDocs) {
+      showToast.error(
+        "Sertifikat hanya dapat dilihat setelah Laporan Akhir disetujui dan Survei selesai diisi.",
+      );
+      return;
+    }
+    if (!sertifikat?.file) {
+      showToast.error("Sertifikat Magang belum tersedia");
+      return;
+    }
+    try {
+      const token = localStorage.getItem("token") ?? "";
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/sertifikat/download?inline=1`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData?.message || "Gagal membuka Sertifikat Magang");
+      }
+      const blob = await res.blob();
+      if (sertifikatPreviewUrl) window.URL.revokeObjectURL(sertifikatPreviewUrl);
+      const url = window.URL.createObjectURL(blob);
+      setSertifikatPreviewUrl(url);
+      setShowSertifikatModal(true);
+    } catch (err: any) {
+      showToast.error(err?.message || "Gagal membuka pratinjau sertifikat");
+    }
+  };
+
+  const handleClosePreviewSertifikat = () => {
+    setShowSertifikatModal(false);
+    if (sertifikatPreviewUrl) {
+      window.URL.revokeObjectURL(sertifikatPreviewUrl);
+      setSertifikatPreviewUrl(null);
+    }
+  };
+
+  const handleDownloadSertifikat = async () => {
+    if (!canDownloadCompletionDocs) {
+      showToast.error(
+        "Sertifikat hanya dapat diunduh setelah Laporan Akhir disetujui dan Survei selesai diisi.",
+      );
+      return;
+    }
+    if (!sertifikat?.file) {
+      showToast.error("Sertifikat Magang belum tersedia");
+      return;
+    }
+    try {
+      const token = localStorage.getItem("token") ?? "";
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/sertifikat/download`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData?.message || "Gagal mengunduh Sertifikat Magang");
+      }
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Sertifikat_${pesertaInfo.nama.replace(/\s+/g, "_")}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      showToast.success("Sertifikat Magang berhasil diunduh");
+    } catch (err: any) {
+      showToast.error(err?.message || "Gagal mengunduh Sertifikat Magang");
+    }
   };
 
   const suratSelesaiFileUrl = suratSelesai?.file
@@ -284,13 +470,28 @@ export default function LaporanAkhirPage() {
     : null;
 
   const handleDownloadSuratSelesai = async () => {
-    if (!suratSelesaiFileUrl || !suratSelesai?.file) {
+    if (!canDownloadCompletionDocs) {
+      showToast.error(
+        "Surat Selesai Magang hanya dapat diunduh setelah Laporan Akhir disetujui dan Survei selesai diisi.",
+      );
+      return;
+    }
+    if (!suratSelesai?.file) {
       showToast.error("Surat Selesai Magang belum tersedia");
       return;
     }
     try {
-      const res = await fetch(suratSelesaiFileUrl);
-      if (!res.ok) throw new Error("Gagal mengunduh");
+      const token = localStorage.getItem("token") ?? "";
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/surat-selesai/download`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData?.message || "Gagal mengunduh Surat Selesai Magang");
+      }
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -301,8 +502,8 @@ export default function LaporanAkhirPage() {
       a.remove();
       window.URL.revokeObjectURL(url);
       showToast.success("Surat Selesai Magang berhasil diunduh");
-    } catch {
-      window.open(suratSelesaiFileUrl, "_blank", "noopener,noreferrer");
+    } catch (err: any) {
+      showToast.error(err?.message || "Gagal mengunduh Surat Selesai Magang");
     }
   };
 
@@ -463,6 +664,39 @@ export default function LaporanAkhirPage() {
                     )}
                   </div>
                 </div>
+              ) : !uploadScheduleInfo.canUpload ? (
+                <div className="rounded-xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/70 p-4 sm:p-5 text-center space-y-2.5">
+                  <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/60 text-amber-600 dark:text-amber-300 flex items-center justify-center mx-auto">
+                    <Lock className="w-5 h-5" />
+                  </div>
+                  <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
+                    {uploadScheduleInfo.reason === "inactive"
+                      ? "Unggah Laporan Akhir Tidak Tersedia"
+                      : "Unggah Laporan Akhir Belum Dibuka"}
+                  </p>
+                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed max-w-md mx-auto">
+                    {uploadScheduleInfo.reason === "inactive" ? (
+                      "Status kepesertaan magang Anda sedang tidak aktif."
+                    ) : (
+                      <>
+                        Unggah Laporan Akhir dibuka mulai <b>H-10</b> sebelum masa magang berakhir, yaitu mulai tanggal{" "}
+                        <b>{uploadScheduleInfo.openDateLabel}</b>
+                        {uploadScheduleInfo.daysUntilOpen > 0
+                          ? ` (${uploadScheduleInfo.daysUntilOpen} hari lagi)`
+                          : ""}
+                        .
+                      </>
+                    )}
+                  </p>
+                  <button
+                    type="button"
+                    disabled
+                    className="w-full py-2.5 sm:py-3 px-4 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-xs sm:text-sm font-bold inline-flex items-center justify-center gap-2 cursor-not-allowed"
+                  >
+                    <Lock className="w-4 h-4" />
+                    <span>Unggah Laporan Akhir Terkunci</span>
+                  </button>
+                </div>
               ) : (
                 <div className="rounded-xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 p-4 sm:p-5 text-center space-y-3">
                   <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
@@ -489,7 +723,7 @@ export default function LaporanAkhirPage() {
           <button
             type="button"
             onClick={() => {
-              if (!feedback) {
+              if (!feedback && isLaporanApproved) {
                 handleOpenFeedbackModal();
               } else {
                 setOpenSurveiSection((v) => !v);
@@ -503,7 +737,7 @@ export default function LaporanAkhirPage() {
                   <ClipboardCheck className="w-5 h-5" />
                 </div>
                 <span className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
-                  Survei
+                  Survei &amp; Feedback
                 </span>
               </div>
               <ChevronRight
@@ -514,26 +748,65 @@ export default function LaporanAkhirPage() {
             </div>
 
             <div className="mt-3 sm:mt-3.5 pt-2.5 sm:pt-3 border-t border-slate-100 dark:border-slate-700/70 flex items-center justify-between gap-2 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 min-w-0">
                 {feedback ? (
                   <>
                     <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600 shrink-0" />
-                    <span>
+                    <span className="truncate">
                       Sudah dikirim •{" "}
                       {feedback.mentorResponse
                         ? "Sudah direspon Mentor"
                         : "Menunggu respon Mentor"}
                     </span>
                   </>
+                ) : isLaporanApproved ? (
+                  <>
+                    <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#1D64F2] shrink-0" />
+                    <span className="truncate text-[#1D64F2] font-semibold">
+                      Siap diisi • Ketuk untuk mengisi survei program
+                    </span>
+                  </>
                 ) : (
                   <>
-                    <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 shrink-0" />
-                    <span>Belum diisi • Ketuk untuk mengisi survei program</span>
+                    <Lock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500 shrink-0" />
+                    <span className="truncate">
+                      Terkunci • Menunggu Laporan Akhir disetujui Mentor
+                    </span>
                   </>
                 )}
               </div>
+
+              {!feedback && !isLaporanApproved && (
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold border shrink-0 bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800">
+                  Terkunci
+                </span>
+              )}
             </div>
           </button>
+
+          {/* Expanded Survei Detail: locked state if laporan not approved yet */}
+          {!feedback && !isLaporanApproved && openSurveiSection && (
+            <div className="px-4 sm:px-5 pb-4 sm:pb-5 pt-2.5 border-t border-slate-100 dark:border-slate-700/70 bg-slate-50/40 dark:bg-slate-800/40">
+              <div className="rounded-xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/70 p-4 text-center space-y-2.5">
+                <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
+                  Survei &amp; Feedback Belum Dapat Diisi
+                </p>
+                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                  {laporan
+                    ? `Status Laporan Akhir Anda saat ini "${laporan.status}". Pengisian Survei & Feedback baru dibuka setelah Laporan Akhir disetujui oleh Mentor.`
+                    : "Silakan unggah Laporan Akhir terlebih dahulu (dibuka mulai H-10) dan tunggu persetujuan Mentor sebelum mengisi Survei & Feedback."}
+                </p>
+                <button
+                  type="button"
+                  disabled
+                  className="w-full py-2.5 px-4 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-xs sm:text-sm font-bold inline-flex items-center justify-center gap-1.5 cursor-not-allowed"
+                >
+                  <Lock className="w-4 h-4" />
+                  <span>Menunggu Persetujuan Laporan Akhir</span>
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Expanded Survei Detail when already filled */}
           {feedback && openSurveiSection && (
@@ -608,13 +881,25 @@ export default function LaporanAkhirPage() {
 
             <div className="mt-3 sm:mt-3.5 pt-2.5 sm:pt-3 border-t border-slate-100 dark:border-slate-700/70 flex items-center justify-between gap-2 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
               <div className="flex items-center gap-1.5 truncate">
-                <BadgeCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600 shrink-0" />
+                {canDownloadCompletionDocs ? (
+                  <BadgeCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600 shrink-0" />
+                ) : (
+                  <Lock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500 shrink-0" />
+                )}
                 <span className="truncate">
-                  Sertifikat Kelulusan & Surat Keterangan Selesai Magang
+                  {canDownloadCompletionDocs
+                    ? "Sertifikat Kelulusan & Surat Keterangan Selesai Magang"
+                    : "Selesaikan Laporan Akhir (Disetujui) & Survei untuk mengunduh"}
                 </span>
               </div>
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold border shrink-0 bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800">
-                Siap Diunduh
+              <span
+                className={`px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold border shrink-0 ${
+                  canDownloadCompletionDocs
+                    ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800"
+                    : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800"
+                }`}
+              >
+                {canDownloadCompletionDocs ? "Siap Diunduh" : "Terkunci"}
               </span>
             </div>
           </button>
@@ -622,6 +907,39 @@ export default function LaporanAkhirPage() {
           {/* Expanded Sertifikat & Surat Selesai Content */}
           {openSertifikatSection && (
             <div className="px-4 sm:px-5 pb-4 sm:pb-5 pt-2.5 border-t border-slate-100 dark:border-slate-700/70 space-y-3.5 bg-slate-50/40 dark:bg-slate-800/40">
+              {!canDownloadCompletionDocs && (
+                <div className="rounded-xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/70 p-4 space-y-2.5">
+                  <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-amber-900 dark:text-amber-200">
+                    <Lock className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span>Syarat Mengunduh Sertifikat &amp; Surat Selesai Magang</span>
+                  </div>
+                  <div className="space-y-1.5 text-xs text-slate-700 dark:text-slate-300 pl-1">
+                    <div className="flex items-center gap-2">
+                      {isLaporanApproved ? (
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                      ) : (
+                        <Clock className="w-4 h-4 text-amber-500 shrink-0" />
+                      )}
+                      <span className={isLaporanApproved ? "font-semibold text-emerald-700 dark:text-emerald-300" : ""}>
+                        1. Laporan Akhir sudah disetujui oleh Mentor{" "}
+                        {laporan ? `(Status: ${laporan.status})` : "(Belum diunggah)"}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {isSurveyDone ? (
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                      ) : (
+                        <Clock className="w-4 h-4 text-amber-500 shrink-0" />
+                      )}
+                      <span className={isSurveyDone ? "font-semibold text-emerald-700 dark:text-emerald-300" : ""}>
+                        2. Survei &amp; Feedback program sudah selesai diisi{" "}
+                        {isSurveyDone ? "(Selesai)" : "(Belum diisi)"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Item 1: Sertifikat Magang */}
               <div className="rounded-xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 p-4 space-y-3.5">
                 <div className="flex items-start justify-between gap-3">
@@ -634,56 +952,86 @@ export default function LaporanAkhirPage() {
                         className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate"
                         style={{ fontWeight: 700 }}
                       >
-                        Sertifikat_{pesertaInfo.nama.replace(/\s+/g, "_")}.pdf
+                        Sertifikat Magang
                       </p>
                       <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                        No: B-KP.04.01/BBPOM-PLG/2026/001 • Sertifikat Magang
+                        {sertifikat?.nomorSertifikat
+                          ? `No: ${sertifikat.nomorSertifikat}`
+                          : sertifikat?.tanggalKirim
+                            ? `Diterbitkan ${new Date(
+                                sertifikat.tanggalKirim,
+                              ).toLocaleDateString("id-ID", {
+                                day: "numeric",
+                                month: "long",
+                                year: "numeric",
+                              })}`
+                            : "Sertifikat Kelulusan Program Magang BBPOM"}
                       </p>
                     </div>
                   </div>
-                </div>
 
-                <div className="rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-700/70 p-3 space-y-1.5 text-xs">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-slate-500">Nama Peserta</span>
-                    <span className="font-bold text-slate-800 dark:text-slate-200 text-right">
-                      {pesertaInfo.nama}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-slate-500">Bidang / Posisi</span>
-                    <span className="font-bold text-slate-800 dark:text-slate-200 text-right">
-                      {pesertaInfo.posisi}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-slate-500">Status Dokumen</span>
-                    <span className="font-bold text-emerald-600 dark:text-emerald-400 text-right">
-                      Terverifikasi
-                    </span>
-                  </div>
-                </div>
-
-                {/* Action Buttons: Review & Download Sertifikat */}
-                <div className="flex flex-col sm:flex-row gap-2.5 pt-1">
-                  <button
-                    type="button"
-                    onClick={() => setShowSertifikatModal(true)}
-                    className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white text-xs sm:text-sm font-bold transition"
+                  <span
+                    className={`px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold border shrink-0 ${
+                      !canDownloadCompletionDocs
+                        ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800"
+                        : sertifikat?.file
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800"
+                          : "bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600"
+                    }`}
                   >
-                    <Eye className="w-4 h-4 text-[#1D64F2] dark:text-blue-400" />
-                    <span>Review Sertifikat</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={handleDownloadSertifikat}
-                    className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-3.5 rounded-xl bg-[#1D64F2] hover:bg-blue-700 text-white text-xs sm:text-sm font-bold shadow-2xs transition"
-                  >
-                    <Download className="w-4 h-4" />
-                    <span>Unduh Sertifikat</span>
-                  </button>
+                    {!canDownloadCompletionDocs
+                      ? "Terkunci"
+                      : sertifikat?.file
+                        ? "Tersedia"
+                        : "Belum Terbit"}
+                  </span>
                 </div>
+
+                {!canDownloadCompletionDocs ? (
+                  <div className="flex flex-col sm:flex-row gap-2.5 pt-0.5">
+                    <button
+                      type="button"
+                      disabled
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-3.5 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-xs sm:text-sm font-bold cursor-not-allowed"
+                    >
+                      <Lock className="w-4 h-4" />
+                      <span>Review Sertifikat Terkunci</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-3.5 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-xs sm:text-sm font-bold cursor-not-allowed"
+                    >
+                      <Lock className="w-4 h-4" />
+                      <span>Unduh Sertifikat Terkunci</span>
+                    </button>
+                  </div>
+                ) : sertifikat?.file ? (
+                  <div className="flex flex-col sm:flex-row gap-2.5 pt-0.5">
+                    <button
+                      type="button"
+                      onClick={handleOpenPreviewSertifikat}
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white text-xs sm:text-sm font-bold transition"
+                    >
+                      <Eye className="w-4 h-4 text-[#1D64F2] dark:text-blue-400" />
+                      <span>Review Sertifikat</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleDownloadSertifikat}
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-3.5 rounded-xl bg-[#1D64F2] hover:bg-blue-700 text-white text-xs sm:text-sm font-bold shadow-2xs transition"
+                    >
+                      <Download className="w-4 h-4" />
+                      <span>Unduh Sertifikat</span>
+                    </button>
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-500 dark:text-slate-400 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-700/70 px-3.5 py-2.5 leading-relaxed">
+                    Sertifikat Magang akan muncul di sini setelah diunggah oleh Admin / Superadmin BBPOM di Palembang.
+                  </p>
+                )}
               </div>
 
               {/* Item 2: Surat Selesai Magang */}
@@ -716,16 +1064,41 @@ export default function LaporanAkhirPage() {
 
                   <span
                     className={`px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold border shrink-0 ${
-                      suratSelesai?.file
-                        ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800"
-                        : "bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600"
+                      !canDownloadCompletionDocs
+                        ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800"
+                        : suratSelesai?.file
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800"
+                          : "bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600"
                     }`}
                   >
-                    {suratSelesai?.file ? "Tersedia" : "Belum Terbit"}
+                    {!canDownloadCompletionDocs
+                      ? "Terkunci"
+                      : suratSelesai?.file
+                        ? "Tersedia"
+                        : "Belum Terbit"}
                   </span>
                 </div>
 
-                {suratSelesai?.file ? (
+                {!canDownloadCompletionDocs ? (
+                  <div className="flex flex-col sm:flex-row gap-2.5 pt-0.5">
+                    <button
+                      type="button"
+                      disabled
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-3.5 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-xs sm:text-sm font-bold cursor-not-allowed"
+                    >
+                      <Lock className="w-4 h-4" />
+                      <span>Review Surat Terkunci</span>
+                    </button>
+                    <button
+                      type="button"
+                      disabled
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-3.5 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-xs sm:text-sm font-bold cursor-not-allowed"
+                    >
+                      <Lock className="w-4 h-4" />
+                      <span>Unduh Surat Terkunci</span>
+                    </button>
+                  </div>
+                ) : suratSelesai?.file ? (
                   <div className="flex flex-col sm:flex-row gap-2.5 pt-0.5">
                     <button
                       type="button"
@@ -793,7 +1166,9 @@ export default function LaporanAkhirPage() {
       )}
 
       {/* ================= MODAL REVIEW SERTIFIKAT ================= */}
-      {showSertifikatModal && (
+      {showSertifikatModal &&
+        canDownloadCompletionDocs &&
+        sertifikatPreviewUrl && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/55 backdrop-blur-xs p-3 sm:p-5">
           <div className="w-full max-w-2xl rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
             {/* Header */}
@@ -810,96 +1185,43 @@ export default function LaporanAkhirPage() {
                     Review Sertifikat Magang
                   </h2>
                   <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5 truncate">
-                    Pratinjau sertifikat kelulusan magang Balai Besar POM di
-                    Palembang
+                    Pratinjau dokumen Sertifikat Magang BBPOM di Palembang
                   </p>
                 </div>
               </div>
 
               <button
                 type="button"
-                onClick={() => setShowSertifikatModal(false)}
+                onClick={handleClosePreviewSertifikat}
                 className="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center transition shrink-0"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Body: Visual Certificate Preview */}
-            <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-[#F8FAFC] dark:bg-slate-950/50 space-y-4">
-              <div className="relative rounded-2xl border-2 border-[#1D64F2]/25 dark:border-blue-500/30 bg-white dark:bg-slate-900 p-6 sm:p-8 shadow-sm overflow-hidden text-center space-y-4">
-                {/* Decorative corner accents */}
-                <div className="absolute top-0 left-0 w-20 h-20 border-t-4 border-l-4 border-[#1D64F2] rounded-tl-2xl pointer-events-none" />
-                <div className="absolute bottom-0 right-0 w-20 h-20 border-b-4 border-r-4 border-[#1D64F2] rounded-br-2xl pointer-events-none" />
-
-                <div className="space-y-1">
-                  <p className="text-[10px] sm:text-xs font-extrabold tracking-widest uppercase text-[#1D64F2] dark:text-blue-400">
-                    Badan Pengawas Obat dan Makanan
-                  </p>
-                  <p className="text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-300">
-                    Balai Besar POM di Palembang
-                  </p>
-                </div>
-
-                <div className="py-2">
-                  <h3
-                    className="text-xl sm:text-2xl font-extrabold tracking-wide text-slate-900 dark:text-white uppercase"
-                    style={{ fontWeight: 800 }}
-                  >
-                    Sertifikat Magang
-                  </h3>
-                  <p className="text-[11px] sm:text-xs text-slate-400 mt-1">
-                    Nomor: B-KP.04.01/BBPOM-PLG/2026/001
-                  </p>
-                </div>
-
-                <div className="space-y-1.5">
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Diberikan kepada:
-                  </p>
-                  <p
-                    className="text-lg sm:text-2xl font-extrabold text-[#1D64F2] dark:text-blue-400 underline decoration-blue-200 dark:decoration-blue-800 underline-offset-8"
-                    style={{ fontWeight: 800 }}
-                  >
-                    {pesertaInfo.nama}
-                  </p>
-                </div>
-
-                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 max-w-md mx-auto leading-relaxed pt-1">
-                  Telah menyelesaikan program Praktik Kerja Lapangan / Magang
-                  pada bidang <b>{pesertaInfo.posisi}</b> di{" "}
-                  <b>Balai Besar POM di Palembang</b> dengan hasil{" "}
-                  <span className="font-bold text-emerald-600 dark:text-emerald-400">
-                    Sangat Baik
-                  </span>
-                  .
-                </p>
-
-                <div className="pt-4 flex items-end justify-between text-left border-t border-slate-100 dark:border-slate-800 text-[11px] sm:text-xs text-slate-500 dark:text-slate-400">
-                  <div>
-                    <p className="font-semibold text-slate-700 dark:text-slate-300">
-                      Periode Pelaksanaan:
-                    </p>
-                    <p>
-                      {pesertaInfo.mulai} s/d {pesertaInfo.selesai}
-                    </p>
-                  </div>
-
-                  <div className="text-right">
-                    <p>Palembang, {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</p>
-                    <p className="font-bold text-slate-800 dark:text-slate-200 mt-4">
-                      Kepala Balai Besar POM di Palembang
-                    </p>
-                  </div>
-                </div>
+            {/* Body: PDF Preview */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-5 bg-[#F8FAFC] dark:bg-slate-950/50 space-y-3">
+              <div className="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-white">
+                <iframe
+                  src={sertifikatPreviewUrl}
+                  title="Preview Sertifikat Magang"
+                  className="w-full h-[55vh] sm:h-[60vh]"
+                />
               </div>
 
-              <div className="rounded-xl bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200/80 dark:border-blue-800/70 px-3.5 py-2.5 text-xs text-slate-600 dark:text-slate-300 flex items-center gap-2">
-                <BadgeCheck className="w-4 h-4 text-[#1D64F2] dark:text-blue-400 shrink-0" />
+              <div className="flex items-center justify-between text-xs text-slate-500 px-1">
                 <span>
-                  Periksa kesesuaian ejaan nama dan bidang magang Anda sebelum
-                  mengunduh sertifikat.
+                  Jika pratinjau tidak tampil di browser, buka langsung di tab baru.
                 </span>
+                <a
+                  href={sertifikatPreviewUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 font-bold text-[#1D64F2] hover:underline shrink-0"
+                >
+                  <span>Buka Tab Baru</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
               </div>
             </div>
 
@@ -907,7 +1229,7 @@ export default function LaporanAkhirPage() {
             <div className="px-5 sm:px-6 py-4 border-t border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2.5">
               <button
                 type="button"
-                onClick={() => setShowSertifikatModal(false)}
+                onClick={handleClosePreviewSertifikat}
                 className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition"
               >
                 Tutup
@@ -927,7 +1249,9 @@ export default function LaporanAkhirPage() {
       )}
 
       {/* ================= MODAL REVIEW SURAT SELESAI MAGANG ================= */}
-      {showSuratSelesaiModal && suratSelesaiFileUrl && (
+      {showSuratSelesaiModal &&
+        canDownloadCompletionDocs &&
+        suratSelesaiFileUrl && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/55 backdrop-blur-xs p-3 sm:p-5">
           <div className="w-full max-w-2xl rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
             {/* Header */}
@@ -1021,9 +1345,9 @@ export default function LaporanAkhirPage() {
                 Isi Survei & Feedback
               </h3>
               <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                Laporan akhir Anda telah berhasil diunggah. Silakan lengkapi{" "}
-                <b>Survei dan Feedback Program</b> untuk melihat status review
-                dan nilai akhir magang Anda.
+                Laporan akhir Anda telah <b>disetujui</b> oleh Mentor. Silakan
+                lengkapi <b>Survei dan Feedback Program</b> agar Sertifikat dan
+                Surat Selesai Magang dapat diunduh.
               </p>
             </div>
 

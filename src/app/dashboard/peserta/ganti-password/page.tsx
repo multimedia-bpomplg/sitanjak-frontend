@@ -14,6 +14,7 @@ import {
   ExternalLink,
   Eye,
   EyeOff,
+  Lock,
 } from "lucide-react";
 import { showToast } from "@/components/ui/toastDashboard";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
@@ -83,6 +84,8 @@ export default function AkunPesertaPage() {
 
   const [pendaftaran, setPendaftaran] = useState<Pendaftaran | null>(null);
   const [suratSelesai, setSuratSelesai] = useState<SuratSelesai | null>(null);
+  const [sertifikat, setSertifikat] = useState<SuratSelesai | null>(null);
+  const [canDownloadCompletionDocs, setCanDownloadCompletionDocs] = useState(false);
   const [emailLogin, setEmailLogin] = useState<string | null>(null);
   const [loadingPage, setLoadingPage] = useState(true);
 
@@ -127,7 +130,7 @@ export default function AkunPesertaPage() {
       if (!token) return;
       const headers = { Authorization: `Bearer ${token}` };
 
-      const [pendRes, selesaiRes] = await Promise.all([
+      const [pendRes, selesaiRes, sertifikatRes, lapRes, fbRes] = await Promise.all([
         fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/pendaftaran/cek?email=${encodeURIComponent(emailLogin)}`,
           { headers },
@@ -136,6 +139,16 @@ export default function AkunPesertaPage() {
           `${process.env.NEXT_PUBLIC_API_URL}/surat-selesai/cek?email=${encodeURIComponent(emailLogin)}`,
           { headers },
         ).catch(() => null),
+        fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/sertifikat/cek?email=${encodeURIComponent(emailLogin)}`,
+          { headers },
+        ).catch(() => null),
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/laporan-akhir`, {
+          headers,
+        }).catch(() => null),
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/feedback/riwayat`, {
+          headers,
+        }).catch(() => null),
       ]);
 
       if (pendRes && pendRes.ok) {
@@ -146,6 +159,17 @@ export default function AkunPesertaPage() {
         const sData = await selesaiRes.json();
         if (sData) setSuratSelesai(sData);
       }
+      if (sertifikatRes && sertifikatRes.ok) {
+        const cData = await sertifikatRes.json();
+        if (cData) setSertifikat(cData);
+      }
+      const lapJson = lapRes && lapRes.ok ? await lapRes.json().catch(() => null) : null;
+      const fbJson = fbRes && fbRes.ok ? await fbRes.json().catch(() => []) : [];
+      setCanDownloadCompletionDocs(
+        lapJson?.status === "Disetujui" &&
+          Array.isArray(fbJson) &&
+          fbJson.length > 0,
+      );
     } catch (err) {
       console.error("Gagal memuat data akun peserta", err);
     } finally {
@@ -426,14 +450,26 @@ export default function AkunPesertaPage() {
               {
                 label: "Surat Pengantar",
                 file: pendaftaran?.suratPengantar,
+                locked: false,
+                protectedEndpoint: "",
               },
               {
                 label: "Surat Balasan Resmi BBPOM",
                 file: pendaftaran?.suratBalasan,
+                locked: false,
+                protectedEndpoint: "",
               },
               {
                 label: "Surat Selesai Magang",
                 file: suratSelesai?.file,
+                locked: !canDownloadCompletionDocs,
+                protectedEndpoint: `${FILE_BASE_URL}/surat-selesai/download?inline=1`,
+              },
+              {
+                label: "Sertifikat Magang",
+                file: sertifikat?.file,
+                locked: !canDownloadCompletionDocs,
+                protectedEndpoint: `${FILE_BASE_URL}/sertifikat/download?inline=1`,
               },
             ].map((doc, idx) => (
               <div
@@ -443,16 +479,50 @@ export default function AkunPesertaPage() {
                 <span className="font-semibold text-slate-800 dark:text-slate-200">
                   {doc.label}
                 </span>
-                {doc.file ? (
-                  <a
-                    href={`${FILE_BASE_URL}/uploads/${doc.file}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 font-bold text-[#1D64F2] hover:underline"
-                  >
-                    <span>Lihat File</span>
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </a>
+                {doc.locked ? (
+                  <span className="inline-flex items-center gap-1 text-[11px] sm:text-xs font-semibold text-amber-600 dark:text-amber-400">
+                    <Lock className="w-3.5 h-3.5" />
+                    <span>Selesaikan Laporan &amp; Survei</span>
+                  </span>
+                ) : doc.file ? (
+                  doc.protectedEndpoint ? (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          const token = localStorage.getItem("token") || "";
+                          const res = await fetch(doc.protectedEndpoint!, {
+                            headers: { Authorization: `Bearer ${token}` },
+                          });
+                          if (!res.ok) {
+                            const e = await res.json().catch(() => ({}));
+                            throw new Error(e?.message || `Gagal membuka ${doc.label}`);
+                          }
+                          const blob = await res.blob();
+                          const url = window.URL.createObjectURL(blob);
+                          window.open(url, "_blank", "noopener,noreferrer");
+                        } catch (err: any) {
+                          showToast.error(
+                            err?.message || `${doc.label} belum bisa diunduh`,
+                          );
+                        }
+                      }}
+                      className="inline-flex items-center gap-1 font-bold text-[#1D64F2] hover:underline"
+                    >
+                      <span>Lihat File</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </button>
+                  ) : (
+                    <a
+                      href={`${FILE_BASE_URL}/uploads/${doc.file}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 font-bold text-[#1D64F2] hover:underline"
+                    >
+                      <span>Lihat File</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  )
                 ) : (
                   <span className="text-[11px] sm:text-xs text-slate-400">
                     Belum tersedia

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
+import Link from "next/link";
 import {
   ChevronLeft,
   ChevronRight,
@@ -10,6 +11,8 @@ import {
   FileText,
   Check,
   X,
+  ScanFace,
+  Lock,
 } from "lucide-react";
 import InlineLogbookForm from "@/components/logbook/InlineLogbookForm";
 import { showToast } from "@/components/ui/toastDashboard";
@@ -44,6 +47,12 @@ type PeriodItem = {
   end: Date;
   label: string;
 };
+
+type TodayAbsensiStatus = {
+  attendanceMode?: "masuk" | "wfh" | "izin";
+  izinNote?: string;
+  checkIn?: { timeWIB?: string } | null;
+} | null;
 
 /* ================= HELPERS ================= */
 
@@ -158,6 +167,7 @@ export default function IsiLogbookPage() {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [isEditingRevisi, setIsEditingRevisi] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [todayAbsensi, setTodayAbsensi] = useState<TodayAbsensiStatus>(null);
 
   const todayWIB = useMemo(() => getNowWIB(), []);
   const todayIso = useMemo(() => toIsoDate(todayWIB), [todayWIB]);
@@ -195,7 +205,7 @@ export default function IsiLogbookPage() {
         // ignore
       }
 
-      const [datesRes, summaryRes, pendRes] = await Promise.all([
+      const [datesRes, summaryRes, pendRes, absenTodayRes] = await Promise.all([
         fetch(`${process.env.NEXT_PUBLIC_API_URL}/logbook/filled-dates`, {
           headers,
         }),
@@ -208,6 +218,9 @@ export default function IsiLogbookPage() {
               { headers },
             ).catch(() => null)
           : Promise.resolve(null),
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/absensi/today`, {
+          headers,
+        }).catch(() => null),
       ]);
 
       if (datesRes.ok) {
@@ -227,6 +240,10 @@ export default function IsiLogbookPage() {
           setMulaiMagang(found.tanggalMulaiMagang);
           setSelesaiMagang(found.tanggalSelesaiMagang);
         }
+      }
+      if (absenTodayRes && absenTodayRes.ok) {
+        const absenJson = await absenTodayRes.json();
+        setTodayAbsensi(absenJson?.absensi || null);
       }
     } catch (err) {
       console.error("Gagal memuat riwayat kehadiran:", err);
@@ -984,16 +1001,47 @@ export default function IsiLogbookPage() {
             </>
             )
           ) : isSelectedToday && isSelectedInPeriod && !isSelectedWeekend ? (
-            /* Today's inline attendance & logbook form (only active within internship dates, disappears on other dates) */
-            <InlineLogbookForm
-              date={selectedDate}
-              mode="create"
-              formattedDateLabel={formatLongDateID(selectedDate)}
-              onSuccess={() => {
-                refreshAll();
-                fetchDateDetail(selectedDate);
-              }}
-            />
+            Boolean(todayAbsensi?.checkIn) || todayAbsensi?.attendanceMode === "izin" ? (
+              <div className="space-y-4">
+                {todayAbsensi?.attendanceMode === "izin" && !todayAbsensi?.checkIn && (
+                  <div className="rounded-xl bg-violet-50/80 dark:bg-violet-950/40 border border-violet-200 dark:border-violet-800/70 p-3.5 text-xs sm:text-sm text-violet-900 dark:text-violet-200">
+                    <b>Status Absensi Hari Ini: Izin.</b> Silakan pilih kategori <b>Izin / Sakit (Dengan Keterangan)</b> jika ingin melengkapi catatan di riwayat logbook.
+                  </div>
+                )}
+                <InlineLogbookForm
+                  date={selectedDate}
+                  mode="create"
+                  formattedDateLabel={formatLongDateID(selectedDate)}
+                  onSuccess={() => {
+                    refreshAll();
+                    fetchDateDetail(selectedDate);
+                  }}
+                />
+              </div>
+            ) : (
+              <div id="form-kehadiran" className="py-6 sm:py-8 px-3 text-center space-y-4">
+                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto">
+                  <Lock className="w-6 h-6 sm:w-7 sm:h-7" />
+                </div>
+                <div className="space-y-1.5">
+                  <h2 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white">
+                    Lakukan Check-In Absensi Terlebih Dahulu
+                  </h2>
+                  <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
+                    Pengisian logbook harian pada <b>{formatLongDateID(selectedDate)}</b> hanya dibuka setelah Anda melakukan Absen Pagi (Check-In) atau mengajukan keterangan Izin pada hari ini.
+                  </p>
+                </div>
+                <div className="pt-1">
+                  <Link
+                    href="/dashboard/peserta/absen"
+                    className="inline-flex items-center justify-center gap-2 px-5 py-2.5 sm:py-3 rounded-xl bg-[#1D64F2] hover:bg-blue-700 text-white text-xs sm:text-sm font-bold shadow-xs transition"
+                  >
+                    <ScanFace className="w-4 h-4" />
+                    <span>Ke Halaman Absensi (Check-In)</span>
+                  </Link>
+                </div>
+              </div>
+            )
           ) : (
             /* Other unfilled date, weekend/holiday, or outside internship period */
             <div className="space-y-3">

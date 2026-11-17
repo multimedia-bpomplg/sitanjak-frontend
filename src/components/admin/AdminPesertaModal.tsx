@@ -15,6 +15,7 @@ import {
   X,
 } from "lucide-react";
 import SuratSelesaiUpload from "@/components/superadmin/SuratSelesaiUpload";
+import SertifikatUpload from "@/components/superadmin/SertifikatUpload";
 
 export type PesertaDisetujuiItem = {
   pendaftaranId: string;
@@ -45,7 +46,7 @@ type Props = {
   onSuratSelesaiSuccess?: () => void;
 };
 
-type TabKey = "profil" | "logbook" | "laporan" | "suratSelesai";
+type TabKey = "profil" | "logbook" | "laporan" | "suratSelesai" | "sertifikat";
 
 export default function AdminPesertaModal({
   peserta,
@@ -115,6 +116,7 @@ export default function AdminPesertaModal({
               { key: "logbook", label: "Logbook" },
               { key: "laporan", label: "Laporan Akhir" },
               { key: "suratSelesai", label: "Surat Selesai Magang" },
+              { key: "sertifikat", label: "Sertifikat Magang" },
             ] as { key: TabKey; label: string }[]
           ).map((tab) => {
             const active = activeTab === tab.key;
@@ -255,6 +257,15 @@ export default function AdminPesertaModal({
 
           {activeTab === "suratSelesai" && (
             <SuratSelesaiUpload
+              peserta={peserta}
+              onSuccess={() => {
+                onSuratSelesaiSuccess?.();
+              }}
+            />
+          )}
+
+          {activeTab === "sertifikat" && (
+            <SertifikatUpload
               peserta={peserta}
               onSuccess={() => {
                 onSuratSelesaiSuccess?.();

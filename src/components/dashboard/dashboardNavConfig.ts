@@ -15,6 +15,7 @@ import {
   MessageCircle,
   KeyRound,
   FileText,
+  ScanFace,
   LucideIcon,
 } from "lucide-react";
 
@@ -90,6 +91,11 @@ export const ROLE_NAVIGATION_CONFIG: Record<RoleType, RoleConfig> = {
             title: "Logbook Harian",
             href: "/dashboard/superadmin/ViewLogbook",
             icon: BookOpenCheck,
+          },
+          {
+            title: "Absensi Kehadiran",
+            href: "/dashboard/superadmin/ViewAbsensi",
+            icon: ScanFace,
           },
           {
             title: "Laporan Akhir",
@@ -222,6 +228,11 @@ export const ROLE_NAVIGATION_CONFIG: Record<RoleType, RoleConfig> = {
             icon: BookOpenCheck,
           },
           {
+            title: "Absensi Kehadiran",
+            href: "/dashboard/admin/ViewAbsensi",
+            icon: ScanFace,
+          },
+          {
             title: "Laporan Akhir",
             href: "/dashboard/admin/ViewLaporanAkhir",
             icon: GraduationCap,
@@ -313,6 +324,11 @@ export const ROLE_NAVIGATION_CONFIG: Record<RoleType, RoleConfig> = {
             title: "Verifikasi Logbook",
             href: "/dashboard/mentor/ViewLogbook",
             icon: BookOpenCheck,
+          },
+          {
+            title: "Absensi Kehadiran",
+            href: "/dashboard/mentor/ViewAbsensi",
+            icon: ScanFace,
           },
           {
             title: "Review Laporan Akhir",

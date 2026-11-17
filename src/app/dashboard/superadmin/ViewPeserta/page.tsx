@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  Award,
   Briefcase,
   Calendar,
   CheckCircle2,
@@ -90,6 +91,9 @@ export default function ViewPesertaSuperadminPage() {
   const [suratSelesaiMap, setSuratSelesaiMap] = useState<
     Record<string, SuratSelesaiItem>
   >({});
+  const [sertifikatMap, setSertifikatMap] = useState<
+    Record<string, SuratSelesaiItem>
+  >({});
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -111,9 +115,10 @@ export default function ViewPesertaSuperadminPage() {
       const token = localStorage.getItem("token");
       const headers = { Authorization: `Bearer ${token}` };
 
-      const [resPeserta, resSurat] = await Promise.all([
+      const [resPeserta, resSurat, resSertifikat] = await Promise.all([
         fetch(`${API_BASE}/superadmin/peserta/disetujui`, { headers }),
         fetch(`${API_BASE}/surat-selesai/all`, { headers }).catch(() => null),
+        fetch(`${API_BASE}/sertifikat/all`, { headers }).catch(() => null),
       ]);
 
       if (!resPeserta.ok) {
@@ -134,6 +139,19 @@ export default function ViewPesertaSuperadminPage() {
           }
         }
         setSuratSelesaiMap(map);
+      }
+
+      if (resSertifikat && resSertifikat.ok) {
+        const jsonSertifikat = await resSertifikat.json();
+        const map: Record<string, SuratSelesaiItem> = {};
+        if (Array.isArray(jsonSertifikat)) {
+          for (const item of jsonSertifikat) {
+            if (item?.email) {
+              map[item.email.trim().toLowerCase()] = item;
+            }
+          }
+        }
+        setSertifikatMap(map);
       }
     } catch {
       showToast.error("Gagal memuat data peserta disetujui");
@@ -454,6 +472,9 @@ export default function ViewPesertaSuperadminPage() {
                   const hasSuratSelesai = Boolean(
                     p.email && suratSelesaiMap[p.email.trim().toLowerCase()],
                   );
+                  const hasSertifikat = Boolean(
+                    p.email && sertifikatMap[p.email.trim().toLowerCase()],
+                  );
 
                   return (
                     <tr
@@ -484,6 +505,12 @@ export default function ViewPesertaSuperadminPage() {
                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800">
                                   <FileCheck2 className="w-3 h-3" />
                                   Surat Selesai
+                                </span>
+                              )}
+                              {hasSertifikat && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-sky-50 text-sky-700 border border-sky-200 dark:bg-sky-950/50 dark:text-sky-300 dark:border-sky-800">
+                                  <Award className="w-3 h-3" />
+                                  Sertifikat
                                 </span>
                               )}
                             </div>
