@@ -330,7 +330,7 @@ export default function AkunPesertaPage() {
 
       {/* ================= 2. CARD PROFIL PESERTA ================= */}
       <div className="rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 p-4 sm:p-6 shadow-2xs flex items-center gap-4 sm:gap-5">
-        <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-linear-to-br from-[#991B1B] to-[#DC2626] text-white font-extrabold text-lg sm:text-xl flex items-center justify-center shrink-0 ring-2 ring-slate-100 dark:ring-slate-700 shadow-xs">
+        <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-linear-to-br from-[#0284c7] via-sky-600 to-blue-700 dark:from-[#0369a1] dark:to-blue-800 text-white font-extrabold text-lg sm:text-xl flex items-center justify-center shrink-0 ring-2 ring-slate-100 dark:ring-slate-700 shadow-xs">
           {getInitial(peserta?.nama || "P")}
         </div>
 

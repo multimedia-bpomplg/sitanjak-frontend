@@ -339,7 +339,7 @@ export default function PesertaDashboard() {
         <Link
           href="/dashboard/peserta/ganti-password"
           title="Akun Peserta"
-          className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-linear-to-br from-[#991B1B] to-[#DC2626] text-white font-bold text-xs sm:text-sm flex items-center justify-center shrink-0 ring-2 ring-white dark:ring-slate-800 shadow-sm hover:opacity-95 transition"
+          className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-linear-to-br from-[#0284c7] via-sky-600 to-blue-700 dark:from-[#0369a1] dark:to-blue-800 text-white font-bold text-xs sm:text-sm flex items-center justify-center shrink-0 ring-2 ring-white dark:ring-slate-800 shadow-sm hover:opacity-95 transition"
         >
           {getInitial(peserta.nama)}
         </Link>
