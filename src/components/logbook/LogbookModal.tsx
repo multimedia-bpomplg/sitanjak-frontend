@@ -31,7 +31,8 @@ type Props = {
   logbookId?: string;
 };
 
-const MIN_TEXT_LENGTH = 50;
+const MIN_TEXT_LENGTH = 150;
+const MIN_IZIN_TEXT_LENGTH = 50;
 const MAX_FILE_SIZE = 2 * 1024 * 1024;
 const MAX_FILES = 3;
 
@@ -326,7 +327,8 @@ export default function LogbookModal({
     setFiles(files.filter((_, idx) => idx !== index));
   };
 
-  const isTextValid = (text: string) => text.trim().length >= MIN_TEXT_LENGTH;
+  const isTextValid = (text: string, minLen = MIN_TEXT_LENGTH) =>
+    text.trim().length >= minLen;
 
   const isFilesValid =
     files.length <= MAX_FILES &&
@@ -337,12 +339,14 @@ export default function LogbookModal({
 
     if (status === "hadir") {
       return (
-        !isTextValid(judul) || !isTextValid(pengalaman) || !isTextValid(kendala)
+        !isTextValid(judul, MIN_TEXT_LENGTH) ||
+        !isTextValid(pengalaman, MIN_TEXT_LENGTH) ||
+        !isTextValid(kendala, MIN_TEXT_LENGTH)
       );
     }
 
     if (status === "tidak_hadir_keterangan") {
-      return !isTextValid(keterangan);
+      return !isTextValid(keterangan, MIN_IZIN_TEXT_LENGTH);
     }
 
     return false;
@@ -1249,7 +1253,7 @@ export default function LogbookModal({
                 onChange={setKeterangan}
                 readonly={readonly}
                 editable={canEdit}
-                minLength={MIN_TEXT_LENGTH}
+                minLength={MIN_IZIN_TEXT_LENGTH}
                 placeholder="Jelaskan alasan ketidakhadiran Anda..."
               />
 
@@ -1965,9 +1969,10 @@ function FieldSection({
               e.target.style.height = "auto";
               e.target.style.height = e.target.scrollHeight + "px";
             }}
-            rows={4}
+            rows={6}
             className={`
                 w-full
+                min-h-[150px]
                 px-4 py-3
                 rounded-2xl
                 resize-y

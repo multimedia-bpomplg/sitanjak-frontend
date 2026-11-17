@@ -167,40 +167,40 @@ export default function AdminLogbookModal({
             </div>
 
             {logbook.status === "hadir" ? (
-              <div className="space-y-4">
-                <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800">
+              <div className="space-y-4 min-w-0">
+                <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 min-w-0 overflow-hidden">
                   <p className="text-xs font-semibold text-slate-400 uppercase mb-1">
                     Judul / Aktivitas Utama
                   </p>
-                  <p className="font-bold text-slate-900 dark:text-white">
+                  <p className="font-bold text-slate-900 dark:text-white whitespace-pre-wrap break-words wrap-anywhere">
                     {logbook.judul || "-"}
                   </p>
                 </div>
 
-                <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800">
+                <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 min-w-0 overflow-hidden">
                   <p className="text-xs font-semibold text-slate-400 uppercase mb-1">
                     Uraian Pengalaman & Kegiatan
                   </p>
-                  <p className="text-slate-700 dark:text-slate-200 whitespace-pre-wrap leading-relaxed">
+                  <p className="text-slate-700 dark:text-slate-200 whitespace-pre-wrap break-words wrap-anywhere leading-relaxed">
                     {logbook.pengalaman || "-"}
                   </p>
                 </div>
 
-                <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800">
+                <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 min-w-0 overflow-hidden">
                   <p className="text-xs font-semibold text-slate-400 uppercase mb-1">
                     Kendala
                   </p>
-                  <p className="text-slate-700 dark:text-slate-200 whitespace-pre-wrap">
+                  <p className="text-slate-700 dark:text-slate-200 whitespace-pre-wrap break-words wrap-anywhere">
                     {logbook.kendala || "-"}
                   </p>
                 </div>
               </div>
             ) : (
-              <div className="p-4 rounded-xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
+              <div className="p-4 rounded-xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 min-w-0 overflow-hidden">
                 <p className="text-xs font-semibold text-amber-700 dark:text-amber-300 uppercase mb-1">
                   Keterangan Ketidakhadiran
                 </p>
-                <p className="text-slate-800 dark:text-slate-100 whitespace-pre-wrap">
+                <p className="text-slate-800 dark:text-slate-100 whitespace-pre-wrap break-words wrap-anywhere">
                   {logbook.keterangan || "-"}
                 </p>
               </div>

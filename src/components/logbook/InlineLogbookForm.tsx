@@ -43,7 +43,8 @@ type Props = {
   onCancel?: () => void;
 };
 
-const MIN_TEXT_LENGTH = 50;
+const MIN_TEXT_LENGTH = 150;
+const MIN_IZIN_TEXT_LENGTH = 50;
 const MAX_FILE_SIZE = 2 * 1024 * 1024;
 const MAX_FILES = 3;
 const MAX_PDF_SIZE = 5 * 1024 * 1024;
@@ -162,17 +163,20 @@ export default function InlineLogbookForm({
     setPdfFile(selected);
   };
 
-  const isTextValid = (text: string) => text.trim().length >= MIN_TEXT_LENGTH;
+  const isTextValid = (text: string, minLen = MIN_TEXT_LENGTH) =>
+    text.trim().length >= minLen;
 
   const isFormValid = useMemo(() => {
     if (!isEdit && !agree) return false;
     if (status === "hadir") {
       return (
-        isTextValid(judul) && isTextValid(pengalaman) && isTextValid(kendala)
+        isTextValid(judul, MIN_TEXT_LENGTH) &&
+        isTextValid(pengalaman, MIN_TEXT_LENGTH) &&
+        isTextValid(kendala, MIN_TEXT_LENGTH)
       );
     }
     if (status === "tidak_hadir_keterangan") {
-      return isTextValid(keterangan);
+      return isTextValid(keterangan, MIN_IZIN_TEXT_LENGTH);
     }
     return true;
   }, [isEdit, agree, status, judul, pengalaman, kendala, keterangan]);
@@ -356,7 +360,7 @@ export default function InlineLogbookForm({
             label="Kendala yang Dialami"
             value={kendala}
             onChange={setKendala}
-            placeholder="Tuliskan kendala yang dihadapi hari ini (atau tuliskan jika tidak ada kendala minimal 50 karakter)..."
+            placeholder="Tuliskan kendala yang dihadapi hari ini (atau tuliskan jika tidak ada kendala minimal 150 karakter)..."
           />
 
           {/* Upload Foto & PDF */}
@@ -511,6 +515,7 @@ export default function InlineLogbookForm({
             label="Keterangan Ketidakhadiran / Izin"
             value={keterangan}
             onChange={setKeterangan}
+            minLength={MIN_IZIN_TEXT_LENGTH}
             placeholder="Jelaskan alasan izin atau sakit Anda secara lengkap..."
           />
 
@@ -760,15 +765,17 @@ function InlineTextField({
   value,
   onChange,
   placeholder,
+  minLength = MIN_TEXT_LENGTH,
 }: {
   label: string;
   value: string;
   onChange: (val: string) => void;
   placeholder?: string;
+  minLength?: number;
 }) {
   const length = value.trim().length;
-  const isValid = length >= MIN_TEXT_LENGTH;
-  const isError = length > 0 && length < MIN_TEXT_LENGTH;
+  const isValid = length >= minLength;
+  const isError = length > 0 && length < minLength;
 
   return (
     <div className="space-y-1.5">
@@ -782,9 +789,9 @@ function InlineTextField({
       <textarea
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        rows={3}
+        rows={6}
         placeholder={placeholder}
-        className={`w-full rounded-xl px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50/70 dark:bg-slate-800/70 text-slate-900 dark:text-white placeholder:text-slate-400 border transition focus:outline-none focus:ring-2 resize-y ${
+        className={`w-full min-h-[150px] sm:min-h-[170px] rounded-xl px-3.5 py-3 text-xs sm:text-sm leading-relaxed bg-slate-50/70 dark:bg-slate-800/70 text-slate-900 dark:text-white placeholder:text-slate-400 border transition focus:outline-none focus:ring-2 resize-y ${
           isError
             ? "border-red-400 focus:ring-red-400/25"
             : isValid
@@ -797,8 +804,8 @@ function InlineTextField({
         <div>
           {isError && (
             <span className="text-red-500 font-medium">
-              Minimal {MIN_TEXT_LENGTH} karakter (kurang{" "}
-              {MIN_TEXT_LENGTH - length} karakter)
+              Minimal {minLength} karakter (kurang{" "}
+              {minLength - length} karakter)
             </span>
           )}
           {isValid && (
@@ -808,12 +815,12 @@ function InlineTextField({
           )}
           {!isError && !isValid && (
             <span className="text-slate-400">
-              Minimal {MIN_TEXT_LENGTH} karakter
+              Minimal {minLength} karakter
             </span>
           )}
         </div>
         <span className="text-slate-400 font-medium">
-          {length}/{MIN_TEXT_LENGTH}
+          {length}/{minLength}
         </span>
       </div>
     </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useCallback, useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -20,7 +20,6 @@ import {
   AlertCircle,
   AlertTriangle,
   Info,
-  Check,
   ExternalLink,
 } from "lucide-react";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
@@ -79,6 +78,20 @@ const ROUTE_LABELS: Record<string, string> = {
   feedback: "Feedback",
 };
 
+function isTodayWib(dateStr: string): boolean {
+  try {
+    const target = new Date(dateStr).toLocaleDateString("en-CA", {
+      timeZone: "Asia/Jakarta",
+    });
+    const today = new Date().toLocaleDateString("en-CA", {
+      timeZone: "Asia/Jakarta",
+    });
+    return target === today;
+  } catch {
+    return false;
+  }
+}
+
 export default function DashboardHeader({
   role,
   collapsed,
@@ -101,8 +114,8 @@ export default function DashboardHeader({
   const profileRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
 
-  // Fetch real-time notifications
-  const fetchNotifications = async () => {
+  // Fetch real-time notifications (hari ini saja)
+  const fetchNotifications = useCallback(async () => {
     try {
       const token = localStorage.getItem("token");
       if (!token) return;
@@ -117,21 +130,33 @@ export default function DashboardHeader({
       if (res.ok) {
         const result = await res.json();
         if (result?.data) {
-          setNotifications(result.data.notifications || []);
-          setUnreadCount(result.data.unreadCount || 0);
+          const list: NotificationItem[] = Array.isArray(result.data.notifications)
+            ? result.data.notifications.filter((n: NotificationItem) =>
+                isTodayWib(n.createdAt)
+              )
+            : [];
+          setNotifications(list);
+          setUnreadCount(list.filter((n) => !n.isRead).length);
         }
       }
     } catch {
       // Diamkan agar tidak mengganggu UI jika jaringan terputus
     }
-  };
+  }, []);
 
   // Polling berkala setiap 20 detik
   useEffect(() => {
-    fetchNotifications();
-    const interval = setInterval(fetchNotifications, 20000);
-    return () => clearInterval(interval);
-  }, []);
+    const initialTimer = setTimeout(() => {
+      void fetchNotifications();
+    }, 0);
+    const interval = setInterval(() => {
+      void fetchNotifications();
+    }, 20000);
+    return () => {
+      clearTimeout(initialTimer);
+      clearInterval(interval);
+    };
+  }, [fetchNotifications]);
 
   const handleNotificationClick = async (notif: NotificationItem) => {
     try {
@@ -203,12 +228,13 @@ export default function DashboardHeader({
     const isDarkMode =
       document.documentElement.classList.contains("dark") ||
       localStorage.getItem("theme") === "dark";
-    setIsDark(isDarkMode);
     if (isDarkMode) {
       document.documentElement.classList.add("dark");
     } else {
       document.documentElement.classList.remove("dark");
     }
+    const raf = requestAnimationFrame(() => setIsDark(isDarkMode));
+    return () => cancelAnimationFrame(raf);
   }, []);
 
   const toggleTheme = () => {
@@ -329,8 +355,12 @@ export default function DashboardHeader({
           <div className="relative" ref={notifRef}>
             <button
               type="button"
-              onClick={() => setNotificationOpen(!notificationOpen)}
-              title="Notifikasi"
+              onClick={() => {
+                const nextOpen = !notificationOpen;
+                setNotificationOpen(nextOpen);
+                if (nextOpen) fetchNotifications();
+              }}
+              title="Notifikasi Hari Ini"
               className="
                 relative p-2.5 rounded-xl
                 text-slate-600 dark:text-slate-400
@@ -373,6 +403,9 @@ export default function DashboardHeader({
                       <span className="font-semibold text-sm text-slate-900 dark:text-white">
                         Pemberitahuan
                       </span>
+                      <span className="px-2 py-0.5 text-[10px] font-semibold rounded-full bg-sky-50 text-[#0284c7] dark:bg-sky-950/60 dark:text-sky-300">
+                        Hari Ini
+                      </span>
                       {unreadCount > 0 ? (
                         <span className="px-2 py-0.5 text-[10px] font-semibold rounded-full bg-rose-50 text-rose-600 dark:bg-rose-950/60 dark:text-rose-300">
                           {unreadCount} Baru
@@ -400,10 +433,10 @@ export default function DashboardHeader({
                       <div className="py-8 text-center text-slate-400">
                         <Bell size={28} className="mx-auto text-slate-300 dark:text-slate-600 mb-2 opacity-50" />
                         <p className="text-xs font-medium text-slate-600 dark:text-slate-300">
-                          Belum ada notifikasi
+                          Belum ada notifikasi hari ini
                         </p>
                         <p className="text-[11px] text-slate-400 mt-0.5">
-                          Pemberitahuan aktivitas akan muncul di sini
+                          Pemberitahuan aktivitas hari ini akan muncul di sini
                         </p>
                       </div>
                     ) : (

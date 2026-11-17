@@ -324,7 +324,7 @@ export default function MentorLogbookModal({
         </div>
 
         {/* ================= BODY ================= */}
-        <div className="flex-1 overflow-y-auto px-5 sm:px-6 py-5 space-y-5">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden px-5 sm:px-6 py-5 space-y-5">
           {notFound ? (
             <div className="rounded-2xl bg-white dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 p-10 text-center space-y-2">
               <FileText className="w-10 h-10 text-slate-400 mx-auto" />
@@ -504,14 +504,14 @@ export default function MentorLogbookModal({
               )}
 
               {/* Catatan Mentor */}
-              <div className="rounded-xl bg-white dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-800 p-4 space-y-3">
+              <div className="rounded-xl bg-white dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-800 p-4 space-y-3 min-w-0 overflow-hidden">
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
                   Catatan Mentor{" "}
                   {!isFinalized && <span className="text-rose-500">*</span>}
                 </label>
 
                 {isFinalized ? (
-                  <p className="text-sm text-slate-700 dark:text-slate-200 whitespace-pre-line">
+                  <p className="text-sm text-slate-700 dark:text-slate-200 whitespace-pre-line break-words wrap-anywhere">
                     {mentorNote || "-"}
                   </p>
                 ) : (
@@ -626,11 +626,11 @@ export default function MentorLogbookModal({
 
 function FieldSection({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl bg-white dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-800 p-4 space-y-1.5">
+    <div className="rounded-xl bg-white dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-800 p-4 space-y-1.5 min-w-0 overflow-hidden">
       <p className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
         {label}
       </p>
-      <p className="text-sm leading-relaxed whitespace-pre-line text-slate-800 dark:text-slate-200">
+      <p className="text-sm leading-relaxed whitespace-pre-line break-words wrap-anywhere text-slate-800 dark:text-slate-200">
         {value || <span className="text-slate-400">-</span>}
       </p>
     </div>

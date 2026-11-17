@@ -240,31 +240,31 @@ export default function AdminFeedbackModal({
           </div>
 
           {/* Feedback untuk BPOM & Mentor */}
-          <div className="grid grid-cols-1 gap-4">
-            <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40">
+          <div className="grid grid-cols-1 gap-4 min-w-0">
+            <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 min-w-0 overflow-hidden">
               <p className="text-xs font-semibold text-[#0284c7] dark:text-sky-400 uppercase mb-1.5">
                 Feedback untuk Instansi (BPOM)
               </p>
-              <p className="text-slate-700 dark:text-slate-200 whitespace-pre-wrap leading-relaxed">
+              <p className="text-slate-700 dark:text-slate-200 whitespace-pre-wrap break-words wrap-anywhere leading-relaxed">
                 {current.feedbackBPOM || "-"}
               </p>
             </div>
 
-            <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40">
+            <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 min-w-0 overflow-hidden">
               <p className="text-xs font-semibold text-[#0284c7] dark:text-sky-400 uppercase mb-1.5">
                 Feedback untuk Mentor Pembimbing
               </p>
-              <p className="text-slate-700 dark:text-slate-200 whitespace-pre-wrap leading-relaxed">
+              <p className="text-slate-700 dark:text-slate-200 whitespace-pre-wrap break-words wrap-anywhere leading-relaxed">
                 {current.feedbackMentor || "-"}
               </p>
             </div>
 
             {current.mentorResponse && (
-              <div className="p-4 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-950/30">
+              <div className="p-4 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-950/30 min-w-0 overflow-hidden">
                 <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-300 uppercase mb-1.5">
                   Respon Mentor ({current.mentorRespondedBy?.name || "Mentor"})
                 </p>
-                <p className="text-slate-800 dark:text-slate-100 whitespace-pre-wrap leading-relaxed">
+                <p className="text-slate-800 dark:text-slate-100 whitespace-pre-wrap break-words wrap-anywhere leading-relaxed">
                   {current.mentorResponse}
                 </p>
               </div>
