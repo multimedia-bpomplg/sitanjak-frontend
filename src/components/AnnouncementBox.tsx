@@ -50,16 +50,16 @@ export default function AnnouncementBox({
           relative overflow-hidden
           rounded-2xl
           border
-          border-amber-200 dark:border-indigo-500/20
+          border-sky-200/80 dark:border-slate-800
           bg-linear-to-br
-          from-amber-50 via-white to-amber-100
-          dark:from-indigo-950 dark:via-indigo-900 dark:to-indigo-950
-          shadow-lg hover:shadow-2xl
+          from-sky-50/40 via-white to-blue-50/30
+          dark:from-slate-900 dark:via-slate-900 dark:to-slate-950
+          shadow-md hover:shadow-xl
           transition-all duration-300
         "
       >
         {/* Decorative Accent Bar */}
-        <div className="absolute top-0 left-0 w-full h-1 bg-linear-to-r from-[#7F1D1D] to-[#F59E0B] dark:from-indigo-500 dark:to-violet-500" />
+        <div className="absolute top-0 left-0 w-full h-1 bg-linear-to-r from-[#0284c7] via-sky-600 to-blue-700 dark:from-[#0369a1] dark:to-blue-800" />
 
         <div className="p-5 sm:p-6 lg:p-8">
           {/* DATE BADGE */}
@@ -71,9 +71,9 @@ export default function AnnouncementBox({
                   px-3 py-1.5 rounded-full
                   text-[11px] sm:text-xs
                   font-semibold
-                  bg-amber-100 text-[#7F1D1D]
-                  dark:bg-indigo-800 dark:text-indigo-200
-                  shadow-sm
+                  bg-sky-50 text-sky-700 border border-sky-200/80
+                  dark:bg-sky-950/60 dark:text-sky-300 dark:border-sky-800/60
+                  shadow-xs
                 "
               >
                 <span>📅</span>
@@ -91,7 +91,7 @@ export default function AnnouncementBox({
 
           {/* IMAGE */}
           {data.image && (
-            <div className="w-full rounded-xl mb-5 overflow-hidden border border-amber-200 dark:border-indigo-500/20 bg-black/90">
+            <div className="w-full rounded-xl mb-5 overflow-hidden border border-sky-200/80 dark:border-slate-800 bg-black/90">
               <img
                 src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/announcements/${data.image}`}
                 alt="Pengumuman"
@@ -114,8 +114,8 @@ export default function AnnouncementBox({
                 rounded-full
                 flex items-center justify-center
                 bg-linear-to-br
-                from-[#7F1D1D] to-[#F59E0B]
-                dark:from-indigo-600 dark:to-violet-500
+                from-[#0284c7] via-sky-600 to-blue-700
+                dark:from-[#0369a1] dark:to-blue-800
                 text-white shadow-md
               "
             >
@@ -128,8 +128,8 @@ export default function AnnouncementBox({
                 className="
                   text-lg sm:text-xl lg:text-2xl
                   font-bold
-                  text-[#7F1D1D]
-                  dark:text-indigo-300
+                  text-slate-900
+                  dark:text-white
                 "
               >
                 {data.title}
@@ -141,8 +141,8 @@ export default function AnnouncementBox({
                     mt-1
                     text-sm sm:text-base
                     font-medium
-                    text-amber-700
-                    dark:text-indigo-400
+                    text-sky-700
+                    dark:text-sky-400
                   "
                 >
                   {data.subtitle}
@@ -157,7 +157,7 @@ export default function AnnouncementBox({
             text-sm sm:text-base
             leading-relaxed
             text-slate-700
-            dark:text-indigo-200/80
+            dark:text-slate-300
           ">
             {data.content}
           </p>

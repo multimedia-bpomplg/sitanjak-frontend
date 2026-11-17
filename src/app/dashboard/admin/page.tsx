@@ -292,13 +292,6 @@ export default function AdminDashboard() {
             <RefreshCw className="w-3.5 h-3.5" />
             Refresh
           </button>
-
-          <div
-            title={displayName}
-            className="w-10 h-10 rounded-full bg-linear-to-br from-[#0284c7] to-blue-700 text-white font-bold text-xs flex items-center justify-center shadow-sm ring-2 ring-white dark:ring-slate-800 shrink-0"
-          >
-            {getInitials(displayName)}
-          </div>
         </div>
       </div>
 

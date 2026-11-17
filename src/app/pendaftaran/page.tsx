@@ -19,7 +19,6 @@ import {
   HiCalendar,
   HiDocument,
   HiCheckCircle,
-  HiInformationCircle,
   HiOutlineOfficeBuilding,
   HiOutlineBeaker,
   HiOutlineShieldCheck,
@@ -725,7 +724,7 @@ function PendaftaranForm() {
           </div>
 
           {/* ================= CEK RIWAYAT BANNER ================= */}
-          <div className="mb-4 sm:mb-6">
+          <div className="mb-6 sm:mb-8">
             <Link
               href="/pendaftaran/riwayat"
               className="relative group block overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-r from-[#071531] via-[#0B1B3D] to-[#08306B] border border-blue-900/40 p-4 sm:p-7 shadow-lg hover:shadow-xl transition-all duration-300"
@@ -759,17 +758,6 @@ function PendaftaranForm() {
                 </div>
               </div>
             </Link>
-          </div>
-
-          {/* ================= PANDUAN PENGISIAN FORM (ALERT) ================= */}
-          <div className="mb-5 sm:mb-8 p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-blue-50/70 border border-blue-200/70 flex items-center gap-2.5 sm:gap-3.5 text-slate-700 shadow-xs">
-            <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-[#0088FF]/10 text-[#0088FF] flex items-center justify-center shrink-0">
-              <HiInformationCircle className="text-lg sm:text-xl" />
-            </div>
-            <div className="text-xs sm:text-sm leading-relaxed">
-              <span className="font-semibold text-[#0B1B3D]">Petunjuk Pengisian:</span>{" "}
-              Seluruh kolom bertanda bintang (<span className="text-rose-500 font-bold">*</span>) wajib diisi dengan informasi yang benar dan sesuai dokumen asli.
-            </div>
           </div>
 
           {/* ================= FORM PENDAFTARAN UTAMA ================= */}
