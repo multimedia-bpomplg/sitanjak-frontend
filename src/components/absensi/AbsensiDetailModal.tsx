@@ -16,13 +16,14 @@ import {
   Loader2,
 } from "lucide-react";
 import { showToast } from "@/components/ui/toastDashboard";
-import type { AbsensiEntry, ManageAbsensiItem } from "./types";
+import type { AbsensiEntry, ManageAbsensiItem, ManageRole } from "./types";
 
 interface AbsensiDetailModalProps {
   item: ManageAbsensiItem | null;
   open: boolean;
   onClose: () => void;
   apiBase: string;
+  role: ManageRole;
   onKoreksiDone: () => Promise<void> | void;
 }
 
@@ -96,6 +97,7 @@ export default function AbsensiDetailModal({
   open,
   onClose,
   apiBase,
+  role,
   onKoreksiDone,
 }: AbsensiDetailModalProps) {
   const [target, setTarget] = useState<"checkIn" | "checkOut" | "both">("checkIn");
@@ -126,7 +128,7 @@ export default function AbsensiDetailModal({
   const hasCheckOut = Boolean(item.checkOut);
   const isIzin = item.attendanceMode === "izin";
   const isWfh = item.attendanceMode === "wfh";
-  const canCorrect = !isIzin && (hasCheckIn || hasCheckOut);
+  const canCorrect = role === "mentor" && !isIzin && (hasCheckIn || hasCheckOut);
 
   const handleSubmitKoreksi = async (e: React.FormEvent) => {
     e.preventDefault();

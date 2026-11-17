@@ -1,53 +1,136 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
-  FiUpload,
-  FiFile,
-  FiCheckCircle,
-  FiAlertCircle,
-  FiDownload,
-} from "react-icons/fi";
+  AlertCircle,
+  AlertTriangle,
+  CheckCircle2,
+  Download,
+  FileCheck2,
+  FileText,
+  Loader2,
+  Send,
+  Trash2,
+  Upload,
+} from "lucide-react";
+import { showToast } from "@/components/ui/toastDashboard";
 
 type Props = {
-  peserta: any;
+  peserta: {
+    nama: string;
+    email: string;
+    posisi?: string;
+    tanggalMulaiMagang?: string;
+    tanggalSelesaiMagang?: string;
+  };
   onSuccess?: () => void;
 };
 
 export default function SuratSelesaiUpload({ peserta, onSuccess }: Props) {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [checking, setChecking] = useState(true);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
 
-  const hasCheckedRef = useRef(false);
+  const [isAlreadySent, setIsAlreadySent] = useState(false);
+  const [existingFile, setExistingFile] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    const checkExistingSurat = async () => {
+      if (!peserta?.email) {
+        if (active) setChecking(false);
+        return;
+      }
+
+      setChecking(true);
+      try {
+        const token = localStorage.getItem("token") || "";
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/surat-selesai/cek?email=${encodeURIComponent(peserta.email)}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
+        );
+
+        if (!res.ok) {
+          if (active) {
+            setIsAlreadySent(false);
+            setExistingFile(null);
+          }
+          return;
+        }
+
+        const data = await res.json().catch(() => null);
+        if (active) {
+          if (data?.file) {
+            setIsAlreadySent(true);
+            setExistingFile(data.file);
+          } else {
+            setIsAlreadySent(false);
+            setExistingFile(null);
+          }
+        }
+      } catch {
+        if (active) setIsAlreadySent(false);
+      } finally {
+        if (active) setChecking(false);
+      }
+    };
+
+    checkExistingSurat();
+    return () => {
+      active = false;
+    };
+  }, [peserta?.email]);
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && showConfirm && !uploading) {
+        setShowConfirm(false);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [showConfirm, uploading]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
-
     if (!selectedFile) {
       setFile(null);
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
       return;
     }
 
-    // Validasi tipe file PDF
     if (selectedFile.type !== "application/pdf") {
-      setError("Hanya file PDF yang diperbolehkan");
+      setError("Hanya file berformat PDF yang diperbolehkan");
       setFile(null);
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
       return;
     }
 
-    // Validasi ukuran file max 5MB
     if (selectedFile.size > 5 * 1024 * 1024) {
-      setError("Ukuran file maksimal 5MB");
+      setError("Ukuran file PDF maksimal 5 MB");
       setFile(null);
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
       return;
     }
 
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
     setFile(selectedFile);
     setPreviewUrl(URL.createObjectURL(selectedFile));
     setError(null);
@@ -67,7 +150,7 @@ export default function SuratSelesaiUpload({ peserta, onSuccess }: Props) {
     formData.append("email", peserta.email);
 
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("token") || "";
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/surat-selesai`,
         {
@@ -76,365 +159,277 @@ export default function SuratSelesaiUpload({ peserta, onSuccess }: Props) {
             Authorization: `Bearer ${token}`,
           },
           body: formData,
-        }
+        },
       );
 
-      const data = await res.json();
-
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(data.message || "Gagal mengirim surat");
+        throw new Error(data?.message || "Gagal mengirim surat selesai magang");
       }
 
-      // 🔥 LANGSUNG PINDAH KE TAMPILAN SUKSES
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
       setFile(null);
       setPreviewUrl(null);
       setIsAlreadySent(true);
-
       if (data?.file) {
         setExistingFile(data.file);
       }
 
+      showToast.success("Surat selesai magang berhasil dikirim ke peserta");
       onSuccess?.();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      const msg =
+        err instanceof Error ? err.message : "Gagal mengirim surat selesai";
+      setError(msg);
+      showToast.error(msg);
     } finally {
       setUploading(false);
     }
   };
 
-  // Cek apakah surat sudah pernah dikirim
-  const [isAlreadySent, setIsAlreadySent] = useState(false);
-  const [existingFile, setExistingFile] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (hasCheckedRef.current) return;
-
-    const checkExistingSurat = async () => {
-      setChecking(true);
-
-      try {
-        const token = localStorage.getItem("token");
-
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/surat-selesai/cek?email=${peserta.email}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          },
-        );
-
-        if (res.status === 404) {
-          setIsAlreadySent(false);
-          return;
-        }
-
-        if (!res.ok) {
-          setIsAlreadySent(false);
-          return;
-        }
-
-        const data = await res.json();
-
-        if (data?.file) {
-          setIsAlreadySent(true);
-          setExistingFile(data.file);
-        } else {
-          setIsAlreadySent(false);
-        }
-
-        hasCheckedRef.current = true; // 🔥 kunci supaya tidak cek ulang
-      } catch {
-        setIsAlreadySent(false);
-      } finally {
-        setChecking(false);
-      }
-    };
-
-    checkExistingSurat();
-  }, [peserta.email]);
+  const clearSelectedFile = () => {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setFile(null);
+    setPreviewUrl(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
 
   if (checking) {
     return (
-      <div className="flex justify-center items-center py-12">
-        <span className="text-[#92400E] dark:text-indigo-300 animate-pulse">
-          Memeriksa status surat...
-        </span>
+      <div className="flex items-center justify-center py-12 text-xs sm:text-sm text-slate-500 gap-2">
+        <Loader2 className="w-4 h-4 animate-spin text-[#0284c7]" />
+        <span>Memeriksa status surat selesai magang...</span>
       </div>
     );
   }
 
   if (isAlreadySent) {
     return (
-      <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
-        <div className="w-20 h-20 rounded-full bg-emerald-100 dark:bg-indigo-900/40 flex items-center justify-center mb-4 shadow">
-          <FiCheckCircle className="text-4xl text-emerald-600 dark:text-indigo-300" />
+      <div className="flex flex-col items-center justify-center py-8 px-4 text-center space-y-4">
+        <div className="w-16 h-16 rounded-2xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shadow-xs">
+          <CheckCircle2 className="w-8 h-8" />
         </div>
 
-        <h3 className="text-2xl font-bold text-[#7F1D1D] dark:text-indigo-300 mb-3">
-          Surat Selesai Magang Sudah Dikirim
-        </h3>
-
-        <p className="text-amber-800 dark:text-indigo-200/80 max-w-lg mb-6">
-          Surat selesai magang untuk{" "}
-          <span className="font-semibold">{peserta.nama}</span> sudah pernah
-          dikirim.
-        </p>
+        <div className="space-y-1">
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+            Surat Selesai Magang Sudah Dikirim
+          </h3>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-md">
+            Surat keterangan selesai magang untuk{" "}
+            <span className="font-semibold text-slate-800 dark:text-slate-200">
+              {peserta.nama}
+            </span>{" "}
+            sudah pernah dikirimkan dan diterima peserta.
+          </p>
+        </div>
 
         {existingFile && (
           <a
             href={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${existingFile}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl
-            bg-linear-to-r from-[#7F1D1D] to-[#F59E0B]
-            dark:from-indigo-600 dark:to-violet-500
-            text-white font-semibold hover:shadow-lg transition"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#0284c7] hover:bg-sky-700 text-white text-xs sm:text-sm font-semibold shadow-sm transition"
           >
-            <FiDownload />
-            Download Surat
+            <Download className="w-4 h-4" />
+            Unduh Surat Selesai PDF
           </a>
         )}
       </div>
     );
   }
 
+  const periodeText =
+    peserta.tanggalMulaiMagang || peserta.tanggalSelesaiMagang
+      ? `${peserta.tanggalMulaiMagang || "-"} s/d ${peserta.tanggalSelesaiMagang || "-"}`
+      : "-";
+
   return (
-    <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-      {/* HEADER */}
-      <div className="text-center">
-        <div className="w-20 h-20 mx-auto rounded-full 
-        bg-linear-to-br from-[#7F1D1D] to-[#F59E0B]
-        dark:from-indigo-600 dark:to-violet-500
-        flex items-center justify-center mb-4 shadow-lg">
-          <FiFile className="text-3xl text-white" />
+    <div className="space-y-5">
+      {/* Header */}
+      <div className="flex items-start gap-3">
+        <div className="w-10 h-10 rounded-xl bg-sky-50 dark:bg-sky-950/60 text-[#0284c7] dark:text-sky-400 flex items-center justify-center shrink-0">
+          <FileCheck2 className="w-5 h-5" />
         </div>
-
-        <h3 className="text-2xl font-bold text-[#7F1D1D] dark:text-indigo-300 mb-2">
-          Kirim Surat Selesai Magang
-        </h3>
-
-       <p className="text-amber-800 dark:text-indigo-200/80 max-w-xl mx-auto">
-          Upload surat keterangan selesai magang untuk{" "}
-          <span className="font-semibold">{peserta.nama}</span>. Surat hanya
-          dapat dikirim 1x dan akan langsung diterima oleh peserta.
-        </p>
-      </div>
-
-      {/* Informasi Peserta */}
-      <div className="
-      border border-amber-700 dark:border-indigo-500/20 
-      rounded-2xl p-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {[
-            { label: "Nama", value: peserta.nama },
-            { label: "Email", value: peserta.email },
-            { label: "Posisi", value: peserta.posisi },
-            {
-              label: "Periode",
-              value: `${peserta.tanggalMulaiMagang} - ${peserta.tanggalSelesaiMagang}`,
-            },
-          ].map((item, i) => (
-            <div key={i}>
-              <p className="text-xs text-amber-700 dark:text-indigo-300/70">
-                {item.label}
-              </p>
-              <p className="font-semibold text-[#7F1D1D] dark:text-indigo-200">
-                {item.value}
-              </p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Upload Area */}
-      <div
-        className={`border-2 border-dashed rounded-2xl p-8 text-center transition
-        ${
-            file
-              ? "border-emerald-400 dark:bg-indigo-900/30"
-              : "border-amber-300 bg-amber-50/40 dark:border-indigo-500/30 dark:bg-indigo-950/30 hover:border-[#F59E0B] dark:hover:border-indigo-400"
-        }`}
-      >
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".pdf,application/pdf"
-          onChange={handleFileChange}
-          className="hidden"
-          id="suratSelesaiUpload"
-        />
-
-        {!file ? (
-          <label
-            htmlFor="suratSelesaiUpload"
-            className="flex flex-col items-center cursor-pointer"
-          >
-            <div className="w-16 h-16 rounded-full bg-linear-to-br from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B] dark:from-indigo-600 dark:to-violet-500 flex items-center justify-center mb-3">
-              <FiUpload className="text-2xl text-white" />
-            </div>
-            <p className="font-medium text-[#7F1D1D] dark:text-indigo-200">
-              Klik untuk upload file PDF
-            </p>
-            <p className="text-xs text-amber-700 dark:text-indigo-300/70">
-              Maksimal 5MB
-            </p>
-          </label>
-        ) : (
-          <div className="space-y-6">
-
-            {/* FILE CARD */}
-            <div className="
-              flex flex-col sm:flex-row
-              sm:items-center
-              justify-between
-              gap-4
-              bg-amber-50 dark:bg-indigo-950/40
-              border border-amber-200 dark:border-indigo-500/20
-              rounded-xl
-              p-4
-            ">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="
-                  w-10 h-10 shrink-0 rounded-lg
-                  bg-[#7F1D1D]/10 dark:bg-indigo-600/20
-                  flex items-center justify-center
-                ">
-                  <FiFile className="text-lg text-[#7F1D1D] dark:text-indigo-300" />
-                </div>
-
-                <div className="min-w-0">
-                  <p className="font-medium text-sm text-[#7F1D1D] dark:text-indigo-200 truncate">
-                    {file.name}
-                  </p>
-                  <p className="text-xs text-amber-700 dark:text-indigo-300/70">
-                    {(file.size / 1024 / 1024).toFixed(2)} MB
-                  </p>
-                </div>
-              </div>
-
-              <button
-                onClick={() => {
-                  setFile(null);
-                  setPreviewUrl(null);
-                  if (fileInputRef.current) {
-                    fileInputRef.current.value = "";
-                  }
-                }}
-                className="text-sm font-semibold
-                  text-red-600 hover:text-red-700
-                  dark:text-red-400 dark:hover:text-red-300"
-              >
-                Hapus
-              </button>
-            </div>
-
-            {/* PREVIEW PDF */}
-            {previewUrl && (
-              <div>
-                <p className="text-sm font-semibold mb-2 text-[#7F1D1D] dark:text-indigo-300">
-                  Preview PDF
-                </p>
-
-                <div className="w-full h-75 sm:h-100 lg:h-125
-                  border border-amber-200 dark:border-indigo-500/30
-                  rounded-xl overflow-hidden">
-                  <iframe
-                    src={previewUrl}
-                    className="w-full h-full"
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Error Message */}
-      {error && (
-        <div className="flex items-center gap-2 p-4 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300">
-          <FiAlertCircle className="text-lg shrink-0" />
-          <p className="text-sm">{error}</p>
-        </div>
-      )}
-
-      {/* Success Message */}
-      {success && (
-        <div className="flex items-center gap-2 p-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300">
-          <FiCheckCircle className="text-lg shrink-0" />
-          <p className="text-sm">
-            ✅ Surat selesai magang berhasil dikirim ke peserta!
+        <div className="min-w-0">
+          <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
+            Kirim Surat Selesai Magang (PDF)
+          </h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
+            Unggah surat keterangan selesai magang untuk{" "}
+            <strong className="text-slate-700 dark:text-slate-200">
+              {peserta.nama}
+            </strong>
+            . Surat hanya dapat dikirim 1 kali dan langsung diterima peserta.
           </p>
         </div>
+      </div>
+
+      {/* Ringkasan Penerima (Grid 2 kolom agar email & posisi tidak bertabrakan) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {[
+          { label: "Nama Peserta", value: peserta.nama || "-" },
+          { label: "Email Penerima", value: peserta.email || "-" },
+          { label: "Posisi / Fungsi", value: peserta.posisi || "-" },
+          { label: "Periode Magang", value: periodeText },
+        ].map((item) => (
+          <div
+            key={item.label}
+            className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 min-w-0 overflow-hidden"
+          >
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+              {item.label}
+            </p>
+            <p className="text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-100 mt-0.5 break-words wrap-anywhere">
+              {item.value}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {error && (
+        <div className="rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/70 p-3 text-xs text-rose-700 dark:text-rose-300 flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <span>{error}</span>
+        </div>
       )}
 
-      {/* Action Buttons */}
-      <div className="flex gap-3 pt-4">
+      {/* Upload Area */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".pdf,application/pdf"
+        onChange={handleFileChange}
+        className="hidden"
+        id="suratSelesaiUpload"
+      />
+
+      {!file ? (
+        <label
+          htmlFor="suratSelesaiUpload"
+          className="block cursor-pointer rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-900/40 hover:border-[#0284c7] p-6 text-center transition space-y-2"
+        >
+          <div className="w-12 h-12 rounded-xl bg-sky-50 dark:bg-sky-950/60 text-[#0284c7] dark:text-sky-400 flex items-center justify-center mx-auto">
+            <Upload className="w-6 h-6" />
+          </div>
+          <p className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-100">
+            Klik untuk memilih file Surat Selesai PDF
+          </p>
+          <p className="text-[11px] text-slate-500 dark:text-slate-400">
+            Format wajib PDF, ukuran maksimal 5 MB
+          </p>
+        </label>
+      ) : (
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-sky-200 dark:border-sky-800/70 bg-sky-50/60 dark:bg-sky-950/30 p-3.5 min-w-0">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-xl bg-[#0284c7] text-white flex items-center justify-center shrink-0">
+                <FileText className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">
+                  {file.name}
+                </p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  {(file.size / 1024 / 1024).toFixed(2)} MB • Siap dikirim
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={clearSelectedFile}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-950/50 dark:text-rose-400 transition shrink-0 cursor-pointer"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              Hapus
+            </button>
+          </div>
+
+          {previewUrl && (
+            <div className="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 h-60 bg-slate-100 dark:bg-slate-900">
+              <iframe
+                src={previewUrl}
+                title="Pratinjau Surat Selesai PDF"
+                className="w-full h-full border-0"
+              />
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Peringatan & Tombol Kirim */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+        <p className="inline-flex items-center gap-1.5 text-[11px] text-amber-700 dark:text-amber-300 font-medium">
+          <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+          <span>Pengiriman hanya berlaku 1 kali. Pastikan dokumen benar.</span>
+        </p>
+
         <button
-          onClick={() => setShowConfirm(true)}
+          type="button"
           disabled={!file || uploading}
-          className={`w-full py-3 rounded-xl font-semibold transition
-            ${
-              !file || uploading
-                ? "bg-slate-300 dark:bg-slate-700 text-slate-500 cursor-not-allowed"
-                : "bg-linear-to-r from-[#7F1D1D] via-[#B91C1C] to-[#F59E0B] dark:from-indigo-600 dark:via-indigo-500 dark:to-violet-500 text-white hover:shadow-lg"
-            }
-          `}
+          onClick={() => setShowConfirm(true)}
+          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[#0284c7] hover:bg-sky-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs sm:text-sm font-semibold shadow-sm transition cursor-pointer shrink-0"
         >
           {uploading ? (
-            <span className="flex items-center justify-center gap-2">
-              <span className="animate-spin">⚪</span>
-              Mengirim...
-            </span>
+            <Loader2 className="w-4 h-4 animate-spin" />
           ) : (
-            "Kirim Surat Selesai Magang"
+            <Send className="w-4 h-4" />
           )}
+          <span>
+            {uploading ? "Mengirim..." : "Kirim Surat Selesai Magang"}
+          </span>
         </button>
       </div>
 
-      <p className="text-xs text-center text-slate-500 dark:text-slate-400 mt-4">
-        ⚠️ Perhatian: Surat selesai magang hanya dapat dikirim SATU KALI.
-        Pastikan file yang diupload sudah benar.
-      </p>
-
+      {/* Modal Konfirmasi Pengiriman */}
       {showConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-          <div className="
-            w-full max-w-md
-            bg-white dark:bg-indigo-950
-            rounded-2xl shadow-xl p-6 space-y-4
-          ">
-            <h3 className="text-lg font-bold text-[#7F1D1D] dark:text-indigo-300">
-              Konfirmasi Pengiriman
-            </h3>
+        <div
+          className="fixed inset-0 z-60 flex items-center justify-center bg-slate-900/65 backdrop-blur-xs p-4"
+          onClick={() => !uploading && setShowConfirm(false)}
+        >
+          <div
+            className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-6 space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-sky-50 dark:bg-sky-950/60 text-[#0284c7] flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  Konfirmasi Pengiriman Surat
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-1 leading-relaxed">
+                  Surat selesai magang hanya dapat dikirim{" "}
+                  <strong>satu kali</strong> kepada{" "}
+                  <strong>{peserta.nama}</strong>. Pastikan file PDF sudah
+                  benar sebelum melanjutkan.
+                </p>
+              </div>
+            </div>
 
-            <p className="text-sm text-slate-600 dark:text-indigo-200/80">
-              Surat selesai magang hanya dapat dikirim SATU KALI.
-              Apakah Anda yakin ingin mengirim surat ini?
-            </p>
-
-            <div className="flex gap-3 pt-2">
+            <div className="flex justify-end gap-2.5 pt-2">
               <button
+                type="button"
+                disabled={uploading}
                 onClick={() => setShowConfirm(false)}
-                className="flex-1 py-2 rounded-xl border
-                  border-red-600
-                  text-[#7F1D1D] dark:text-indigo-300
-                  hover:bg-red-800 hover:text-white transition"
+                className="px-4 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
               >
                 Batal
               </button>
-
               <button
+                type="button"
+                disabled={uploading}
                 onClick={() => {
                   setShowConfirm(false);
-                  handleUpload();
+                  void handleUpload();
                 }}
-                className="flex-1 py-2 rounded-xl font-semibold
-                  bg-linear-to-r from-[#7F1D1D] to-[#F59E0B]
-                  dark:from-indigo-600 dark:to-violet-500
-                  text-white hover:shadow-lg transition"
+                className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl text-xs font-bold bg-[#0284c7] hover:bg-sky-700 text-white shadow-xs transition cursor-pointer disabled:opacity-50"
               >
-                Ya, Kirim
+                <Send className="w-3.5 h-3.5" />
+                Ya, Kirim Sekarang
               </button>
             </div>
           </div>

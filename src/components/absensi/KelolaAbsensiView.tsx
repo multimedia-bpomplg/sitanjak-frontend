@@ -800,7 +800,7 @@ export default function KelolaAbsensiView({ role }: KelolaAbsensiViewProps) {
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-50 hover:bg-sky-100 dark:bg-sky-950/50 dark:hover:bg-sky-900/60 text-sky-700 dark:text-sky-300 font-semibold transition"
                           >
                             <Eye className="w-3.5 h-3.5" />
-                            Detail &amp; Koreksi
+                            {role === "mentor" ? "Detail & Koreksi" : "Detail"}
                           </button>
                         </td>
                       </tr>
@@ -962,6 +962,7 @@ export default function KelolaAbsensiView({ role }: KelolaAbsensiViewProps) {
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         apiBase={API_BASE}
+        role={role}
         onKoreksiDone={() => loadData(true)}
       />
     </div>
