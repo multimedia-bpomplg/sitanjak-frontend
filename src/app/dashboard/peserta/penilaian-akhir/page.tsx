@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { Fragment, useEffect, useState, useCallback, useMemo } from "react";
 import Link from "next/link";
 import {
   ChevronLeft,
@@ -549,11 +549,46 @@ export default function PenilaianAkhirPage() {
     return <PesertaDashboardSkeleton />;
   }
 
+  const assessmentGroups = [
+    {
+      no: "1",
+      title: "Kedisiplinan dan Sikap Kerja",
+      items: [
+        {
+          label: "A. Kehadiran dan Taat Jadwal",
+          data: penilaian?.kehadiranTaatJadwal,
+        },
+        {
+          label: "B. Sikap Kerja",
+          data: penilaian?.sikapKerja,
+        },
+      ],
+    },
+    {
+      no: "2",
+      title: "Kemampuan",
+      items: [
+        {
+          label: "A. Penguasaan Materi",
+          data: penilaian?.penguasaanMateri,
+        },
+        {
+          label: "B. Praktik Kerja",
+          data: penilaian?.praktikKerja,
+        },
+        {
+          label: "C. Inisiatif dan Hubungan Kerja/Komunikasi",
+          data: penilaian?.inisiatifKomunikasi,
+        },
+      ],
+    },
+  ];
+
   return (
-    <div className="space-y-5 sm:space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* ================= 1. HEADER & BACK BUTTON ================= */}
-      <div className="flex items-start justify-between gap-3 pt-1">
-        <div className="flex items-start gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 pt-1">
+        <div className="flex items-start gap-2.5 sm:gap-3 min-w-0">
           <Link
             href="/dashboard/peserta/laporan-akhir"
             aria-label="Kembali ke Perkembangan Magang"
@@ -561,11 +596,11 @@ export default function PenilaianAkhirPage() {
           >
             <ChevronLeft className="w-5 h-5" />
           </Link>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+          <div className="min-w-0">
+            <h1 className="text-lg sm:text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-snug">
               Penilaian Akhir Magang
             </h1>
-            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
               Rekapitulasi nilai kedisiplinan, sikap kerja, dan kemampuan selama
               program magang di BBPOM di Palembang.
             </p>
@@ -576,7 +611,7 @@ export default function PenilaianAkhirPage() {
           type="button"
           onClick={handleDownloadPdf}
           disabled={downloadingPdf}
-          className="print:hidden inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#1D64F2] hover:bg-blue-700 disabled:opacity-60 text-xs sm:text-sm font-bold text-white transition shrink-0 shadow-2xs"
+          className="print:hidden w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2.5 sm:py-2 rounded-xl bg-[#1D64F2] hover:bg-blue-700 disabled:opacity-60 text-xs sm:text-sm font-bold text-white transition shrink-0 shadow-2xs"
         >
           <Download className="w-4 h-4" />
           <span>{downloadingPdf ? "Mengunduh..." : "Unduh PDF"}</span>
@@ -585,16 +620,16 @@ export default function PenilaianAkhirPage() {
 
       {/* ================= 2. BANNER STATUS PENILAIAN ================= */}
       {computedSummary.hasAnyScore ? (
-        <div className="rounded-2xl bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/70 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-start gap-3">
+        <div className="rounded-2xl bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/70 p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-start gap-2.5 sm:gap-3 min-w-0">
             <div className="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-900/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
               <CheckCircle2 className="w-5 h-5" />
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-xs sm:text-sm font-bold text-emerald-900 dark:text-emerald-200">
                 Penilaian Akhir Telah Diterbitkan
               </p>
-              <p className="text-[11px] sm:text-xs text-emerald-700 dark:text-emerald-300 mt-0.5">
+              <p className="text-[11px] sm:text-xs text-emerald-700 dark:text-emerald-300 mt-0.5 leading-relaxed">
                 Dinilai oleh{" "}
                 <b>{penilaian?.penilaiNama || peserta.mentorNama}</b>
                 {penilaian?.tanggalPenilaian
@@ -606,9 +641,9 @@ export default function PenilaianAkhirPage() {
           </div>
 
           {computedSummary.rataRata !== null && (
-            <div className="self-start sm:self-center px-3.5 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-emerald-200 dark:border-emerald-700 text-center shrink-0">
+            <div className="w-full sm:w-auto flex sm:block items-center justify-between px-3.5 py-2 sm:py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-emerald-200 dark:border-emerald-700 text-center shrink-0">
               <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                Rata-Rata
+                Nilai Rata-Rata
               </p>
               <p className="text-base sm:text-lg font-extrabold text-emerald-600 dark:text-emerald-400 tabular-nums">
                 {formatScoreCell(computedSummary.rataRata)}
@@ -617,11 +652,11 @@ export default function PenilaianAkhirPage() {
           )}
         </div>
       ) : (
-        <div className="print:hidden rounded-2xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/70 p-4 flex items-start gap-3">
+        <div className="print:hidden rounded-2xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/70 p-3.5 sm:p-4 flex items-start gap-2.5 sm:gap-3">
           <div className="w-9 h-9 rounded-xl bg-amber-100 dark:bg-amber-900/60 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 mt-0.5">
             <Clock className="w-5 h-5" />
           </div>
-          <div>
+          <div className="min-w-0">
             <p className="text-xs sm:text-sm font-bold text-amber-900 dark:text-amber-200">
               Menunggu Penilaian Akhir dari Mentor
             </p>
@@ -635,15 +670,15 @@ export default function PenilaianAkhirPage() {
       )}
 
       {/* ================= 3. INFORMASI PESERTA ================= */}
-      <div className="rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 p-4 sm:p-5 shadow-2xs">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs sm:text-sm">
+      <div className="rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 p-3.5 sm:p-5 shadow-2xs">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-3.5 text-xs sm:text-sm">
           <div className="flex items-start gap-2.5">
             <User className="w-4 h-4 text-[#1D64F2] shrink-0 mt-0.5" />
             <div className="min-w-0">
               <p className="text-[11px] text-slate-500 dark:text-slate-400">
                 Nama Peserta
               </p>
-              <p className="font-bold text-slate-900 dark:text-white truncate">
+              <p className="font-bold text-slate-900 dark:text-white break-words leading-snug">
                 {peserta.nama}
               </p>
             </div>
@@ -655,7 +690,7 @@ export default function PenilaianAkhirPage() {
               <p className="text-[11px] text-slate-500 dark:text-slate-400">
                 Fungsi / Bidang Penempatan
               </p>
-              <p className="font-bold text-slate-900 dark:text-white truncate">
+              <p className="font-bold text-slate-900 dark:text-white break-words leading-snug">
                 {peserta.posisi}
               </p>
             </div>
@@ -667,7 +702,7 @@ export default function PenilaianAkhirPage() {
               <p className="text-[11px] text-slate-500 dark:text-slate-400">
                 Periode Magang
               </p>
-              <p className="font-bold text-slate-900 dark:text-white">
+              <p className="font-bold text-slate-900 dark:text-white leading-snug">
                 {formatIndoDate(peserta.mulai)} –{" "}
                 {formatIndoDate(peserta.selesai)}
               </p>
@@ -680,7 +715,7 @@ export default function PenilaianAkhirPage() {
               <p className="text-[11px] text-slate-500 dark:text-slate-400">
                 Mentor Pembimbing
               </p>
-              <p className="font-bold text-slate-900 dark:text-white truncate">
+              <p className="font-bold text-slate-900 dark:text-white break-words leading-snug">
                 {penilaian?.penilaiNama || peserta.mentorNama}
               </p>
             </div>
@@ -689,9 +724,9 @@ export default function PenilaianAkhirPage() {
       </div>
 
       {/* ================= 4. TABEL PENILAIAN AKHIR MAGANG ================= */}
-      <div className="rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 p-4 sm:p-6 shadow-2xs space-y-4">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2.5">
+      <div className="rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 p-3.5 sm:p-6 shadow-2xs space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2.5 min-w-0">
             <div className="w-8 h-8 rounded-lg bg-violet-50 dark:bg-violet-950/60 text-violet-600 dark:text-violet-400 flex items-center justify-center shrink-0">
               <ClipboardList className="w-4 h-4" />
             </div>
@@ -701,7 +736,7 @@ export default function PenilaianAkhirPage() {
           </div>
 
           <span
-            className={`px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold border ${
+            className={`px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold border shrink-0 ${
               computedSummary.hasAnyScore
                 ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800"
                 : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800"
@@ -711,129 +746,116 @@ export default function PenilaianAkhirPage() {
           </span>
         </div>
 
-        {/* Responsive Bordered Assessment Table */}
-        <div className="overflow-x-auto rounded-lg border border-slate-300 dark:border-slate-600">
+        {/* MOBILE VIEW (< sm): Card list rapi tanpa scroll horizontal */}
+        <div className="sm:hidden space-y-3">
+          {assessmentGroups.map((group) => (
+            <div
+              key={group.no}
+              className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden bg-white dark:bg-slate-900/40"
+            >
+              <div className="px-3.5 py-2.5 bg-slate-100/90 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700 flex items-center gap-2">
+                <span className="w-5 h-5 rounded-md bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-[11px] font-bold text-slate-700 dark:text-slate-200 flex items-center justify-center shrink-0">
+                  {group.no}
+                </span>
+                <span className="text-xs font-extrabold text-slate-900 dark:text-white leading-snug">
+                  {group.title}
+                </span>
+              </div>
+
+              <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                {group.items.map((item) => (
+                  <div key={item.label} className="p-3 space-y-2">
+                    <p className="text-xs font-medium text-slate-800 dark:text-slate-100 leading-snug">
+                      {item.label}
+                    </p>
+                    <div className="flex items-center justify-between gap-2 text-xs">
+                      <div className="inline-flex items-center gap-1.5">
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                          Nilai:
+                        </span>
+                        <span className="font-bold text-slate-900 dark:text-white tabular-nums">
+                          {item.data ? formatScoreCell(item.data.nilai) : "-"}
+                        </span>
+                      </div>
+                      <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 text-right">
+                        {item.data?.keterangan || "-"}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+
+          {/* Mobile Nilai Rata-Rata Summary */}
+          <div className="rounded-xl border border-blue-200 dark:border-blue-800/80 bg-blue-50/60 dark:bg-blue-950/30 p-3.5 flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-extrabold text-slate-900 dark:text-white">
+                Nilai Rata-Rata
+              </p>
+              <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-0.5">
+                {computedSummary.keterangan || "Belum dinilai"}
+              </p>
+            </div>
+            <span className="text-lg font-extrabold text-[#1D64F2] dark:text-blue-400 tabular-nums shrink-0">
+              {computedSummary.rataRata !== null
+                ? formatScoreCell(computedSummary.rataRata)
+                : "-"}
+            </span>
+          </div>
+        </div>
+
+        {/* DESKTOP VIEW (>= sm): Tabel berbingkai resmi */}
+        <div className="hidden sm:block overflow-x-auto rounded-lg border border-slate-300 dark:border-slate-600">
           <table className="w-full border-collapse text-xs sm:text-sm text-slate-800 dark:text-slate-100">
             <thead>
               <tr className="bg-slate-100 dark:bg-slate-900/80 text-slate-900 dark:text-white font-bold">
                 <th className="border-b border-r border-slate-300 dark:border-slate-600 px-3 py-2.5 text-center w-12">
                   No
                 </th>
-                <th className="border-b border-r border-slate-300 dark:border-slate-600 px-3.5 py-2.5 text-center min-w-[230px]">
+                <th className="border-b border-r border-slate-300 dark:border-slate-600 px-3.5 py-2.5 text-center">
                   Rincian
                 </th>
                 <th className="border-b border-r border-slate-300 dark:border-slate-600 px-3 py-2.5 text-center w-24 sm:w-28">
                   Nilai
                 </th>
-                <th className="border-b border-slate-300 dark:border-slate-600 px-3.5 py-2.5 text-center min-w-[160px]">
+                <th className="border-b border-slate-300 dark:border-slate-600 px-3.5 py-2.5 text-center w-44 sm:w-52">
                   Keterangan
                 </th>
               </tr>
             </thead>
             <tbody>
-              {/* KATEGORI 1 */}
-              <tr className="bg-slate-50/80 dark:bg-slate-800/70 font-bold text-slate-900 dark:text-white">
-                <td className="border-b border-r border-slate-300 dark:border-slate-600 px-3 py-2.5 text-center">
-                  1
-                </td>
-                <td className="border-b border-r border-slate-300 dark:border-slate-600 px-3.5 py-2.5">
-                  Kedisiplinan dan Sikap Kerja
-                </td>
-                <td className="border-b border-r border-slate-300 dark:border-slate-600 px-3 py-2.5 text-center" />
-                <td className="border-b border-slate-300 dark:border-slate-600 px-3.5 py-2.5" />
-              </tr>
-
-              {/* 1.A */}
-              <tr className="bg-white dark:bg-slate-800/40">
-                <td className="border-b border-r border-slate-300 dark:border-slate-600 px-3 py-2.5 text-center" />
-                <td className="border-b border-r border-slate-300 dark:border-slate-600 px-3.5 py-2.5">
-                  A. Kehadiran dan Taat Jadwal
-                </td>
-                <td className="border-b border-r border-slate-300 dark:border-slate-600 px-3 py-2.5 text-center font-semibold tabular-nums">
-                  {penilaian?.kehadiranTaatJadwal
-                    ? formatScoreCell(penilaian.kehadiranTaatJadwal.nilai)
-                    : ""}
-                </td>
-                <td className="border-b border-slate-300 dark:border-slate-600 px-3.5 py-2.5 text-slate-600 dark:text-slate-300">
-                  {penilaian?.kehadiranTaatJadwal?.keterangan || ""}
-                </td>
-              </tr>
-
-              {/* 1.B */}
-              <tr className="bg-white dark:bg-slate-800/40">
-                <td className="border-b border-r border-slate-300 dark:border-slate-600 px-3 py-2.5 text-center" />
-                <td className="border-b border-r border-slate-300 dark:border-slate-600 px-3.5 py-2.5">
-                  B. Sikap Kerja
-                </td>
-                <td className="border-b border-r border-slate-300 dark:border-slate-600 px-3 py-2.5 text-center font-semibold tabular-nums">
-                  {penilaian?.sikapKerja
-                    ? formatScoreCell(penilaian.sikapKerja.nilai)
-                    : ""}
-                </td>
-                <td className="border-b border-slate-300 dark:border-slate-600 px-3.5 py-2.5 text-slate-600 dark:text-slate-300">
-                  {penilaian?.sikapKerja?.keterangan || ""}
-                </td>
-              </tr>
-
-              {/* KATEGORI 2 */}
-              <tr className="bg-slate-50/80 dark:bg-slate-800/70 font-bold text-slate-900 dark:text-white">
-                <td className="border-b border-r border-slate-300 dark:border-slate-600 px-3 py-2.5 text-center">
-                  2
-                </td>
-                <td className="border-b border-r border-slate-300 dark:border-slate-600 px-3.5 py-2.5">
-                  Kemampuan
-                </td>
-                <td className="border-b border-r border-slate-300 dark:border-slate-600 px-3 py-2.5 text-center" />
-                <td className="border-b border-slate-300 dark:border-slate-600 px-3.5 py-2.5" />
-              </tr>
-
-              {/* 2.A */}
-              <tr className="bg-white dark:bg-slate-800/40">
-                <td className="border-b border-r border-slate-300 dark:border-slate-600 px-3 py-2.5 text-center" />
-                <td className="border-b border-r border-slate-300 dark:border-slate-600 px-3.5 py-2.5">
-                  A. Penguasaan Materi
-                </td>
-                <td className="border-b border-r border-slate-300 dark:border-slate-600 px-3 py-2.5 text-center font-semibold tabular-nums">
-                  {penilaian?.penguasaanMateri
-                    ? formatScoreCell(penilaian.penguasaanMateri.nilai)
-                    : ""}
-                </td>
-                <td className="border-b border-slate-300 dark:border-slate-600 px-3.5 py-2.5 text-slate-600 dark:text-slate-300">
-                  {penilaian?.penguasaanMateri?.keterangan || ""}
-                </td>
-              </tr>
-
-              {/* 2.B */}
-              <tr className="bg-white dark:bg-slate-800/40">
-                <td className="border-b border-r border-slate-300 dark:border-slate-600 px-3 py-2.5 text-center" />
-                <td className="border-b border-r border-slate-300 dark:border-slate-600 px-3.5 py-2.5">
-                  B. Praktik Kerja
-                </td>
-                <td className="border-b border-r border-slate-300 dark:border-slate-600 px-3 py-2.5 text-center font-semibold tabular-nums">
-                  {penilaian?.praktikKerja
-                    ? formatScoreCell(penilaian.praktikKerja.nilai)
-                    : ""}
-                </td>
-                <td className="border-b border-slate-300 dark:border-slate-600 px-3.5 py-2.5 text-slate-600 dark:text-slate-300">
-                  {penilaian?.praktikKerja?.keterangan || ""}
-                </td>
-              </tr>
-
-              {/* 2.C */}
-              <tr className="bg-white dark:bg-slate-800/40">
-                <td className="border-b border-r border-slate-300 dark:border-slate-600 px-3 py-2.5 text-center" />
-                <td className="border-b border-r border-slate-300 dark:border-slate-600 px-3.5 py-2.5 leading-snug">
-                  C. Inisiatif dan Hubungan Kerja/Komunikasi
-                </td>
-                <td className="border-b border-r border-slate-300 dark:border-slate-600 px-3 py-2.5 text-center font-semibold tabular-nums">
-                  {penilaian?.inisiatifKomunikasi
-                    ? formatScoreCell(penilaian.inisiatifKomunikasi.nilai)
-                    : ""}
-                </td>
-                <td className="border-b border-slate-300 dark:border-slate-600 px-3.5 py-2.5 text-slate-600 dark:text-slate-300">
-                  {penilaian?.inisiatifKomunikasi?.keterangan || ""}
-                </td>
-              </tr>
+              {assessmentGroups.map((group) => (
+                <Fragment key={group.no}>
+                  <tr className="bg-slate-50/80 dark:bg-slate-800/70 font-bold text-slate-900 dark:text-white">
+                    <td className="border-b border-r border-slate-300 dark:border-slate-600 px-3 py-2.5 text-center">
+                      {group.no}
+                    </td>
+                    <td className="border-b border-r border-slate-300 dark:border-slate-600 px-3.5 py-2.5">
+                      {group.title}
+                    </td>
+                    <td className="border-b border-r border-slate-300 dark:border-slate-600 px-3 py-2.5 text-center" />
+                    <td className="border-b border-slate-300 dark:border-slate-600 px-3.5 py-2.5" />
+                  </tr>
+                  {group.items.map((item) => (
+                    <tr
+                      key={item.label}
+                      className="bg-white dark:bg-slate-800/40"
+                    >
+                      <td className="border-b border-r border-slate-300 dark:border-slate-600 px-3 py-2.5 text-center" />
+                      <td className="border-b border-r border-slate-300 dark:border-slate-600 px-3.5 py-2.5 leading-snug">
+                        {item.label}
+                      </td>
+                      <td className="border-b border-r border-slate-300 dark:border-slate-600 px-3 py-2.5 text-center font-semibold tabular-nums">
+                        {item.data ? formatScoreCell(item.data.nilai) : ""}
+                      </td>
+                      <td className="border-b border-slate-300 dark:border-slate-600 px-3.5 py-2.5 text-slate-600 dark:text-slate-300">
+                        {item.data?.keterangan || ""}
+                      </td>
+                    </tr>
+                  ))}
+                </Fragment>
+              ))}
 
               {/* NILAI RATA-RATA */}
               <tr className="bg-slate-100/90 dark:bg-slate-900/70 font-bold text-slate-900 dark:text-white">
@@ -855,13 +877,13 @@ export default function PenilaianAkhirPage() {
         </div>
 
         {/* Acuan Nilai & Kesan / Saran */}
-        <div className="pt-1 space-y-4 text-xs sm:text-sm text-slate-800 dark:text-slate-200">
+        <div className="pt-1 space-y-3 sm:space-y-4 text-xs sm:text-sm text-slate-800 dark:text-slate-200">
           {/* Acuan Nilai (Horizontal) */}
-          <div className="rounded-xl bg-slate-50/90 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-700 p-3.5 sm:p-4 space-y-2.5">
+          <div className="rounded-xl bg-slate-50/90 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-700 p-3 sm:p-4 space-y-2">
             <p className="text-xs font-bold text-slate-900 dark:text-white">
               Nilai :
             </p>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] sm:text-xs">
               {[
                 {
                   range: "91-100",
@@ -886,12 +908,12 @@ export default function PenilaianAkhirPage() {
               ].map((item) => (
                 <div
                   key={item.range}
-                  className="flex items-center justify-between gap-1.5 px-2.5 py-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700"
+                  className="flex items-center justify-between gap-1 px-2 sm:px-2.5 py-1.5 sm:py-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700"
                 >
-                  <span className="font-medium text-slate-600 dark:text-slate-300 tabular-nums">
+                  <span className="font-medium text-slate-600 dark:text-slate-300 tabular-nums shrink-0">
                     {item.range}
                   </span>
-                  <span className={`font-bold ${item.colorClass}`}>
+                  <span className={`font-bold text-right ${item.colorClass}`}>
                     {item.label}
                   </span>
                 </div>
@@ -901,20 +923,20 @@ export default function PenilaianAkhirPage() {
 
           {/* Kesan & Saran */}
           <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/60 divide-y divide-slate-200 dark:divide-slate-700 overflow-hidden">
-            <div className="p-4 space-y-1.5">
-              <p className="font-bold text-slate-900 dark:text-white">
+            <div className="p-3.5 sm:p-4 space-y-1">
+              <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
                 Kesan :
               </p>
-              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 whitespace-pre-line leading-relaxed min-h-[2.25rem]">
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 whitespace-pre-line break-words leading-relaxed min-h-[2rem]">
                 {penilaian?.kesan || "-"}
               </p>
             </div>
 
-            <div className="p-4 space-y-1.5">
-              <p className="font-bold text-slate-900 dark:text-white">
+            <div className="p-3.5 sm:p-4 space-y-1">
+              <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
                 Saran :
               </p>
-              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 whitespace-pre-line leading-relaxed min-h-[2.25rem]">
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 whitespace-pre-line break-words leading-relaxed min-h-[2rem]">
                 {penilaian?.saran || "-"}
               </p>
             </div>

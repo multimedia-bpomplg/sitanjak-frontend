@@ -105,6 +105,11 @@ export const ROLE_NAVIGATION_CONFIG: Record<RoleType, RoleConfig> = {
             icon: GraduationCap,
           },
           {
+            title: "Penilaian Akhir",
+            href: "/dashboard/superadmin/ViewPenilaianAkhir",
+            icon: Award,
+          },
+          {
             title: "Feedback & Ulasan",
             href: "/dashboard/superadmin/ViewFeedback",
             icon: MessageSquareHeart,
@@ -243,6 +248,11 @@ export const ROLE_NAVIGATION_CONFIG: Record<RoleType, RoleConfig> = {
             title: "Laporan Akhir",
             href: "/dashboard/admin/ViewLaporanAkhir",
             icon: GraduationCap,
+          },
+          {
+            title: "Penilaian Akhir",
+            href: "/dashboard/admin/ViewPenilaianAkhir",
+            icon: Award,
           },
           {
             title: "Feedback & Ulasan",

@@ -46,6 +46,7 @@ export type PesertaPenilaianItem = {
   tanggalMulaiMagang?: string;
   tanggalSelesaiMagang?: string;
   statusMagang?: string;
+  mentorName?: string;
   absensiRef?: {
     totalHari: number;
     averageScore: number | null;
@@ -70,6 +71,7 @@ type FormAspectState = Record<
 
 type Props = {
   peserta: PesertaPenilaianItem;
+  readOnly?: boolean;
   onClose: () => void;
   onSaved: () => void;
 };
@@ -137,6 +139,7 @@ function buildInitialAspects(
 
 export default function MentorPenilaianAkhirModal({
   peserta,
+  readOnly = false,
   onClose,
   onSaved,
 }: Props) {
@@ -324,23 +327,35 @@ export default function MentorPenilaianAkhirModal({
         {label}
       </td>
       <td className="border-b border-r border-slate-200 dark:border-slate-700 px-2.5 py-2 text-center">
-        <input
-          type="text"
-          inputMode="decimal"
-          value={aspects[key].nilai}
-          onChange={(e) => handleScoreChange(key, e.target.value)}
-          placeholder="0–100"
-          className="w-20 sm:w-24 text-center rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 py-1.5 text-xs sm:text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:border-[#1D64F2] focus:ring-2 focus:ring-[#1D64F2]/20 tabular-nums"
-        />
+        {readOnly ? (
+          <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white tabular-nums">
+            {aspects[key].nilai !== "" ? aspects[key].nilai : "-"}
+          </span>
+        ) : (
+          <input
+            type="text"
+            inputMode="decimal"
+            value={aspects[key].nilai}
+            onChange={(e) => handleScoreChange(key, e.target.value)}
+            placeholder="0–100"
+            className="w-20 sm:w-24 text-center rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 py-1.5 text-xs sm:text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:border-[#1D64F2] focus:ring-2 focus:ring-[#1D64F2]/20 tabular-nums"
+          />
+        )}
       </td>
       <td className="border-b border-slate-200 dark:border-slate-700 px-2.5 py-2">
-        <input
-          type="text"
-          value={aspects[key].keterangan}
-          onChange={(e) => handleKetChange(key, e.target.value)}
-          placeholder="Otomatis / isi keterangan"
-          className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2.5 py-1.5 text-xs sm:text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:border-[#1D64F2] focus:ring-2 focus:ring-[#1D64F2]/20"
-        />
+        {readOnly ? (
+          <span className="text-xs sm:text-sm text-slate-700 dark:text-slate-200">
+            {aspects[key].keterangan || "-"}
+          </span>
+        ) : (
+          <input
+            type="text"
+            value={aspects[key].keterangan}
+            onChange={(e) => handleKetChange(key, e.target.value)}
+            placeholder="Otomatis / isi keterangan"
+            className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2.5 py-1.5 text-xs sm:text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:border-[#1D64F2] focus:ring-2 focus:ring-[#1D64F2]/20"
+          />
+        )}
       </td>
     </tr>
   );
@@ -356,13 +371,24 @@ export default function MentorPenilaianAkhirModal({
             </div>
             <div className="min-w-0">
               <h2 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white truncate">
-                {existing
-                  ? "Edit Penilaian Akhir Magang"
-                  : "Input Penilaian Akhir Magang"}
+                {readOnly
+                  ? "Detail Penilaian Akhir Magang"
+                  : existing
+                    ? "Edit Penilaian Akhir Magang"
+                    : "Input Penilaian Akhir Magang"}
               </h2>
               <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 truncate">
-                Isi nilai 0–100 tiap aspek, kesan, dan saran untuk{" "}
-                <b>{peserta.nama}</b>
+                {readOnly ? (
+                  <>
+                    Rincian hasil penilaian akhir magang untuk{" "}
+                    <b>{peserta.nama}</b>
+                  </>
+                ) : (
+                  <>
+                    Isi nilai 0–100 tiap aspek, kesan, dan saran untuk{" "}
+                    <b>{peserta.nama}</b>
+                  </>
+                )}
               </p>
             </div>
           </div>
@@ -425,6 +451,30 @@ export default function MentorPenilaianAkhirModal({
               </div>
             </div>
 
+            {(peserta.mentorName || existing?.penilaiNama) && (
+              <div className="pt-2.5 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600 dark:text-slate-300">
+                {peserta.mentorName && (
+                  <span>
+                    Mentor Pembimbing:{" "}
+                    <b className="text-slate-900 dark:text-white">
+                      {peserta.mentorName}
+                    </b>
+                  </span>
+                )}
+                {existing?.penilaiNama && (
+                  <span>
+                    Terakhir dinilai oleh{" "}
+                    <b className="text-slate-900 dark:text-white">
+                      {existing.penilaiNama}
+                    </b>
+                    {existing.tanggalPenilaian
+                      ? ` (${formatDateIndo(existing.tanggalPenilaian)})`
+                      : ""}
+                  </span>
+                )}
+              </div>
+            )}
+
             {peserta.absensiRef && peserta.absensiRef.totalHari > 0 && (
               <div className="pt-2.5 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
                 <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
@@ -438,7 +488,8 @@ export default function MentorPenilaianAkhirModal({
                   </span>
                 </div>
 
-                {typeof peserta.absensiRef.averageScore === "number" && (
+                {!readOnly &&
+                  typeof peserta.absensiRef.averageScore === "number" && (
                   <button
                     type="button"
                     onClick={applyAttendanceReference}
@@ -584,71 +635,112 @@ export default function MentorPenilaianAkhirModal({
               <label className="block text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
                 Kesan
               </label>
-              <textarea
-                rows={3}
-                value={kesan}
-                onChange={(e) => setKesan(e.target.value)}
-                placeholder="Tuliskan kesan terhadap kinerja, sikap, dan kontribusi peserta selama magang..."
-                className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-2.5 text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[#1D64F2] focus:ring-2 focus:ring-[#1D64F2]/20"
-              />
+              {readOnly ? (
+                <p className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/50 px-3.5 py-2.5 text-xs sm:text-sm text-slate-700 dark:text-slate-200 whitespace-pre-line leading-relaxed">
+                  {kesan || "-"}
+                </p>
+              ) : (
+                <textarea
+                  rows={3}
+                  value={kesan}
+                  onChange={(e) => setKesan(e.target.value)}
+                  placeholder="Tuliskan kesan terhadap kinerja, sikap, dan kontribusi peserta selama magang..."
+                  className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-2.5 text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[#1D64F2] focus:ring-2 focus:ring-[#1D64F2]/20"
+                />
+              )}
             </div>
 
             <div className="space-y-1.5">
               <label className="block text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
                 Saran
               </label>
-              <textarea
-                rows={3}
-                value={saran}
-                onChange={(e) => setSaran(e.target.value)}
-                placeholder="Tuliskan saran membangun untuk pengembangan kompetensi peserta ke depan..."
-                className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-2.5 text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[#1D64F2] focus:ring-2 focus:ring-[#1D64F2]/20"
-              />
+              {readOnly ? (
+                <p className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/50 px-3.5 py-2.5 text-xs sm:text-sm text-slate-700 dark:text-slate-200 whitespace-pre-line leading-relaxed">
+                  {saran || "-"}
+                </p>
+              ) : (
+                <textarea
+                  rows={3}
+                  value={saran}
+                  onChange={(e) => setSaran(e.target.value)}
+                  placeholder="Tuliskan saran membangun untuk pengembangan kompetensi peserta ke depan..."
+                  className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-2.5 text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[#1D64F2] focus:ring-2 focus:ring-[#1D64F2]/20"
+                />
+              )}
             </div>
 
-            <div className="space-y-1.5">
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
-                NIP Pembimbing (Opsional — untuk ditampilkan di PDF peserta)
-              </label>
-              <input
-                type="text"
-                value={penilaiNip}
-                onChange={(e) => setPenilaiNip(e.target.value)}
-                placeholder="Contoh: 198501012010121001"
-                className="w-full sm:max-w-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-2 text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[#1D64F2] focus:ring-2 focus:ring-[#1D64F2]/20"
-              />
-            </div>
+            {readOnly ? (
+              penilaiNip ? (
+                <div className="text-xs text-slate-600 dark:text-slate-300">
+                  NIP Pembimbing:{" "}
+                  <b className="text-slate-900 dark:text-white">{penilaiNip}</b>
+                </div>
+              ) : null
+            ) : (
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                  NIP Pembimbing (Opsional — untuk ditampilkan di PDF peserta)
+                </label>
+                <input
+                  type="text"
+                  value={penilaiNip}
+                  onChange={(e) => setPenilaiNip(e.target.value)}
+                  placeholder="Contoh: 198501012010121001"
+                  className="w-full sm:max-w-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-2 text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[#1D64F2] focus:ring-2 focus:ring-[#1D64F2]/20"
+                />
+              </div>
+            )}
           </div>
         </div>
 
         {/* FOOTER */}
         <div className="px-5 sm:px-6 py-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3">
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            {summaryCalc.isComplete
-              ? "Semua 5 komponen nilai telah terisi dan siap disimpan."
-              : "Lengkapi seluruh 5 komponen nilai (0–100) untuk menyimpan."}
-          </p>
+          {readOnly ? (
+            <>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Mode pantau Admin / Superadmin (hanya Mentor pembimbing yang
+                dapat mengisi atau mengubah nilai).
+              </p>
+              <button
+                type="button"
+                onClick={onClose}
+                className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition"
+              >
+                Tutup
+              </button>
+            </>
+          ) : (
+            <>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                {summaryCalc.isComplete
+                  ? "Semua 5 komponen nilai telah terisi dan siap disimpan."
+                  : "Lengkapi seluruh 5 komponen nilai (0–100) untuk menyimpan."}
+              </p>
 
-          <div className="flex items-center gap-2.5">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={saving}
-              className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition"
-            >
-              Batal
-            </button>
+              <div className="flex items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  disabled={saving}
+                  className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition"
+                >
+                  Batal
+                </button>
 
-            <button
-              type="button"
-              onClick={handleSubmit}
-              disabled={saving || !summaryCalc.isComplete}
-              className="flex-1 sm:flex-none px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-[#1D64F2] hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 disabled:text-slate-500 disabled:cursor-not-allowed transition inline-flex items-center justify-center gap-2 shadow-2xs"
-            >
-              <Save className="w-4 h-4" />
-              <span>{saving ? "Menyimpan..." : "Simpan Penilaian Akhir"}</span>
-            </button>
-          </div>
+                <button
+                  type="button"
+                  onClick={handleSubmit}
+                  disabled={saving || !summaryCalc.isComplete}
+                  className="flex-1 sm:flex-none px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-[#1D64F2] hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 disabled:text-slate-500 disabled:cursor-not-allowed transition inline-flex items-center justify-center gap-2 shadow-2xs"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>
+                    {saving ? "Menyimpan..." : "Simpan Penilaian Akhir"}
+                  </span>
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

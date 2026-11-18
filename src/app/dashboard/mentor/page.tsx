@@ -37,6 +37,8 @@ type InternshipPhase =
 type FilterTab =
   | "semua"
   | "perlu_logbook"
+  | "belum_dinilai"
+  | "sudah_dinilai"
   | "sedang_magang"
   | "belum_mulai"
   | "selesai";
@@ -364,6 +366,12 @@ export default function MentorDashboard() {
       if (activeFilter === "perlu_logbook" && p.logbookStats.menunggu === 0) {
         return false;
       }
+      if (activeFilter === "belum_dinilai" && Boolean(p.penilaianAkhir)) {
+        return false;
+      }
+      if (activeFilter === "sudah_dinilai" && !p.penilaianAkhir) {
+        return false;
+      }
       if (
         activeFilter === "sedang_magang" &&
         p.phase !== "sedang_magang"
@@ -437,6 +445,20 @@ export default function MentorDashboard() {
       id: "perlu_logbook",
       label: "Logbook Menunggu",
       count: summary.pesertaDenganLogbookMenunggu,
+    },
+    {
+      id: "belum_dinilai",
+      label: "Belum Dinilai",
+      count:
+        summary.penilaianAkhirBelum ??
+        pesertaList.filter((p) => !p.penilaianAkhir).length,
+    },
+    {
+      id: "sudah_dinilai",
+      label: "Sudah Dinilai",
+      count:
+        summary.penilaianAkhirSudah ??
+        pesertaList.filter((p) => Boolean(p.penilaianAkhir)).length,
     },
     { id: "sedang_magang", label: "Sedang Magang", count: summary.sedangMagang },
     { id: "belum_mulai", label: "Belum Mulai", count: summary.belumMulai },
