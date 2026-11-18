@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -37,6 +37,42 @@ export default function DashboardSidebar({
 
   // State untuk menyimpan dropdown submenu yang terbuka
   const [openSubmenus, setOpenSubmenus] = useState<Record<string, boolean>>({});
+  const [dynamicGuideUrl, setDynamicGuideUrl] = useState<string | null>(null);
+
+  const loadDynamicGuide = useCallback(async () => {
+    if (role !== "peserta" && role !== "mentor" && role !== "admin") {
+      setDynamicGuideUrl(null);
+      return;
+    }
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+      const res = await fetch(`${apiUrl}/panduan`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) return;
+      const json = await res.json().catch(() => null);
+      const doc = json?.data?.[role];
+      setDynamicGuideUrl(doc?.fileUrl ? `${apiUrl}${doc.fileUrl}` : null);
+    } catch {
+      // Fallback otomatis ke config static URL
+    }
+  }, [role]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      void loadDynamicGuide();
+    }, 0);
+    const onUpdated = () => {
+      void loadDynamicGuide();
+    };
+    window.addEventListener("panduan-updated", onUpdated);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("panduan-updated", onUpdated);
+    };
+  }, [loadDynamicGuide]);
 
   // Buka submenu secara otomatis jika halaman aktif ada di dalamnya
   useEffect(() => {
@@ -240,14 +276,20 @@ export default function DashboardSidebar({
 
                 // --- Case 2: Regular Menu Item ---
                 const isExternal = item.external;
+                const resolvedHref =
+                  isExternal &&
+                  (role === "peserta" || role === "mentor" || role === "admin") &&
+                  dynamicGuideUrl
+                    ? dynamicGuideUrl
+                    : item.href;
                 const linkProps = isExternal
                   ? {
-                      href: item.href,
+                      href: resolvedHref,
                       target: "_blank",
                       rel: "noopener noreferrer",
                     }
                   : {
-                      href: item.href,
+                      href: resolvedHref,
                       onClick: onMobileClose,
                     };
 

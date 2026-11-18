@@ -9,6 +9,9 @@ import { HiMenu, HiX } from "react-icons/hi";
 
 
 
+const DEFAULT_PANDUAN_PENDAFTARAN =
+  "https://docs.google.com/document/d/1d43jgfTZYD1oT6ePshn8NyMfkXxPQ7aGAePx3qDJ-9I/edit?usp=sharing";
+
 const navItems = [
   { label: "Home", id: "home" },
   { label: "Profil", id: "profil" },
@@ -23,6 +26,39 @@ export default function Navbar() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [activeId, setActiveId] = useState("home");
+  const [panduanHref, setPanduanHref] = useState(DEFAULT_PANDUAN_PENDAFTARAN);
+
+  useEffect(() => {
+    let active = true;
+    const loadPublicPanduan = async () => {
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+        if (!apiUrl) return;
+        const res = await fetch(`${apiUrl}/panduan/public`);
+        if (!res.ok) return;
+        const json = await res.json().catch(() => null);
+        const doc = json?.data?.pendaftaran;
+        if (active) {
+          setPanduanHref(
+            doc?.fileUrl
+              ? `${apiUrl}${doc.fileUrl}`
+              : DEFAULT_PANDUAN_PENDAFTARAN,
+          );
+        }
+      } catch {
+        // Gunakan tautan default bila gagal memuat
+      }
+    };
+    void loadPublicPanduan();
+    const onUpdated = () => {
+      void loadPublicPanduan();
+    };
+    window.addEventListener("panduan-updated", onUpdated);
+    return () => {
+      active = false;
+      window.removeEventListener("panduan-updated", onUpdated);
+    };
+  }, []);
 
   useEffect(() => {
     const onScroll = () => {
@@ -208,7 +244,7 @@ export default function Navbar() {
           {/* PANGGILAN PANDUAN */}
           <li>
             <a
-              href="https://docs.google.com/document/d/1d43jgfTZYD1oT6ePshn8NyMfkXxPQ7aGAePx3qDJ-9I/edit?usp=sharing"
+              href={panduanHref}
               target="_blank"
               rel="noopener noreferrer"
               className="py-1.5 text-[#0B1B3D] hover:text-[#0088FF] transition-colors duration-200"
@@ -303,7 +339,7 @@ export default function Navbar() {
             {/* PANGGILAN PANDUAN - MOBILE */}
             <li>
               <a
-                href="https://docs.google.com/document/d/1d43jgfTZYD1oT6ePshn8NyMfkXxPQ7aGAePx3qDJ-9I/edit?usp=sharing"
+                href={panduanHref}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="block py-1 text-left transition hover:text-[#0088FF]"

@@ -16,6 +16,7 @@ import {
   KeyRound,
   FileText,
   ScanFace,
+  BookOpen,
   LucideIcon,
 } from "lucide-react";
 
@@ -164,6 +165,11 @@ export const ROLE_NAVIGATION_CONFIG: Record<RoleType, RoleConfig> = {
                 href: "/dashboard/superadmin/manajemenTampilan/BannerEdit",
                 icon: Megaphone,
               },
+              {
+                title: "Kelola File Panduan",
+                href: "/dashboard/superadmin/manajemenTampilan/PanduanEdit",
+                icon: BookOpen,
+              },
             ],
           },
         ],
@@ -273,6 +279,11 @@ export const ROLE_NAVIGATION_CONFIG: Record<RoleType, RoleConfig> = {
             title: "Banner & Pengumuman",
             href: "/dashboard/admin/manajemenTampilan/BannerEdit",
             icon: Megaphone,
+          },
+          {
+            title: "Kelola File Panduan",
+            href: "/dashboard/admin/manajemenTampilan/PanduanEdit",
+            icon: BookOpen,
           },
         ],
       },

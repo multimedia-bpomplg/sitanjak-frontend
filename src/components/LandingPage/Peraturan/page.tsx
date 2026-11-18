@@ -16,6 +16,9 @@ import { useEffect, useRef, useState } from "react";
 
 
 
+const DEFAULT_PANDUAN_PENDAFTARAN =
+  "https://docs.google.com/document/d/1d43jgfTZYD1oT6ePshn8NyMfkXxPQ7aGAePx3qDJ-9I/edit?usp=sharing";
+
 const peraturanList = [
   {
     step: "01",
@@ -63,6 +66,34 @@ export default function Peraturan() {
   const sectionRef = useRef<HTMLDivElement | null>(null);
   const [visible, setVisible] = useState(false);
   const [hasAnimated, setHasAnimated] = useState(false);
+  const [panduanHref, setPanduanHref] = useState(DEFAULT_PANDUAN_PENDAFTARAN);
+
+  useEffect(() => {
+    let active = true;
+    const loadPublicPanduan = async () => {
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+        if (!apiUrl) return;
+        const res = await fetch(`${apiUrl}/panduan/public`);
+        if (!res.ok) return;
+        const json = await res.json().catch(() => null);
+        const doc = json?.data?.pendaftaran;
+        if (active) {
+          setPanduanHref(
+            doc?.fileUrl
+              ? `${apiUrl}${doc.fileUrl}`
+              : DEFAULT_PANDUAN_PENDAFTARAN,
+          );
+        }
+      } catch {
+        // Fallback ke URL default
+      }
+    };
+    void loadPublicPanduan();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -160,7 +191,7 @@ export default function Peraturan() {
                   </Link>
 
                   <a
-                    href="https://docs.google.com/document/d/1d43jgfTZYD1oT6ePshn8NyMfkXxPQ7aGAePx3qDJ-9I/edit?usp=sharing"
+                    href={panduanHref}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-white text-xs sm:text-sm font-bold transition-all"

@@ -95,6 +95,7 @@ export default function AkunPesertaPage() {
 
   // Notification toggle state
   const [deviceNotif, setDeviceNotif] = useState(false);
+  const [guideHref, setGuideHref] = useState(GUIDE_URL);
 
   // Password form states
   const [passwordLama, setPasswordLama] = useState("");
@@ -116,11 +117,25 @@ export default function AkunPesertaPage() {
       if (token) {
         const payload = JSON.parse(atob(token.split(".")[1]));
         setEmailLogin(payload.email);
+
+        if (FILE_BASE_URL) {
+          fetch(`${FILE_BASE_URL}/panduan`, {
+            headers: { Authorization: `Bearer ${token}` },
+          })
+            .then((r) => (r.ok ? r.json() : null))
+            .then((json) => {
+              const doc = json?.data?.peserta;
+              if (doc?.fileUrl) {
+                setGuideHref(`${FILE_BASE_URL}${doc.fileUrl}`);
+              }
+            })
+            .catch(() => {});
+        }
       }
     } catch (err) {
       console.error("Gagal parse token", err);
     }
-  }, []);
+  }, [FILE_BASE_URL]);
 
   const fetchAccountData = useCallback(async () => {
     if (!emailLogin) return;
@@ -289,10 +304,12 @@ export default function AkunPesertaPage() {
       setTimeout(() => {
         window.location.href = "/auth/login";
       }, 1500);
-    } catch (err: any) {
+    } catch (err: unknown) {
       showToast.updateError(
         toastId,
-        err.message || "Terjadi kesalahan saat mengganti password",
+        err instanceof Error
+          ? err.message
+          : "Terjadi kesalahan saat mengganti password",
       );
     } finally {
       setSubmittingPassword(false);
@@ -501,9 +518,11 @@ export default function AkunPesertaPage() {
                           const blob = await res.blob();
                           const url = window.URL.createObjectURL(blob);
                           window.open(url, "_blank", "noopener,noreferrer");
-                        } catch (err: any) {
+                        } catch (err: unknown) {
                           showToast.error(
-                            err?.message || `${doc.label} belum bisa diunduh`,
+                            err instanceof Error
+                              ? err.message
+                              : `${doc.label} belum bisa diunduh`,
                           );
                         }
                       }}
@@ -657,7 +676,7 @@ export default function AkunPesertaPage() {
 
       {/* ================= 6. CARD PANDUAN PENGGUNA ================= */}
       <a
-        href={GUIDE_URL}
+        href={guideHref}
         target="_blank"
         rel="noopener noreferrer"
         className="rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 p-4 sm:p-5 flex items-center justify-between gap-3 shadow-2xs hover:bg-slate-50/70 dark:hover:bg-slate-700/40 transition"

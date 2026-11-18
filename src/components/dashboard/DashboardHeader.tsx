@@ -110,6 +110,7 @@ export default function DashboardHeader({
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState<number>(0);
   const [isDark, setIsDark] = useState(false);
+  const [dynamicGuideUrl, setDynamicGuideUrl] = useState<string | null>(null);
 
   const profileRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
@@ -248,6 +249,42 @@ export default function DashboardHeader({
       localStorage.setItem("theme", "light");
     }
   };
+
+  // Fetch panduan dinamis untuk peserta, mentor & admin
+  const loadDynamicGuide = useCallback(async () => {
+    if (role !== "peserta" && role !== "mentor" && role !== "admin") {
+      setDynamicGuideUrl(null);
+      return;
+    }
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+      const res = await fetch(`${apiUrl}/panduan`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) return;
+      const json = await res.json().catch(() => null);
+      const doc = json?.data?.[role];
+      setDynamicGuideUrl(doc?.fileUrl ? `${apiUrl}${doc.fileUrl}` : null);
+    } catch {
+      // Fallback ke guideUrl bawaan
+    }
+  }, [role]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      void loadDynamicGuide();
+    }, 0);
+    const onUpdated = () => {
+      void loadDynamicGuide();
+    };
+    window.addEventListener("panduan-updated", onUpdated);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("panduan-updated", onUpdated);
+    };
+  }, [loadDynamicGuide]);
 
   // Close dropdown saat klik di luar
   useEffect(() => {
@@ -625,7 +662,7 @@ export default function DashboardHeader({
                   </Link>
 
                   <a
-                    href={config.guideUrl}
+                    href={dynamicGuideUrl || config.guideUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={() => setProfileDropdownOpen(false)}

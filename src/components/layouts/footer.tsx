@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { FaFacebookF, FaInstagram, FaYoutube, FaGlobe } from "react-icons/fa";
@@ -17,9 +18,44 @@ import {
 } from "react-icons/hi";
 
 const plusJakarta = { className: "font-sans" };
+const DEFAULT_PANDUAN_PENDAFTARAN =
+  "https://docs.google.com/document/d/1d43jgfTZYD1oT6ePshn8NyMfkXxPQ7aGAePx3qDJ-9I/edit?usp=sharing";
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
+  const [panduanHref, setPanduanHref] = useState(DEFAULT_PANDUAN_PENDAFTARAN);
+
+  useEffect(() => {
+    let active = true;
+    const loadPublicPanduan = async () => {
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+        if (!apiUrl) return;
+        const res = await fetch(`${apiUrl}/panduan/public`);
+        if (!res.ok) return;
+        const json = await res.json().catch(() => null);
+        const doc = json?.data?.pendaftaran;
+        if (active) {
+          setPanduanHref(
+            doc?.fileUrl
+              ? `${apiUrl}${doc.fileUrl}`
+              : DEFAULT_PANDUAN_PENDAFTARAN,
+          );
+        }
+      } catch {
+        // Fallback ke URL default
+      }
+    };
+    void loadPublicPanduan();
+    const onUpdated = () => {
+      void loadPublicPanduan();
+    };
+    window.addEventListener("panduan-updated", onUpdated);
+    return () => {
+      active = false;
+      window.removeEventListener("panduan-updated", onUpdated);
+    };
+  }, []);
 
   const navigationMenus = [
     { label: "Home", href: "/#home", icon: HiHome },
@@ -29,7 +65,7 @@ export default function Footer() {
     { label: "Peraturan", href: "/#peraturan", icon: HiDocumentText },
     {
       label: "Panduan",
-      href: "https://docs.google.com/document/d/1d43jgfTZYD1oT6ePshn8NyMfkXxPQ7aGAePx3qDJ-9I/edit?usp=sharing",
+      href: panduanHref,
       icon: HiExternalLink,
       external: true,
     },
