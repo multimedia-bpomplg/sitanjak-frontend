@@ -18,6 +18,8 @@ import {
   Search,
   Users,
   AlertCircle,
+  Award,
+  ScanFace,
 } from "lucide-react";
 import AnnouncementBox from "@/components/AnnouncementBox";
 import PesertaDetailModal from "@/components/peserta/PesertaDetailModal";
@@ -61,11 +63,27 @@ type FeedbackStats = {
   belumDirespon: number;
 };
 
+type AbsensiStats = {
+  totalHari: number;
+  averageScore: number | null;
+  todayStatus: "masuk" | "wfh" | "izin" | "belum";
+  todayCheckInTimeWIB: string | null;
+  todayCheckOutTimeWIB: string | null;
+};
+
+type PenilaianAkhirSummary = {
+  nilaiRataRata: number;
+  keteranganRataRata: string;
+  tanggalPenilaian: string | null;
+};
+
 type EnrichedPeserta = Peserta & {
   phase: InternshipPhase;
   logbookStats: LogbookStats;
   laporanAkhir: LaporanAkhirSummary | null;
   feedbackStats: FeedbackStats;
+  absensiStats?: AbsensiStats;
+  penilaianAkhir?: PenilaianAkhirSummary | null;
 };
 
 type DashboardSummary = {
@@ -84,6 +102,11 @@ type DashboardSummary = {
   totalLaporanAkhir: number;
   feedbackTotal: number;
   feedbackBelumDirespon: number;
+  absensiHadirHariIni?: number;
+  absensiBelumHariIni?: number;
+  penilaianAkhirSudah?: number;
+  penilaianAkhirBelum?: number;
+  penilaianAkhirRataRata?: number | null;
 };
 
 type MentorDashboardResponse = {
@@ -322,6 +345,11 @@ export default function MentorDashboard() {
     totalLaporanAkhir: 0,
     feedbackTotal: 0,
     feedbackBelumDirespon: 0,
+    absensiHadirHariIni: 0,
+    absensiBelumHariIni: 0,
+    penilaianAkhirSudah: 0,
+    penilaianAkhirBelum: 0,
+    penilaianAkhirRataRata: null,
   };
 
   const pesertaMenungguLogbookList = useMemo(
@@ -451,7 +479,7 @@ export default function MentorDashboard() {
       <AnnouncementBox type="mentor" />
 
       {/* ================= 3. KPI SUMMARY CARDS ================= */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <SummaryStatCard
           href="/dashboard/mentor/peserta"
           title="Peserta Bimbingan"
@@ -478,6 +506,23 @@ export default function MentorDashboard() {
         />
 
         <SummaryStatCard
+          href="/dashboard/mentor/ViewAbsensi"
+          title="Absensi Hari Ini"
+          value={summary.absensiHadirHariIni ?? 0}
+          unit={`dari ${summary.sedangMagang} aktif`}
+          subtitle={
+            (summary.absensiBelumHariIni ?? 0) > 0
+              ? `${summary.absensiBelumHariIni} peserta aktif belum absen hari ini`
+              : summary.sedangMagang > 0
+                ? "Semua peserta aktif sudah absen hari ini"
+                : "Belum ada peserta sedang magang"
+          }
+          icon={<ScanFace className="w-5 h-5" />}
+          accent={(summary.absensiBelumHariIni ?? 0) > 0 ? "amber" : "emerald"}
+          highlight={(summary.absensiBelumHariIni ?? 0) > 0}
+        />
+
+        <SummaryStatCard
           href="/dashboard/mentor/ViewLaporanAkhir"
           title="Laporan Akhir Perlu Review"
           value={summary.laporanAkhirMenunggu}
@@ -486,6 +531,22 @@ export default function MentorDashboard() {
           icon={<GraduationCap className="w-5 h-5" />}
           accent={summary.laporanAkhirMenunggu > 0 ? "purple" : "emerald"}
           highlight={summary.laporanAkhirMenunggu > 0}
+        />
+
+        <SummaryStatCard
+          href="/dashboard/mentor/ViewPenilaianAkhir"
+          title="Penilaian Akhir Magang"
+          value={summary.penilaianAkhirBelum ?? 0}
+          unit="belum dinilai"
+          subtitle={
+            summary.penilaianAkhirRataRata !== null &&
+            summary.penilaianAkhirRataRata !== undefined
+              ? `${summary.penilaianAkhirSudah ?? 0} dinilai • Rata-rata ${summary.penilaianAkhirRataRata}`
+              : `${summary.penilaianAkhirSudah ?? 0} peserta sudah dinilai`
+          }
+          icon={<Award className="w-5 h-5" />}
+          accent={(summary.penilaianAkhirBelum ?? 0) > 0 ? "purple" : "emerald"}
+          highlight={(summary.penilaianAkhirBelum ?? 0) > 0}
         />
 
         <SummaryStatCard
@@ -513,7 +574,7 @@ export default function MentorDashboard() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           {/* Task 1: Verifikasi Logbook */}
           <Link
             href="/dashboard/mentor/ViewLogbook"
@@ -551,7 +612,37 @@ export default function MentorDashboard() {
             <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition shrink-0 mt-1" />
           </Link>
 
-          {/* Task 2: Review Laporan Akhir */}
+          {/* Task 2: Absensi Kehadiran */}
+          <Link
+            href="/dashboard/mentor/ViewAbsensi"
+            className="group flex items-start justify-between gap-3 p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 hover:border-sky-300 dark:hover:border-sky-700 hover:shadow-sm transition"
+          >
+            <div className="flex items-start gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-xl bg-sky-50 dark:bg-sky-950/60 text-[#0284c7] dark:text-sky-400 flex items-center justify-center shrink-0">
+                <ScanFace className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-slate-800 dark:text-slate-100">
+                  Absensi Kehadiran
+                </p>
+                {summary.sedangMagang > 0 ? (
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    <span className="font-semibold text-[#0284c7] dark:text-sky-400">
+                      {summary.absensiHadirHariIni ?? 0}/{summary.sedangMagang} peserta
+                    </span>{" "}
+                    sudah absen hari ini
+                  </p>
+                ) : (
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    Pantau kehadiran masuk, WFH, dan izin peserta
+                  </p>
+                )}
+              </div>
+            </div>
+            <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition shrink-0 mt-1" />
+          </Link>
+
+          {/* Task 3: Review Laporan Akhir */}
           <Link
             href="/dashboard/mentor/ViewLaporanAkhir"
             className="group flex items-start justify-between gap-3 p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 hover:border-purple-300 dark:hover:border-purple-700 hover:shadow-sm transition"
@@ -569,7 +660,7 @@ export default function MentorDashboard() {
                     <span className="font-semibold text-purple-600 dark:text-purple-400">
                       {summary.laporanAkhirMenunggu} laporan
                     </span>{" "}
-                    menunggu persetujuan & penilaian
+                    menunggu persetujuan
                   </p>
                 ) : (
                   <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-0.5">
@@ -581,7 +672,37 @@ export default function MentorDashboard() {
             <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition shrink-0 mt-1" />
           </Link>
 
-          {/* Task 3: Balas Feedback */}
+          {/* Task 4: Penilaian Akhir Magang */}
+          <Link
+            href="/dashboard/mentor/ViewPenilaianAkhir"
+            className="group flex items-start justify-between gap-3 p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 hover:border-violet-300 dark:hover:border-violet-700 hover:shadow-sm transition"
+          >
+            <div className="flex items-start gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-xl bg-violet-50 dark:bg-violet-950/60 text-violet-600 dark:text-violet-400 flex items-center justify-center shrink-0">
+                <Award className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-slate-800 dark:text-slate-100">
+                  Penilaian Akhir Magang
+                </p>
+                {(summary.penilaianAkhirBelum ?? 0) > 0 ? (
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    <span className="font-semibold text-violet-600 dark:text-violet-400">
+                      {summary.penilaianAkhirBelum} peserta
+                    </span>{" "}
+                    belum mendapatkan nilai akhir
+                  </p>
+                ) : (
+                  <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-0.5">
+                    Semua peserta bimbingan sudah dinilai
+                  </p>
+                )}
+              </div>
+            </div>
+            <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition shrink-0 mt-1" />
+          </Link>
+
+          {/* Task 5: Balas Feedback */}
           <Link
             href="/dashboard/mentor/ViewFeedback"
             className="group flex items-start justify-between gap-3 p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 hover:border-rose-300 dark:hover:border-rose-700 hover:shadow-sm transition"
@@ -979,7 +1100,7 @@ function PesertaBimbinganCard({
         </div>
       </div>
 
-      {/* Status Logbook & Laporan Akhir */}
+      {/* Status Logbook, Absensi, Laporan Akhir & Penilaian Akhir */}
       <div className="grid grid-cols-2 gap-2.5 text-xs">
         <div className="rounded-xl border border-slate-200/80 dark:border-slate-800 p-2.5">
           <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-1">
@@ -1010,6 +1131,44 @@ function PesertaBimbinganCard({
 
         <div className="rounded-xl border border-slate-200/80 dark:border-slate-800 p-2.5">
           <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-1">
+            Absensi Kehadiran
+          </p>
+          {peserta.absensiStats && peserta.absensiStats.totalHari > 0 ? (
+            <div className="space-y-0.5">
+              <span
+                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border ${
+                  peserta.absensiStats.todayStatus === "masuk"
+                    ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800/70"
+                    : peserta.absensiStats.todayStatus === "wfh"
+                      ? "bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/50 dark:text-indigo-300 dark:border-indigo-800/70"
+                      : peserta.absensiStats.todayStatus === "izin"
+                        ? "bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-950/50 dark:text-violet-300 dark:border-violet-800/70"
+                        : "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700"
+                }`}
+              >
+                {peserta.absensiStats.todayStatus === "masuk"
+                  ? `Hadir${peserta.absensiStats.todayCheckInTimeWIB ? ` (${peserta.absensiStats.todayCheckInTimeWIB})` : ""}`
+                  : peserta.absensiStats.todayStatus === "wfh"
+                    ? "WFH Hari Ini"
+                    : peserta.absensiStats.todayStatus === "izin"
+                      ? "Izin Hari Ini"
+                      : "Belum Absen Hari Ini"}
+              </span>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 tabular-nums">
+                Rata-rata {peserta.absensiStats.averageScore ?? 0}% •{" "}
+                {peserta.absensiStats.totalHari} hari
+              </p>
+            </div>
+          ) : (
+            <span className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 dark:text-slate-400">
+              <Clock className="w-3.5 h-3.5" />
+              Belum ada absensi
+            </span>
+          )}
+        </div>
+
+        <div className="rounded-xl border border-slate-200/80 dark:border-slate-800 p-2.5">
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-1">
             Laporan Akhir
           </p>
           <span
@@ -1018,31 +1177,67 @@ function PesertaBimbinganCard({
             {laporanBadge.label}
           </span>
         </div>
+
+        <div className="rounded-xl border border-slate-200/80 dark:border-slate-800 p-2.5">
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-1">
+            Penilaian Akhir
+          </p>
+          {peserta.penilaianAkhir ? (
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-xs font-extrabold text-slate-900 dark:text-white tabular-nums">
+                {peserta.penilaianAkhir.nilaiRataRata}
+              </span>
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold border bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800/70">
+                {peserta.penilaianAkhir.keteranganRataRata || "Sudah Dinilai"}
+              </span>
+            </div>
+          ) : (
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold border bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800/70">
+              Belum Dinilai
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Actions */}
       <div className="flex flex-wrap items-center gap-2 pt-1">
         <button
           onClick={onOpenDetail}
-          className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-900 hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 text-white transition"
+          className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-slate-900 hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 text-white transition"
         >
-          Lihat Detail
+          Detail
         </button>
 
         <Link
           href="/dashboard/mentor/ViewLogbook"
-          className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+          className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
         >
           <BookOpenCheck className="w-3.5 h-3.5" />
-          Cek Logbook
+          Logbook
+        </Link>
+
+        <Link
+          href="/dashboard/mentor/ViewAbsensi"
+          className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+        >
+          <ScanFace className="w-3.5 h-3.5" />
+          Absensi
         </Link>
 
         <Link
           href="/dashboard/mentor/ViewLaporanAkhir"
-          className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+          className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
         >
           <GraduationCap className="w-3.5 h-3.5" />
           Laporan
+        </Link>
+
+        <Link
+          href="/dashboard/mentor/ViewPenilaianAkhir"
+          className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border border-violet-200 dark:border-violet-800/80 bg-violet-50/70 dark:bg-violet-950/40 text-violet-700 dark:text-violet-300 hover:bg-violet-100 dark:hover:bg-violet-900/50 transition"
+        >
+          <Award className="w-3.5 h-3.5" />
+          Penilaian
         </Link>
       </div>
     </div>

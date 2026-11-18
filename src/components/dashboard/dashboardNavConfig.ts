@@ -17,6 +17,7 @@ import {
   FileText,
   ScanFace,
   BookOpen,
+  Award,
   LucideIcon,
 } from "lucide-react";
 
@@ -345,6 +346,11 @@ export const ROLE_NAVIGATION_CONFIG: Record<RoleType, RoleConfig> = {
             title: "Review Laporan Akhir",
             href: "/dashboard/mentor/ViewLaporanAkhir",
             icon: GraduationCap,
+          },
+          {
+            title: "Penilaian Akhir",
+            href: "/dashboard/mentor/ViewPenilaianAkhir",
+            icon: Award,
           },
           {
             title: "Feedback Mahasiswa",

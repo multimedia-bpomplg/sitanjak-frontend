@@ -119,6 +119,11 @@ export default function LaporanAkhirPage() {
   const [sertifikatPreviewUrl, setSertifikatPreviewUrl] = useState<string | null>(
     null,
   );
+  const [penilaianAkhirSummary, setPenilaianAkhirSummary] = useState<{
+    nilaiRataRata: number;
+    keteranganRataRata: string;
+    penilaiNama?: string;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [dataLoaded, setDataLoaded] = useState(false);
 
@@ -208,7 +213,7 @@ export default function LaporanAkhirPage() {
       const email = payload?.email;
       if (!email) return;
 
-      const [res, selesaiRes, sertifikatRes] = await Promise.all([
+      const [res, selesaiRes, sertifikatRes, penilaianAkhirRes] = await Promise.all([
         fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/pendaftaran/cek?email=${encodeURIComponent(email)}`,
           {
@@ -227,7 +232,23 @@ export default function LaporanAkhirPage() {
             headers: { Authorization: `Bearer ${token}` },
           },
         ).catch(() => null),
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/penilaian-akhir/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }).catch(() => null),
       ]);
+
+      if (penilaianAkhirRes && penilaianAkhirRes.ok) {
+        const paJson = await penilaianAkhirRes.json().catch(() => null);
+        if (paJson?.penilaian) {
+          setPenilaianAkhirSummary({
+            nilaiRataRata: paJson.penilaian.nilaiRataRata,
+            keteranganRataRata: paJson.penilaian.keteranganRataRata || "",
+            penilaiNama: paJson.penilaian.penilaiNama,
+          });
+        } else {
+          setPenilaianAkhirSummary(null);
+        }
+      }
 
       if (selesaiRes && selesaiRes.ok) {
         const sData = await selesaiRes.json().catch(() => null);
@@ -878,13 +899,25 @@ export default function LaporanAkhirPage() {
 
             <div className="mt-3 sm:mt-3.5 pt-2.5 sm:pt-3 border-t border-slate-100 dark:border-slate-700/70 flex items-center justify-between gap-2 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
               <div className="flex items-center gap-1.5 truncate">
-                <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 shrink-0" />
+                {penilaianAkhirSummary ? (
+                  <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600 shrink-0" />
+                ) : (
+                  <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 shrink-0" />
+                )}
                 <span className="truncate">
-                  Rekap nilai kedisiplinan, sikap kerja &amp; kemampuan magang
+                  {penilaianAkhirSummary
+                    ? `Rata-rata: ${penilaianAkhirSummary.nilaiRataRata}${penilaianAkhirSummary.keteranganRataRata ? ` (${penilaianAkhirSummary.keteranganRataRata})` : ""}`
+                    : "Menunggu penilaian dari Mentor pembimbing"}
                 </span>
               </div>
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold border shrink-0 bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-950/60 dark:text-violet-300 dark:border-violet-800">
-                Lihat Nilai
+              <span
+                className={`px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold border shrink-0 ${
+                  penilaianAkhirSummary
+                    ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800"
+                    : "bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-950/60 dark:text-violet-300 dark:border-violet-800"
+                }`}
+              >
+                {penilaianAkhirSummary ? "Tersedia" : "Lihat Detail"}
               </span>
             </div>
           </Link>

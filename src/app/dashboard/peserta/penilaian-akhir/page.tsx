@@ -34,6 +34,7 @@ type PenilaianAkhirData = {
   kesan?: string;
   saran?: string;
   penilaiNama?: string;
+  penilaiNip?: string;
   tanggalPenilaian?: string;
 };
 
@@ -140,12 +141,17 @@ export default function PenilaianAkhirPage() {
 
       const headers = { Authorization: `Bearer ${token}` };
 
-      const pendRes = email
-        ? await fetch(
-            `${process.env.NEXT_PUBLIC_API_URL}/pendaftaran/cek?email=${encodeURIComponent(email)}`,
-            { headers },
-          ).catch(() => null)
-        : null;
+      const [pendRes, penilaianRes] = await Promise.all([
+        email
+          ? fetch(
+              `${process.env.NEXT_PUBLIC_API_URL}/pendaftaran/cek?email=${encodeURIComponent(email)}`,
+              { headers },
+            ).catch(() => null)
+          : Promise.resolve(null),
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/penilaian-akhir/me`, {
+          headers,
+        }).catch(() => null),
+      ]);
 
       if (pendRes && pendRes.ok) {
         const pendJson = await pendRes.json().catch(() => null);
@@ -176,8 +182,12 @@ export default function PenilaianAkhirPage() {
         }
       }
 
-      // Tahap 2 (Backend): akan mengambil data dari GET /api/penilaian-akhir/me
-      setPenilaian(null);
+      if (penilaianRes && penilaianRes.ok) {
+        const penilaianJson = await penilaianRes.json().catch(() => null);
+        setPenilaian(penilaianJson?.penilaian || null);
+      } else {
+        setPenilaian(null);
+      }
     } catch {
       setPenilaian(null);
     } finally {
@@ -518,7 +528,11 @@ export default function PenilaianAkhirPage() {
           : "                              ");
       doc.text(`( ${signName} )`, signX, y);
       y += 5;
-      doc.text("NIP.", signX, y);
+      doc.text(
+        penilaian?.penilaiNip ? `NIP. ${penilaian.penilaiNip}` : "NIP.",
+        signX,
+        y,
+      );
 
       const safeFileName = `Penilaian_Akhir_Magang_${peserta.nama.replace(/[^a-zA-Z0-9]+/g, "_")}.pdf`;
       doc.save(safeFileName);
