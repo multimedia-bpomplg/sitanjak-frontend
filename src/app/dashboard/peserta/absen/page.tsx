@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import Link from "next/link";
 import {
   Camera,
   MapPin,
@@ -19,6 +20,7 @@ import {
   Info,
   CalendarX2,
   Home,
+  BookOpen,
 } from "lucide-react";
 import { showToast } from "@/components/ui/toastDashboard";
 import { PesertaDashboardSkeleton } from "@/components/dashboard/skeletons";
@@ -301,6 +303,9 @@ export default function AbsenPesertaPage() {
   const [selectedMode, setSelectedMode] = useState<AttendanceMode>("masuk");
   const [izinNote, setIzinNote] = useState("");
 
+  // Logbook status today (prerequisite for Check-Out)
+  const [hasFilledLogbookToday, setHasFilledLogbookToday] = useState(false);
+
   // Allow repeating Check-Out even after Check-Out is already submitted
   const [isRepeatingCheckOut, setIsRepeatingCheckOut] = useState(false);
 
@@ -409,7 +414,7 @@ export default function AbsenPesertaPage() {
         // ignore
       }
 
-      const [absenRes, pendRes] = await Promise.all([
+      const [absenRes, pendRes, logbookRes] = await Promise.all([
         fetch(`${process.env.NEXT_PUBLIC_API_URL}/absensi/today`, {
           headers,
         }).catch(() => null),
@@ -419,10 +424,21 @@ export default function AbsenPesertaPage() {
               { headers },
             ).catch(() => null)
           : Promise.resolve(null),
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/logbook/date/${todayIso}`, {
+          headers,
+        }).catch(() => null),
       ]);
+
+      let isLogbookFilled = false;
+      if (logbookRes && logbookRes.ok) {
+        isLogbookFilled = true;
+      }
 
       if (absenRes && absenRes.ok) {
         const absenJson = await absenRes.json();
+        if (typeof absenJson?.hasLogbookToday === "boolean") {
+          isLogbookFilled = isLogbookFilled || absenJson.hasLogbookToday;
+        }
         if (absenJson?.absensi) {
           setRecord(absenJson.absensi);
           if (
@@ -436,6 +452,8 @@ export default function AbsenPesertaPage() {
           setRecord({ date: absenJson?.date || todayIso });
         }
       }
+
+      setHasFilledLogbookToday(isLogbookFilled);
 
       if (pendRes && pendRes.ok) {
         const pendJson = await pendRes.json();
@@ -692,6 +710,12 @@ export default function AbsenPesertaPage() {
 
   // Submit Check-In or Check-Out directly to Backend API
   const handleSubmitAbsen = async () => {
+    if (activeStep === "check_out" && !hasFilledLogbookToday) {
+      showToast.error(
+        "Anda wajib mengisi laporan kegiatan harian (logbook) hari ini terlebih dahulu sebelum absen pulang.",
+      );
+      return;
+    }
     if (!gpsLocation) {
       showToast.error("Titik lokasi GPS wajib dikunci terlebih dahulu");
       return;
@@ -1026,12 +1050,16 @@ export default function AbsenPesertaPage() {
               className={`px-2.5 py-1 rounded-full text-[11px] sm:text-xs font-bold border shrink-0 ${
                 record.checkOut
                   ? getTimeStatusBadgeStyle(record.checkOut.timeStatus)
-                  : "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700"
+                  : activeStep === "check_out" && !hasFilledLogbookToday
+                    ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800"
+                    : "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700"
               }`}
             >
               {record.checkOut
                 ? record.checkOut.timeStatusLabel
-                : "Belum Absen"}
+                : activeStep === "check_out" && !hasFilledLogbookToday
+                  ? "Wajib Logbook Dulu"
+                  : "Belum Absen"}
             </span>
           </div>
 
@@ -1043,9 +1071,24 @@ export default function AbsenPesertaPage() {
                   ? record.checkOut.location.isInsideBpom
                     ? "Di Lingkungan BBPOM Palembang"
                     : `Di Luar BBPOM (${formatDistanceLabel(record.checkOut.location.distanceMeters)})`
-                  : "Jadwal pulang: 16.00 WIB"}
+                  : activeStep === "check_out" && !hasFilledLogbookToday
+                    ? "Isi laporan harian agar dapat check-out"
+                    : "Jadwal pulang: 16.00 WIB"}
               </span>
             </div>
+
+            {internshipPeriodStatus.isActive &&
+              !isPastCutoff &&
+              activeStep === "check_out" &&
+              !hasFilledLogbookToday && (
+                <Link
+                  href="/dashboard/peserta/isi-logbook"
+                  className="text-xs font-bold text-amber-600 dark:text-amber-400 hover:underline shrink-0 flex items-center gap-1"
+                >
+                  <span>Isi Logbook</span>
+                  <ExternalLink className="w-3 h-3" />
+                </Link>
+              )}
 
             {internshipPeriodStatus.isActive &&
               !isPastCutoff &&
@@ -1331,6 +1374,49 @@ export default function AbsenPesertaPage() {
                       {submitting ? "Menyimpan Izin..." : "Kirim Keterangan Izin"}
                     </span>
                   </button>
+                </div>
+              ) : activeStep === "check_out" && !hasFilledLogbookToday ? (
+                /* KETERANGAN WAJIB ISI LOGBOOK DULU SEBELUM ABSEN PULANG */
+                <div className="rounded-2xl border-2 border-amber-300 dark:border-amber-700/80 bg-gradient-to-br from-amber-50/90 via-white to-amber-50/50 dark:from-amber-950/40 dark:via-slate-800 dark:to-amber-950/20 p-6 sm:p-8 text-center space-y-4 shadow-2xs">
+                  <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-amber-100 dark:bg-amber-900/60 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto shadow-xs ring-4 ring-amber-100/70 dark:ring-amber-900/40">
+                    <BookOpen className="w-7 h-7 sm:w-8 sm:h-8" />
+                  </div>
+
+                  <div className="space-y-2 max-w-md mx-auto">
+                    <span className="px-3 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-wide bg-amber-100 text-amber-800 dark:bg-amber-900/70 dark:text-amber-300 inline-block">
+                      Prasyarat Absen Pulang
+                    </span>
+                    <h3
+                      className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white"
+                      style={{ fontWeight: 800 }}
+                    >
+                      Wajib Mengisi Logbook Terlebih Dahulu
+                    </h3>
+                    <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                      Anda belum mengisi laporan kegiatan harian (logbook) hari ini.
+                      Sesuai ketentuan, Anda wajib melengkapi dan menyimpan logbook hari ini terlebih dahulu agar form Absen Pulang terbuka.
+                    </p>
+                  </div>
+
+                  <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3 max-w-md mx-auto">
+                    <Link
+                      href="/dashboard/peserta/isi-logbook"
+                      className="w-full sm:w-auto flex-1 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-[#1D64F2] hover:bg-blue-700 text-white text-xs sm:text-sm font-extrabold transition shadow-xs"
+                      style={{ fontWeight: 800 }}
+                    >
+                      <BookOpen className="w-4 h-4" />
+                      <span>Isi Logbook Hari Ini</span>
+                    </Link>
+
+                    <button
+                      type="button"
+                      onClick={() => fetchAbsensiAndProfile()}
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs sm:text-sm font-bold transition shadow-2xs"
+                    >
+                      <RefreshCw className="w-4 h-4 text-[#1D64F2]" />
+                      <span>Cek Status</span>
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <>

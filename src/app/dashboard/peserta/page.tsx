@@ -347,51 +347,79 @@ export default function PesertaDashboard() {
 
       {/* ================= 1B. PROGRESS WAKTU MAGANG ================= */}
       {magangProgress && (
-        <div className="rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 p-4 sm:p-5 shadow-2xs space-y-3">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p
-                className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white"
-                style={{ fontWeight: 800 }}
-              >
-                Hari ke-{magangProgress.hariKe}{" "}
-                <span className="text-slate-500 dark:text-slate-400 font-semibold">
-                  dari {magangProgress.totalHari} hari magang
-                </span>
-              </p>
-              <p
-                className="text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-300 mt-0.5"
-                style={{ fontWeight: 600 }}
-              >
-                {magangProgress.sisaHari > 0
-                  ? `Sisa ${magangProgress.sisaHari} hari lagi`
-                  : "Masa magang telah selesai"}
-              </p>
-            </div>
-
-            <span
-              className="px-2.5 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-extrabold bg-blue-50 text-[#1D64F2] border border-blue-200/80 dark:bg-blue-950/60 dark:text-blue-400 dark:border-blue-800/70 shrink-0"
-              style={{ fontWeight: 800 }}
-            >
-              {magangProgress.persentase}% Selesai
-            </span>
+        <div className="relative overflow-hidden rounded-2xl bg-linear-to-r from-[#0B2A6B] via-[#1245A8] to-[#0284C7] border border-blue-400/30 shadow-md text-white">
+          {/* Overlay Gambar Gedung BBPOM dengan gradasi halus kiri ke kanan */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none select-none absolute inset-y-0 right-0 w-[88%] sm:w-[76%] md:w-[70%]"
+            style={{
+              maskImage:
+                "linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.25) 32%, rgba(0, 0, 0, 0.8) 68%, rgba(0, 0, 0, 0.95) 100%)",
+              WebkitMaskImage:
+                "linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.25) 32%, rgba(0, 0, 0, 0.8) 68%, rgba(0, 0, 0, 0.95) 100%)",
+            }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/images/assets-new/gedung-bpom2.png"
+              alt=""
+              className="w-full h-full object-cover object-[78%_42%] opacity-60 sm:opacity-75"
+            />
+            <div className="absolute inset-0 bg-linear-to-r from-[#0B2A6B]/85 via-[#1245A8]/45 to-[#0284C7]/15" />
           </div>
 
-          {/* Horizontal Progress Bar */}
-          <div className="space-y-1.5">
-            <div className="h-2.5 sm:h-3 w-full rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden">
-              <div
-                className="h-full rounded-full bg-linear-to-r from-[#1D64F2] to-[#3B82F6] transition-all duration-500"
-                style={{ width: `${magangProgress.persentase}%` }}
-              />
+          {/* Aksen Cahaya Halus */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -top-12 -left-10 w-44 h-44 rounded-full bg-sky-400/20 blur-2xl"
+          />
+
+          <div className="relative z-10 p-4 sm:p-5 space-y-3.5">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p
+                  className="text-sm sm:text-base font-extrabold text-white drop-shadow-xs"
+                  style={{ fontWeight: 800 }}
+                >
+                  Hari ke-{magangProgress.hariKe}{" "}
+                  <span className="text-sky-100/90 font-semibold">
+                    dari {magangProgress.totalHari} hari magang
+                  </span>
+                </p>
+                <p
+                  className="text-xs sm:text-sm font-semibold text-sky-100/90 mt-0.5"
+                  style={{ fontWeight: 600 }}
+                >
+                  {magangProgress.sisaHari > 0
+                    ? `Sisa ${magangProgress.sisaHari} hari lagi`
+                    : "Masa magang telah selesai"}
+                </p>
+              </div>
+
+              <span
+                className="px-2.5 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-extrabold bg-white/15 backdrop-blur-md text-white border border-white/30 shadow-xs shrink-0"
+                style={{ fontWeight: 800 }}
+              >
+                {magangProgress.persentase}% Selesai
+              </span>
             </div>
-            <div className="flex items-center justify-between text-[11px] sm:text-xs font-medium text-slate-400 dark:text-slate-400">
-              <span>
-                Mulai: {formatShortPeriodDate(peserta.tanggalMulaiMagang)}
-              </span>
-              <span>
-                Selesai: {formatShortPeriodDate(peserta.tanggalSelesaiMagang)}
-              </span>
+
+            {/* Horizontal Progress Bar */}
+            <div className="space-y-1.5">
+              <div className="h-2.5 sm:h-3 w-full rounded-full bg-white/20 backdrop-blur-xs overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-linear-to-r from-[#38BDF8] via-[#7DD3FC] to-white shadow-[0_0_12px_rgba(125,211,252,0.55)] transition-all duration-500"
+                  style={{ width: `${magangProgress.persentase}%` }}
+                />
+              </div>
+              <div className="flex items-center justify-between text-[11px] sm:text-xs font-medium text-sky-100/90 drop-shadow-xs">
+                <span>
+                  Mulai: {formatShortPeriodDate(peserta.tanggalMulaiMagang)}
+                </span>
+                <span>
+                  Selesai: {formatShortPeriodDate(peserta.tanggalSelesaiMagang)}
+                </span>
+              </div>
             </div>
           </div>
         </div>

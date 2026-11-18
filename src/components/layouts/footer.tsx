@@ -265,7 +265,7 @@ export default function Footer() {
         {/* ================= BOTTOM BAR ================= */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 text-[11px] sm:text-xs text-slate-300">
           <p className="text-center sm:text-left leading-relaxed">
-            © {currentYear} <span className="font-semibold text-white">SITANJAK. V.2.0</span> • BBPOM di Palembang. Hak Cipta Dilindungi.
+            © {currentYear} <span className="font-semibold text-white">SITANJAK V2.0</span> • BBPOM di Palembang. Hak Cipta Dilindungi.
           </p>
 
           <Link

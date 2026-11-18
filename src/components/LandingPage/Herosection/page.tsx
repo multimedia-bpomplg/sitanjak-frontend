@@ -125,7 +125,7 @@ export default function HeroSection() {
           {/* Kelopak Kuning di paling bawah kanan */}
           <div
             aria-hidden="true"
-            className="hidden lg:block absolute bottom-4 right-14 w-7 h-5 bg-[#F59E0B] rounded-tl-full rounded-br-full rotate-6 z-10"
+            className="hidden lg:block absolute bottom-[20%] right-[-10%] w-7 h-5 bg-[#F59E0B] rounded-tl-full rounded-br-full rotate-6 z-10"
           />
 
           {/* GAMBAR KARAKTER UTAMA - Diturunkan & diperbesar agar ter-crop rapi di batas bawah seperti referensi */}

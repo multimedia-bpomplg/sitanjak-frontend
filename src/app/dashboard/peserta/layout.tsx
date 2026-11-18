@@ -95,7 +95,8 @@ export default function PesertaLayout({
       icon: ClipboardList,
       isActive:
         pathname.startsWith("/dashboard/peserta/laporan-akhir") ||
-        pathname.startsWith("/dashboard/peserta/feedback"),
+        pathname.startsWith("/dashboard/peserta/feedback") ||
+        pathname.startsWith("/dashboard/peserta/penilaian-akhir"),
     },
     {
       label: "Akun",
@@ -116,7 +117,7 @@ export default function PesertaLayout({
           </main>
 
           {/* Bottom Docked Area: Server Time Pill + Bottom Navigation */}
-          <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[780px] z-40 pointer-events-none">
+          <div className="print:hidden fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[780px] z-40 pointer-events-none">
             {/* Server Clock Pill */}
             <div className="flex justify-center pb-5 sm:pb-6 pt-2 bg-linear-to-t from-[#F5F7FA] via-[#F5F7FA]/95 to-transparent dark:from-slate-900 dark:via-slate-900/95">
               <div className="pointer-events-auto inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-1 sm:py-1.5 rounded-full bg-white dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700 shadow-2xs text-[11px] sm:text-xs text-slate-600 dark:text-slate-300">

@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
+import Link from "next/link";
 import {
   FileText,
   ClipboardCheck,
+  ClipboardList,
   ChevronRight,
   Download,
   Award,
@@ -856,7 +858,39 @@ export default function LaporanAkhirPage() {
           )}
         </div>
 
-        {/* CARD 3: SERTIFIKAT & SURAT SELESAI MAGANG */}
+        {/* CARD 3: PENILAIAN AKHIR MAGANG */}
+        <div className="rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs overflow-hidden">
+          <Link
+            href="/dashboard/peserta/penilaian-akhir"
+            className="block w-full p-4 sm:p-5 text-left hover:bg-slate-50/70 dark:hover:bg-slate-700/40 transition"
+          >
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 sm:gap-3.5">
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-violet-50 dark:bg-violet-950/60 text-violet-600 dark:text-violet-400 flex items-center justify-center shrink-0">
+                  <ClipboardList className="w-5 h-5" />
+                </div>
+                <span className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
+                  Penilaian Akhir Magang
+                </span>
+              </div>
+              <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400 shrink-0" />
+            </div>
+
+            <div className="mt-3 sm:mt-3.5 pt-2.5 sm:pt-3 border-t border-slate-100 dark:border-slate-700/70 flex items-center justify-between gap-2 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+              <div className="flex items-center gap-1.5 truncate">
+                <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 shrink-0" />
+                <span className="truncate">
+                  Rekap nilai kedisiplinan, sikap kerja &amp; kemampuan magang
+                </span>
+              </div>
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold border shrink-0 bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-950/60 dark:text-violet-300 dark:border-violet-800">
+                Lihat Nilai
+              </span>
+            </div>
+          </Link>
+        </div>
+
+        {/* CARD 4: SERTIFIKAT & SURAT SELESAI MAGANG */}
         <div className="rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs overflow-hidden">
           <button
             type="button"
