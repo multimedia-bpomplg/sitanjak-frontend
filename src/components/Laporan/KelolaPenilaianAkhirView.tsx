@@ -627,14 +627,19 @@ export default function KelolaPenilaianAkhirView({ role }: Props) {
                       </td>
 
                       <td className="py-3.5 px-4 text-center">
-                        {p.absensiRef && p.absensiRef.totalHari > 0 ? (
+                        {p.absensiRef &&
+                        ((p.absensiRef.totalHariKerja ?? 0) > 0 ||
+                          p.absensiRef.totalHari > 0) ? (
                           <div className="inline-flex flex-col items-center">
                             <span className="inline-flex items-center gap-1 text-xs font-bold text-slate-800 dark:text-slate-200 tabular-nums">
                               <ScanFace className="w-3.5 h-3.5 text-emerald-600" />
                               {p.absensiRef.averageScore ?? 0}%
                             </span>
                             <span className="text-[11px] text-slate-500">
-                              {p.absensiRef.totalHari} hari
+                              {p.absensiRef.totalHari}/
+                              {p.absensiRef.totalHariKerja ??
+                                p.absensiRef.totalHari}{" "}
+                              hari (s/d H-3)
                             </span>
                           </div>
                         ) : (

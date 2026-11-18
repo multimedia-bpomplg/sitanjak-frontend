@@ -7,9 +7,9 @@ import {
   Calendar,
   CheckCircle2,
   GraduationCap,
+  Lock,
   Save,
   ScanFace,
-  Sparkles,
   User,
   X,
 } from "lucide-react";
@@ -49,6 +49,9 @@ export type PesertaPenilaianItem = {
   mentorName?: string;
   absensiRef?: {
     totalHari: number;
+    totalHariKerja?: number;
+    tidakAbsen?: number;
+    cutoffEndIso?: string | null;
     averageScore: number | null;
   };
   penilaianAkhir?: ExistingPenilaianAkhir | null;
@@ -119,6 +122,7 @@ function formatDateIndo(dateStr?: string): string {
 
 function buildInitialAspects(
   existing?: ExistingPenilaianAkhir | null,
+  absensiAverageScore?: number | null,
 ): FormAspectState {
   const initField = (item?: AspectScoreData) => ({
     nilai:
@@ -128,8 +132,20 @@ function buildInitialAspects(
     keterangan: item?.keterangan || "",
   });
 
+  const lockedAttendanceScore =
+    typeof absensiAverageScore === "number" &&
+    !Number.isNaN(absensiAverageScore)
+      ? Math.round(absensiAverageScore)
+      : typeof existing?.kehadiranTaatJadwal?.nilai === "number" &&
+          !Number.isNaN(existing.kehadiranTaatJadwal.nilai)
+        ? existing.kehadiranTaatJadwal.nilai
+        : 0;
+
   return {
-    kehadiranTaatJadwal: initField(existing?.kehadiranTaatJadwal),
+    kehadiranTaatJadwal: {
+      nilai: String(lockedAttendanceScore),
+      keterangan: getPredikat(lockedAttendanceScore),
+    },
     sikapKerja: initField(existing?.sikapKerja),
     penguasaanMateri: initField(existing?.penguasaanMateri),
     praktikKerja: initField(existing?.praktikKerja),
@@ -145,7 +161,7 @@ export default function MentorPenilaianAkhirModal({
 }: Props) {
   const existing = peserta.penilaianAkhir;
   const [aspects, setAspects] = useState<FormAspectState>(() =>
-    buildInitialAspects(existing),
+    buildInitialAspects(existing, peserta.absensiRef?.averageScore),
   );
   const [kesan, setKesan] = useState(existing?.kesan || "");
   const [saran, setSaran] = useState(existing?.saran || "");
@@ -153,6 +169,7 @@ export default function MentorPenilaianAkhirModal({
   const [saving, setSaving] = useState(false);
 
   const handleScoreChange = (key: AspectKey, rawVal: string) => {
+    if (key === "kehadiranTaatJadwal") return;
     // Izinkan angka desimal/bulat hingga 100
     if (rawVal !== "" && !/^\d{0,3}(\.\d{0,2})?$/.test(rawVal)) {
       return;
@@ -181,6 +198,7 @@ export default function MentorPenilaianAkhirModal({
   };
 
   const handleKetChange = (key: AspectKey, val: string) => {
+    if (key === "kehadiranTaatJadwal") return;
     setAspects((prev) => ({
       ...prev,
       [key]: {
@@ -188,13 +206,6 @@ export default function MentorPenilaianAkhirModal({
         keterangan: val,
       },
     }));
-  };
-
-  const applyAttendanceReference = () => {
-    const score = peserta.absensiRef?.averageScore;
-    if (typeof score !== "number" || Number.isNaN(score)) return;
-    handleScoreChange("kehadiranTaatJadwal", String(score));
-    showToast.success(`Nilai kehadiran ${score} diterapkan ke poin 1.A`);
   };
 
   const summaryCalc = useMemo(() => {
@@ -320,45 +331,75 @@ export default function MentorPenilaianAkhirModal({
     }
   };
 
-  const renderAspectRow = (key: AspectKey, label: string) => (
-    <tr key={key} className="bg-white dark:bg-slate-900/50">
-      <td className="border-b border-r border-slate-200 dark:border-slate-700 px-3 py-2.5 text-center" />
-      <td className="border-b border-r border-slate-200 dark:border-slate-700 px-3.5 py-2.5 text-xs sm:text-sm text-slate-800 dark:text-slate-100">
-        {label}
-      </td>
-      <td className="border-b border-r border-slate-200 dark:border-slate-700 px-2.5 py-2 text-center">
-        {readOnly ? (
-          <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white tabular-nums">
-            {aspects[key].nilai !== "" ? aspects[key].nilai : "-"}
-          </span>
-        ) : (
-          <input
-            type="text"
-            inputMode="decimal"
-            value={aspects[key].nilai}
-            onChange={(e) => handleScoreChange(key, e.target.value)}
-            placeholder="0–100"
-            className="w-20 sm:w-24 text-center rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 py-1.5 text-xs sm:text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:border-[#1D64F2] focus:ring-2 focus:ring-[#1D64F2]/20 tabular-nums"
-          />
-        )}
-      </td>
-      <td className="border-b border-slate-200 dark:border-slate-700 px-2.5 py-2">
-        {readOnly ? (
-          <span className="text-xs sm:text-sm text-slate-700 dark:text-slate-200">
-            {aspects[key].keterangan || "-"}
-          </span>
-        ) : (
-          <input
-            type="text"
-            value={aspects[key].keterangan}
-            onChange={(e) => handleKetChange(key, e.target.value)}
-            placeholder="Otomatis / isi keterangan"
-            className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2.5 py-1.5 text-xs sm:text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:border-[#1D64F2] focus:ring-2 focus:ring-[#1D64F2]/20"
-          />
-        )}
-      </td>
-    </tr>
-  );
+  const renderAspectRow = (key: AspectKey, label: string) => {
+    const isLocked = readOnly || key === "kehadiranTaatJadwal";
+    const isAutoAttendance = key === "kehadiranTaatJadwal";
+
+    return (
+      <tr key={key} className="bg-white dark:bg-slate-900/50">
+        <td className="border-b border-r border-slate-200 dark:border-slate-700 px-3 py-2.5 text-center" />
+        <td className="border-b border-r border-slate-200 dark:border-slate-700 px-3.5 py-2.5 text-xs sm:text-sm text-slate-800 dark:text-slate-100">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span>{label}</span>
+            {isAutoAttendance && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-600 border border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700">
+                <Lock className="w-2.5 h-2.5" />
+                Otomatis Absensi
+              </span>
+            )}
+          </div>
+        </td>
+        <td className="border-b border-r border-slate-200 dark:border-slate-700 px-2.5 py-2 text-center">
+          {isLocked ? (
+            <span
+              className={`inline-flex items-center justify-center gap-1 text-xs sm:text-sm font-bold tabular-nums ${
+                isAutoAttendance && !readOnly
+                  ? "w-20 sm:w-24 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/80 px-2 py-1.5 text-slate-700 dark:text-slate-200 cursor-not-allowed"
+                  : "text-slate-900 dark:text-white"
+              }`}
+              title={
+                isAutoAttendance
+                  ? "Nilai dikunci otomatis berdasarkan kehadiran peserta"
+                  : undefined
+              }
+            >
+              {aspects[key].nilai !== "" ? aspects[key].nilai : "-"}
+            </span>
+          ) : (
+            <input
+              type="text"
+              inputMode="decimal"
+              value={aspects[key].nilai}
+              onChange={(e) => handleScoreChange(key, e.target.value)}
+              placeholder="0–100"
+              className="w-20 sm:w-24 text-center rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 py-1.5 text-xs sm:text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:border-[#1D64F2] focus:ring-2 focus:ring-[#1D64F2]/20 tabular-nums"
+            />
+          )}
+        </td>
+        <td className="border-b border-slate-200 dark:border-slate-700 px-2.5 py-2">
+          {isLocked ? (
+            <span
+              className={`block text-xs sm:text-sm ${
+                isAutoAttendance && !readOnly
+                  ? "w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/80 px-2.5 py-1.5 text-slate-700 dark:text-slate-200 font-semibold cursor-not-allowed"
+                  : "text-slate-700 dark:text-slate-200"
+              }`}
+            >
+              {aspects[key].keterangan || "-"}
+            </span>
+          ) : (
+            <input
+              type="text"
+              value={aspects[key].keterangan}
+              onChange={(e) => handleKetChange(key, e.target.value)}
+              placeholder="Otomatis / isi keterangan"
+              className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2.5 py-1.5 text-xs sm:text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:border-[#1D64F2] focus:ring-2 focus:ring-[#1D64F2]/20"
+            />
+          )}
+        </td>
+      </tr>
+    );
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-3 sm:p-5">
@@ -475,30 +516,26 @@ export default function MentorPenilaianAkhirModal({
               </div>
             )}
 
-            {peserta.absensiRef && peserta.absensiRef.totalHari > 0 && (
+            {peserta.absensiRef && (
               <div className="pt-2.5 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
                 <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
                   <ScanFace className="w-4 h-4 text-emerald-600 shrink-0" />
                   <span>
-                    Referensi Absensi Sistem:{" "}
+                    Nilai Kehadiran Magang (s/d H-3 Selesai):{" "}
                     <b className="text-slate-900 dark:text-white">
-                      {peserta.absensiRef.averageScore ?? 0}%
+                      {peserta.absensiRef.averageScore ?? 0}
                     </b>{" "}
-                    rata-rata ({peserta.absensiRef.totalHari} hari tercatat)
+                    ({peserta.absensiRef.totalHari} hadir dari{" "}
+                    {peserta.absensiRef.totalHariKerja ??
+                      peserta.absensiRef.totalHari}{" "}
+                    hari kerja)
                   </span>
                 </div>
 
-                {!readOnly &&
-                  typeof peserta.absensiRef.averageScore === "number" && (
-                  <button
-                    type="button"
-                    onClick={applyAttendanceReference}
-                    className="self-start sm:self-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 font-bold border border-emerald-200 dark:border-emerald-800 transition"
-                  >
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>Terapkan ke Poin 1.A</span>
-                  </button>
-                )}
+                <span className="self-start sm:self-auto inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-semibold border border-slate-200 dark:border-slate-700">
+                  <Lock className="w-3 h-3" />
+                  <span>Terkunci otomatis pada Poin 1.A</span>
+                </span>
               </div>
             )}
           </div>
