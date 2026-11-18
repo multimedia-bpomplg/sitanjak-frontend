@@ -13,6 +13,7 @@ import {
   X,
   CheckCircle2,
   FileText,
+  RefreshCw,
 } from "lucide-react";
 import { PesertaDashboardSkeleton } from "@/components/dashboard/skeletons";
 
@@ -106,98 +107,141 @@ const getInitial = (nama = "-") =>
     .slice(0, 2)
     .toUpperCase();
 
+function parseJwtPayload(token: string): Record<string, any> | null {
+  try {
+    const base64Url = token.split(".")[1];
+    if (!base64Url) return null;
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = base64.padEnd(
+      base64.length + ((4 - (base64.length % 4)) % 4),
+      "=",
+    );
+    const jsonPayload = decodeURIComponent(
+      atob(padded)
+        .split("")
+        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+        .join(""),
+    );
+    return JSON.parse(jsonPayload);
+  } catch {
+    return null;
+  }
+}
+
 export default function PesertaDashboard() {
   const [pendaftaran, setPendaftaran] = useState<Pendaftaran | null>(null);
   const [emailLogin, setEmailLogin] = useState<string | null>(null);
+  const [userNameLogin, setUserNameLogin] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [showAnnouncementModal, setShowAnnouncementModal] = useState(false);
   const [filledDates, setFilledDates] = useState<
     Record<string, FilledDateType>
   >({});
 
-  // Parse email from JWT token
+  // Parse email & name from JWT token
   useEffect(() => {
-    try {
-      const token = localStorage.getItem("token");
-      if (token) {
-        const payload = JSON.parse(atob(token.split(".")[1]));
-        setEmailLogin(payload.email);
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setLoading(false);
+      setFetchError("Sesi login tidak ditemukan. Silakan login kembali.");
+      return;
+    }
+
+    const payload = parseJwtPayload(token);
+    if (payload?.email) {
+      setEmailLogin(String(payload.email).trim());
+      if (payload.name) {
+        setUserNameLogin(String(payload.name).trim());
       }
-    } catch (err) {
-      console.error("Gagal parse token", err);
+    } else {
+      console.error("Gagal parse token: email tidak ditemukan");
+      setLoading(false);
+      setFetchError("Sesi login tidak valid. Silakan login ulang.");
     }
   }, []);
 
-  // Fetch Pendaftaran Data
-  const fetchData = useCallback(async () => {
+  // Fetch Pendaftaran, Announcements & Logbook Filled Dates
+  const loadDashboard = useCallback(async () => {
+    if (!emailLogin) return;
+
+    setLoading(true);
+    setFetchError(null);
+
     try {
       const token = localStorage.getItem("token");
-      if (!token || !emailLogin) return;
+      if (!token) {
+        setFetchError("Sesi login habis. Silakan login kembali.");
+        return;
+      }
 
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/pendaftaran/cek?email=${encodeURIComponent(emailLogin)}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
+      const headers: Record<string, string> = {
+        Authorization: `Bearer ${token}`,
+      };
 
-      if (!res.ok) throw new Error("Gagal mengambil data pendaftaran");
-      const data = await res.json();
-      setPendaftaran(data);
-    } catch (err) {
-      console.error("Gagal memuat dashboard peserta", err);
-    }
-  }, [emailLogin]);
-
-  // Fetch Announcements & Logbook Filled Dates
-  const fetchActivitiesAndAnnouncements = useCallback(async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const headers: Record<string, string> = token
-        ? { Authorization: `Bearer ${token}` }
-        : {};
-
-      const [annRes, datesRes] = await Promise.all([
+      const [pendRes, annRes, datesRes] = await Promise.all([
+        fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/pendaftaran/cek?email=${encodeURIComponent(emailLogin)}`,
+          { headers },
+        ),
         fetch(`${process.env.NEXT_PUBLIC_API_URL}/announcements/peserta`).catch(
           () => null,
         ),
-        token
-          ? fetch(`${process.env.NEXT_PUBLIC_API_URL}/logbook/filled-dates`, {
-              headers,
-            }).catch(() => null)
-          : Promise.resolve(null),
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/logbook/filled-dates`, {
+          headers,
+        }).catch(() => null),
       ]);
 
       if (annRes && annRes.ok) {
-        const annData = await annRes.json();
+        const annData = await annRes.json().catch(() => null);
         if (Array.isArray(annData)) {
           setAnnouncements(annData.filter((item: any) => item.isActive));
         }
       }
 
       if (datesRes && datesRes.ok) {
-        const datesData = await datesRes.json();
+        const datesData = await datesRes.json().catch(() => null);
         if (datesData && typeof datesData === "object") {
           setFilledDates(datesData);
         }
       }
+
+      if (pendRes.ok) {
+        const data = await pendRes.json();
+        setPendaftaran(data);
+      } else if (pendRes.status === 404) {
+        // Akun peserta mungkin dibuat langsung tanpa record pendaftaran
+        setPendaftaran(null);
+      } else if (pendRes.status === 401 || pendRes.status === 403) {
+        setFetchError("Sesi Anda telah berakhir. Silakan login ulang.");
+      } else {
+        throw new Error(`HTTP ${pendRes.status}`);
+      }
     } catch (err) {
-      console.error("Gagal memuat aktivitas/pengumuman", err);
+      console.error("Gagal memuat dashboard peserta", err);
+      setFetchError(
+        "Tidak dapat terhubung ke server. Periksa koneksi atau coba muat ulang.",
+      );
+    } finally {
+      setLoading(false);
     }
-  }, []);
+  }, [emailLogin]);
 
   useEffect(() => {
     if (emailLogin) {
-      fetchData();
-      fetchActivitiesAndAnnouncements();
+      loadDashboard();
     }
-  }, [emailLogin, fetchData, fetchActivitiesAndAnnouncements]);
+  }, [emailLogin, loadDashboard]);
 
   // Find current logged-in participant
   const peserta = useMemo(() => {
     if (!pendaftaran || !emailLogin) return null;
-    return pendaftaran.peserta.find(
-      (p) => p.email.toLowerCase() === emailLogin.toLowerCase(),
+    const normalizedEmail = emailLogin.trim().toLowerCase();
+    return (
+      pendaftaran.peserta?.find(
+        (p) => p.email?.trim().toLowerCase() === normalizedEmail,
+      ) || null
     );
   }, [pendaftaran, emailLogin]);
 
@@ -306,21 +350,40 @@ export default function PesertaDashboard() {
     };
   }, [peserta?.tanggalMulaiMagang, peserta?.tanggalSelesaiMagang, todayWIB]);
 
-  if (!pendaftaran) {
+  if (loading) {
     return <PesertaDashboardSkeleton />;
   }
 
-  if (!peserta) {
+  if (fetchError) {
     return (
-      <div className="flex h-[60vh] items-center justify-center text-center px-4">
-        <span className="text-sm text-slate-400">
-          Data peserta untuk akun ini tidak ditemukan.
-        </span>
+      <div className="flex min-h-[55vh] items-center justify-center px-4">
+        <div className="w-full max-w-md rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 p-6 text-center shadow-2xs space-y-4">
+          <div className="w-12 h-12 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto">
+            <AlertCircle className="w-6 h-6" />
+          </div>
+          <div className="space-y-1">
+            <h2 className="text-base font-bold text-slate-900 dark:text-white">
+              Gagal Memuat Halaman
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+              {fetchError}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={loadDashboard}
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-[#1D64F2] hover:bg-blue-700 text-white shadow-xs transition"
+          >
+            <RefreshCw className="w-4 h-4" />
+            <span>Coba Lagi</span>
+          </button>
+        </div>
       </div>
     );
   }
 
-  const firstName = peserta.nama?.trim().split(" ")[0] || peserta.nama;
+  const displayNama = peserta?.nama || userNameLogin || "Peserta Magang";
+  const firstName = displayNama.trim().split(" ")[0] || displayNama;
 
   return (
     <div className="space-y-5 sm:space-y-6">
@@ -341,7 +404,7 @@ export default function PesertaDashboard() {
           title="Akun Peserta"
           className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-linear-to-br from-[#0284c7] via-sky-600 to-blue-700 dark:from-[#0369a1] dark:to-blue-800 text-white font-bold text-xs sm:text-sm flex items-center justify-center shrink-0 ring-2 ring-white dark:ring-slate-800 shadow-sm hover:opacity-95 transition"
         >
-          {getInitial(peserta.nama)}
+          {getInitial(displayNama)}
         </Link>
       </div>
 
@@ -414,10 +477,10 @@ export default function PesertaDashboard() {
               </div>
               <div className="flex items-center justify-between text-[11px] sm:text-xs font-medium text-sky-100/90 drop-shadow-xs">
                 <span>
-                  Mulai: {formatShortPeriodDate(peserta.tanggalMulaiMagang)}
+                  Mulai: {formatShortPeriodDate(peserta?.tanggalMulaiMagang)}
                 </span>
                 <span>
-                  Selesai: {formatShortPeriodDate(peserta.tanggalSelesaiMagang)}
+                  Selesai: {formatShortPeriodDate(peserta?.tanggalSelesaiMagang)}
                 </span>
               </div>
             </div>
@@ -461,11 +524,13 @@ export default function PesertaDashboard() {
               <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-0.5">
                 {formatFullTodayDate(todayWIB)}
               </p>
-              <p className="text-[11px] sm:text-xs text-slate-400 dark:text-slate-400 mt-0.5">
-                Periode magang{" "}
-                {formatShortPeriodDate(peserta.tanggalMulaiMagang)}–
-                {formatShortPeriodDate(peserta.tanggalSelesaiMagang)}
-              </p>
+              {peserta?.tanggalMulaiMagang && peserta?.tanggalSelesaiMagang && (
+                <p className="text-[11px] sm:text-xs text-slate-400 dark:text-slate-400 mt-0.5">
+                  Periode magang{" "}
+                  {formatShortPeriodDate(peserta.tanggalMulaiMagang)}–
+                  {formatShortPeriodDate(peserta.tanggalSelesaiMagang)}
+                </p>
+              )}
             </div>
           </div>
 
@@ -498,7 +563,7 @@ export default function PesertaDashboard() {
               </h3>
               <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
                 Periode magang berakhir pada{" "}
-                <b>{formatShortPeriodDate(peserta.tanggalSelesaiMagang)}</b>.
+                <b>{formatShortPeriodDate(peserta?.tanggalSelesaiMagang)}</b>.
                 Pengisian kehadiran dan laporan harian baru sudah ditutup.
               </p>
             </div>
@@ -522,7 +587,7 @@ export default function PesertaDashboard() {
             </h3>
             <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
               Jadwal magang Anda dimulai pada{" "}
-              <b>{formatShortPeriodDate(peserta.tanggalMulaiMagang)}</b>. Form
+              <b>{formatShortPeriodDate(peserta?.tanggalMulaiMagang)}</b>. Form
               pengisian laporan harian akan aktif saat masa magang dimulai.
             </p>
           </div>
