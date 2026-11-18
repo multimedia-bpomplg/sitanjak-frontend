@@ -21,6 +21,7 @@ import {
 import PaginationFooter from "@/components/dashboard/PaginationFooter";
 import { TablePageSkeleton } from "@/components/dashboard/skeletons";
 import { showToast } from "@/components/ui/toastDashboard";
+import { isPkpaPeserta } from "@/lib/pesertaKategori";
 
 /* ================= TYPES ================= */
 
@@ -560,9 +561,16 @@ export default function BuatAkunPesertaAdminPage() {
                             {getInitials(p.name)}
                           </div>
                           <div className="min-w-0">
-                            <p className="font-bold text-slate-900 dark:text-white truncate">
-                              {p.name}
-                            </p>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <p className="font-bold text-slate-900 dark:text-white truncate">
+                                {p.name}
+                              </p>
+                              {isPkpaPeserta(p) && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-violet-50 text-violet-700 border border-violet-200 dark:bg-violet-950/60 dark:text-violet-300 dark:border-violet-800 shrink-0">
+                                  PKPA
+                                </span>
+                              )}
+                            </div>
                             <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
                               {p.email}
                             </p>

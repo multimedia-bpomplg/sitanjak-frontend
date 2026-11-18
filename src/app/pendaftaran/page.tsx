@@ -92,6 +92,7 @@ const JURUSAN_BY_UNIVERSITAS: Record<string, string[]> = {
     "Kimia (S1)",
     "Biologi (S1)",
     "Farmasi (S1)",
+    "Profesi Apoteker / PKPA",
     "Ilmu Hukum (S1)",
     "Kesehatan Masyarakat (S1)",
     "Sistem Informasi (S1)",
@@ -106,6 +107,7 @@ const JURUSAN_BY_UNIVERSITAS: Record<string, string[]> = {
     "Sistem Informasi (S1)",
     "Psikologi Islam (S1)",
     "Ilmu Komunikasi (S1)",
+    "Profesi Apoteker / PKPA",
     "LAINNYA",
   ],
   "Universitas Bina Darma": [
@@ -120,6 +122,7 @@ const JURUSAN_BY_UNIVERSITAS: Record<string, string[]> = {
     "Manajemen Informatika (D3)",
     "Teknik Komputer (D3)",
     "Administrasi Bisnis (D3)",
+    "Profesi Apoteker / PKPA",
     "LAINNYA",
   ],
   "MDP/Universitas Multi Data Palembang": [
@@ -130,6 +133,7 @@ const JURUSAN_BY_UNIVERSITAS: Record<string, string[]> = {
     "Desain Komunikasi Visual (S1)",
     "Manajemen (S1)",
     "Akuntansi (S1)",
+    "Profesi Apoteker / PKPA",
     "LAINNYA",
   ],
   "UIGM/Universitas Indo Global Mandiri": [
@@ -145,6 +149,7 @@ const JURUSAN_BY_UNIVERSITAS: Record<string, string[]> = {
     "Manajemen Bisnis (S1)",
     "Hukum Bisnis (S1)",
     "Ekonomi Bisnis (S1)",
+    "Profesi Apoteker / PKPA",
     "LAINNYA",
   ],
   "Polsri/Politeknik Negeri Sriwijaya": [
@@ -162,12 +167,14 @@ const JURUSAN_BY_UNIVERSITAS: Record<string, string[]> = {
     "Administrasi Bisnis (D3)",
     "Manajemen Bisnis (D4 / Sarjana Terapan)",
     "Bisnis Digital (D4 / Sarjana Terapan)",
+    "Profesi Apoteker / PKPA",
     "LAINNYA",
   ],
   "ITERA/INSTITUT TEKNOLOGI SUMATERA": [
     "Kimia (S1)",
     "Biologi (S1)",
     "Farmasi (S1)",
+    "Profesi Apoteker / PKPA",
     "Teknologi Pangan (S1)",
     "Teknologi Industri Pertanian (S1)",
     "Teknik Kimia (S1)",
@@ -183,7 +190,7 @@ const JURUSAN_BY_UNIVERSITAS: Record<string, string[]> = {
     "Rekayasa Instrumentasi dan Automasi (S1)",
     "LAINNYA",
   ],
-  LAINNYA: ["LAINNYA"],
+  LAINNYA: ["Profesi Apoteker / PKPA", "LAINNYA"],
 };
 
 // ==================== JURUSAN UNTUK SMK ====================

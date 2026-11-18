@@ -39,6 +39,8 @@ import {
 import PaginationFooter from "@/components/dashboard/PaginationFooter";
 import { TablePageSkeleton } from "@/components/dashboard/skeletons";
 import { showToast } from "@/components/ui/toastDashboard";
+import { isMatchingMentorFormasi } from "@/lib/formasiMentor";
+import { isPkpaPeserta } from "@/lib/pesertaKategori";
 
 /* ================= TYPES ================= */
 
@@ -659,7 +661,10 @@ export default function ViewPendaftaranAdminPage() {
   const openMentorModal = (index: number, peserta: PesertaItem) => {
     const existing = getMentorObject(peserta.mentor, mentors);
     setMentorTarget({ index, peserta });
-    setSelectedMentorId(existing?._id || "");
+    const matchesFormasi =
+      existing &&
+      isMatchingMentorFormasi(peserta.posisi, existing.posisiMentor);
+    setSelectedMentorId(matchesFormasi ? existing._id || "" : "");
   };
 
   const handleSaveMentor = async () => {
@@ -856,6 +861,11 @@ export default function ViewPendaftaranAdminPage() {
   const isSelectedFinal =
     selected?.status === "Disetujui" || selected?.status === "Ditolak";
   const activeMentors = mentors.filter((m) => m.status !== "nonaktif");
+  const matchingMentors = mentorTarget
+    ? activeMentors.filter((m) =>
+        isMatchingMentorFormasi(mentorTarget.peserta.posisi, m.posisiMentor),
+      )
+    : [];
 
   return (
     <div className="space-y-6">
@@ -1109,6 +1119,11 @@ export default function ViewPendaftaranAdminPage() {
                             <span className="font-bold text-slate-900 dark:text-white">
                               {first?.nama || "-"}
                             </span>
+                            {item.peserta.some((p) => isPkpaPeserta(p)) && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-violet-50 text-violet-700 border border-violet-200 dark:bg-violet-950/60 dark:text-violet-300 dark:border-violet-800">
+                                PKPA
+                              </span>
+                            )}
                             {item.peserta.length > 1 && (
                               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-50 text-[#0284c7] border border-sky-200 dark:bg-sky-950/60 dark:text-sky-300 dark:border-sky-800">
                                 <Users className="w-3 h-3" />+
@@ -1357,6 +1372,11 @@ export default function ViewPendaftaranAdminPage() {
                               <h4 className="text-base font-bold text-slate-900 dark:text-white">
                                 {p.nama}
                               </h4>
+                              {isPkpaPeserta(p) && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-violet-50 text-violet-700 border border-violet-200 dark:bg-violet-950/60 dark:text-violet-300 dark:border-violet-800">
+                                  PKPA
+                                </span>
+                              )}
                               <span
                                 className={`inline-flex items-center px-2 py-0.5 rounded-full border text-[11px] font-semibold ${getStatusMagangBadge(
                                   magangStatus,
@@ -1724,21 +1744,33 @@ export default function ViewPendaftaranAdminPage() {
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                  Pilih Mentor Pembimbing
+                  Pilih Mentor Pembimbing (Formasi:{" "}
+                  {mentorTarget.peserta.posisi || "-"})
                 </label>
                 <select
                   value={selectedMentorId}
                   onChange={(e) => setSelectedMentorId(e.target.value)}
-                  className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40 focus:border-[#0284c7]"
+                  disabled={matchingMentors.length === 0}
+                  className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40 focus:border-[#0284c7] disabled:opacity-60"
                 >
-                  <option value="">-- Pilih Mentor --</option>
-                  {activeMentors.map((m) => (
+                  <option value="">
+                    {matchingMentors.length === 0
+                      ? "-- Tidak ada mentor untuk formasi ini --"
+                      : "-- Pilih Mentor --"}
+                  </option>
+                  {matchingMentors.map((m) => (
                     <option key={m._id} value={m._id}>
                       {m.name}
                       {m.posisiMentor ? ` — ${m.posisiMentor}` : ""}
                     </option>
                   ))}
                 </select>
+                {matchingMentors.length === 0 && (
+                  <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1.5">
+                    Belum ada mentor aktif yang terdaftar untuk formasi{" "}
+                    <b>{mentorTarget.peserta.posisi || "-"}</b>.
+                  </p>
+                )}
               </div>
 
               <div className="flex justify-end gap-2 pt-2">
@@ -1751,7 +1783,7 @@ export default function ViewPendaftaranAdminPage() {
                 </button>
                 <button
                   type="button"
-                  disabled={savingMentor}
+                  disabled={savingMentor || matchingMentors.length === 0}
                   onClick={handleSaveMentor}
                   className="px-4 py-2 rounded-xl text-xs font-semibold bg-[#0284c7] hover:bg-sky-700 text-white shadow-xs transition disabled:opacity-60"
                 >

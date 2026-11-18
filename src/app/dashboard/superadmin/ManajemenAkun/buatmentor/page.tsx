@@ -5,6 +5,7 @@ import {
   AlertTriangle,
   Briefcase,
   CheckCircle2,
+  Edit3,
   Eye,
   KeyRound,
   Plus,
@@ -26,6 +27,8 @@ type MentorAkun = {
   _id: string;
   name: string;
   email: string;
+  nip: string;
+  wa: string;
   status: "Aktif" | "Nonaktif";
   posisiMentor: string;
 };
@@ -91,12 +94,24 @@ export default function BuatAkunMentorSuperadminPage() {
   const [form, setForm] = useState({
     name: "",
     email: "",
+    nip: "",
+    wa: "",
     password: "",
     posisiMentor: "",
   });
 
-  /* ---------- Detail & Confirm Status Toggle ---------- */
+  /* ---------- Detail, Edit & Confirm Status Toggle ---------- */
   const [selected, setSelected] = useState<MentorAkun | null>(null);
+  const [editTarget, setEditTarget] = useState<MentorAkun | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [editForm, setEditForm] = useState({
+    name: "",
+    email: "",
+    nip: "",
+    wa: "",
+    posisiMentor: "",
+    password: "",
+  });
   const [confirmToggle, setConfirmToggle] = useState<{
     mentor: MentorAkun;
     targetStatus: "Aktif" | "Nonaktif";
@@ -126,12 +141,16 @@ export default function BuatAkunMentorSuperadminPage() {
           _id: string;
           name: string;
           email: string;
+          nip?: string;
+          wa?: string;
           status?: "Aktif" | "Nonaktif";
           posisiMentor?: string;
         }) => ({
           _id: item._id,
           name: item.name,
           email: item.email,
+          nip: item.nip || "-",
+          wa: item.wa || "-",
           status: item.status === "Nonaktif" ? "Nonaktif" : "Aktif",
           posisiMentor: item.posisiMentor || "-",
         }),
@@ -163,6 +182,8 @@ export default function BuatAkunMentorSuperadminPage() {
       setForm({
         name,
         email,
+        nip: "",
+        wa: "",
         password: generateStrongPassword(10),
         posisiMentor: "",
       });
@@ -176,12 +197,21 @@ export default function BuatAkunMentorSuperadminPage() {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
       if (confirmToggle && !toggling) setConfirmToggle(null);
+      else if (editTarget && !savingEdit) setEditTarget(null);
       else if (openCreate && !creating) setOpenCreate(false);
       else if (selected) setSelected(null);
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [confirmToggle, toggling, openCreate, creating, selected]);
+  }, [
+    confirmToggle,
+    toggling,
+    editTarget,
+    savingEdit,
+    openCreate,
+    creating,
+    selected,
+  ]);
 
   /* ================= STATS & FILTERING ================= */
 
@@ -205,6 +235,8 @@ export default function BuatAkunMentorSuperadminPage() {
       return (
         item.name.toLowerCase().includes(q) ||
         item.email.toLowerCase().includes(q) ||
+        item.nip.toLowerCase().includes(q) ||
+        item.wa.toLowerCase().includes(q) ||
         item.posisiMentor.toLowerCase().includes(q)
       );
     });
@@ -227,6 +259,8 @@ export default function BuatAkunMentorSuperadminPage() {
     setForm({
       name: "",
       email: "",
+      nip: "",
+      wa: "",
       password: generateStrongPassword(10),
       posisiMentor: "",
     });
@@ -237,6 +271,8 @@ export default function BuatAkunMentorSuperadminPage() {
     if (
       !form.name.trim() ||
       !form.email.trim() ||
+      !form.nip.trim() ||
+      !form.wa.trim() ||
       !form.password.trim() ||
       !form.posisiMentor
     ) {
@@ -255,6 +291,8 @@ export default function BuatAkunMentorSuperadminPage() {
         body: JSON.stringify({
           name: form.name.trim(),
           email: form.email.trim().toLowerCase(),
+          nip: form.nip.trim(),
+          wa: form.wa.trim(),
           password: form.password.trim(),
           posisiMentor: form.posisiMentor,
         }),
@@ -267,7 +305,14 @@ export default function BuatAkunMentorSuperadminPage() {
 
       showToast.success("Akun mentor berhasil dibuat & email terkirim");
       setOpenCreate(false);
-      setForm({ name: "", email: "", password: "", posisiMentor: "" });
+      setForm({
+        name: "",
+        email: "",
+        nip: "",
+        wa: "",
+        password: "",
+        posisiMentor: "",
+      });
       await fetchMentor(true);
     } catch (err) {
       showToast.error(
@@ -275,6 +320,85 @@ export default function BuatAkunMentorSuperadminPage() {
       );
     } finally {
       setCreating(false);
+    }
+  };
+
+  const handleOpenEdit = (mentor: MentorAkun) => {
+    setEditTarget(mentor);
+    setEditForm({
+      name: mentor.name,
+      email: mentor.email,
+      nip: mentor.nip === "-" ? "" : mentor.nip,
+      wa: mentor.wa === "-" ? "" : mentor.wa,
+      posisiMentor: mentor.posisiMentor === "-" ? "" : mentor.posisiMentor,
+      password: "",
+    });
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editTarget) return;
+    if (
+      !editForm.name.trim() ||
+      !editForm.email.trim() ||
+      !editForm.nip.trim() ||
+      !editForm.wa.trim() ||
+      !editForm.posisiMentor
+    ) {
+      showToast.error(
+        "Nama, email, NIP, nomor WhatsApp, dan posisi mentor wajib diisi",
+      );
+      return;
+    }
+
+    try {
+      setSavingEdit(true);
+      const res = await fetch(
+        `${API_BASE}/superadmin/mentor/${editTarget._id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+          body: JSON.stringify({
+            name: editForm.name.trim(),
+            email: editForm.email.trim().toLowerCase(),
+            nip: editForm.nip.trim(),
+            wa: editForm.wa.trim(),
+            posisiMentor: editForm.posisiMentor,
+            password: editForm.password.trim() || undefined,
+          }),
+        },
+      );
+
+      const result = await res.json();
+      if (!res.ok) {
+        throw new Error(result?.message || "Gagal memperbarui akun mentor");
+      }
+
+      const updatedItem: MentorAkun = {
+        ...editTarget,
+        name: editForm.name.trim(),
+        email: editForm.email.trim().toLowerCase(),
+        nip: editForm.nip.trim(),
+        wa: editForm.wa.trim(),
+        posisiMentor: editForm.posisiMentor,
+      };
+
+      setData((prev) =>
+        prev.map((m) => (m._id === editTarget._id ? updatedItem : m)),
+      );
+      setSelected((prev) =>
+        prev && prev._id === editTarget._id ? updatedItem : prev,
+      );
+      setEditTarget(null);
+      showToast.success("Akun mentor berhasil diperbarui");
+    } catch (err) {
+      showToast.error(
+        err instanceof Error ? err.message : "Gagal memperbarui akun mentor",
+      );
+    } finally {
+      setSavingEdit(false);
     }
   };
 
@@ -543,8 +667,8 @@ export default function BuatAkunMentorSuperadminPage() {
                           <p className="font-semibold text-slate-800 dark:text-slate-100 group-hover:text-[#0284c7] dark:group-hover:text-sky-400 truncate max-w-52 transition">
                             {item.name}
                           </p>
-                          <p className="text-[11px] text-slate-400">
-                            Klik untuk detail
+                          <p className="text-[11px] text-slate-400 truncate">
+                            NIP: {item.nip} • WA: {item.wa}
                           </p>
                         </div>
                       </button>
@@ -583,14 +707,24 @@ export default function BuatAkunMentorSuperadminPage() {
                     </td>
 
                     <td className="py-3.5 px-4 text-center">
-                      <button
-                        type="button"
-                        onClick={() => setSelected(item)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-sky-50 hover:bg-sky-100 text-[#0284c7] border border-sky-200 dark:bg-sky-950/50 dark:hover:bg-sky-900/60 dark:text-sky-300 dark:border-sky-800 transition cursor-pointer"
-                      >
-                        <Eye className="w-3.5 h-3.5" />
-                        Detail
-                      </button>
+                      <div className="inline-flex items-center justify-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEdit(item)}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition cursor-pointer"
+                        >
+                          <Edit3 className="w-3.5 h-3.5 text-[#0284c7]" />
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSelected(item)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-sky-50 hover:bg-sky-100 text-[#0284c7] border border-sky-200 dark:bg-sky-950/50 dark:hover:bg-sky-900/60 dark:text-sky-300 dark:border-sky-800 transition cursor-pointer"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          Detail
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -663,6 +797,44 @@ export default function BuatAkunMentorSuperadminPage() {
                   placeholder="mentor@bpom.go.id"
                   className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40 focus:border-[#0284c7]"
                 />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">
+                    NIP Mentor
+                  </label>
+                  <input
+                    type="text"
+                    value={form.nip}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        nip: e.target.value.replace(/[^0-9\s-]/g, ""),
+                      })
+                    }
+                    placeholder="Contoh: 198501012010011001"
+                    className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40 focus:border-[#0284c7]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">
+                    Nomor WhatsApp
+                  </label>
+                  <input
+                    type="tel"
+                    value={form.wa}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        wa: e.target.value.replace(/[^0-9+]/g, ""),
+                      })
+                    }
+                    placeholder="Contoh: 081234567890"
+                    className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40 focus:border-[#0284c7]"
+                  />
+                </div>
               </div>
 
               <div>
@@ -769,6 +941,25 @@ export default function BuatAkunMentorSuperadminPage() {
             </div>
 
             <div className="p-6 space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                    NIP
+                  </p>
+                  <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 mt-1">
+                    {selected.nip || "-"}
+                  </p>
+                </div>
+                <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                    Nomor WhatsApp
+                  </p>
+                  <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 mt-1">
+                    {selected.wa || "-"}
+                  </p>
+                </div>
+              </div>
+
               <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
                   Posisi / Fungsi Pembimbing
@@ -803,14 +994,28 @@ export default function BuatAkunMentorSuperadminPage() {
               </div>
             </div>
 
-            <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center gap-2.5">
-              <button
-                type="button"
-                onClick={() => setSelected(null)}
-                className="px-4 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 transition"
-              >
-                Tutup
-              </button>
+            <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 flex flex-wrap justify-between items-center gap-2.5">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSelected(null)}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 transition"
+                >
+                  Tutup
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const target = selected;
+                    setSelected(null);
+                    handleOpenEdit(target);
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-sky-50 hover:bg-sky-100 text-[#0284c7] border border-sky-200 dark:bg-sky-950/60 dark:text-sky-300 dark:border-sky-800 transition cursor-pointer"
+                >
+                  <Edit3 className="w-3.5 h-3.5" />
+                  Edit Akun
+                </button>
+              </div>
 
               {selected.status === "Aktif" ? (
                 <button
@@ -841,6 +1046,182 @@ export default function BuatAkunMentorSuperadminPage() {
                   Aktifkan Akun
                 </button>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================= MODAL EDIT AKUN MENTOR ================= */}
+      {editTarget && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs"
+          onClick={() => !savingEdit && setEditTarget(null)}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-6 py-4 bg-linear-to-r from-[#0284c7] via-sky-600 to-blue-700 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <Edit3 className="w-5 h-5" />
+                <div>
+                  <h2 className="text-base font-extrabold">Edit Akun Mentor</h2>
+                  <p className="text-xs text-sky-100">
+                    Perbarui informasi akun dan fungsi pembimbing mentor
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                disabled={savingEdit}
+                onClick={() => setEditTarget(null)}
+                className="p-1.5 rounded-lg hover:bg-white/15 transition disabled:opacity-50"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">
+                  Nama Lengkap Mentor
+                </label>
+                <input
+                  type="text"
+                  value={editForm.name}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, name: e.target.value })
+                  }
+                  placeholder="Contoh: Dr. Ahmad Fauzi"
+                  className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40 focus:border-[#0284c7]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">
+                  Email Mentor
+                </label>
+                <input
+                  type="email"
+                  value={editForm.email}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, email: e.target.value })
+                  }
+                  placeholder="mentor@bpom.go.id"
+                  className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40 focus:border-[#0284c7]"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">
+                    NIP Mentor
+                  </label>
+                  <input
+                    type="text"
+                    value={editForm.nip}
+                    onChange={(e) =>
+                      setEditForm({
+                        ...editForm,
+                        nip: e.target.value.replace(/[^0-9\s-]/g, ""),
+                      })
+                    }
+                    placeholder="Contoh: 198501012010011001"
+                    className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40 focus:border-[#0284c7]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">
+                    Nomor WhatsApp
+                  </label>
+                  <input
+                    type="tel"
+                    value={editForm.wa}
+                    onChange={(e) =>
+                      setEditForm({
+                        ...editForm,
+                        wa: e.target.value.replace(/[^0-9+]/g, ""),
+                      })
+                    }
+                    placeholder="Contoh: 081234567890"
+                    className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40 focus:border-[#0284c7]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">
+                  Posisi / Fungsi Pembimbing
+                </label>
+                <select
+                  value={editForm.posisiMentor}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, posisiMentor: e.target.value })
+                  }
+                  className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40 focus:border-[#0284c7]"
+                >
+                  <option value="">-- Pilih Posisi Fungsi --</option>
+                  {POSISI_MENTOR_OPTIONS.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">
+                  Password Baru (Opsional)
+                </label>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <KeyRound className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={editForm.password}
+                      onChange={(e) =>
+                        setEditForm({ ...editForm, password: e.target.value })
+                      }
+                      placeholder="Kosongkan jika tidak mengubah password"
+                      className="w-full pl-10 pr-3 py-2.5 rounded-xl text-sm font-mono bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40 focus:border-[#0284c7]"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setEditForm({
+                        ...editForm,
+                        password: generateStrongPassword(10),
+                      })
+                    }
+                    className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-semibold bg-sky-50 hover:bg-sky-100 text-[#0284c7] border border-sky-200 dark:bg-sky-950/60 dark:hover:bg-sky-900/60 dark:text-sky-300 dark:border-sky-800 transition cursor-pointer shrink-0"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    Generate
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2.5">
+              <button
+                type="button"
+                disabled={savingEdit}
+                onClick={() => setEditTarget(null)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 transition disabled:opacity-50"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                disabled={savingEdit}
+                onClick={handleSaveEdit}
+                className="inline-flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-bold text-white bg-linear-to-r from-[#0284c7] to-blue-700 hover:from-[#0369a1] hover:to-blue-800 shadow-sm transition cursor-pointer disabled:opacity-50"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                {savingEdit ? "Menyimpan..." : "Simpan Perubahan"}
+              </button>
             </div>
           </div>
         </div>

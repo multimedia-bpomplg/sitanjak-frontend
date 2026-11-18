@@ -19,6 +19,7 @@ import {
 import { showToast } from "@/components/ui/toastDashboard";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { PesertaDashboardSkeleton } from "@/components/dashboard/skeletons";
+import { isPkpaPeserta } from "@/lib/pesertaKategori";
 
 type Peserta = {
   idPeserta?: string;
@@ -26,6 +27,8 @@ type Peserta = {
   email: string;
   wa: string;
   posisi: string;
+  jurusan?: string;
+  kategoriMagang?: "PKPA" | "Reguler";
   tanggalMulaiMagang: string;
   tanggalSelesaiMagang: string;
   kota?: string;
@@ -87,6 +90,10 @@ export default function AkunPesertaPage() {
   const [sertifikat, setSertifikat] = useState<SuratSelesai | null>(null);
   const [canDownloadCompletionDocs, setCanDownloadCompletionDocs] = useState(false);
   const [emailLogin, setEmailLogin] = useState<string | null>(null);
+  const [tokenMagangMeta, setTokenMagangMeta] = useState<{
+    jurusan?: string;
+    kategoriMagang?: string;
+  } | null>(null);
   const [loadingPage, setLoadingPage] = useState(true);
 
   // Accordion states
@@ -117,6 +124,10 @@ export default function AkunPesertaPage() {
       if (token) {
         const payload = JSON.parse(atob(token.split(".")[1]));
         setEmailLogin(payload.email);
+        setTokenMagangMeta({
+          jurusan: payload.jurusan,
+          kategoriMagang: payload.kategoriMagang,
+        });
 
         if (FILE_BASE_URL) {
           fetch(`${FILE_BASE_URL}/panduan`, {
@@ -210,6 +221,11 @@ export default function AkunPesertaPage() {
       peserta?.mentor?.name || peserta?.mentorNama || "Belum Ditentukan"
     );
   }, [peserta]);
+
+  const isPkpa = useMemo(
+    () => isPkpaPeserta(peserta) || isPkpaPeserta(tokenMagangMeta),
+    [peserta, tokenMagangMeta],
+  );
 
   const handleToggleNotif = async () => {
     const nextState = !deviceNotif;
@@ -352,9 +368,16 @@ export default function AkunPesertaPage() {
         </div>
 
         <div className="min-w-0 space-y-0.5">
-          <h2 className="text-sm sm:text-lg font-bold text-slate-900 dark:text-white truncate">
-            {peserta?.nama || "Peserta Magang"}
-          </h2>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h2 className="text-sm sm:text-lg font-bold text-slate-900 dark:text-white truncate">
+              {peserta?.nama || "Peserta Magang"}
+            </h2>
+            {isPkpa && (
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-bold tracking-wide bg-violet-50 text-violet-700 border border-violet-200 dark:bg-violet-950/60 dark:text-violet-300 dark:border-violet-800 shrink-0">
+                PKPA
+              </span>
+            )}
+          </div>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
             Peserta Magang
           </p>
@@ -380,9 +403,16 @@ export default function AkunPesertaPage() {
           <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
             Informasi Magang
           </h3>
-          <span className="px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full text-[11px] sm:text-xs font-semibold bg-emerald-50 text-emerald-600 border border-emerald-200/70 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800/60">
-            Aktif
-          </span>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {isPkpa && (
+              <span className="px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full text-[11px] sm:text-xs font-bold bg-violet-50 text-violet-700 border border-violet-200 dark:bg-violet-950/60 dark:text-violet-300 dark:border-violet-800">
+                PKPA
+              </span>
+            )}
+            <span className="px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full text-[11px] sm:text-xs font-semibold bg-emerald-50 text-emerald-600 border border-emerald-200/70 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800/60">
+              Aktif
+            </span>
+          </div>
         </div>
 
         <div className="divide-y divide-slate-100 dark:divide-slate-700/70 text-xs sm:text-sm">

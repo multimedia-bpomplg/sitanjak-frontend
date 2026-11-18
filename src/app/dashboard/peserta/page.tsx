@@ -16,6 +16,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { PesertaDashboardSkeleton } from "@/components/dashboard/skeletons";
+import { isPkpaPeserta } from "@/lib/pesertaKategori";
 
 /* ================= TYPES ================= */
 
@@ -25,6 +26,8 @@ type Peserta = {
   email: string;
   wa: string;
   posisi: string;
+  jurusan?: string;
+  kategoriMagang?: "PKPA" | "Reguler";
   jenisKelamin: string;
   tempatLahir: string;
   tanggalLahir: string;
@@ -132,6 +135,10 @@ export default function PesertaDashboard() {
   const [pendaftaran, setPendaftaran] = useState<Pendaftaran | null>(null);
   const [emailLogin, setEmailLogin] = useState<string | null>(null);
   const [userNameLogin, setUserNameLogin] = useState<string | null>(null);
+  const [tokenMagangMeta, setTokenMagangMeta] = useState<{
+    jurusan?: string;
+    kategoriMagang?: string;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
@@ -155,6 +162,10 @@ export default function PesertaDashboard() {
       if (payload.name) {
         setUserNameLogin(String(payload.name).trim());
       }
+      setTokenMagangMeta({
+        jurusan: payload.jurusan,
+        kategoriMagang: payload.kategoriMagang,
+      });
     } else {
       console.error("Gagal parse token: email tidak ditemukan");
       setLoading(false);
@@ -384,15 +395,22 @@ export default function PesertaDashboard() {
 
   const displayNama = peserta?.nama || userNameLogin || "Peserta Magang";
   const firstName = displayNama.trim().split(" ")[0] || displayNama;
+  const isPkpa =
+    isPkpaPeserta(peserta) || isPkpaPeserta(tokenMagangMeta);
 
   return (
     <div className="space-y-5 sm:space-y-6">
       {/* ================= 1. TOP HEADER ================= */}
       <div className="flex items-start justify-between gap-3 pt-1">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white flex items-center gap-2 flex-wrap">
             <span>Halo, {firstName}</span>
             <span className="inline-block">👋</span>
+            {isPkpa && (
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] sm:text-xs font-bold tracking-wide bg-violet-50 text-violet-700 border border-violet-200 dark:bg-violet-950/60 dark:text-violet-300 dark:border-violet-800">
+                PKPA
+              </span>
+            )}
           </h1>
           <p className="text-xs sm:text-base text-slate-500 dark:text-slate-400 mt-1">
             Balai Besar POM di Palembang

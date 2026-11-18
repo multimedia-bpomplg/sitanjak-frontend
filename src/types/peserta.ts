@@ -6,6 +6,7 @@ export type Peserta = {
 
   posisi: string;
   jurusan?: string;
+  kategoriMagang?: "PKPA" | "Reguler";
   asal?: {
     jenis: string;
     nama: string;

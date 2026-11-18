@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   BookOpen,
   Briefcase,
@@ -16,6 +16,17 @@ import {
 } from "lucide-react";
 import SuratSelesaiUpload from "./SuratSelesaiUpload";
 import SertifikatUpload from "./SertifikatUpload";
+import { showToast } from "@/components/ui/toastDashboard";
+import { isMatchingMentorFormasi } from "@/lib/formasiMentor";
+import { isPkpaPeserta } from "@/lib/pesertaKategori";
+
+type MentorOption = {
+  _id: string;
+  name: string;
+  email?: string;
+  posisiMentor?: string;
+  status?: string;
+};
 
 export type SuperadminPesertaItem = {
   pendaftaranId: string;
@@ -25,11 +36,13 @@ export type SuperadminPesertaItem = {
   wa: string;
   posisi: string;
   jurusan?: string;
+  kategoriMagang?: "PKPA" | "Reguler";
   kategori?: string;
   mentor?: {
     _id?: string;
     name: string;
     email?: string;
+    posisiMentor?: string;
   } | null;
   statusMagang?: string;
   isTerdaftar?: boolean;
@@ -56,6 +69,90 @@ export default function SuperadminPesertaModal({
   onSuratSelesaiSuccess,
 }: Props) {
   const [activeTab, setActiveTab] = useState<TabKey>("profil");
+  const [mentors, setMentors] = useState<MentorOption[]>([]);
+  const [currentMentor, setCurrentMentor] = useState(peserta?.mentor || null);
+  const [editingMentor, setEditingMentor] = useState(false);
+  const [selectedMentorId, setSelectedMentorId] = useState(
+    peserta?.mentor?._id || "",
+  );
+  const [savingMentor, setSavingMentor] = useState(false);
+
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
+
+  useEffect(() => {
+    setCurrentMentor(peserta?.mentor || null);
+    setSelectedMentorId(peserta?.mentor?._id || "");
+  }, [peserta]);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token || !API_BASE) return;
+    fetch(`${API_BASE}/superadmin/mentor`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => (res.ok ? res.json() : []))
+      .then((list) => {
+        if (Array.isArray(list)) setMentors(list);
+      })
+      .catch(() => {});
+  }, [API_BASE]);
+
+  const matchingMentors = useMemo(
+    () =>
+      mentors.filter(
+        (m) =>
+          m.status?.toLowerCase() !== "nonaktif" &&
+          isMatchingMentorFormasi(peserta?.posisi, m.posisiMentor),
+      ),
+    [mentors, peserta?.posisi],
+  );
+
+  const handleSaveMentor = async () => {
+    if (!selectedMentorId) {
+      showToast.error("Pilih mentor terlebih dahulu");
+      return;
+    }
+    try {
+      setSavingMentor(true);
+      const token = localStorage.getItem("token");
+      const res = await fetch(
+        `${API_BASE}/admin/pendaftaran/${peserta.pendaftaranId}/mentor-peserta`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            email: peserta.email,
+            mentorId: selectedMentorId,
+          }),
+        },
+      );
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(json?.message || "Gagal menetapkan mentor");
+      }
+      const chosen = matchingMentors.find((m) => m._id === selectedMentorId);
+      if (chosen) {
+        setCurrentMentor({
+          _id: chosen._id,
+          name: chosen.name,
+          email: chosen.email,
+          posisiMentor: chosen.posisiMentor,
+        });
+      }
+      setEditingMentor(false);
+      showToast.success("Mentor peserta berhasil ditetapkan");
+      onSuratSelesaiSuccess?.();
+    } catch (err) {
+      showToast.error(
+        err instanceof Error ? err.message : "Gagal menetapkan mentor",
+      );
+    } finally {
+      setSavingMentor(false);
+    }
+  };
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -89,9 +186,16 @@ export default function SuperadminPesertaModal({
               {initials}
             </div>
             <div className="min-w-0">
-              <h2 className="text-lg sm:text-xl font-bold truncate">
-                {peserta?.nama}
-              </h2>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-lg sm:text-xl font-bold truncate">
+                  {peserta?.nama}
+                </h2>
+                {isPkpaPeserta(peserta) && (
+                  <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-white/20 border border-white/30 text-white shrink-0">
+                    PKPA
+                  </span>
+                )}
+              </div>
               <p className="text-xs text-sky-100 truncate">
                 {peserta?.email} • {peserta?.posisi || "-"}
               </p>
@@ -183,31 +287,103 @@ export default function SuperadminPesertaModal({
                 />
               </div>
 
-              <div className="sm:col-span-2 p-4 rounded-2xl border border-sky-200 dark:border-sky-800/70 bg-sky-50/70 dark:bg-sky-950/30 flex items-start gap-3">
-                <div className="w-9 h-9 rounded-xl bg-[#0284c7] text-white flex items-center justify-center shrink-0">
-                  <UserCheck className="w-4 h-4" />
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-[#0284c7] dark:text-sky-300">
-                    Mentor Pembimbing
-                  </p>
-                  {peserta?.mentor ? (
-                    <>
-                      <p className="text-sm font-bold text-slate-900 dark:text-white mt-0.5">
-                        {peserta.mentor.name}
+              <div className="sm:col-span-2 p-4 rounded-2xl border border-sky-200 dark:border-sky-800/70 bg-sky-50/70 dark:bg-sky-950/30 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-[#0284c7] text-white flex items-center justify-center shrink-0">
+                      <UserCheck className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-[#0284c7] dark:text-sky-300">
+                        Mentor Pembimbing
                       </p>
-                      {peserta.mentor.email && (
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
-                          {peserta.mentor.email}
+                      {currentMentor ? (
+                        <>
+                          <p className="text-sm font-bold text-slate-900 dark:text-white mt-0.5">
+                            {currentMentor.name}
+                          </p>
+                          {currentMentor.email && (
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                              {currentMentor.email}
+                            </p>
+                          )}
+                        </>
+                      ) : (
+                        <p className="text-sm font-semibold text-amber-600 dark:text-amber-400 mt-0.5">
+                          Belum ditetapkan
                         </p>
                       )}
-                    </>
-                  ) : (
-                    <p className="text-sm font-semibold text-amber-600 dark:text-amber-400 mt-0.5">
-                      Belum ditetapkan
-                    </p>
+                    </div>
+                  </div>
+
+                  {!editingMentor && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const isMatch =
+                          currentMentor?._id &&
+                          matchingMentors.some(
+                            (m) => m._id === currentMentor._id,
+                          );
+                        setSelectedMentorId(isMatch ? currentMentor!._id! : "");
+                        setEditingMentor(true);
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-[#0284c7] hover:bg-sky-700 text-white shadow-xs transition shrink-0"
+                    >
+                      <UserCheck className="w-3.5 h-3.5" />
+                      {currentMentor ? "Ubah Mentor" : "Tetapkan Mentor"}
+                    </button>
                   )}
                 </div>
+
+                {editingMentor && (
+                  <div className="pt-2 border-t border-sky-200/70 dark:border-sky-800/60 space-y-2.5">
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-200">
+                      Pilih Mentor (Formasi: {peserta?.posisi || "-"})
+                    </label>
+                    <select
+                      value={selectedMentorId}
+                      onChange={(e) => setSelectedMentorId(e.target.value)}
+                      disabled={matchingMentors.length === 0}
+                      className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-xs sm:text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40 focus:border-[#0284c7] disabled:opacity-60"
+                    >
+                      <option value="">
+                        {matchingMentors.length === 0
+                          ? "-- Tidak ada mentor untuk formasi ini --"
+                          : "-- Pilih Mentor --"}
+                      </option>
+                      {matchingMentors.map((m) => (
+                        <option key={m._id} value={m._id}>
+                          {m.name}
+                          {m.posisiMentor ? ` — ${m.posisiMentor}` : ""}
+                        </option>
+                      ))}
+                    </select>
+                    {matchingMentors.length === 0 && (
+                      <p className="text-[11px] text-amber-600 dark:text-amber-400">
+                        Belum ada mentor aktif yang terdaftar untuk formasi{" "}
+                        <b>{peserta?.posisi || "-"}</b>.
+                      </p>
+                    )}
+                    <div className="flex justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setEditingMentor(false)}
+                        className="px-3 py-1.5 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 transition"
+                      >
+                        Batal
+                      </button>
+                      <button
+                        type="button"
+                        disabled={savingMentor || matchingMentors.length === 0}
+                        onClick={handleSaveMentor}
+                        className="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-[#0284c7] hover:bg-sky-700 text-white shadow-xs transition disabled:opacity-60"
+                      >
+                        {savingMentor ? "Menyimpan..." : "Simpan Mentor"}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}

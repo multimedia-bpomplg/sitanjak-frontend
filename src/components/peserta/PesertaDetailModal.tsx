@@ -16,6 +16,7 @@ import {
   X,
 } from "lucide-react";
 import type { Peserta } from "@/types/peserta";
+import { isPkpaPeserta } from "@/lib/pesertaKategori";
 
 function getInitials(name = "P"): string {
   return (
@@ -106,6 +107,11 @@ export default function PesertaDetailModal({
                 >
                   {peserta.nama}
                 </h2>
+                {isPkpaPeserta(peserta) && (
+                  <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-white/25 border border-white/30 text-white">
+                    PKPA
+                  </span>
+                )}
                 {peserta.kategori && (
                   <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-white/20 border border-white/25 text-white capitalize">
                     {peserta.kategori}

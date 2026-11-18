@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import PesertaDetailModal from "@/components/peserta/PesertaDetailModal";
 import { TablePageSkeleton } from "@/components/dashboard/skeletons";
+import { isPkpaPeserta } from "@/lib/pesertaKategori";
 import type { Peserta } from "@/types/peserta";
 
 type InternshipPhase =
@@ -470,9 +471,16 @@ export default function MentorPesertaPage() {
                             {getInitials(p.nama)}
                           </div>
                           <div className="min-w-0">
-                            <p className="font-bold text-slate-900 dark:text-white truncate">
-                              {p.nama}
-                            </p>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <p className="font-bold text-slate-900 dark:text-white truncate">
+                                {p.nama}
+                              </p>
+                              {isPkpaPeserta(p) && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-violet-50 text-violet-700 border border-violet-200 dark:bg-violet-950/60 dark:text-violet-300 dark:border-violet-800 shrink-0">
+                                  PKPA
+                                </span>
+                              )}
+                            </div>
                             {p.asal?.nama ? (
                               <p className="inline-flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 truncate max-w-56">
                                 <Building2 className="w-3 h-3 shrink-0 text-slate-400" />

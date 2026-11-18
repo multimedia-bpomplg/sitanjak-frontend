@@ -21,6 +21,7 @@ import {
 import PaginationFooter from "@/components/dashboard/PaginationFooter";
 import { TablePageSkeleton } from "@/components/dashboard/skeletons";
 import { showToast } from "@/components/ui/toastDashboard";
+import { isPkpaPeserta } from "@/lib/pesertaKategori";
 
 /* ================= TYPES ================= */
 
@@ -548,9 +549,16 @@ export default function BuatAkunPesertaSuperadminPage() {
                           {getInitials(item.name)}
                         </div>
                         <div className="min-w-0">
-                          <p className="font-semibold text-slate-800 dark:text-slate-100 group-hover:text-[#0284c7] dark:group-hover:text-sky-400 truncate max-w-52 transition">
-                            {item.name}
-                          </p>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <p className="font-semibold text-slate-800 dark:text-slate-100 group-hover:text-[#0284c7] dark:group-hover:text-sky-400 truncate max-w-52 transition">
+                              {item.name}
+                            </p>
+                            {isPkpaPeserta(item) && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-violet-50 text-violet-700 border border-violet-200 dark:bg-violet-950/60 dark:text-violet-300 dark:border-violet-800 shrink-0">
+                                PKPA
+                              </span>
+                            )}
+                          </div>
                           {item.jurusan && item.jurusan !== "-" ? (
                             <p className="text-[11px] text-slate-400 inline-flex items-center gap-1 truncate max-w-52">
                               <GraduationCap className="w-3 h-3 shrink-0" />

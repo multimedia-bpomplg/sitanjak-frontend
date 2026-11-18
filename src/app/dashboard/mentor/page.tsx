@@ -24,6 +24,7 @@ import {
 import AnnouncementBox from "@/components/AnnouncementBox";
 import PesertaDetailModal from "@/components/peserta/PesertaDetailModal";
 import { MentorDashboardSkeleton } from "@/components/dashboard/skeletons";
+import { isPkpaPeserta } from "@/lib/pesertaKategori";
 import type { Peserta } from "@/types/peserta";
 
 /* ================= TYPES ================= */
@@ -1061,9 +1062,16 @@ function PesertaBimbinganCard({
             {getInitials(peserta.nama)}
           </div>
           <div className="min-w-0">
-            <h3 className="text-base font-bold text-slate-900 dark:text-white truncate">
-              {peserta.nama}
-            </h3>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white truncate">
+                {peserta.nama}
+              </h3>
+              {isPkpaPeserta(peserta) && (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-violet-50 text-violet-700 border border-violet-200 dark:bg-violet-950/60 dark:text-violet-300 dark:border-violet-800 shrink-0">
+                  PKPA
+                </span>
+              )}
+            </div>
             <p className="text-xs font-medium text-slate-600 dark:text-slate-300 truncate">
               {peserta.posisi}
               {peserta.jurusan ? ` • ${peserta.jurusan}` : ""}
