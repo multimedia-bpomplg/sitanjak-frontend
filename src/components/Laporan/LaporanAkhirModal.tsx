@@ -16,10 +16,14 @@ import {
 import { showToast } from "@/components/ui/toastDashboard";
 
 type Props = {
+  isPkpa?: boolean;
   onClose: (submitted?: boolean) => void;
 };
 
-export default function LaporanAkhirUploadModal({ onClose }: Props) {
+export default function LaporanAkhirUploadModal({
+  isPkpa = false,
+  onClose,
+}: Props) {
   const [file, setFile] = useState<File | null>(null);
   const [lampiran1, setLampiran1] = useState<File | null>(null);
   const [lampiran2, setLampiran2] = useState<File | null>(null);
@@ -102,9 +106,16 @@ export default function LaporanAkhirUploadModal({ onClose }: Props) {
       return;
     }
 
-    if (!lampiran1 && !lampiran2) {
+    if (isPkpa && !lampiran2) {
       showToast.error(
-        "Minimal salah satu surat evaluasi harus diupload (Reguler atau TKPA)",
+        "Surat Evaluasi BBPOM PKPA & Surat Pernyataan Diri wajib diunggah",
+      );
+      return;
+    }
+
+    if (!isPkpa && !lampiran1) {
+      showToast.error(
+        "Surat Evaluasi BBPOM & Surat Pernyataan Diri wajib diunggah",
       );
       return;
     }
@@ -121,8 +132,8 @@ export default function LaporanAkhirUploadModal({ onClose }: Props) {
       const token = localStorage.getItem("token");
       const formData = new FormData();
       formData.append("file", file);
-      if (lampiran1) formData.append("lampiran1", lampiran1);
-      if (lampiran2) formData.append("lampiran2", lampiran2);
+      if (!isPkpa && lampiran1) formData.append("lampiran1", lampiran1);
+      if (isPkpa && lampiran2) formData.append("lampiran2", lampiran2);
 
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/laporan-akhir/upload`,
@@ -162,8 +173,9 @@ export default function LaporanAkhirUploadModal({ onClose }: Props) {
     return (bytes / (1024 * 1024)).toFixed(1) + " MB";
   };
 
+  const hasRequiredLampiran = isPkpa ? Boolean(lampiran2) : Boolean(lampiran1);
   const canSubmit =
-    Boolean(file) && Boolean(lampiran1 || lampiran2) && agree && !uploading;
+    Boolean(file) && hasRequiredLampiran && agree && !uploading;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/55 backdrop-blur-xs p-3 sm:p-5">
@@ -306,129 +318,134 @@ export default function LaporanAkhirUploadModal({ onClose }: Props) {
                   <span className="text-red-500">*</span>
                 </label>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  Unggah minimal salah satu sesuai kategori magang Anda (Reguler
-                  atau TKPA).
+                  {isPkpa
+                    ? "Unggah dokumen evaluasi & surat pernyataan khusus peserta PKPA."
+                    : "Unggah dokumen evaluasi & surat pernyataan untuk peserta Reguler."}
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3">
                 {/* LAMPIRAN 1: REGULER */}
-                <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3.5 flex flex-col justify-between gap-3">
-                  <div>
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/60 text-[#1D64F2] dark:text-blue-400 text-[10px] font-bold">
-                        Reguler
-                      </span>
-                      <span className="text-[11px] text-slate-400">
-                        Maks. 2 MB (PDF)
-                      </span>
-                    </div>
-                    <p
-                      className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 mt-2 leading-snug"
-                      style={{ fontWeight: 700 }}
-                    >
-                      Surat Evaluasi BBPOM & Surat Pernyataan Diri
-                    </p>
-                  </div>
-
-                  <input
-                    ref={lampiran1Ref}
-                    type="file"
-                    accept="application/pdf"
-                    onChange={(e) => handleLampiranChange(e, setLampiran1)}
-                    className="hidden"
-                  />
-
-                  {lampiran1 ? (
-                    <div className="rounded-lg bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/70 px-3 py-2 flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                        <span className="text-xs font-semibold text-emerald-800 dark:text-emerald-200 truncate">
-                          {lampiran1.name}
+                {!isPkpa && (
+                  <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3.5 flex flex-col justify-between gap-3">
+                    <div>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/60 text-[#1D64F2] dark:text-blue-400 text-[10px] font-bold">
+                          Reguler
+                        </span>
+                        <span className="text-[11px] text-slate-400">
+                          Maks. 2 MB (PDF)
                         </span>
                       </div>
+                      <p
+                        className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 mt-2 leading-snug"
+                        style={{ fontWeight: 700 }}
+                      >
+                        Surat Evaluasi BBPOM &amp; Surat Pernyataan Diri
+                      </p>
+                    </div>
+
+                    <input
+                      ref={lampiran1Ref}
+                      type="file"
+                      accept="application/pdf"
+                      onChange={(e) => handleLampiranChange(e, setLampiran1)}
+                      className="hidden"
+                    />
+
+                    {lampiran1 ? (
+                      <div className="rounded-lg bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/70 px-3 py-2 flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                          <span className="text-xs font-semibold text-emerald-800 dark:text-emerald-200 truncate">
+                            {lampiran1.name}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setLampiran1(null);
+                            if (lampiran1Ref.current)
+                              lampiran1Ref.current.value = "";
+                          }}
+                          className="text-slate-400 hover:text-red-600 shrink-0"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
                       <button
                         type="button"
-                        onClick={() => {
-                          setLampiran1(null);
-                          if (lampiran1Ref.current)
-                            lampiran1Ref.current.value = "";
-                        }}
-                        className="text-slate-400 hover:text-red-600 shrink-0"
+                        onClick={() => lampiran1Ref.current?.click()}
+                        className="w-full py-2 px-3 rounded-lg border border-dashed border-slate-300 dark:border-slate-700 hover:border-[#1D64F2] text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-[#1D64F2] flex items-center justify-center gap-1.5 transition"
                       >
-                        <X className="w-4 h-4" />
+                        <Paperclip className="w-3.5 h-3.5" />
+                        <span>Pilih File PDF</span>
                       </button>
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => lampiran1Ref.current?.click()}
-                      className="w-full py-2 px-3 rounded-lg border border-dashed border-slate-300 dark:border-slate-700 hover:border-[#1D64F2] text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-[#1D64F2] flex items-center justify-center gap-1.5 transition"
-                    >
-                      <Paperclip className="w-3.5 h-3.5" />
-                      <span>Pilih File PDF</span>
-                    </button>
-                  )}
-                </div>
-
-                {/* LAMPIRAN 2: TKPA */}
-                <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3.5 flex flex-col justify-between gap-3">
-                  <div>
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[10px] font-bold">
-                        Khusus TKPA
-                      </span>
-                      <span className="text-[11px] text-slate-400">
-                        Maks. 2 MB (PDF)
-                      </span>
-                    </div>
-                    <p
-                      className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 mt-2 leading-snug"
-                      style={{ fontWeight: 700 }}
-                    >
-                      Surat Evaluasi BBPOM TKPA & Surat Pernyataan Diri
-                    </p>
+                    )}
                   </div>
+                )}
 
-                  <input
-                    ref={lampiran2Ref}
-                    type="file"
-                    accept="application/pdf"
-                    onChange={(e) => handleLampiranChange(e, setLampiran2)}
-                    className="hidden"
-                  />
-
-                  {lampiran2 ? (
-                    <div className="rounded-lg bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/70 px-3 py-2 flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                        <span className="text-xs font-semibold text-emerald-800 dark:text-emerald-200 truncate">
-                          {lampiran2.name}
+                {/* LAMPIRAN 2: PKPA */}
+                {isPkpa && (
+                  <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3.5 flex flex-col justify-between gap-3">
+                    <div>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="px-2 py-0.5 rounded-md bg-violet-50 dark:bg-violet-950/60 text-violet-700 dark:text-violet-300 text-[10px] font-bold">
+                          Khusus PKPA
+                        </span>
+                        <span className="text-[11px] text-slate-400">
+                          Maks. 2 MB (PDF)
                         </span>
                       </div>
+                      <p
+                        className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 mt-2 leading-snug"
+                        style={{ fontWeight: 700 }}
+                      >
+                        Surat Evaluasi BBPOM PKPA &amp; Surat Pernyataan Diri
+                      </p>
+                    </div>
+
+                    <input
+                      ref={lampiran2Ref}
+                      type="file"
+                      accept="application/pdf"
+                      onChange={(e) => handleLampiranChange(e, setLampiran2)}
+                      className="hidden"
+                    />
+
+                    {lampiran2 ? (
+                      <div className="rounded-lg bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/70 px-3 py-2 flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                          <span className="text-xs font-semibold text-emerald-800 dark:text-emerald-200 truncate">
+                            {lampiran2.name}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setLampiran2(null);
+                            if (lampiran2Ref.current)
+                              lampiran2Ref.current.value = "";
+                          }}
+                          className="text-slate-400 hover:text-red-600 shrink-0"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
                       <button
                         type="button"
-                        onClick={() => {
-                          setLampiran2(null);
-                          if (lampiran2Ref.current)
-                            lampiran2Ref.current.value = "";
-                        }}
-                        className="text-slate-400 hover:text-red-600 shrink-0"
+                        onClick={() => lampiran2Ref.current?.click()}
+                        className="w-full py-2 px-3 rounded-lg border border-dashed border-slate-300 dark:border-slate-700 hover:border-[#1D64F2] text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-[#1D64F2] flex items-center justify-center gap-1.5 transition"
                       >
-                        <X className="w-4 h-4" />
+                        <Paperclip className="w-3.5 h-3.5" />
+                        <span>Pilih File PDF</span>
                       </button>
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => lampiran2Ref.current?.click()}
-                      className="w-full py-2 px-3 rounded-lg border border-dashed border-slate-300 dark:border-slate-700 hover:border-[#1D64F2] text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-[#1D64F2] flex items-center justify-center gap-1.5 transition"
-                    >
-                      <Paperclip className="w-3.5 h-3.5" />
-                      <span>Pilih File PDF</span>
-                    </button>
-                  )}
-                </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -514,11 +531,11 @@ export default function LaporanAkhirUploadModal({ onClose }: Props) {
               <p className="font-bold text-slate-800 dark:text-slate-200 truncate">
                 📄 {file?.name}
               </p>
-              {lampiran1 && (
+              {!isPkpa && lampiran1 && (
                 <p className="truncate">📎 Reguler: {lampiran1.name}</p>
               )}
-              {lampiran2 && (
-                <p className="truncate">📎 TKPA: {lampiran2.name}</p>
+              {isPkpa && lampiran2 && (
+                <p className="truncate">📎 PKPA: {lampiran2.name}</p>
               )}
             </div>
 

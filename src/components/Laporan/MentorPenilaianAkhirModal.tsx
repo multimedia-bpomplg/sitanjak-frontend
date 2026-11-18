@@ -47,6 +47,7 @@ export type PesertaPenilaianItem = {
   tanggalSelesaiMagang?: string;
   statusMagang?: string;
   mentorName?: string;
+  mentorNip?: string;
   absensiRef?: {
     totalHari: number;
     totalHariKerja?: number;
@@ -165,7 +166,9 @@ export default function MentorPenilaianAkhirModal({
   );
   const [kesan, setKesan] = useState(existing?.kesan || "");
   const [saran, setSaran] = useState(existing?.saran || "");
-  const [penilaiNip, setPenilaiNip] = useState(existing?.penilaiNip || "");
+  const [penilaiNip, setPenilaiNip] = useState(
+    existing?.penilaiNip || peserta.mentorNip || "",
+  );
   const [saving, setSaving] = useState(false);
 
   const handleScoreChange = (key: AspectKey, rawVal: string) => {
@@ -716,7 +719,7 @@ export default function MentorPenilaianAkhirModal({
             ) : (
               <div className="space-y-1.5">
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
-                  NIP Pembimbing (Opsional — untuk ditampilkan di PDF peserta)
+                  NIP Pembimbing (Terisi otomatis dari profil akun mentor)
                 </label>
                 <input
                   type="text"

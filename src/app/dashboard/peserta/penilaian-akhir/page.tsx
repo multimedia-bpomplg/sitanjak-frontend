@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { PesertaDashboardSkeleton } from "@/components/dashboard/skeletons";
 import { showToast } from "@/components/ui/toastDashboard";
+import { isPkpaPeserta } from "@/lib/pesertaKategori";
 
 /* ================= TYPES ================= */
 
@@ -46,6 +47,7 @@ type PesertaProfile = {
   mulai: string;
   selesai: string;
   mentorNama: string;
+  mentorNip: string;
 };
 
 /* ================= HELPERS ================= */
@@ -114,6 +116,7 @@ async function loadImageAsDataUrl(src: string): Promise<LoadedLogoInfo | null> {
 export default function PenilaianAkhirPage() {
   const [loading, setLoading] = useState(true);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [isPkpa, setIsPkpa] = useState(false);
   const [peserta, setPeserta] = useState<PesertaProfile>({
     nama: "Peserta Magang",
     posisi: "Peserta Magang BBPOM",
@@ -122,6 +125,7 @@ export default function PenilaianAkhirPage() {
     mulai: "-",
     selesai: "-",
     mentorNama: "-",
+    mentorNip: "",
   });
   const [penilaian, setPenilaian] = useState<PenilaianAkhirData | null>(null);
 
@@ -132,9 +136,11 @@ export default function PenilaianAkhirPage() {
       if (!token) return;
 
       let email = "";
+      let detectedPkpa = false;
       try {
         const payload = JSON.parse(atob(token.split(".")[1]));
         email = payload?.email || "";
+        detectedPkpa = isPkpaPeserta(payload);
       } catch {
         // ignore parse failure
       }
@@ -161,15 +167,18 @@ export default function PenilaianAkhirPage() {
                 email?: string;
                 nama?: string;
                 posisi?: string;
+                jurusan?: string;
+                kategoriMagang?: string;
                 asal?: { jenis?: string; nama?: string };
                 tanggalMulaiMagang?: string;
                 tanggalSelesaiMagang?: string;
-                mentor?: { name?: string };
+                mentor?: { name?: string; nip?: string };
                 mentorNama?: string;
               }>
             | undefined
         )?.find((p) => p.email?.toLowerCase() === email.toLowerCase());
         if (found) {
+          detectedPkpa = detectedPkpa || isPkpaPeserta(found);
           setPeserta({
             nama: found.nama || "Peserta Magang",
             posisi: found.posisi || "Peserta Magang BBPOM",
@@ -178,9 +187,11 @@ export default function PenilaianAkhirPage() {
             mulai: found.tanggalMulaiMagang || "-",
             selesai: found.tanggalSelesaiMagang || "-",
             mentorNama: found.mentor?.name || found.mentorNama || "-",
+            mentorNip: found.mentor?.nip || "",
           });
         }
       }
+      setIsPkpa(detectedPkpa);
 
       if (penilaianRes && penilaianRes.ok) {
         const penilaianJson = await penilaianRes.json().catch(() => null);
@@ -294,50 +305,59 @@ export default function PenilaianAkhirPage() {
       doc.line(marginLeft, y + 1.1, pageWidth - marginLeft, y + 1.1);
       y += 9;
 
-      // Judul Resmi 3 Baris (sesuai format Lembar Penilaian)
+      // Judul Resmi (PKPA: 4 baris, Reguler: 3 baris)
       doc.setFont("times", "bold");
       doc.setFontSize(11);
-      doc.text("LEMBAR PENILAIAN", pageWidth / 2, y, { align: "center" });
+      const titleLines = isPkpa
+        ? [
+            "LEMBAR PENILAIAN",
+            "PRAKTIK KERJA PROFESI APOTEKER",
+            "PROGRAM PENDIDIKAN PROFESI",
+            "DI BADAN PENGAWAS OBAT DAN MAKANAN RI",
+          ]
+        : [
+            "LEMBAR PENILAIAN",
+            "PRAKTIK KERJA LAPANGAN (PKL)/MAGANG",
+            "DI BADAN PENGAWAS OBAT DAN MAKANAN RI",
+          ];
+      titleLines.forEach((line) => {
+        doc.text(line, pageWidth / 2, y, { align: "center" });
+        y += 5;
+      });
       y += 5;
-      doc.text(
-        "PRAKTIK KERJA LAPANGAN (PKL)/MAGANG",
-        pageWidth / 2,
-        y,
-        { align: "center" },
-      );
-      y += 5;
-      doc.text(
-        "DI BADAN PENGAWAS OBAT DAN MAKANAN RI",
-        pageWidth / 2,
-        y,
-        { align: "center" },
-      );
-      y += 10;
 
       // Identitas Peserta
-      const infoRows: Array<[string, string]> = [
-        ["Nama", peserta.nama],
-        [peserta.asalJenis || "Universitas", peserta.asalNama || "-"],
-        ["Unit Kerja PKL/Magang", peserta.posisi],
-        [
-          "Periode Magang",
-          `${formatIndoDate(peserta.mulai)} - ${formatIndoDate(peserta.selesai)}`,
-        ],
-      ];
+      const infoRows: Array<[string, string]> = isPkpa
+        ? [
+            ["Nama", peserta.nama],
+            ["Universitas", peserta.asalNama || "-"],
+            ["Unit Kerja PKPA", peserta.posisi],
+          ]
+        : [
+            ["Nama", peserta.nama],
+            [peserta.asalJenis || "Universitas", peserta.asalNama || "-"],
+            ["Unit Kerja PKL/Magang", peserta.posisi],
+            [
+              "Periode Magang",
+              `${formatIndoDate(peserta.mulai)} - ${formatIndoDate(peserta.selesai)}`,
+            ],
+          ];
 
+      const colonOffset = 44;
+      const valOffset = 48;
       doc.setFontSize(10.5);
       infoRows.forEach(([label, value]) => {
         doc.setFont("times", "normal");
         doc.text(label, marginLeft, y);
-        doc.text(":", marginLeft + 44, y);
-        const valLines = doc.splitTextToSize(value, contentWidth - 48);
-        doc.text(valLines, marginLeft + 48, y);
+        doc.text(":", marginLeft + colonOffset, y);
+        const valLines = doc.splitTextToSize(value, contentWidth - valOffset);
+        doc.text(valLines, marginLeft + valOffset, y);
         y += Math.max(1, valLines.length) * 5.2;
       });
       y += 3;
 
-      // Tabel Penilaian
-      const colWidths = [12, 80, 26, 52]; // Total = 170mm
+      // Tabel Penilaian (Total = 170mm)
+      const colWidths = [12, 80, 26, 52];
       const tableRows: Array<{
         no: string;
         rincian: string;
@@ -417,7 +437,7 @@ export default function PenilaianAkhirPage() {
 
       doc.setFontSize(10);
       doc.setDrawColor(15, 23, 42);
-      doc.setLineWidth(0.25);
+      doc.setLineWidth(isPkpa ? 0.35 : 0.25);
 
       tableRows.forEach((row, idx) => {
         doc.setFont("times", row.bold ? "bold" : "normal");
@@ -507,7 +527,7 @@ export default function PenilaianAkhirPage() {
         y += 16;
       }
 
-      // Blok Tanda Tangan di kanan bawah
+      // Blok Tanda Tangan di kanan bawah (Reguler & PKPA)
       const signX = pageWidth - marginLeft - 62;
       const dateStr = penilaian?.tanggalPenilaian
         ? formatIndoDate(penilaian.tanggalPenilaian)
@@ -519,7 +539,11 @@ export default function PenilaianAkhirPage() {
       doc.setFont("times", "normal");
       doc.text(`Palembang, ${dateStr}`, signX, y);
       y += 5;
-      doc.text("Pembimbing Unit PKL/Magang,", signX, y);
+      doc.text(
+        isPkpa ? "Pembimbing Unit PKPA," : "Pembimbing Unit PKL/Magang,",
+        signX,
+        y,
+      );
       y += 22;
       const signName =
         penilaian?.penilaiNama ||
@@ -528,13 +552,17 @@ export default function PenilaianAkhirPage() {
           : "                              ");
       doc.text(`( ${signName} )`, signX, y);
       y += 5;
-      doc.text(
-        penilaian?.penilaiNip ? `NIP. ${penilaian.penilaiNip}` : "NIP.",
-        signX,
-        y,
-      );
+      const signNip =
+        penilaian?.penilaiNip?.trim() ||
+        (peserta.mentorNip && peserta.mentorNip !== "-"
+          ? peserta.mentorNip
+          : "");
+      doc.text(signNip ? `NIP. ${signNip}` : "NIP.", signX, y);
 
-      const safeFileName = `Penilaian_Akhir_Magang_${peserta.nama.replace(/[^a-zA-Z0-9]+/g, "_")}.pdf`;
+      const filePrefix = isPkpa
+        ? "Penilaian_Akhir_PKPA"
+        : "Penilaian_Akhir_Magang";
+      const safeFileName = `${filePrefix}_${peserta.nama.replace(/[^a-zA-Z0-9]+/g, "_")}.pdf`;
       doc.save(safeFileName);
       showToast.success("Penilaian Akhir Magang (PDF) berhasil diunduh");
     } catch (error) {
@@ -597,9 +625,20 @@ export default function PenilaianAkhirPage() {
             <ChevronLeft className="w-5 h-5" />
           </Link>
           <div className="min-w-0">
-            <h1 className="text-lg sm:text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-snug">
-              Penilaian Akhir Magang
-            </h1>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-lg sm:text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-snug">
+                Penilaian Akhir Magang
+              </h1>
+              <span
+                className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                  isPkpa
+                    ? "bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-950/50 dark:text-violet-300 dark:border-violet-800"
+                    : "bg-blue-50 text-[#1D64F2] border-blue-200 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-800"
+                }`}
+              >
+                {isPkpa ? "Khusus PKPA" : "Reguler"}
+              </span>
+            </div>
             <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
               Rekapitulasi nilai kedisiplinan, sikap kerja, dan kemampuan selama
               program magang di BBPOM di Palembang.

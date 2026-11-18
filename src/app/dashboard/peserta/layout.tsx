@@ -95,6 +95,7 @@ export default function PesertaLayout({
       icon: ClipboardList,
       isActive:
         pathname.startsWith("/dashboard/peserta/laporan-akhir") ||
+        pathname.startsWith("/dashboard/peserta/evaluasi") ||
         pathname.startsWith("/dashboard/peserta/feedback") ||
         pathname.startsWith("/dashboard/peserta/penilaian-akhir"),
     },
