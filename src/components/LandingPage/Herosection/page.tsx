@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { plusJakarta, caveat } from '@/lib/font';
@@ -10,6 +11,8 @@ import {
   HiOutlineBriefcase,
   HiOutlineChartBar,
 } from "react-icons/hi";
+
+const DEFAULT_HERO_IMAGE = "/images/assets-new/orang_landingpage.png";
 
 
 
@@ -35,6 +38,32 @@ const featureCards = [
 ];
 
 export default function HeroSection() {
+  const [heroImgSrc, setHeroImgSrc] = useState<string>(DEFAULT_HERO_IMAGE);
+
+  useEffect(() => {
+    let active = true;
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || "";
+    if (!apiBase) return;
+
+    fetch(`${apiBase}/hero-setting`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => {
+        if (!active) return;
+        if (json?.data?.isCustom && json?.data?.imageUrl) {
+          setHeroImgSrc(`${apiBase}${json.data.imageUrl}`);
+        } else {
+          setHeroImgSrc(DEFAULT_HERO_IMAGE);
+        }
+      })
+      .catch(() => {
+        // fallback ke gambar default
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
   return (
     <section
       className={`${plusJakarta.className} relative w-full overflow-hidden bg-white pt-4 lg:pt-8 pb-12 lg:pb-0`}
@@ -131,10 +160,15 @@ export default function HeroSection() {
           {/* GAMBAR KARAKTER UTAMA - Diturunkan & diperbesar agar ter-crop rapi di batas bawah seperti referensi */}
           <div className="relative z-10 w-[320px] sm:w-[390px] lg:w-[480px] xl:w-[520px] lg:-ml-10 shrink-0 flex items-end justify-center lg:-mb-18 xl:-mb-22">
             <Image
-              src="/images/assets-new/orang_landingpage.png"
+              src={heroImgSrc}
               alt="Peserta Magang BBPOM Palembang"
               width={650}
               height={740}
+              onError={() => {
+                if (heroImgSrc !== DEFAULT_HERO_IMAGE) {
+                  setHeroImgSrc(DEFAULT_HERO_IMAGE);
+                }
+              }}
               className="w-full h-auto object-contain object-bottom drop-shadow-[0_16px_28px_rgba(11,27,61,0.12)]"
               priority
             />

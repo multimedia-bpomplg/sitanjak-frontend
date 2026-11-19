@@ -19,6 +19,7 @@ import {
   ScanFace,
   BookOpen,
   Award,
+  Image as ImageIcon,
   LucideIcon,
 } from "lucide-react";
 
@@ -76,49 +77,56 @@ export const ROLE_NAVIGATION_CONFIG: Record<RoleType, RoleConfig> = {
         sectionTitle: "MANAJEMEN MAGANG",
         items: [
           {
-            title: "Pendaftaran",
+            title: "Manajemen Magang",
             href: "/dashboard/superadmin/ViewPendaftaran",
             icon: ClipboardList,
-          },
-          {
-            title: "Kelola Kuota",
-            href: "/dashboard/superadmin/KelolaKuota",
-            icon: SlidersHorizontal,
-          },
-          {
-            title: "Data Peserta",
-            href: "/dashboard/superadmin/ViewPeserta",
-            icon: Users,
-          },
-          {
-            title: "Logbook Harian",
-            href: "/dashboard/superadmin/ViewLogbook",
-            icon: BookOpenCheck,
-          },
-          {
-            title: "Absensi Kehadiran",
-            href: "/dashboard/superadmin/ViewAbsensi",
-            icon: ScanFace,
-          },
-          {
-            title: "Laporan Akhir",
-            href: "/dashboard/superadmin/ViewLaporanAkhir",
-            icon: GraduationCap,
-          },
-          {
-            title: "Penilaian Akhir",
-            href: "/dashboard/superadmin/ViewPenilaianAkhir",
-            icon: Award,
-          },
-          {
-            title: "Evaluasi & Pernyataan",
-            href: "/dashboard/superadmin/ViewEvaluasi",
-            icon: FileSignature,
-          },
-          {
-            title: "Feedback & Ulasan",
-            href: "/dashboard/superadmin/ViewFeedback",
-            icon: MessageSquareHeart,
+            children: [
+              {
+                title: "Pendaftaran",
+                href: "/dashboard/superadmin/ViewPendaftaran",
+                icon: ClipboardList,
+              },
+              {
+                title: "Kelola Kuota",
+                href: "/dashboard/superadmin/KelolaKuota",
+                icon: SlidersHorizontal,
+              },
+              {
+                title: "Data Peserta",
+                href: "/dashboard/superadmin/ViewPeserta",
+                icon: Users,
+              },
+              {
+                title: "Logbook Harian",
+                href: "/dashboard/superadmin/ViewLogbook",
+                icon: BookOpenCheck,
+              },
+              {
+                title: "Absensi Kehadiran",
+                href: "/dashboard/superadmin/ViewAbsensi",
+                icon: ScanFace,
+              },
+              {
+                title: "Laporan Akhir",
+                href: "/dashboard/superadmin/ViewLaporanAkhir",
+                icon: GraduationCap,
+              },
+              {
+                title: "Penilaian Akhir",
+                href: "/dashboard/superadmin/ViewPenilaianAkhir",
+                icon: Award,
+              },
+              {
+                title: "Evaluasi & Pernyataan",
+                href: "/dashboard/superadmin/ViewEvaluasi",
+                icon: FileSignature,
+              },
+              {
+                title: "Feedback & Ulasan",
+                href: "/dashboard/superadmin/ViewFeedback",
+                icon: MessageSquareHeart,
+              },
+            ],
           },
         ],
       },
@@ -178,6 +186,11 @@ export const ROLE_NAVIGATION_CONFIG: Record<RoleType, RoleConfig> = {
                 icon: Megaphone,
               },
               {
+                title: "Gambar Hero Landing",
+                href: "/dashboard/superadmin/manajemenTampilan/HeroEdit",
+                icon: ImageIcon,
+              },
+              {
                 title: "Kelola File Panduan",
                 href: "/dashboard/superadmin/manajemenTampilan/PanduanEdit",
                 icon: BookOpen,
@@ -226,49 +239,56 @@ export const ROLE_NAVIGATION_CONFIG: Record<RoleType, RoleConfig> = {
         sectionTitle: "MANAJEMEN MAGANG",
         items: [
           {
-            title: "Pendaftaran",
+            title: "Manajemen Magang",
             href: "/dashboard/admin/ViewPendaftaran",
             icon: ClipboardList,
-          },
-          {
-            title: "Kelola Kuota",
-            href: "/dashboard/admin/KelolaKuota",
-            icon: SlidersHorizontal,
-          },
-          {
-            title: "Data Peserta",
-            href: "/dashboard/admin/ViewPeserta",
-            icon: Users,
-          },
-          {
-            title: "Logbook Harian",
-            href: "/dashboard/admin/ViewLogbook",
-            icon: BookOpenCheck,
-          },
-          {
-            title: "Absensi Kehadiran",
-            href: "/dashboard/admin/ViewAbsensi",
-            icon: ScanFace,
-          },
-          {
-            title: "Laporan Akhir",
-            href: "/dashboard/admin/ViewLaporanAkhir",
-            icon: GraduationCap,
-          },
-          {
-            title: "Penilaian Akhir",
-            href: "/dashboard/admin/ViewPenilaianAkhir",
-            icon: Award,
-          },
-          {
-            title: "Evaluasi & Pernyataan",
-            href: "/dashboard/admin/ViewEvaluasi",
-            icon: FileSignature,
-          },
-          {
-            title: "Feedback & Ulasan",
-            href: "/dashboard/admin/ViewFeedback",
-            icon: MessageSquareHeart,
+            children: [
+              {
+                title: "Pendaftaran",
+                href: "/dashboard/admin/ViewPendaftaran",
+                icon: ClipboardList,
+              },
+              {
+                title: "Kelola Kuota",
+                href: "/dashboard/admin/KelolaKuota",
+                icon: SlidersHorizontal,
+              },
+              {
+                title: "Data Peserta",
+                href: "/dashboard/admin/ViewPeserta",
+                icon: Users,
+              },
+              {
+                title: "Logbook Harian",
+                href: "/dashboard/admin/ViewLogbook",
+                icon: BookOpenCheck,
+              },
+              {
+                title: "Absensi Kehadiran",
+                href: "/dashboard/admin/ViewAbsensi",
+                icon: ScanFace,
+              },
+              {
+                title: "Laporan Akhir",
+                href: "/dashboard/admin/ViewLaporanAkhir",
+                icon: GraduationCap,
+              },
+              {
+                title: "Penilaian Akhir",
+                href: "/dashboard/admin/ViewPenilaianAkhir",
+                icon: Award,
+              },
+              {
+                title: "Evaluasi & Pernyataan",
+                href: "/dashboard/admin/ViewEvaluasi",
+                icon: FileSignature,
+              },
+              {
+                title: "Feedback & Ulasan",
+                href: "/dashboard/admin/ViewFeedback",
+                icon: MessageSquareHeart,
+              },
+            ],
           },
         ],
       },
@@ -301,6 +321,11 @@ export const ROLE_NAVIGATION_CONFIG: Record<RoleType, RoleConfig> = {
             title: "Banner & Pengumuman",
             href: "/dashboard/admin/manajemenTampilan/BannerEdit",
             icon: Megaphone,
+          },
+          {
+            title: "Gambar Hero Landing",
+            href: "/dashboard/admin/manajemenTampilan/HeroEdit",
+            icon: ImageIcon,
           },
           {
             title: "Kelola File Panduan",

@@ -124,17 +124,17 @@ export default function ProfilPage() {
             {/* BARIS BAWAH: TEKS SCRIPT (KIRI BAWAH) + GARIS L + GAMBAR 2 (KANAN BAWAH OVERLAP) */}
             <div className="relative z-20 flex flex-col-reverse sm:flex-row items-start sm:items-end justify-between -mt-12 sm:-mt-20 gap-6">
               {/* AKSEN KIRI BAWAH: TULISAN SCRIPT & GARIS MIRING (SEMBUNYIKAN DI MOBILE) */}
-              <div className="hidden sm:flex w-full sm:w-[38%] pl-4 sm:pl-6 pb-2 items-center sm:items-start justify-between sm:flex-col gap-3">
-                <div className="relative -rotate-12">
+              <div className="hidden sm:flex w-full sm:w-[42%] pl-4 sm:pl-6 pb-2 items-center sm:items-start justify-between sm:flex-col gap-3">
+                <div className="relative -rotate-12 inline-block">
                   <p
-                    className={`${caveat.className} text-2xl sm:text-[29px] font-bold text-[#0B1B3D] leading-[1.02]`}
+                    className={`${caveat.className} text-3xl sm:text-[34px] font-bold text-[#0B1B3D] leading-[1.02] whitespace-nowrap`}
                   >
                     Aman. <br />
-                    <span className="ml-2">Bermutu.</span> <br />
-                    <span className="ml-5">Berdaya Saing.</span>
+                    <span className="ml-3">Bermutu.</span> <br />
+                    <span className="ml-6">Berdaya Saing.</span>
                   </p>
                   {/* Garis Miring Biru di Bawah Teks Script */}
-                  <span className="block mt-2 ml-3 w-32 h-[2px] bg-[#0088FF] rounded-full -rotate-6" />
+                  <span className="block mt-1.5 ml-6 w-36 h-[2.5px] bg-[#0088FF] rounded-full" />
                 </div>
               </div>
 
