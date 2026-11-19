@@ -66,3 +66,59 @@ self.addEventListener("fetch", (event) => {
     );
   }
 });
+
+self.addEventListener("push", (event) => {
+  if (!event.data) return;
+
+  let data = {};
+  try {
+    data = event.data.json();
+  } catch {
+    data = { title: "SI TANJAK", body: event.data.text() };
+  }
+
+  const title = data.title || "SI TANJAK";
+  const options = {
+    body: data.body || "Ada pembaruan baru di portal peserta SI TANJAK.",
+    icon: "/images/assets-new/icon-mobile/192-maskable.png",
+    badge: "/images/assets-new/icon-mobile/192.png",
+    tag: data.tag || "sitanjak-notification",
+    renotify: true,
+    data: {
+      url: data.url || "/dashboard/peserta",
+    },
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+
+  const targetUrl =
+    (event.notification &&
+      event.notification.data &&
+      event.notification.data.url) ||
+    "/dashboard/peserta";
+
+  event.waitUntil(
+    self.clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then((clientList) => {
+        for (const client of clientList) {
+          if (
+            client.url.startsWith(self.location.origin) &&
+            "focus" in client
+          ) {
+            if ("navigate" in client && typeof client.navigate === "function") {
+              return client.navigate(targetUrl).then((c) => (c ? c.focus() : client.focus()));
+            }
+            return client.focus();
+          }
+        }
+        if (self.clients.openWindow) {
+          return self.clients.openWindow(targetUrl);
+        }
+      }),
+  );
+});

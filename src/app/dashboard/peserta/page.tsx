@@ -148,6 +148,10 @@ export default function PesertaDashboard() {
   const [filledDates, setFilledDates] = useState<
     Record<string, FilledDateType>
   >({});
+  const [holidayInfo, setHolidayInfo] = useState<{
+    isHoliday: boolean;
+    reason?: string;
+  }>({ isHoliday: false });
   const {
     isReady: pwaReady,
     isStandalone,
@@ -227,7 +231,7 @@ export default function PesertaDashboard() {
         Authorization: `Bearer ${token}`,
       };
 
-      const [pendRes, annRes, datesRes] = await Promise.all([
+      const [pendRes, annRes, datesRes, holidayRes] = await Promise.all([
         fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/pendaftaran/cek?email=${encodeURIComponent(emailLogin)}`,
           { headers },
@@ -238,7 +242,20 @@ export default function PesertaDashboard() {
         fetch(`${process.env.NEXT_PUBLIC_API_URL}/logbook/filled-dates`, {
           headers,
         }).catch(() => null),
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/holidays/check`, {
+          headers,
+        }).catch(() => null),
       ]);
+
+      if (holidayRes && holidayRes.ok) {
+        const holData = await holidayRes.json().catch(() => null);
+        if (holData && typeof holData.isHoliday === "boolean") {
+          setHolidayInfo({
+            isHoliday: holData.isHoliday,
+            reason: holData.reason,
+          });
+        }
+      }
 
       if (annRes && annRes.ok) {
         const annData = await annRes.json().catch(() => null);
@@ -305,6 +322,7 @@ export default function PesertaDashboard() {
     const day = todayWIB.getDay();
     return day === 0 || day === 6; // Minggu (0) atau Sabtu (6)
   }, [todayWIB]);
+  const isHolidayToday = isWeekend || holidayInfo.isHoliday;
 
   const todayLogbook = filledDates[todayIso];
 
@@ -645,7 +663,7 @@ export default function PesertaDashboard() {
               pengisian laporan harian akan aktif saat masa magang dimulai.
             </p>
           </div>
-        ) : isWeekend ? (
+        ) : isHolidayToday ? (
           <div className="py-6 sm:py-8 px-3 text-center space-y-2.5 sm:space-y-3">
             <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-slate-100 dark:bg-slate-700/70 text-slate-500 dark:text-slate-300 flex items-center justify-center mx-auto">
               <CalendarX2 className="w-6 h-6 sm:w-7 sm:h-7" />
@@ -654,8 +672,9 @@ export default function PesertaDashboard() {
               Hari ini adalah hari libur
             </h3>
             <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
-              Hari ini termasuk jadwal libur posisi Anda. Laporan harian dan
-              kehadiran tidak perlu diisi.
+              {holidayInfo.reason
+                ? `Hari ini (${holidayInfo.reason}) termasuk hari libur. Laporan harian dan kehadiran tidak perlu diisi.`
+                : "Hari ini termasuk jadwal libur posisi Anda. Laporan harian dan kehadiran tidak perlu diisi."}
             </p>
           </div>
         ) : todayLogbook ? (

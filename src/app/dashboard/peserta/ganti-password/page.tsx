@@ -21,6 +21,11 @@ import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { PesertaDashboardSkeleton } from "@/components/dashboard/skeletons";
 import { isPkpaPeserta } from "@/lib/pesertaKategori";
 import { InstallAppCard } from "@/components/peserta/InstallAppCard";
+import {
+  getDevicePushStatus,
+  subscribeDevicePush,
+  unsubscribeDevicePush,
+} from "@/lib/pushNotification";
 
 type Peserta = {
   idPeserta?: string;
@@ -103,6 +108,7 @@ export default function AkunPesertaPage() {
 
   // Notification toggle state
   const [deviceNotif, setDeviceNotif] = useState(false);
+  const [togglingNotif, setTogglingNotif] = useState(false);
   const [guideHref, setGuideHref] = useState(GUIDE_URL);
 
   // Password form states
@@ -118,8 +124,12 @@ export default function AkunPesertaPage() {
 
   useEffect(() => {
     try {
-      const savedNotif = localStorage.getItem("peserta_device_notif") === "1";
-      setDeviceNotif(savedNotif);
+      getDevicePushStatus()
+        .then((subscribed) => {
+          setDeviceNotif(subscribed);
+          localStorage.setItem("peserta_device_notif", subscribed ? "1" : "0");
+        })
+        .catch(() => {});
 
       const token = localStorage.getItem("token");
       if (token) {
@@ -229,25 +239,35 @@ export default function AkunPesertaPage() {
   );
 
   const handleToggleNotif = async () => {
+    if (togglingNotif) return;
     const nextState = !deviceNotif;
-    if (
-      nextState &&
-      typeof window !== "undefined" &&
-      "Notification" in window
-    ) {
-      try {
-        await Notification.requestPermission();
-      } catch {
-        // ignore
+    setTogglingNotif(true);
+
+    try {
+      if (nextState) {
+        await subscribeDevicePush();
+        setDeviceNotif(true);
+        localStorage.setItem("peserta_device_notif", "1");
+        showToast.success(
+          "Notifikasi perangkat aktif. Pemberitahuan akan masuk langsung ke HP Anda.",
+        );
+      } else {
+        await unsubscribeDevicePush();
+        setDeviceNotif(false);
+        localStorage.setItem("peserta_device_notif", "0");
+        showToast.success("Notifikasi perangkat dinonaktifkan");
       }
+    } catch (err: unknown) {
+      setDeviceNotif(false);
+      localStorage.setItem("peserta_device_notif", "0");
+      showToast.error(
+        err instanceof Error
+          ? err.message
+          : "Gagal mengubah pengaturan notifikasi perangkat",
+      );
+    } finally {
+      setTogglingNotif(false);
     }
-    setDeviceNotif(nextState);
-    localStorage.setItem("peserta_device_notif", nextState ? "1" : "0");
-    showToast.success(
-      nextState
-        ? "Notifikasi perangkat diaktifkan"
-        : "Notifikasi perangkat dinonaktifkan",
-    );
   };
 
   const handleSubmitPassword = async (e: React.FormEvent) => {
@@ -338,9 +358,11 @@ export default function AkunPesertaPage() {
       title: "Keluar dari Akun",
       message: "Apakah Anda yakin ingin keluar dari akun Peserta Magang?",
       confirmText: "Ya, Keluar",
-      onConfirm: () => {
+      onConfirm: async () => {
+        await unsubscribeDevicePush();
         localStorage.removeItem("token");
         localStorage.removeItem("user");
+        localStorage.removeItem("peserta_device_notif");
         router.replace("/auth/login");
       },
     });
@@ -752,8 +774,9 @@ export default function AkunPesertaPage() {
           type="button"
           role="switch"
           aria-checked={deviceNotif}
+          disabled={togglingNotif}
           onClick={handleToggleNotif}
-          className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
+          className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out disabled:opacity-60 ${
             deviceNotif ? "bg-[#1D64F2]" : "bg-slate-300 dark:bg-slate-600"
           }`}
         >

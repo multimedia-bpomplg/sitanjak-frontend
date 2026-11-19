@@ -19,6 +19,7 @@ import {
   ScanFace,
   BookOpen,
   Award,
+  CalendarDays,
   Image as ImageIcon,
   LucideIcon,
 } from "lucide-react";
@@ -195,6 +196,11 @@ export const ROLE_NAVIGATION_CONFIG: Record<RoleType, RoleConfig> = {
                 href: "/dashboard/superadmin/manajemenTampilan/PanduanEdit",
                 icon: BookOpen,
               },
+              {
+                title: "Hari Libur Nasional",
+                href: "/dashboard/superadmin/manajemenTampilan/HariLibur",
+                icon: CalendarDays,
+              },
             ],
           },
         ],
@@ -331,6 +337,11 @@ export const ROLE_NAVIGATION_CONFIG: Record<RoleType, RoleConfig> = {
             title: "Kelola File Panduan",
             href: "/dashboard/admin/manajemenTampilan/PanduanEdit",
             icon: BookOpen,
+          },
+          {
+            title: "Hari Libur Nasional",
+            href: "/dashboard/admin/manajemenTampilan/HariLibur",
+            icon: CalendarDays,
           },
         ],
       },

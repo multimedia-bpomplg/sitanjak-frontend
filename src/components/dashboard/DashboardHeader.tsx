@@ -70,6 +70,7 @@ const ROUTE_LABELS: Record<string, string> = {
   manajemenTampilan: "Tampilan & Sistem",
   BannerEdit: "Banner & Pengumuman",
   Maintenance: "Mode Maintenance",
+  HariLibur: "Hari Libur Nasional",
   InformasiFungsi: "Informasi Fungsi",
   WhatappEdit: "Gateway WhatsApp",
   "ganti-password": "Ganti Password",
