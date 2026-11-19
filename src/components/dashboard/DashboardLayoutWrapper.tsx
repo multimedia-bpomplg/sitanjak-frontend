@@ -7,6 +7,13 @@ import { ConfirmProvider } from "@/components/ui/ConfirmProvider";
 import DashboardSidebar from "./DashboardSidebar";
 import DashboardHeader from "./DashboardHeader";
 import { RoleType } from "./dashboardNavConfig";
+import {
+  clearAuthSession,
+  hasBrowserCookie,
+  isJwtExpired,
+  parseJwtPayload,
+  persistAuthCookies,
+} from "@/lib/authSession";
 
 interface LoggedUser {
   name: string;
@@ -34,8 +41,7 @@ export default function DashboardLayoutWrapper({
   const router = useRouter();
 
   const handleSignOut = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    clearAuthSession();
     router.replace("/auth/login");
   };
 
@@ -43,23 +49,29 @@ export default function DashboardLayoutWrapper({
     setMounted(true);
 
     const token = localStorage.getItem("token");
-    if (!token) {
+    if (!token || isJwtExpired(token)) {
       handleSignOut();
       return;
     }
 
-    try {
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      setUser({
-        name: payload.name || payload.nama || "Pengguna",
-        email: payload.email || "-",
-        roles: payload.roles || [role],
-        avatar: payload.avatar,
-      });
-    } catch (err) {
-      console.error("Token tidak valid:", err);
+    const payload = parseJwtPayload(token);
+    if (!payload) {
       handleSignOut();
+      return;
     }
+
+    const userRoles = Array.isArray(payload.roles) ? payload.roles : [role];
+    if (!hasBrowserCookie("token")) {
+      persistAuthCookies(token, userRoles);
+    }
+
+    setUser({
+      name: payload.name || payload.nama || "Pengguna",
+      email: payload.email || "-",
+      roles: userRoles,
+      avatar: payload.avatar,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (!mounted) {

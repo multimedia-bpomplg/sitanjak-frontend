@@ -19,6 +19,11 @@ import {
 
 import TurnstileCaptcha from "@/components/TurnstileCaptcha";
 import { loginApi } from "@/app/lib/api";
+import {
+  clearAuthSession,
+  isJwtExpired,
+  persistAuthCookies,
+} from "@/lib/authSession";
 import OtpLogin from "./components/OtpLogin";
 
 
@@ -220,26 +225,34 @@ export default function LoginPage() {
   /* ===================== AUTO REDIRECT ===================== */
   useEffect(() => {
     const token = localStorage.getItem("token");
-    const roles = JSON.parse(localStorage.getItem("roles") || "[]");
+    let roles: string[] = [];
+    try {
+      roles = JSON.parse(localStorage.getItem("roles") || "[]");
+    } catch {
+      roles = [];
+    }
 
-    if (token && roles.length) {
+    if (token && !isJwtExpired(token) && roles.length) {
+      persistAuthCookies(token, roles);
       redirectByRole(roles, router);
+    } else if (token) {
+      clearAuthSession();
     }
   }, [router]);
 
   /* ===================== HANDLE LOGIN SUCCESS ===================== */
-  const handleLoginSuccess = (data: any) => {
-    document.cookie = `token=${data.token}; path=/`;
-    document.cookie = `roles=${JSON.stringify(data.roles)}; path=/`;
+  const handleLoginSuccess = (data: { token: string; roles?: string[] }) => {
+    const roles = Array.isArray(data.roles) ? data.roles : [];
+    persistAuthCookies(data.token, roles);
 
     localStorage.setItem("token", data.token);
-    localStorage.setItem("roles", JSON.stringify(data.roles));
+    localStorage.setItem("roles", JSON.stringify(roles));
 
     setToast({ show: false, type: "loading", message: "" });
     setSuccessPopup(true);
 
     setTimeout(() => {
-      redirectByRole(data.roles || [], router);
+      redirectByRole(roles, router);
     }, 1200);
   };
 

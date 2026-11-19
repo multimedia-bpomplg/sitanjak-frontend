@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isJwtExpired, parseJwtPayload } from "./lib/authSession";
 
 export async function middleware(req: NextRequest) {
   const token = req.cookies.get("token")?.value;
@@ -44,14 +45,11 @@ export async function middleware(req: NextRequest) {
       }
 
       // superadmin bypass
-      if (token) {
-        try {
-          const payload = JSON.parse(atob(token.split(".")[1]));
-
-          if (payload?.roles?.includes("superadmin")) {
-            return NextResponse.next();
-          }
-        } catch {}
+      if (token && !isJwtExpired(token)) {
+        const payload = parseJwtPayload(token);
+        if (payload?.roles?.includes("superadmin")) {
+          return NextResponse.next();
+        }
       }
 
       return NextResponse.redirect(new URL("/maintenance", req.url));
@@ -75,8 +73,14 @@ export async function middleware(req: NextRequest) {
   // ===============================
   // AUTH PROTECTION
   // ===============================
-  if (!token) {
-    return NextResponse.redirect(new URL("/auth/login", req.url));
+  if (!token || isJwtExpired(token)) {
+    const loginUrl = new URL("/auth/login", req.url);
+    const response = NextResponse.redirect(loginUrl);
+    if (token) {
+      response.cookies.delete("token");
+      response.cookies.delete("roles");
+    }
+    return response;
   }
 
   return NextResponse.next();

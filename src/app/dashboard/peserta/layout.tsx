@@ -5,6 +5,13 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ConfirmProvider } from "@/components/ui/ConfirmProvider";
 import {
+  clearAuthSession,
+  hasBrowserCookie,
+  isJwtExpired,
+  parseJwtPayload,
+  persistAuthCookies,
+} from "@/lib/authSession";
+import {
   Home,
   CalendarCheck2,
   ScanFace,
@@ -27,20 +34,22 @@ export default function PesertaLayout({
     setMounted(true);
 
     const token = localStorage.getItem("token");
-    if (!token) {
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
+    if (!token || isJwtExpired(token)) {
+      clearAuthSession();
       router.replace("/auth/login");
       return;
     }
 
-    try {
-      JSON.parse(atob(token.split(".")[1]));
-    } catch (err) {
-      console.error("Token tidak valid:", err);
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
+    const payload = parseJwtPayload(token);
+    if (!payload) {
+      clearAuthSession();
       router.replace("/auth/login");
+      return;
+    }
+
+    if (!hasBrowserCookie("token")) {
+      const roles = Array.isArray(payload.roles) ? payload.roles : ["peserta"];
+      persistAuthCookies(token, roles);
     }
   }, [router]);
 

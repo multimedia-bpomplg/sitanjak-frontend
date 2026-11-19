@@ -19,6 +19,7 @@ import { PesertaDashboardSkeleton } from "@/components/dashboard/skeletons";
 import { isPkpaPeserta } from "@/lib/pesertaKategori";
 import { usePwa } from "@/components/pwa/PwaProvider";
 import { InstallAppModal } from "@/components/peserta/InstallAppModal";
+import { clearAuthSession, parseJwtPayload } from "@/lib/authSession";
 
 /* ================= TYPES ================= */
 
@@ -111,27 +112,6 @@ const getInitial = (nama = "-") =>
     .join("")
     .slice(0, 2)
     .toUpperCase();
-
-function parseJwtPayload(token: string): Record<string, any> | null {
-  try {
-    const base64Url = token.split(".")[1];
-    if (!base64Url) return null;
-    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-    const padded = base64.padEnd(
-      base64.length + ((4 - (base64.length % 4)) % 4),
-      "=",
-    );
-    const jsonPayload = decodeURIComponent(
-      atob(padded)
-        .split("")
-        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-        .join(""),
-    );
-    return JSON.parse(jsonPayload);
-  } catch {
-    return null;
-  }
-}
 
 export default function PesertaDashboard() {
   const [pendaftaran, setPendaftaran] = useState<Pendaftaran | null>(null);
@@ -277,8 +257,13 @@ export default function PesertaDashboard() {
       } else if (pendRes.status === 404) {
         // Akun peserta mungkin dibuat langsung tanpa record pendaftaran
         setPendaftaran(null);
-      } else if (pendRes.status === 401 || pendRes.status === 403) {
-        setFetchError("Sesi Anda telah berakhir. Silakan login ulang.");
+      } else if (pendRes.status === 401) {
+        clearAuthSession();
+        setFetchError("Sesi Anda telah berakhir. Mengalihkan ke halaman login...");
+        window.location.href = "/auth/login";
+        return;
+      } else if (pendRes.status === 403) {
+        setFetchError("Akses ditolak. Silakan hubungi admin.");
       } else {
         throw new Error(`HTTP ${pendRes.status}`);
       }

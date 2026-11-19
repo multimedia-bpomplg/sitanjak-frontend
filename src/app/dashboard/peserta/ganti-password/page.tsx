@@ -21,6 +21,7 @@ import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { PesertaDashboardSkeleton } from "@/components/dashboard/skeletons";
 import { isPkpaPeserta } from "@/lib/pesertaKategori";
 import { InstallAppCard } from "@/components/peserta/InstallAppCard";
+import { clearAuthSession } from "@/lib/authSession";
 import {
   getDevicePushStatus,
   subscribeDevicePush,
@@ -336,7 +337,7 @@ export default function AkunPesertaPage() {
       setPasswordLama("");
       setPasswordBaru("");
       setKonfirmasi("");
-      localStorage.removeItem("token");
+      clearAuthSession();
 
       setTimeout(() => {
         window.location.href = "/auth/login";
@@ -360,8 +361,7 @@ export default function AkunPesertaPage() {
       confirmText: "Ya, Keluar",
       onConfirm: async () => {
         await unsubscribeDevicePush();
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
+        clearAuthSession();
         localStorage.removeItem("peserta_device_notif");
         router.replace("/auth/login");
       },
