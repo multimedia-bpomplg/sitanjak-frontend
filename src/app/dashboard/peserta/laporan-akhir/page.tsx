@@ -670,7 +670,78 @@ export default function LaporanAkhirPage() {
 
       {/* ================= 2. CHEVRON CARDS LIST ================= */}
       <div className="space-y-3.5 sm:space-y-4">
-        {/* CARD 1: LAPORAN AKHIR */}
+        {/* CARD 1: EVALUASI & SURAT PERNYATAAN */}
+        <div className="rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs overflow-hidden">
+          <Link
+            href="/dashboard/peserta/evaluasi"
+            className="block w-full p-4 sm:p-5 text-left hover:bg-slate-50/70 dark:hover:bg-slate-700/40 transition"
+          >
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 sm:gap-3.5">
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                  <FileSignature className="w-5 h-5" />
+                </div>
+                <span className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
+                  Evaluasi &amp; Surat Pernyataan
+                </span>
+              </div>
+              <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400 shrink-0" />
+            </div>
+
+            <div className="mt-3 sm:mt-3.5 pt-2.5 sm:pt-3 border-t border-slate-100 dark:border-slate-700/70 flex items-center justify-between gap-2 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+              <div className="flex items-center gap-1.5 truncate">
+                {evaluasiData ? (
+                  evaluasiStatus === "Disetujui" ? (
+                    <>
+                      <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-500 shrink-0" />
+                      <span className="truncate">
+                        Disetujui mentor • Siap diunduh PDF
+                      </span>
+                    </>
+                  ) : evaluasiStatus === "Revisi" ? (
+                    <>
+                      <AlertCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-rose-500 shrink-0" />
+                      <span className="truncate text-rose-600 dark:text-rose-400">
+                        Perlu revisi • Ketuk untuk memperbaiki
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500 shrink-0" />
+                      <span className="truncate">
+                        Menunggu penindakan mentor pembimbing
+                      </span>
+                    </>
+                  )
+                ) : (
+                  <>
+                    <AlertCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 shrink-0" />
+                    <span className="truncate">
+                      Belum diisi • Isi evaluasi &amp; surat pernyataan
+                    </span>
+                  </>
+                )}
+              </div>
+              <span
+                className={`px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold border shrink-0 ${
+                  !evaluasiData
+                    ? "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-700/60 dark:text-slate-300 dark:border-slate-600"
+                    : evaluasiStatus === "Disetujui"
+                      ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800/60"
+                      : evaluasiStatus === "Revisi"
+                        ? "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/50 dark:text-rose-300 dark:border-rose-800/60"
+                        : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800/60"
+                }`}
+              >
+                {!evaluasiData
+                  ? "Belum Diisi"
+                  : evaluasiStatus || "Menunggu"}
+              </span>
+            </div>
+          </Link>
+        </div>
+
+        {/* CARD 2: LAPORAN AKHIR */}
         <div className="rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs overflow-hidden">
           <button
             type="button"
@@ -876,78 +947,7 @@ export default function LaporanAkhirPage() {
           )}
         </div>
 
-        {/* CARD 2: EVALUASI & SURAT PERNYATAAN */}
-        <div className="rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs overflow-hidden">
-          <Link
-            href="/dashboard/peserta/evaluasi"
-            className="block w-full p-4 sm:p-5 text-left hover:bg-slate-50/70 dark:hover:bg-slate-700/40 transition"
-          >
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3 sm:gap-3.5">
-                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
-                  <FileSignature className="w-5 h-5" />
-                </div>
-                <span className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
-                  Evaluasi &amp; Surat Pernyataan
-                </span>
-              </div>
-              <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400 shrink-0" />
-            </div>
-
-            <div className="mt-3 sm:mt-3.5 pt-2.5 sm:pt-3 border-t border-slate-100 dark:border-slate-700/70 flex items-center justify-between gap-2 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-              <div className="flex items-center gap-1.5 truncate">
-                {evaluasiData ? (
-                  evaluasiStatus === "Disetujui" ? (
-                    <>
-                      <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-500 shrink-0" />
-                      <span className="truncate">
-                        Disetujui mentor • Siap diunduh PDF
-                      </span>
-                    </>
-                  ) : evaluasiStatus === "Revisi" ? (
-                    <>
-                      <AlertCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-rose-500 shrink-0" />
-                      <span className="truncate text-rose-600 dark:text-rose-400">
-                        Perlu revisi • Ketuk untuk memperbaiki
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500 shrink-0" />
-                      <span className="truncate">
-                        Menunggu penindakan mentor pembimbing
-                      </span>
-                    </>
-                  )
-                ) : (
-                  <>
-                    <AlertCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 shrink-0" />
-                    <span className="truncate">
-                      Belum diisi • Isi evaluasi &amp; surat pernyataan
-                    </span>
-                  </>
-                )}
-              </div>
-              <span
-                className={`px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold border shrink-0 ${
-                  !evaluasiData
-                    ? "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-700/60 dark:text-slate-300 dark:border-slate-600"
-                    : evaluasiStatus === "Disetujui"
-                      ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800/60"
-                      : evaluasiStatus === "Revisi"
-                        ? "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/50 dark:text-rose-300 dark:border-rose-800/60"
-                        : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800/60"
-                }`}
-              >
-                {!evaluasiData
-                  ? "Belum Diisi"
-                  : evaluasiStatus || "Menunggu"}
-              </span>
-            </div>
-          </Link>
-        </div>
-
-        {/* CARD 2: SURVEI */}
+        {/* CARD 3: SURVEI */}
         <div className="rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs overflow-hidden">
           <button
             type="button"
