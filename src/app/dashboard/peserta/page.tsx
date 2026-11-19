@@ -17,6 +17,8 @@ import {
 } from "lucide-react";
 import { PesertaDashboardSkeleton } from "@/components/dashboard/skeletons";
 import { isPkpaPeserta } from "@/lib/pesertaKategori";
+import { usePwa } from "@/components/pwa/PwaProvider";
+import { InstallAppModal } from "@/components/peserta/InstallAppModal";
 
 /* ================= TYPES ================= */
 
@@ -146,6 +148,40 @@ export default function PesertaDashboard() {
   const [filledDates, setFilledDates] = useState<
     Record<string, FilledDateType>
   >({});
+  const {
+    isReady: pwaReady,
+    isStandalone,
+    isDismissedRecently,
+    dismissInstallPrompt,
+  } = usePwa();
+  const [showInstallModal, setShowInstallModal] = useState(false);
+
+  // Tampilkan pop-up ajakan install aplikasi saat peserta berhasil masuk dashboard
+  useEffect(() => {
+    if (
+      loading ||
+      fetchError ||
+      !pwaReady ||
+      isStandalone ||
+      isDismissedRecently ||
+      showAnnouncementModal
+    ) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setShowInstallModal(true);
+    }, 600);
+
+    return () => clearTimeout(timer);
+  }, [
+    loading,
+    fetchError,
+    pwaReady,
+    isStandalone,
+    isDismissedRecently,
+    showAnnouncementModal,
+  ]);
 
   // Parse email & name from JWT token
   useEffect(() => {
@@ -820,6 +856,15 @@ export default function PesertaDashboard() {
           </div>
         </div>
       )}
+
+      {/* ================= MODAL INSTALL APLIKASI (PWA) ================= */}
+      <InstallAppModal
+        open={showInstallModal}
+        onClose={() => {
+          setShowInstallModal(false);
+          dismissInstallPrompt();
+        }}
+      />
     </div>
   );
 }

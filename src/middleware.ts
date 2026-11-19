@@ -13,6 +13,10 @@ export async function middleware(req: NextRequest) {
     path.startsWith("/api") ||
     path.startsWith("/aboutdev") ||
     path.match(/\.(png|jpg|jpeg|svg|ico|webp)$/) ||
+    path === "/manifest.webmanifest" ||
+    path === "/manifest.json" ||
+    path === "/sw.js" ||
+    path === "/offline.html" ||
     path === "/sitemap.xml" ||
     path === "/robots.txt"
   ) {

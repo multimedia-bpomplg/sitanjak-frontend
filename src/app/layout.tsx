@@ -1,9 +1,10 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { ConfirmProvider } from "@/components/ui/ConfirmProvider";
+import { PwaProvider } from "@/components/pwa/PwaProvider";
 import Script from "next/script";
 
 const inter = Inter({
@@ -39,11 +40,35 @@ export const metadata: Metadata = {
     canonical: "/",
   },
 
-  /* ================= ICON ================= */
+  /* ================= ICON & PWA ================= */
+  manifest: "/manifest.webmanifest",
   icons: {
-    icon: "/favicon.ico",
+    icon: [
+      { url: "/favicon.ico" },
+      {
+        url: "/images/assets-new/icon-mobile/192.png",
+        sizes: "192x192",
+        type: "image/png",
+      },
+      {
+        url: "/images/assets-new/icon-mobile/512.png",
+        sizes: "512x512",
+        type: "image/png",
+      },
+    ],
     shortcut: "/favicon.ico",
-    apple: "/favicon.ico",
+    apple: [
+      {
+        url: "/images/assets-new/icon-mobile/apple-touch-180.png",
+        sizes: "180x180",
+        type: "image/png",
+      },
+    ],
+  },
+  appleWebApp: {
+    capable: true,
+    title: "SI TANJAK",
+    statusBarStyle: "default",
   },
 
   /* ================= ROBOTS ================= */
@@ -80,6 +105,13 @@ export const metadata: Metadata = {
   },
 };
 
+export const viewport: Viewport = {
+  themeColor: "#1D64F2",
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
+
 export default function RootLayout({
   children,
 }: {
@@ -88,7 +120,9 @@ export default function RootLayout({
   return (
     <html lang="id">
       <body className={`${inter.variable} antialiased`}>
-        <ConfirmProvider>{children}</ConfirmProvider>
+        <PwaProvider>
+          <ConfirmProvider>{children}</ConfirmProvider>
+        </PwaProvider>
 
         <ToastContainer
           position="top-center"

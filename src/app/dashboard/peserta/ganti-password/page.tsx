@@ -20,6 +20,7 @@ import { showToast } from "@/components/ui/toastDashboard";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { PesertaDashboardSkeleton } from "@/components/dashboard/skeletons";
 import { isPkpaPeserta } from "@/lib/pesertaKategori";
+import { InstallAppCard } from "@/components/peserta/InstallAppCard";
 
 type Peserta = {
   idPeserta?: string;
@@ -727,7 +728,10 @@ export default function AkunPesertaPage() {
         <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400 shrink-0" />
       </a>
 
-      {/* ================= 7. CARD NOTIFIKASI PERANGKAT ================= */}
+      {/* ================= 7. CARD INSTALL APLIKASI (PWA) ================= */}
+      <InstallAppCard />
+
+      {/* ================= 8. CARD NOTIFIKASI PERANGKAT ================= */}
       <div className="rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 p-4 sm:p-5 flex items-center justify-between gap-3 shadow-2xs">
         <div className="flex items-center gap-3 sm:gap-3.5 min-w-0">
           <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-[#1D64F2] dark:text-blue-400 flex items-center justify-center shrink-0">

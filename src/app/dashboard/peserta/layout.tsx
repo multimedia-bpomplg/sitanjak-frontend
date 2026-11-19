@@ -133,8 +133,9 @@ export default function PesertaLayout({
             {/* 5-Tab Bottom Navigation Bar */}
             <nav
               aria-label="Navigasi Peserta"
-              className="pointer-events-auto bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-t border-slate-200/90 dark:border-slate-800 shadow-[0_-6px_25px_-6px_rgba(15,23,42,0.08)] grid grid-cols-5 items-center h-16 sm:h-[70px] px-1 sm:px-3"
+              className="pointer-events-auto bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-t border-slate-200/90 dark:border-slate-800 shadow-[0_-6px_25px_-6px_rgba(15,23,42,0.08)] pb-[env(safe-area-inset-bottom)]"
             >
+              <div className="grid grid-cols-5 items-center h-16 sm:h-[70px] px-1 sm:px-3">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 if (item.isCenter) {
@@ -186,6 +187,7 @@ export default function PesertaLayout({
                   </Link>
                 );
               })}
+              </div>
             </nav>
           </div>
         </div>
