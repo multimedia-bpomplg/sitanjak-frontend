@@ -36,6 +36,7 @@ type PenilaianAkhirData = {
   saran?: string;
   penilaiNama?: string;
   penilaiNip?: string;
+  penilaiTtdImage?: string;
   tanggalPenilaian?: string;
 };
 
@@ -527,7 +528,7 @@ export default function PenilaianAkhirPage() {
         y += 16;
       }
 
-      // Blok Tanda Tangan di kanan bawah (Reguler & PKPA)
+      // Blok Tanda Tangan + Cap BBPOM di kanan bawah (Reguler & PKPA)
       const signX = pageWidth - marginLeft - 62;
       const dateStr = penilaian?.tanggalPenilaian
         ? formatIndoDate(penilaian.tanggalPenilaian)
@@ -544,7 +545,38 @@ export default function PenilaianAkhirPage() {
         signX,
         y,
       );
+      const signLabelY = y;
       y += 22;
+
+      const [capInfo, ttdInfo] = await Promise.all([
+        loadImageAsDataUrl("/images/assets-new/cap.png"),
+        penilaian?.penilaiTtdImage?.startsWith("data:image/png")
+          ? loadImageAsDataUrl(penilaian.penilaiTtdImage)
+          : Promise.resolve(null),
+      ]);
+
+      if (capInfo) {
+        const capH = 24;
+        const capW = (capInfo.width / capInfo.height) * capH;
+        const capX = signX - 10;
+        const capY = signLabelY + 0.5;
+        doc.addImage(capInfo.dataUrl, "PNG", capX, capY, capW, capH);
+      }
+
+      if (ttdInfo) {
+        const maxTtdW = 46;
+        const maxTtdH = 17;
+        const ratio = Math.min(
+          maxTtdW / ttdInfo.width,
+          maxTtdH / ttdInfo.height,
+        );
+        const drawW = ttdInfo.width * ratio;
+        const drawH = ttdInfo.height * ratio;
+        const drawX = signX + Math.max(0, (maxTtdW - drawW) / 2);
+        const drawY = signLabelY + 2.5 + Math.max(0, (maxTtdH - drawH) / 2);
+        doc.addImage(ttdInfo.dataUrl, "PNG", drawX, drawY, drawW, drawH);
+      }
+
       const signName =
         penilaian?.penilaiNama ||
         (peserta.mentorNama && peserta.mentorNama !== "-"

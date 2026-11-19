@@ -3,12 +3,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
+  AlertCircle,
   Building2,
   CheckCircle2,
   ChevronLeft,
+  Clock,
   Download,
   FileSignature,
   ImagePlus,
+  Lock,
   Save,
   Trash2,
   Upload,
@@ -39,6 +42,11 @@ export default function EvaluasiDanPernyataanPage() {
   const [saving, setSaving] = useState(false);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [hasSaved, setHasSaved] = useState(false);
+  const [evalStatus, setEvalStatus] = useState<
+    "Menunggu" | "Revisi" | "Disetujui" | null
+  >(null);
+  const [mentorNote, setMentorNote] = useState("");
+  const [reviewedByName, setReviewedByName] = useState("");
   const [isPkpa, setIsPkpa] = useState(false);
 
   const [periode, setPeriode] = useState<{ mulai?: string; selesai?: string }>(
@@ -119,6 +127,9 @@ export default function EvaluasiDanPernyataanPage() {
         const ev = evalJson?.evaluasi;
         if (ev) {
           setHasSaved(true);
+          setEvalStatus(ev.status || "Menunggu");
+          setMentorNote(ev.mentorNote || "");
+          setReviewedByName(ev.reviewedByName || ev.reviewedBy?.name || "");
           setFasNama(ev.fasilitator?.nama || defaultMentorNama);
           setFasJudulMateri(ev.fasilitator?.judulMateri || "");
           setFasScores([
@@ -322,11 +333,23 @@ export default function EvaluasiDanPernyataanPage() {
     };
   };
 
-  const handleSave = async (andDownloadPdf = false) => {
+  const isLocked = evalStatus === "Menunggu" || evalStatus === "Disetujui";
+  const canDownloadPdf = evalStatus === "Disetujui";
+
+  const handleSave = async () => {
+    if (isLocked) {
+      showToast.error(
+        evalStatus === "Disetujui"
+          ? "Evaluasi sudah disetujui dan tidak dapat diubah."
+          : "Evaluasi sedang menunggu penindakan mentor pembimbing.",
+      );
+      return;
+    }
+
     const payload = buildPayload();
     if (!payload) return;
 
-    const toastId = showToast.loading("Menyimpan Evaluasi & Surat Pernyataan...");
+    const toastId = showToast.loading("Mengirim Evaluasi & Surat Pernyataan...");
     try {
       setSaving(true);
       const token = localStorage.getItem("token") ?? "";
@@ -341,32 +364,34 @@ export default function EvaluasiDanPernyataanPage() {
 
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(data?.message || "Gagal menyimpan data evaluasi");
+        throw new Error(data?.message || "Gagal mengirim data evaluasi");
       }
 
       setHasSaved(true);
+      setEvalStatus("Menunggu");
+      setMentorNote("");
       showToast.updateSuccess(
         toastId,
-        "Data Evaluasi & Surat Pernyataan berhasil disimpan",
+        data?.message ||
+          "Data Evaluasi & Surat Pernyataan dikirim dan menunggu persetujuan mentor.",
       );
-
-      if (andDownloadPdf) {
-        setDownloadingPdf(true);
-        await downloadEvaluasiDanPernyataanPdf(payload, { ...periode, isPkpa });
-        showToast.success("File PDF berhasil diunduh");
-      }
     } catch (err: unknown) {
       showToast.updateError(
         toastId,
-        err instanceof Error ? err.message : "Gagal menyimpan data evaluasi",
+        err instanceof Error ? err.message : "Gagal mengirim data evaluasi",
       );
     } finally {
       setSaving(false);
-      setDownloadingPdf(false);
     }
   };
 
   const handleDownloadOnly = async () => {
+    if (!canDownloadPdf) {
+      showToast.error(
+        "Dokumen PDF hanya dapat diunduh setelah disetujui oleh mentor pembimbing.",
+      );
+      return;
+    }
     const payload = buildPayload();
     if (!payload) return;
     try {
@@ -420,7 +445,7 @@ export default function EvaluasiDanPernyataanPage() {
           </div>
         </div>
 
-        {hasSaved && (
+        {canDownloadPdf && (
           <button
             type="button"
             disabled={downloadingPdf}
@@ -434,19 +459,66 @@ export default function EvaluasiDanPernyataanPage() {
       </div>
 
       {/* STATUS BANNER */}
-      {hasSaved && (
+      {hasSaved && evalStatus === "Disetujui" && (
         <div className="rounded-2xl bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/70 p-3.5 sm:p-4 flex items-start gap-2.5 sm:gap-3">
           <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-emerald-100 dark:bg-emerald-900/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
             <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
           <div className="min-w-0">
             <p className="text-xs sm:text-sm font-bold text-emerald-900 dark:text-emerald-200">
-              Data Evaluasi &amp; Surat Pernyataan Tersimpan
+              Evaluasi &amp; Surat Pernyataan Disetujui
             </p>
             <p className="text-[11px] sm:text-xs text-emerald-700 dark:text-emerald-300 mt-0.5 leading-relaxed">
-              Anda dapat memperbarui isian formulir kapan saja atau langsung
-              mengunduh dokumen PDF resmi.
+              {reviewedByName
+                ? `Telah disetujui oleh ${reviewedByName}. `
+                : "Telah disetujui oleh mentor pembimbing. "}
+              Dokumen PDF resmi kini sudah dapat Anda unduh.
             </p>
+            {mentorNote && (
+              <p className="text-[11px] sm:text-xs text-emerald-800 dark:text-emerald-200 mt-1.5 bg-white/70 dark:bg-emerald-900/40 border border-emerald-200/80 dark:border-emerald-800/60 rounded-lg px-3 py-1.5">
+                <b>Catatan:</b> {mentorNote}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {hasSaved && evalStatus === "Menunggu" && (
+        <div className="rounded-2xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/70 p-3.5 sm:p-4 flex items-start gap-2.5 sm:gap-3">
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-amber-100 dark:bg-amber-900/60 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+            <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs sm:text-sm font-bold text-amber-900 dark:text-amber-200">
+              Menunggu Penindakan Mentor Pembimbing
+            </p>
+            <p className="text-[11px] sm:text-xs text-amber-700 dark:text-amber-300 mt-0.5 leading-relaxed">
+              Isian hanya dapat dikirim 1 kali dan saat ini terkunci menunggu
+              persetujuan mentor. Tombol Unduh PDF akan terbuka setelah
+              disetujui mentor.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {hasSaved && evalStatus === "Revisi" && (
+        <div className="rounded-2xl bg-rose-50/80 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/70 p-3.5 sm:p-4 flex items-start gap-2.5 sm:gap-3">
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-rose-100 dark:bg-rose-900/60 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+            <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs sm:text-sm font-bold text-rose-900 dark:text-rose-200">
+              Perlu Revisi dari Mentor Pembimbing
+            </p>
+            <p className="text-[11px] sm:text-xs text-rose-700 dark:text-rose-300 mt-0.5 leading-relaxed">
+              Silakan perbaiki isian di bawah sesuai catatan berikut lalu kirim
+              ulang untuk ditinjau kembali.
+            </p>
+            {mentorNote && (
+              <div className="mt-2 rounded-xl bg-white/80 dark:bg-rose-900/40 border border-rose-200 dark:border-rose-800/70 px-3 py-2 text-xs text-rose-900 dark:text-rose-100 whitespace-pre-line">
+                <b>Catatan Revisi:</b> {mentorNote}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -472,6 +544,11 @@ export default function EvaluasiDanPernyataanPage() {
           ))}
         </div>
       </div>
+
+      <fieldset
+        disabled={isLocked}
+        className="space-y-4 sm:space-y-6 disabled:opacity-90"
+      >
 
       {/* ================= BAGIAN A: EVALUASI FASILITATOR / PEMBIMBING ================= */}
       <div className="rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 p-4 sm:p-6 shadow-2xs space-y-4">
@@ -863,32 +940,58 @@ export default function EvaluasiDanPernyataanPage() {
           <p>{texts.suratPernyataanParagraph}</p>
         </div>
       </div>
+      </fieldset>
 
       {/* ================= TOMBOL AKSI ================= */}
-      <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5 sm:gap-3 pt-1">
-        <button
-          type="button"
-          disabled={saving || downloadingPdf}
-          onClick={() => handleSave(false)}
-          className="px-5 py-3 rounded-xl text-xs sm:text-sm font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 inline-flex items-center justify-center gap-2 transition disabled:opacity-60"
-        >
-          <Save className="w-4 h-4" />
-          <span>{saving && !downloadingPdf ? "Menyimpan..." : "Simpan Isian"}</span>
-        </button>
-
-        <button
-          type="button"
-          disabled={saving || downloadingPdf}
-          onClick={() => handleSave(true)}
-          className="px-5 py-3 rounded-xl text-xs sm:text-sm font-bold bg-[#1D64F2] hover:bg-blue-700 text-white shadow-xs inline-flex items-center justify-center gap-2 transition disabled:opacity-60"
-        >
-          <Download className="w-4 h-4" />
-          <span>
-            {saving || downloadingPdf
-              ? "Memproses PDF..."
-              : "Simpan & Unduh PDF"}
-          </span>
-        </button>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+        {canDownloadPdf ? (
+          <>
+            <p className="text-xs text-emerald-700 dark:text-emerald-300 font-medium">
+              Dokumen telah disetujui mentor pembimbing dan siap diunduh.
+            </p>
+            <button
+              type="button"
+              disabled={downloadingPdf}
+              onClick={handleDownloadOnly}
+              className="w-full sm:w-auto px-5 py-3 rounded-xl text-xs sm:text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs inline-flex items-center justify-center gap-2 transition disabled:opacity-60"
+            >
+              <Download className="w-4 h-4" />
+              <span>
+                {downloadingPdf ? "Memproses PDF..." : "Unduh PDF Resmi"}
+              </span>
+            </button>
+          </>
+        ) : evalStatus === "Menunggu" ? (
+          <div className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/70 px-4 py-3 text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-300 inline-flex items-center justify-center gap-2">
+            <Lock className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+            <span>
+              Menunggu Persetujuan Mentor • Unduh PDF Terkunci
+            </span>
+          </div>
+        ) : (
+          <>
+            <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400">
+              {evalStatus === "Revisi"
+                ? "Perbaiki data sesuai catatan mentor lalu kirim ulang revisi Anda."
+                : "Data hanya bisa dikirim 1 kali. PDF dapat diunduh setelah disetujui mentor."}
+            </p>
+            <button
+              type="button"
+              disabled={saving}
+              onClick={handleSave}
+              className="w-full sm:w-auto px-5 py-3 rounded-xl text-xs sm:text-sm font-bold bg-[#1D64F2] hover:bg-blue-700 text-white shadow-xs inline-flex items-center justify-center gap-2 transition disabled:opacity-60 shrink-0"
+            >
+              <Save className="w-4 h-4" />
+              <span>
+                {saving
+                  ? "Mengirim..."
+                  : evalStatus === "Revisi"
+                    ? "Kirim Ulang Revisi"
+                    : "Kirim Evaluasi & Surat Pernyataan"}
+              </span>
+            </button>
+          </>
+        )}
       </div>
     </div>
   );

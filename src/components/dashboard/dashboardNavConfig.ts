@@ -15,6 +15,7 @@ import {
   MessageCircle,
   KeyRound,
   FileText,
+  FileSignature,
   ScanFace,
   BookOpen,
   Award,
@@ -108,6 +109,11 @@ export const ROLE_NAVIGATION_CONFIG: Record<RoleType, RoleConfig> = {
             title: "Penilaian Akhir",
             href: "/dashboard/superadmin/ViewPenilaianAkhir",
             icon: Award,
+          },
+          {
+            title: "Evaluasi & Pernyataan",
+            href: "/dashboard/superadmin/ViewEvaluasi",
+            icon: FileSignature,
           },
           {
             title: "Feedback & Ulasan",
@@ -255,6 +261,11 @@ export const ROLE_NAVIGATION_CONFIG: Record<RoleType, RoleConfig> = {
             icon: Award,
           },
           {
+            title: "Evaluasi & Pernyataan",
+            href: "/dashboard/admin/ViewEvaluasi",
+            icon: FileSignature,
+          },
+          {
             title: "Feedback & Ulasan",
             href: "/dashboard/admin/ViewFeedback",
             icon: MessageSquareHeart,
@@ -361,6 +372,11 @@ export const ROLE_NAVIGATION_CONFIG: Record<RoleType, RoleConfig> = {
             title: "Penilaian Akhir",
             href: "/dashboard/mentor/ViewPenilaianAkhir",
             icon: Award,
+          },
+          {
+            title: "Evaluasi & Pernyataan",
+            href: "/dashboard/mentor/ViewEvaluasi",
+            icon: FileSignature,
           },
           {
             title: "Feedback Mahasiswa",

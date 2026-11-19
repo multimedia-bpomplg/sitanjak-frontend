@@ -1,15 +1,18 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   Award,
   Building2,
   Calendar,
   CheckCircle2,
   GraduationCap,
+  ImagePlus,
   Lock,
   Save,
   ScanFace,
+  Trash2,
+  Upload,
   User,
   X,
 } from "lucide-react";
@@ -33,6 +36,7 @@ export type ExistingPenilaianAkhir = {
   saran?: string;
   penilaiNama?: string;
   penilaiNip?: string;
+  penilaiTtdImage?: string;
   tanggalPenilaian?: string;
 };
 
@@ -166,10 +170,88 @@ export default function MentorPenilaianAkhirModal({
   );
   const [kesan, setKesan] = useState(existing?.kesan || "");
   const [saran, setSaran] = useState(existing?.saran || "");
-  const [penilaiNip, setPenilaiNip] = useState(
-    existing?.penilaiNip || peserta.mentorNip || "",
+  const [penilaiTtdImage, setPenilaiTtdImage] = useState(
+    existing?.penilaiTtdImage || "",
   );
+  const ttdInputRef = useRef<HTMLInputElement | null>(null);
   const [saving, setSaving] = useState(false);
+
+  const handleUploadTtd = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+
+    const isPngExt = file.name.toLowerCase().endsWith(".png");
+    if (file.type && file.type !== "image/png") {
+      showToast.error("Foto tanda tangan (TTD) harus berformat PNG (.png)");
+      return;
+    }
+    if (!file.type && !isPngExt) {
+      showToast.error("Foto tanda tangan (TTD) harus berformat PNG (.png)");
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      showToast.error("Ukuran foto tanda tangan (TTD) maksimal 2 MB");
+      return;
+    }
+
+    try {
+      const headerBuf = await file.slice(0, 8).arrayBuffer();
+      const bytes = new Uint8Array(headerBuf);
+      const isPngSignature =
+        bytes.length >= 4 &&
+        bytes[0] === 0x89 &&
+        bytes[1] === 0x50 &&
+        bytes[2] === 0x4e &&
+        bytes[3] === 0x47;
+      if (!isPngSignature) {
+        showToast.error(
+          "File tidak valid. Foto tanda tangan (TTD) harus berformat PNG (.png)",
+        );
+        return;
+      }
+
+      const rawDataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () =>
+          typeof reader.result === "string"
+            ? resolve(reader.result)
+            : reject(new Error("Gagal membaca file"));
+        reader.onerror = () => reject(new Error("Gagal membaca file"));
+        reader.readAsDataURL(file);
+      });
+
+      const normalizedPng = await new Promise<string>((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+          const maxW = 700;
+          const maxH = 350;
+          const scale = Math.min(1, maxW / img.width, maxH / img.height);
+          const targetW = Math.max(1, Math.round(img.width * scale));
+          const targetH = Math.max(1, Math.round(img.height * scale));
+          const canvas = document.createElement("canvas");
+          canvas.width = targetW;
+          canvas.height = targetH;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) {
+            resolve(rawDataUrl);
+            return;
+          }
+          ctx.clearRect(0, 0, targetW, targetH);
+          ctx.drawImage(img, 0, 0, targetW, targetH);
+          resolve(canvas.toDataURL("image/png"));
+        };
+        img.onerror = () => reject(new Error("Gambar PNG TTD tidak dapat dimuat"));
+        img.src = rawDataUrl;
+      });
+
+      setPenilaiTtdImage(normalizedPng);
+      showToast.success("Gambar tanda tangan (PNG) berhasil diunggah");
+    } catch {
+      showToast.error("Gagal memproses gambar tanda tangan (TTD)");
+    }
+  };
 
   const handleScoreChange = (key: AspectKey, rawVal: string) => {
     if (key === "kehadiranTaatJadwal") return;
@@ -297,7 +379,7 @@ export default function MentorPenilaianAkhirModal({
         keteranganRataRata: summaryCalc.predikat,
         kesan: kesan.trim(),
         saran: saran.trim(),
-        penilaiNip: penilaiNip.trim(),
+        penilaiTtdImage,
       };
 
       const res = await fetch(
@@ -710,24 +792,93 @@ export default function MentorPenilaianAkhirModal({
             </div>
 
             {readOnly ? (
-              penilaiNip ? (
-                <div className="text-xs text-slate-600 dark:text-slate-300">
-                  NIP Pembimbing:{" "}
-                  <b className="text-slate-900 dark:text-white">{penilaiNip}</b>
-                </div>
-              ) : null
+              <div className="space-y-3">
+                {(existing?.penilaiNip || peserta.mentorNip) && (
+                  <div className="text-xs text-slate-600 dark:text-slate-300">
+                    NIP Pembimbing:{" "}
+                    <b className="text-slate-900 dark:text-white">
+                      {existing?.penilaiNip || peserta.mentorNip}
+                    </b>
+                  </div>
+                )}
+                {penilaiTtdImage && (
+                  <div className="rounded-xl bg-white border border-slate-200 p-3 inline-flex flex-col items-center gap-1">
+                    <span className="text-[11px] text-slate-500">
+                      Tanda Tangan Pembimbing:
+                    </span>
+                    <img
+                      src={penilaiTtdImage}
+                      alt="Tanda Tangan Pembimbing"
+                      className="max-h-20 w-auto object-contain"
+                    />
+                  </div>
+                )}
+              </div>
             ) : (
-              <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
-                  NIP Pembimbing (Terisi otomatis dari profil akun mentor)
-                </label>
-                <input
-                  type="text"
-                  value={penilaiNip}
-                  onChange={(e) => setPenilaiNip(e.target.value)}
-                  placeholder="Contoh: 198501012010121001"
-                  className="w-full sm:max-w-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-2 text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[#1D64F2] focus:ring-2 focus:ring-[#1D64F2]/20"
-                />
+              <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/40 p-3.5 sm:p-4 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
+                  <div>
+                    <p className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-100">
+                      Tanda Tangan Pembimbing (TTD)
+                    </p>
+                    <p className="text-[11px] sm:text-xs text-amber-700 dark:text-amber-400 font-medium mt-0.5 leading-relaxed">
+                      Format gambar TTD harus PNG (.png), maksimal 2 MB.
+                      Disarankan latar belakang transparan agar menyatu rapi
+                      dengan Cap BBPOM di hasil PDF penilaian akhir.
+                    </p>
+                  </div>
+                  <input
+                    ref={ttdInputRef}
+                    type="file"
+                    accept="image/png,.png"
+                    onChange={handleUploadTtd}
+                    className="hidden"
+                  />
+                  <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => ttdInputRef.current?.click()}
+                      className="flex-1 sm:flex-initial justify-center px-3.5 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 hover:border-[#1D64F2] text-xs font-semibold text-slate-700 dark:text-slate-200 inline-flex items-center gap-1.5 transition cursor-pointer"
+                    >
+                      {penilaiTtdImage ? (
+                        <Upload className="w-3.5 h-3.5 text-[#1D64F2]" />
+                      ) : (
+                        <ImagePlus className="w-3.5 h-3.5 text-[#1D64F2]" />
+                      )}
+                      <span>
+                        {penilaiTtdImage
+                          ? "Ganti Foto TTD"
+                          : "Upload Foto TTD (.png)"}
+                      </span>
+                    </button>
+                    {penilaiTtdImage && (
+                      <button
+                        type="button"
+                        onClick={() => setPenilaiTtdImage("")}
+                        className="px-3 py-2 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 hover:bg-rose-100 text-xs font-semibold text-rose-600 dark:text-rose-400 inline-flex items-center justify-center gap-1 transition cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Hapus</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {penilaiTtdImage && (
+                  <div className="rounded-xl bg-white border border-slate-200 p-3 flex flex-col items-center justify-center gap-1.5 w-full sm:max-w-xs">
+                    <span className="text-[11px] text-slate-500">
+                      Pratinjau TTD pada PDF Penilaian Akhir:
+                    </span>
+                    <img
+                      src={penilaiTtdImage}
+                      alt="Pratinjau Tanda Tangan Pembimbing"
+                      className="max-h-20 w-auto object-contain"
+                    />
+                    <span className="text-xs text-slate-800 font-medium">
+                      ( {existing?.penilaiNama || peserta.mentorName || "Pembimbing"} )
+                    </span>
+                  </div>
+                )}
               </div>
             )}
           </div>
