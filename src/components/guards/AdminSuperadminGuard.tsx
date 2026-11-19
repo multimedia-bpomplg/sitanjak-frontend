@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { parseJwtPayload } from "@/lib/authSession";
 
 export default function AdminSuperadminGuard({
   children,
@@ -13,67 +14,68 @@ export default function AdminSuperadminGuard({
   const router = useRouter();
 
   useEffect(() => {
-    checkAccess();
-  }, []);
+    const checkAccess = () => {
+      const token = localStorage.getItem("token");
 
-  const checkAccess = () => {
-    const token = localStorage.getItem("token");
-
-    if (!token) {
-      router.push("/auth/login");
-      return;
-    }
-
-    try {
-      // ✅ DECODE TOKEN UNTUK DAPATKAN DATA
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      const roles = payload.roles || [];
-      const isSuperAccess = payload.isSuperAccess || false;
-
-      console.log("🔐 Guard Check:", {
-        roles,
-        isSuperAccess,
-        path: window.location.pathname,
-      });
-
-      // LOGIC AKSES
-      const path = window.location.pathname;
-
-      // ✅ ADMIN ROUTES
-      if (path.includes("/dashboard/admin")) {
-        // Admin biasa boleh akses semua halaman admin
-        if (roles.includes("admin")) {
-          setHasAccess(true);
-          setLoading(false);
-          return;
-        }
-
-        // Superadmin juga boleh akses admin routes
-        if (roles.includes("superadmin")) {
-          setHasAccess(true);
-          setLoading(false);
-          return;
-        }
+      if (!token) {
+        router.push("/auth/login");
+        return;
       }
 
-      // ✅ SUPERADMIN ROUTES
-      if (path.includes("/dashboard/superadmin")) {
-        if (roles.includes("superadmin")) {
-          setHasAccess(true);
-          setLoading(false);
+      try {
+        const payload = parseJwtPayload(token);
+        if (!payload) {
+          router.push("/auth/login");
           return;
         }
-      }
 
-      // Jika tidak ada akses
-      setHasAccess(false);
-      setLoading(false);
-      router.push("/403");
-    } catch (error) {
-      console.error("Guard error:", error);
-      router.push("/auth/login");
-    }
-  };
+        const roles = Array.isArray(payload.roles) ? payload.roles : [];
+        const path = window.location.pathname;
+
+        // Jika Superadmin membuka rute /dashboard/admin/*, arahkan ke /dashboard/superadmin/*
+        // agar layout, sidebar, dan badge role tetap Superadmin.
+        if (path === "/dashboard/admin" || path.startsWith("/dashboard/admin/")) {
+          if (roles.includes("superadmin")) {
+            const targetPath = path.replace(
+              /^\/dashboard\/admin(?=\/|$)/,
+              "/dashboard/superadmin",
+            );
+            router.replace(
+              `${targetPath}${window.location.search}${window.location.hash}`,
+            );
+            return;
+          }
+
+          if (roles.includes("admin")) {
+            setHasAccess(true);
+            setLoading(false);
+            return;
+          }
+        }
+
+        if (
+          path === "/dashboard/superadmin" ||
+          path.startsWith("/dashboard/superadmin/")
+        ) {
+          if (roles.includes("superadmin")) {
+            setHasAccess(true);
+            setLoading(false);
+            return;
+          }
+        }
+
+        setHasAccess(false);
+        setLoading(false);
+        router.push("/403");
+      } catch (error) {
+        console.error("Guard error:", error);
+        router.push("/auth/login");
+      }
+    };
+
+    const raf = requestAnimationFrame(checkAccess);
+    return () => cancelAnimationFrame(raf);
+  }, [router]);
 
   if (loading) {
     return (

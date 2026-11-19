@@ -181,7 +181,16 @@ export default function DashboardHeader({
       setNotificationOpen(false);
 
       if (notif.linkUrl) {
-        router.push(notif.linkUrl);
+        const isSuperadminUser =
+          role === "superadmin" || Boolean(user?.roles?.includes("superadmin"));
+        const targetUrl =
+          isSuperadminUser && notif.linkUrl.startsWith("/dashboard/admin")
+            ? notif.linkUrl.replace(
+                /^\/dashboard\/admin(?=\/|$)/,
+                "/dashboard/superadmin",
+              )
+            : notif.linkUrl;
+        router.push(targetUrl);
       }
     } catch (err) {
       console.error("Gagal memproses notifikasi:", err);
