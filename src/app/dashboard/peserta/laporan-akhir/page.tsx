@@ -662,7 +662,7 @@ export default function LaporanAkhirPage() {
         <h1 className="text-xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
           Perkembangan Magang
         </h1>
-        <p className="text-xs sm:text-base text-slate-500 dark:text-slate-400 mt-1">
+        <p className="text-base text-slate-500 dark:text-slate-400 mt-1">
           Lihat laporan akhir, evaluasi penilaian mentor, survei program, dan
           sertifikat magang Anda.
         </p>
@@ -681,14 +681,14 @@ export default function LaporanAkhirPage() {
                 <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
                   <FileSignature className="w-5 h-5" />
                 </div>
-                <span className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
+                <span className="text-base font-bold text-slate-900 dark:text-white">
                   Evaluasi &amp; Surat Pernyataan
                 </span>
               </div>
               <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400 shrink-0" />
             </div>
 
-            <div className="mt-3 sm:mt-3.5 pt-2.5 sm:pt-3 border-t border-slate-100 dark:border-slate-700/70 flex items-center justify-between gap-2 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+            <div className="mt-3 sm:mt-3.5 pt-2.5 sm:pt-3 border-t border-slate-100 dark:border-slate-700/70 flex items-center justify-between gap-2 text-sm text-slate-500 dark:text-slate-400">
               <div className="flex items-center gap-1.5 truncate">
                 {evaluasiData ? (
                   evaluasiStatus === "Disetujui" ? (
@@ -723,7 +723,7 @@ export default function LaporanAkhirPage() {
                 )}
               </div>
               <span
-                className={`px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold border shrink-0 ${
+                className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border shrink-0 ${
                   !evaluasiData
                     ? "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-700/60 dark:text-slate-300 dark:border-slate-600"
                     : evaluasiStatus === "Disetujui"
@@ -753,7 +753,7 @@ export default function LaporanAkhirPage() {
                 <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-[#1D64F2] dark:text-blue-400 flex items-center justify-center shrink-0">
                   <FileText className="w-5 h-5" />
                 </div>
-                <span className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
+                <span className="text-base font-bold text-slate-900 dark:text-white">
                   Laporan Akhir
                 </span>
               </div>
@@ -764,7 +764,7 @@ export default function LaporanAkhirPage() {
               />
             </div>
 
-            <div className="mt-3 sm:mt-3.5 pt-2.5 sm:pt-3 border-t border-slate-100 dark:border-slate-700/70 flex items-center justify-between gap-2 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+            <div className="mt-3 sm:mt-3.5 pt-2.5 sm:pt-3 border-t border-slate-100 dark:border-slate-700/70 flex items-center justify-between gap-2 text-sm text-slate-500 dark:text-slate-400">
               <div className="flex items-center gap-1.5 truncate">
                 <Award className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 shrink-0" />
                 <span className="truncate">
@@ -775,7 +775,7 @@ export default function LaporanAkhirPage() {
               </div>
               {laporan && (
                 <span
-                  className={`px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold border shrink-0 ${getStatusBadge(
+                  className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border shrink-0 ${getStatusBadge(
                     laporan.status,
                   )}`}
                 >
@@ -796,15 +796,15 @@ export default function LaporanAkhirPage() {
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">
+                      <p className="text-sm font-bold text-slate-900 dark:text-white truncate">
                         {activeFormatLaporanDoc?.title ||
                           `Format Laporan Akhir Magang (${isPkpa ? "PKPA" : "Reguler"})`}
                       </p>
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-[#1D64F2] border border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800">
+                      <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-[#1D64F2] border border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800">
                         {isPkpa ? "PKPA" : "Reguler"}
                       </span>
                     </div>
-                    <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">
                       {activeFormatLaporanDoc
                         ? `${activeFormatLaporanDoc.originalName} • ${formatFileSize(activeFormatLaporanDoc.fileSize)}`
                         : `Belum tersedia untuk kategori ${isPkpa ? "PKPA" : "Reguler"} (diatur Admin / Superadmin)`}
@@ -833,10 +833,10 @@ export default function LaporanAkhirPage() {
                 <div className="rounded-xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 p-4 space-y-3.5">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">
+                      <p className="text-sm font-bold text-slate-900 dark:text-white truncate">
                         {laporan.fileName}
                       </p>
-                      <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                         {formatFileSize(laporan.fileSize)} • Dikirim{" "}
                         {new Date(laporan.submittedAt).toLocaleDateString(
                           "id-ID",
@@ -849,7 +849,7 @@ export default function LaporanAkhirPage() {
                       </p>
                     </div>
                     <span
-                      className={`px-2.5 py-0.5 rounded-full text-[11px] sm:text-xs font-semibold border shrink-0 ${getStatusBadge(
+                      className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border shrink-0 ${getStatusBadge(
                         laporan.status,
                       )}`}
                     >
@@ -860,11 +860,11 @@ export default function LaporanAkhirPage() {
                   {/* Catatan Mentor */}
                   {laporan.mentorNote && (
                     <div className="rounded-xl bg-[#FFFBEB] dark:bg-amber-950/40 border border-[#FDE68A] dark:border-amber-800/70 p-3.5 space-y-1">
-                      <div className="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-amber-900 dark:text-amber-200">
+                      <div className="flex items-center gap-1.5 text-sm font-bold text-amber-900 dark:text-amber-200">
                         <AlertCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-600 shrink-0" />
                         <span>Catatan Review Mentor</span>
                       </div>
-                      <p className="text-xs sm:text-sm text-amber-900 dark:text-amber-100 pl-5 whitespace-pre-line break-words [overflow-wrap:anywhere]">
+                      <p className="text-sm text-amber-900 dark:text-amber-100 pl-5 whitespace-pre-line break-words [overflow-wrap:anywhere]">
                         {laporan.mentorNote}
                       </p>
                     </div>
@@ -875,7 +875,7 @@ export default function LaporanAkhirPage() {
                     <button
                       type="button"
                       onClick={downloadPdf}
-                      className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white text-xs sm:text-sm font-bold transition"
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white text-sm font-bold transition"
                     >
                       <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                       <span>Unduh PDF</span>
@@ -885,7 +885,7 @@ export default function LaporanAkhirPage() {
                       <button
                         type="button"
                         onClick={() => setShowPenilaianModal(true)}
-                        className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-[#1D64F2] hover:bg-blue-700 text-white text-xs sm:text-sm font-bold transition"
+                        className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-[#1D64F2] hover:bg-blue-700 text-white text-sm font-bold transition"
                       >
                         <Award className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         <span>Lihat Penilaian</span>
@@ -898,12 +898,12 @@ export default function LaporanAkhirPage() {
                   <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/60 text-amber-600 dark:text-amber-300 flex items-center justify-center mx-auto">
                     <Lock className="w-5 h-5" />
                   </div>
-                  <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
+                  <p className="text-sm font-bold text-slate-900 dark:text-white">
                     {uploadScheduleInfo.reason === "inactive"
                       ? "Unggah Laporan Akhir Tidak Tersedia"
                       : "Unggah Laporan Akhir Belum Dibuka"}
                   </p>
-                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed max-w-md mx-auto">
+                  <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed max-w-md mx-auto">
                     {uploadScheduleInfo.reason === "inactive" ? (
                       "Status kepesertaan magang Anda sedang tidak aktif."
                     ) : (
@@ -920,7 +920,7 @@ export default function LaporanAkhirPage() {
                   <button
                     type="button"
                     disabled
-                    className="w-full py-2.5 sm:py-3 px-4 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-xs sm:text-sm font-bold inline-flex items-center justify-center gap-2 cursor-not-allowed"
+                    className="w-full py-2.5 sm:py-3 px-4 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-sm font-bold inline-flex items-center justify-center gap-2 cursor-not-allowed"
                   >
                     <Lock className="w-4 h-4" />
                     <span>Unggah Laporan Akhir Terkunci</span>
@@ -928,7 +928,7 @@ export default function LaporanAkhirPage() {
                 </div>
               ) : (
                 <div className="rounded-xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 p-4 sm:p-5 text-center space-y-3">
-                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                  <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
                     Unggah laporan akhir magang dalam format PDF (maksimal 5MB).
                     Laporan hanya dapat diunggah <b>1 kali</b> dan bersifat
                     final.
@@ -936,7 +936,7 @@ export default function LaporanAkhirPage() {
                   <button
                     type="button"
                     onClick={() => setShowUploadModal(true)}
-                    className="w-full py-2.5 sm:py-3 px-4 rounded-xl bg-[#1D64F2] hover:bg-blue-700 text-white text-xs sm:text-sm font-bold inline-flex items-center justify-center gap-2 shadow-xs transition"
+                    className="w-full py-2.5 sm:py-3 px-4 rounded-xl bg-[#1D64F2] hover:bg-blue-700 text-white text-sm font-bold inline-flex items-center justify-center gap-2 shadow-xs transition"
                   >
                     <Upload className="w-4 h-4" />
                     <span>Unggah Laporan Akhir</span>
@@ -965,7 +965,7 @@ export default function LaporanAkhirPage() {
                 <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
                   <ClipboardCheck className="w-5 h-5" />
                 </div>
-                <span className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
+                <span className="text-base font-bold text-slate-900 dark:text-white">
                   Survei &amp; Feedback
                 </span>
               </div>
@@ -976,7 +976,7 @@ export default function LaporanAkhirPage() {
               />
             </div>
 
-            <div className="mt-3 sm:mt-3.5 pt-2.5 sm:pt-3 border-t border-slate-100 dark:border-slate-700/70 flex items-center justify-between gap-2 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+            <div className="mt-3 sm:mt-3.5 pt-2.5 sm:pt-3 border-t border-slate-100 dark:border-slate-700/70 flex items-center justify-between gap-2 text-sm text-slate-500 dark:text-slate-400">
               <div className="flex items-center gap-1.5 min-w-0">
                 {feedback ? (
                   <>
@@ -1006,7 +1006,7 @@ export default function LaporanAkhirPage() {
               </div>
 
               {!feedback && !isLaporanApproved && (
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold border shrink-0 bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800">
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold border shrink-0 bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800">
                   Terkunci
                 </span>
               )}
@@ -1017,7 +1017,7 @@ export default function LaporanAkhirPage() {
           {!feedback && !isLaporanApproved && openSurveiSection && (
             <div className="px-4 sm:px-5 pb-4 sm:pb-5 pt-2.5 border-t border-slate-100 dark:border-slate-700/70 bg-slate-50/40 dark:bg-slate-800/40">
               <div className="rounded-xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/70 p-4 text-center space-y-2.5">
-                <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
+                <p className="text-sm font-bold text-slate-900 dark:text-white">
                   Survei &amp; Feedback Belum Dapat Diisi
                 </p>
                 <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
@@ -1028,7 +1028,7 @@ export default function LaporanAkhirPage() {
                 <button
                   type="button"
                   disabled
-                  className="w-full py-2.5 px-4 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-xs sm:text-sm font-bold inline-flex items-center justify-center gap-1.5 cursor-not-allowed"
+                  className="w-full py-2.5 px-4 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-sm font-bold inline-flex items-center justify-center gap-1.5 cursor-not-allowed"
                 >
                   <Lock className="w-4 h-4" />
                   <span>Menunggu Persetujuan Laporan Akhir</span>
@@ -1041,13 +1041,13 @@ export default function LaporanAkhirPage() {
           {feedback && openSurveiSection && (
             <div className="px-4 sm:px-5 pb-4 sm:pb-5 pt-2.5 border-t border-slate-100 dark:border-slate-700/70 space-y-3 bg-slate-50/40 dark:bg-slate-800/40">
               <div className="rounded-xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 p-4 space-y-3">
-                <div className="flex items-center justify-between text-xs sm:text-sm">
+                <div className="flex items-center justify-between text-sm">
                   <span className="text-slate-500">Periode Survei</span>
                   <span className="font-bold text-slate-900 dark:text-white">
                     {feedback.month}
                   </span>
                 </div>
-                <div className="flex items-center justify-between text-xs sm:text-sm">
+                <div className="flex items-center justify-between text-sm">
                   <span className="text-slate-500">Tanggal Kirim</span>
                   <span className="font-bold text-slate-900 dark:text-white">
                     {new Date(feedback.createdAt).toLocaleDateString("id-ID", {
@@ -1060,14 +1060,14 @@ export default function LaporanAkhirPage() {
 
                 {feedback.mentorResponse && (
                   <div className="rounded-xl bg-[#FFFBEB] dark:bg-amber-950/40 border border-[#FDE68A] dark:border-amber-800/70 p-3.5 space-y-1">
-                    <div className="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-amber-900 dark:text-amber-200">
+                    <div className="flex items-center gap-1.5 text-sm font-bold text-amber-900 dark:text-amber-200">
                       <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-600 shrink-0" />
                       <span>
                         Tanggapan Mentor (
                         {feedback.mentorRespondedBy?.name || "Mentor"})
                       </span>
                     </div>
-                    <p className="text-xs sm:text-sm text-amber-900 dark:text-amber-100 pl-5 whitespace-pre-line break-words [overflow-wrap:anywhere]">
+                    <p className="text-sm text-amber-900 dark:text-amber-100 pl-5 whitespace-pre-line break-words [overflow-wrap:anywhere]">
                       {feedback.mentorResponse}
                     </p>
                   </div>
@@ -1076,7 +1076,7 @@ export default function LaporanAkhirPage() {
                 <button
                   type="button"
                   onClick={handleOpenFeedbackModal}
-                  className="w-full py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white text-xs sm:text-sm font-bold transition"
+                  className="w-full py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white text-sm font-bold transition"
                 >
                   Lihat Detail Isian Survei
                 </button>
@@ -1096,14 +1096,14 @@ export default function LaporanAkhirPage() {
                 <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-violet-50 dark:bg-violet-950/60 text-violet-600 dark:text-violet-400 flex items-center justify-center shrink-0">
                   <ClipboardList className="w-5 h-5" />
                 </div>
-                <span className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
+                <span className="text-base font-bold text-slate-900 dark:text-white">
                   Penilaian Akhir Magang
                 </span>
               </div>
               <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400 shrink-0" />
             </div>
 
-            <div className="mt-3 sm:mt-3.5 pt-2.5 sm:pt-3 border-t border-slate-100 dark:border-slate-700/70 flex items-center justify-between gap-2 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+            <div className="mt-3 sm:mt-3.5 pt-2.5 sm:pt-3 border-t border-slate-100 dark:border-slate-700/70 flex items-center justify-between gap-2 text-sm text-slate-500 dark:text-slate-400">
               <div className="flex items-center gap-1.5 truncate">
                 {penilaianAkhirSummary ? (
                   <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600 shrink-0" />
@@ -1117,7 +1117,7 @@ export default function LaporanAkhirPage() {
                 </span>
               </div>
               <span
-                className={`px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold border shrink-0 ${
+                className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border shrink-0 ${
                   penilaianAkhirSummary
                     ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800"
                     : "bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-950/60 dark:text-violet-300 dark:border-violet-800"
@@ -1141,7 +1141,7 @@ export default function LaporanAkhirPage() {
                 <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
                   <Award className="w-5 h-5" />
                 </div>
-                <span className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
+                <span className="text-base font-bold text-slate-900 dark:text-white">
                   Sertifikat & Surat Selesai Magang
                 </span>
               </div>
@@ -1152,7 +1152,7 @@ export default function LaporanAkhirPage() {
               />
             </div>
 
-            <div className="mt-3 sm:mt-3.5 pt-2.5 sm:pt-3 border-t border-slate-100 dark:border-slate-700/70 flex items-center justify-between gap-2 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+            <div className="mt-3 sm:mt-3.5 pt-2.5 sm:pt-3 border-t border-slate-100 dark:border-slate-700/70 flex items-center justify-between gap-2 text-sm text-slate-500 dark:text-slate-400">
               <div className="flex items-center gap-1.5 truncate">
                 {canDownloadCompletionDocs ? (
                   <BadgeCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600 shrink-0" />
@@ -1166,7 +1166,7 @@ export default function LaporanAkhirPage() {
                 </span>
               </div>
               <span
-                className={`px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold border shrink-0 ${
+                className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border shrink-0 ${
                   canDownloadCompletionDocs
                     ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800"
                     : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800"
@@ -1182,7 +1182,7 @@ export default function LaporanAkhirPage() {
             <div className="px-4 sm:px-5 pb-4 sm:pb-5 pt-2.5 border-t border-slate-100 dark:border-slate-700/70 space-y-3.5 bg-slate-50/40 dark:bg-slate-800/40">
               {!canDownloadCompletionDocs && (
                 <div className="rounded-xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/70 p-4 space-y-2.5">
-                  <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-amber-900 dark:text-amber-200">
+                  <div className="flex items-center gap-2 text-sm font-bold text-amber-900 dark:text-amber-200">
                     <Lock className="w-4 h-4 text-amber-600 shrink-0" />
                     <span>Syarat Mengunduh Sertifikat &amp; Surat Selesai Magang</span>
                   </div>
@@ -1222,12 +1222,12 @@ export default function LaporanAkhirPage() {
                     </div>
                     <div className="min-w-0">
                       <p
-                        className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate"
+                        className="text-sm font-bold text-slate-900 dark:text-white truncate"
                         style={{ fontWeight: 700 }}
                       >
                         Sertifikat Magang
                       </p>
-                      <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                         {sertifikat?.nomorSertifikat
                           ? `No: ${sertifikat.nomorSertifikat}`
                           : sertifikat?.tanggalKirim
@@ -1244,7 +1244,7 @@ export default function LaporanAkhirPage() {
                   </div>
 
                   <span
-                    className={`px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold border shrink-0 ${
+                    className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border shrink-0 ${
                       !canDownloadCompletionDocs
                         ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800"
                         : sertifikat?.file
@@ -1265,7 +1265,7 @@ export default function LaporanAkhirPage() {
                     <button
                       type="button"
                       disabled
-                      className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-3.5 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-xs sm:text-sm font-bold cursor-not-allowed"
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-3.5 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-sm font-bold cursor-not-allowed"
                     >
                       <Lock className="w-4 h-4" />
                       <span>Review Sertifikat Terkunci</span>
@@ -1274,7 +1274,7 @@ export default function LaporanAkhirPage() {
                     <button
                       type="button"
                       disabled
-                      className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-3.5 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-xs sm:text-sm font-bold cursor-not-allowed"
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-3.5 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-sm font-bold cursor-not-allowed"
                     >
                       <Lock className="w-4 h-4" />
                       <span>Unduh Sertifikat Terkunci</span>
@@ -1285,7 +1285,7 @@ export default function LaporanAkhirPage() {
                     <button
                       type="button"
                       onClick={handleOpenPreviewSertifikat}
-                      className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white text-xs sm:text-sm font-bold transition"
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white text-sm font-bold transition"
                     >
                       <Eye className="w-4 h-4 text-[#1D64F2] dark:text-blue-400" />
                       <span>Review Sertifikat</span>
@@ -1294,7 +1294,7 @@ export default function LaporanAkhirPage() {
                     <button
                       type="button"
                       onClick={handleDownloadSertifikat}
-                      className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-3.5 rounded-xl bg-[#1D64F2] hover:bg-blue-700 text-white text-xs sm:text-sm font-bold shadow-2xs transition"
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-3.5 rounded-xl bg-[#1D64F2] hover:bg-blue-700 text-white text-sm font-bold shadow-2xs transition"
                     >
                       <Download className="w-4 h-4" />
                       <span>Unduh Sertifikat</span>
@@ -1316,12 +1316,12 @@ export default function LaporanAkhirPage() {
                     </div>
                     <div className="min-w-0">
                       <p
-                        className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate"
+                        className="text-sm font-bold text-slate-900 dark:text-white truncate"
                         style={{ fontWeight: 700 }}
                       >
                         Surat Selesai Magang
                       </p>
-                      <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                         {suratSelesai?.tanggalKirim
                           ? `Diterbitkan ${new Date(
                               suratSelesai.tanggalKirim,
@@ -1336,7 +1336,7 @@ export default function LaporanAkhirPage() {
                   </div>
 
                   <span
-                    className={`px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold border shrink-0 ${
+                    className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border shrink-0 ${
                       !canDownloadCompletionDocs
                         ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800"
                         : suratSelesai?.file
@@ -1357,7 +1357,7 @@ export default function LaporanAkhirPage() {
                     <button
                       type="button"
                       disabled
-                      className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-3.5 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-xs sm:text-sm font-bold cursor-not-allowed"
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-3.5 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-sm font-bold cursor-not-allowed"
                     >
                       <Lock className="w-4 h-4" />
                       <span>Review Surat Terkunci</span>
@@ -1365,7 +1365,7 @@ export default function LaporanAkhirPage() {
                     <button
                       type="button"
                       disabled
-                      className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-3.5 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-xs sm:text-sm font-bold cursor-not-allowed"
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-3.5 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-sm font-bold cursor-not-allowed"
                     >
                       <Lock className="w-4 h-4" />
                       <span>Unduh Surat Terkunci</span>
@@ -1376,7 +1376,7 @@ export default function LaporanAkhirPage() {
                     <button
                       type="button"
                       onClick={() => setShowSuratSelesaiModal(true)}
-                      className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white text-xs sm:text-sm font-bold transition"
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white text-sm font-bold transition"
                     >
                       <Eye className="w-4 h-4 text-[#1D64F2] dark:text-blue-400" />
                       <span>Review Surat Selesai</span>
@@ -1385,7 +1385,7 @@ export default function LaporanAkhirPage() {
                     <button
                       type="button"
                       onClick={handleDownloadSuratSelesai}
-                      className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-3.5 rounded-xl bg-[#1D64F2] hover:bg-blue-700 text-white text-xs sm:text-sm font-bold shadow-2xs transition"
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-3.5 rounded-xl bg-[#1D64F2] hover:bg-blue-700 text-white text-sm font-bold shadow-2xs transition"
                     >
                       <Download className="w-4 h-4" />
                       <span>Unduh Surat Selesai</span>
@@ -1453,12 +1453,12 @@ export default function LaporanAkhirPage() {
                 </div>
                 <div className="min-w-0">
                   <h2
-                    className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white leading-tight"
+                    className="text-lg font-extrabold text-slate-900 dark:text-white leading-tight"
                     style={{ fontWeight: 800 }}
                   >
                     Review Sertifikat Magang
                   </h2>
-                  <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5 truncate">
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5 truncate">
                     Pratinjau dokumen Sertifikat Magang BBPOM di Palembang
                   </p>
                 </div>
@@ -1504,7 +1504,7 @@ export default function LaporanAkhirPage() {
               <button
                 type="button"
                 onClick={handleClosePreviewSertifikat}
-                className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition"
+                className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-200 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition"
               >
                 Tutup
               </button>
@@ -1512,7 +1512,7 @@ export default function LaporanAkhirPage() {
               <button
                 type="button"
                 onClick={handleDownloadSertifikat}
-                className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-[#1D64F2] hover:bg-blue-700 shadow-2xs transition inline-flex items-center justify-center gap-2"
+                className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-[#1D64F2] hover:bg-blue-700 shadow-2xs transition inline-flex items-center justify-center gap-2"
               >
                 <Download className="w-4 h-4" />
                 <span>Unduh Sertifikat (PDF)</span>
@@ -1536,12 +1536,12 @@ export default function LaporanAkhirPage() {
                 </div>
                 <div className="min-w-0">
                   <h2
-                    className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white leading-tight"
+                    className="text-lg font-extrabold text-slate-900 dark:text-white leading-tight"
                     style={{ fontWeight: 800 }}
                   >
                     Review Surat Selesai Magang
                   </h2>
-                  <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5 truncate">
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5 truncate">
                     Pratinjau dokumen Surat Selesai Magang BBPOM di Palembang
                   </p>
                 </div>
@@ -1588,7 +1588,7 @@ export default function LaporanAkhirPage() {
               <button
                 type="button"
                 onClick={() => setShowSuratSelesaiModal(false)}
-                className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition"
+                className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-200 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition"
               >
                 Tutup
               </button>
@@ -1596,7 +1596,7 @@ export default function LaporanAkhirPage() {
               <button
                 type="button"
                 onClick={handleDownloadSuratSelesai}
-                className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-[#1D64F2] hover:bg-blue-700 shadow-2xs transition inline-flex items-center justify-center gap-2"
+                className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-[#1D64F2] hover:bg-blue-700 shadow-2xs transition inline-flex items-center justify-center gap-2"
               >
                 <Download className="w-4 h-4" />
                 <span>Unduh Surat Selesai (PDF)</span>

@@ -415,14 +415,14 @@ export default function PesertaDashboard() {
             <h2 className="text-base font-bold text-slate-900 dark:text-white">
               Gagal Memuat Halaman
             </h2>
-            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+            <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
               {fetchError}
             </p>
           </div>
           <button
             type="button"
             onClick={loadDashboard}
-            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-[#1D64F2] hover:bg-blue-700 text-white shadow-xs transition"
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-[#1D64F2] hover:bg-blue-700 text-white shadow-xs transition"
           >
             <RefreshCw className="w-4 h-4" />
             <span>Coba Lagi</span>
@@ -446,12 +446,12 @@ export default function PesertaDashboard() {
             <span>Halo, {firstName}</span>
             <span className="inline-block">👋</span>
             {isPkpa && (
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] sm:text-xs font-bold tracking-wide bg-violet-50 text-violet-700 border border-violet-200 dark:bg-violet-950/60 dark:text-violet-300 dark:border-violet-800">
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold tracking-wide bg-violet-50 text-violet-700 border border-violet-200 dark:bg-violet-950/60 dark:text-violet-300 dark:border-violet-800">
                 PKPA
               </span>
             )}
           </h1>
-          <p className="text-xs sm:text-base text-slate-500 dark:text-slate-400 mt-1">
+          <p className="text-base text-slate-500 dark:text-slate-400 mt-1">
             Balai Besar POM di Palembang
           </p>
         </div>
@@ -459,7 +459,7 @@ export default function PesertaDashboard() {
         <Link
           href="/dashboard/peserta/ganti-password"
           title="Akun Peserta"
-          className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-linear-to-br from-[#0284c7] via-sky-600 to-blue-700 dark:from-[#0369a1] dark:to-blue-800 text-white font-bold text-xs sm:text-sm flex items-center justify-center shrink-0 ring-2 ring-white dark:ring-slate-800 shadow-sm hover:opacity-95 transition"
+          className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-linear-to-br from-[#0284c7] via-sky-600 to-blue-700 dark:from-[#0369a1] dark:to-blue-800 text-white font-bold text-sm flex items-center justify-center shrink-0 ring-2 ring-white dark:ring-slate-800 shadow-sm hover:opacity-95 transition"
         >
           {getInitial(displayNama)}
         </Link>
@@ -498,7 +498,7 @@ export default function PesertaDashboard() {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p
-                  className="text-sm sm:text-base font-extrabold text-white drop-shadow-xs"
+                  className="text-base font-extrabold text-white drop-shadow-xs"
                   style={{ fontWeight: 800 }}
                 >
                   Hari ke-{magangProgress.hariKe}{" "}
@@ -507,7 +507,7 @@ export default function PesertaDashboard() {
                   </span>
                 </p>
                 <p
-                  className="text-xs sm:text-sm font-semibold text-sky-100/90 mt-0.5"
+                  className="text-sm font-semibold text-sky-100/90 mt-0.5"
                   style={{ fontWeight: 600 }}
                 >
                   {magangProgress.sisaHari > 0
@@ -517,7 +517,7 @@ export default function PesertaDashboard() {
               </div>
 
               <span
-                className="px-2.5 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-extrabold bg-white/15 backdrop-blur-md text-white border border-white/30 shadow-xs shrink-0"
+                className="px-2.5 sm:px-3 py-1 rounded-full text-sm font-extrabold bg-white/15 backdrop-blur-md text-white border border-white/30 shadow-xs shrink-0"
                 style={{ fontWeight: 800 }}
               >
                 {magangProgress.persentase}% Selesai
@@ -532,7 +532,7 @@ export default function PesertaDashboard() {
                   style={{ width: `${magangProgress.persentase}%` }}
                 />
               </div>
-              <div className="flex items-center justify-between text-[11px] sm:text-xs font-medium text-sky-100/90 drop-shadow-xs">
+              <div className="flex items-center justify-between text-xs font-medium text-sky-100/90 drop-shadow-xs">
                 <span>
                   Mulai: {formatShortPeriodDate(peserta?.tanggalMulaiMagang)}
                 </span>
@@ -549,17 +549,17 @@ export default function PesertaDashboard() {
       {announcements.length > 0 && (
         <div className="rounded-xl bg-[#FEF3C7]/90 dark:bg-amber-950/50 border border-[#FDE68A] dark:border-amber-800/70 px-3.5 sm:px-4 py-2.5 sm:py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5 min-w-0">
-            <span className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-[#D97706] text-white flex items-center justify-center text-xs sm:text-sm font-bold shrink-0">
+            <span className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-[#D97706] text-white flex items-center justify-center text-sm font-bold shrink-0">
               !
             </span>
-            <p className="text-xs sm:text-sm font-bold text-slate-800 dark:text-amber-100 truncate">
+            <p className="text-sm font-bold text-slate-800 dark:text-amber-100 truncate">
               {announcements.length} pengumuman · {announcements.length} baru
             </p>
           </div>
           <button
             type="button"
             onClick={() => setShowAnnouncementModal(true)}
-            className="text-xs sm:text-sm font-bold text-slate-900 dark:text-amber-200 underline underline-offset-2 shrink-0 hover:text-blue-600 transition"
+            className="text-sm font-bold text-slate-900 dark:text-amber-200 underline underline-offset-2 shrink-0 hover:text-blue-600 transition"
           >
             Lihat pengumuman
           </button>
@@ -575,14 +575,14 @@ export default function PesertaDashboard() {
               <Calendar className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <div>
-              <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white leading-snug">
+              <h2 className="text-base font-bold text-slate-900 dark:text-white leading-snug">
                 Hari Ini
               </h2>
-              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-0.5">
+              <p className="text-sm text-slate-600 dark:text-slate-300 mt-0.5">
                 {formatFullTodayDate(todayWIB)}
               </p>
               {peserta?.tanggalMulaiMagang && peserta?.tanggalSelesaiMagang && (
-                <p className="text-[11px] sm:text-xs text-slate-400 dark:text-slate-400 mt-0.5">
+                <p className="text-xs text-slate-400 dark:text-slate-400 mt-0.5">
                   Periode magang{" "}
                   {formatShortPeriodDate(peserta.tanggalMulaiMagang)}–
                   {formatShortPeriodDate(peserta.tanggalSelesaiMagang)}
@@ -592,7 +592,7 @@ export default function PesertaDashboard() {
           </div>
 
           <span
-            className={`inline-flex items-center px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full text-[11px] sm:text-xs font-semibold border shrink-0 ${
+            className={`inline-flex items-center px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full text-xs font-semibold border shrink-0 ${
               periodStatus.isAfterEnd
                 ? "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600"
                 : periodStatus.isBeforeStart
@@ -615,10 +615,10 @@ export default function PesertaDashboard() {
               <CalendarCheck2 className="w-6 h-6 sm:w-7 sm:h-7" />
             </div>
             <div className="space-y-1">
-              <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">
                 Masa magang Anda telah selesai
               </h3>
-              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
+              <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
                 Periode magang berakhir pada{" "}
                 <b>{formatShortPeriodDate(peserta?.tanggalSelesaiMagang)}</b>.
                 Pengisian kehadiran dan laporan harian baru sudah ditutup.
@@ -627,7 +627,7 @@ export default function PesertaDashboard() {
             <div className="pt-1">
               <Link
                 href="/dashboard/peserta/isi-logbook"
-                className="inline-flex items-center justify-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white transition"
+                className="inline-flex items-center justify-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 rounded-xl text-sm font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white transition"
               >
                 <FileText className="w-4 h-4" />
                 <span>Lihat Riwayat Kehadiran</span>
@@ -639,10 +639,10 @@ export default function PesertaDashboard() {
             <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto">
               <Clock className="w-6 h-6 sm:w-7 sm:h-7" />
             </div>
-            <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
+            <h3 className="text-base font-bold text-slate-900 dark:text-white">
               Periode magang belum dimulai
             </h3>
-            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
+            <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
               Jadwal magang Anda dimulai pada{" "}
               <b>{formatShortPeriodDate(peserta?.tanggalMulaiMagang)}</b>. Form
               pengisian laporan harian akan aktif saat masa magang dimulai.
@@ -653,10 +653,10 @@ export default function PesertaDashboard() {
             <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-slate-100 dark:bg-slate-700/70 text-slate-500 dark:text-slate-300 flex items-center justify-center mx-auto">
               <CalendarX2 className="w-6 h-6 sm:w-7 sm:h-7" />
             </div>
-            <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
+            <h3 className="text-base font-bold text-slate-900 dark:text-white">
               Hari ini adalah hari libur
             </h3>
-            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
+            <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
               {holidayInfo.reason
                 ? `Hari ini (${holidayInfo.reason}) termasuk hari libur. Laporan harian dan kehadiran tidak perlu diisi.`
                 : "Hari ini termasuk jadwal libur posisi Anda. Laporan harian dan kehadiran tidak perlu diisi."}
@@ -668,10 +668,10 @@ export default function PesertaDashboard() {
               <CalendarCheck2 className="w-6 h-6 sm:w-7 sm:h-7" />
             </div>
             <div className="space-y-1">
-              <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">
                 Laporan hari ini telah dikirim
               </h3>
-              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
+              <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
                 Kehadiran dan laporan aktivitas harian Anda untuk hari ini sudah
                 tercatat di sistem.
               </p>
@@ -679,7 +679,7 @@ export default function PesertaDashboard() {
             <div className="pt-1 flex justify-center gap-2">
               <Link
                 href="/dashboard/peserta/isi-logbook?isi=1"
-                className="inline-flex items-center gap-1.5 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white transition"
+                className="inline-flex items-center gap-1.5 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl text-sm font-semibold bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white transition"
               >
                 <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 <span>
@@ -696,10 +696,10 @@ export default function PesertaDashboard() {
               <CalendarPlus className="w-6 h-6 sm:w-7 sm:h-7" />
             </div>
             <div className="space-y-1">
-              <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">
                 Belum mengisi laporan hari ini
               </h3>
-              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
+              <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
                 Silakan catat kehadiran dan laporan aktivitas harian Anda untuk
                 hari ini.
               </p>
@@ -707,11 +707,11 @@ export default function PesertaDashboard() {
             <div className="pt-1 space-y-2.5">
               <Link
                 href="/dashboard/peserta/isi-logbook?isi=1"
-                className="inline-flex items-center justify-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-bold bg-[#1D64F2] hover:bg-blue-700 text-white shadow-xs transition"
+                className="inline-flex items-center justify-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 rounded-xl text-sm font-bold bg-[#1D64F2] hover:bg-blue-700 text-white shadow-xs transition"
               >
                 <span>Isi Kehadiran & Laporan Hari Ini</span>
               </Link>
-              <p className="text-[11px] sm:text-xs font-medium text-slate-500 dark:text-slate-400 flex items-center justify-center gap-1.5">
+              <p className="text-xs font-medium text-slate-500 dark:text-slate-400 flex items-center justify-center gap-1.5">
                 <Clock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                 <span>Batas waktu pengisian sampai jam 23.00 WIB</span>
               </p>
@@ -722,7 +722,7 @@ export default function PesertaDashboard() {
 
       {/* ================= 4. INFORMASI AKTIVITAS ================= */}
       <div className="space-y-2.5 sm:space-y-3 pt-1">
-        <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
+        <h2 className="text-base font-bold text-slate-900 dark:text-white">
           Informasi Aktivitas
         </h2>
 
@@ -737,10 +737,10 @@ export default function PesertaDashboard() {
                   <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs sm:text-base font-bold text-slate-900 dark:text-white">
+                  <p className="text-base font-bold text-slate-900 dark:text-white">
                     Perlu tindakan revisi Anda
                   </p>
-                  <p className="text-[11px] sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
                     {activityCounts.revisi} kehadiran dan laporan memerlukan
                     perbaikan sesuai catatan Mentor.
                   </p>
@@ -758,10 +758,10 @@ export default function PesertaDashboard() {
                   <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs sm:text-base font-bold text-slate-900 dark:text-white">
+                  <p className="text-base font-bold text-slate-900 dark:text-white">
                     Menunggu peninjauan Mentor
                   </p>
-                  <p className="text-[11px] sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
                     {activityCounts.menunggu} kehadiran dan laporan telah
                     dikirim. Tidak ada tindakan yang perlu Anda lakukan.
                   </p>
@@ -779,10 +779,10 @@ export default function PesertaDashboard() {
                   <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs sm:text-base font-bold text-slate-900 dark:text-white">
+                  <p className="text-base font-bold text-slate-900 dark:text-white">
                     Status laporan harian
                   </p>
-                  <p className="text-[11px] sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
                     {activityCounts.total > 0
                       ? `${activityCounts.disetujui} dari ${activityCounts.total} laporan harian telah disetujui Mentor.`
                       : "Belum ada laporan harian yang dikirim. Ketuk untuk mulai mengisi."}
@@ -824,7 +824,7 @@ export default function PesertaDashboard() {
                   className="rounded-xl border border-amber-200/80 dark:border-slate-700 bg-amber-50/40 dark:bg-slate-800/70 p-4 space-y-2.5"
                 >
                   {item.createdAt && (
-                    <span className="inline-block text-[10px] font-semibold text-amber-800 dark:text-amber-300 bg-amber-100/80 dark:bg-amber-950/60 px-2.5 py-0.5 rounded-full">
+                    <span className="inline-block text-xs font-semibold text-amber-800 dark:text-amber-300 bg-amber-100/80 dark:bg-amber-950/60 px-2.5 py-0.5 rounded-full">
                       {new Date(item.createdAt).toLocaleDateString("id-ID", {
                         day: "2-digit",
                         month: "long",

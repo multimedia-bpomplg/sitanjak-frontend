@@ -425,11 +425,11 @@ export default function EvaluasiDanPernyataanPage() {
           </Link>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-lg sm:text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-snug">
+              <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-snug">
                 Evaluasi &amp; Surat Pernyataan
               </h1>
               <span
-                className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                className={`px-2 py-0.5 rounded-full text-xs font-bold border ${
                   isPkpa
                     ? "bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-950/50 dark:text-violet-300 dark:border-violet-800"
                     : "bg-blue-50 text-[#1D64F2] border-blue-200 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-800"
@@ -438,7 +438,7 @@ export default function EvaluasiDanPernyataanPage() {
                 {isPkpa ? "Khusus PKPA" : "Reguler"}
               </span>
             </div>
-            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
               Isi evaluasi pembimbing, penyelenggara, serta surat pernyataan lalu
               unduh sebagai dokumen PDF resmi.
             </p>
@@ -450,7 +450,7 @@ export default function EvaluasiDanPernyataanPage() {
             type="button"
             disabled={downloadingPdf}
             onClick={handleDownloadOnly}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs transition shrink-0 disabled:opacity-60"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2.5 sm:py-2 rounded-xl text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs transition shrink-0 disabled:opacity-60"
           >
             <Download className="w-4 h-4" />
             <span>{downloadingPdf ? "Membuat PDF..." : "Unduh PDF"}</span>
@@ -465,17 +465,17 @@ export default function EvaluasiDanPernyataanPage() {
             <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
           <div className="min-w-0">
-            <p className="text-xs sm:text-sm font-bold text-emerald-900 dark:text-emerald-200">
+            <p className="text-sm font-bold text-emerald-900 dark:text-emerald-200">
               Evaluasi &amp; Surat Pernyataan Disetujui
             </p>
-            <p className="text-[11px] sm:text-xs text-emerald-700 dark:text-emerald-300 mt-0.5 leading-relaxed">
+            <p className="text-xs text-emerald-700 dark:text-emerald-300 mt-0.5 leading-relaxed">
               {reviewedByName
                 ? `Telah disetujui oleh ${reviewedByName}. `
                 : "Telah disetujui oleh mentor pembimbing. "}
               Dokumen PDF resmi kini sudah dapat Anda unduh.
             </p>
             {mentorNote && (
-              <p className="text-[11px] sm:text-xs text-emerald-800 dark:text-emerald-200 mt-1.5 bg-white/70 dark:bg-emerald-900/40 border border-emerald-200/80 dark:border-emerald-800/60 rounded-lg px-3 py-1.5">
+              <p className="text-xs text-emerald-800 dark:text-emerald-200 mt-1.5 bg-white/70 dark:bg-emerald-900/40 border border-emerald-200/80 dark:border-emerald-800/60 rounded-lg px-3 py-1.5">
                 <b>Catatan:</b> {mentorNote}
               </p>
             )}
@@ -489,10 +489,10 @@ export default function EvaluasiDanPernyataanPage() {
             <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
           <div className="min-w-0">
-            <p className="text-xs sm:text-sm font-bold text-amber-900 dark:text-amber-200">
+            <p className="text-sm font-bold text-amber-900 dark:text-amber-200">
               Menunggu Penindakan Mentor Pembimbing
             </p>
-            <p className="text-[11px] sm:text-xs text-amber-700 dark:text-amber-300 mt-0.5 leading-relaxed">
+            <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5 leading-relaxed">
               Isian hanya dapat dikirim 1 kali dan saat ini terkunci menunggu
               persetujuan mentor. Tombol Unduh PDF akan terbuka setelah
               disetujui mentor.
@@ -507,10 +507,10 @@ export default function EvaluasiDanPernyataanPage() {
             <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-xs sm:text-sm font-bold text-rose-900 dark:text-rose-200">
+            <p className="text-sm font-bold text-rose-900 dark:text-rose-200">
               Perlu Revisi dari Mentor Pembimbing
             </p>
-            <p className="text-[11px] sm:text-xs text-rose-700 dark:text-rose-300 mt-0.5 leading-relaxed">
+            <p className="text-xs text-rose-700 dark:text-rose-300 mt-0.5 leading-relaxed">
               Silakan perbaiki isian di bawah sesuai catatan berikut lalu kirim
               ulang untuk ditinjau kembali.
             </p>
@@ -557,10 +557,10 @@ export default function EvaluasiDanPernyataanPage() {
             <UserCheck className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
+            <h2 className="text-base font-bold text-slate-900 dark:text-white">
               a. Evaluasi Fasilitator / Pembimbing
             </h2>
-            <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               Lembar evaluasi kualitas fasilitator / pembimbing selama magang
             </p>
           </div>
@@ -577,7 +577,7 @@ export default function EvaluasiDanPernyataanPage() {
               value={fasNama}
               onChange={(e) => setFasNama(e.target.value)}
               placeholder="Nama mentor pembimbing"
-              className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[#1D64F2]"
+              className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[#1D64F2]"
             />
           </div>
 
@@ -590,7 +590,7 @@ export default function EvaluasiDanPernyataanPage() {
               value={fasJudulMateri}
               onChange={(e) => setFasJudulMateri(e.target.value)}
               placeholder="Contoh: Pengujian Sampel Pangan / Pengawasan Obat"
-              className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[#1D64F2]"
+              className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[#1D64F2]"
             />
           </div>
         </div>
@@ -601,7 +601,7 @@ export default function EvaluasiDanPernyataanPage() {
               key={idx}
               className="rounded-xl border border-slate-200/80 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/40 p-3.5 space-y-2.5"
             >
-              <p className="text-xs sm:text-sm font-medium text-slate-800 dark:text-slate-200 leading-relaxed">
+              <p className="text-sm font-medium text-slate-800 dark:text-slate-200 leading-relaxed">
                 <span className="font-bold mr-1.5">{idx + 1}.</span>
                 {q}
               </p>
@@ -633,7 +633,7 @@ export default function EvaluasiDanPernyataanPage() {
         </div>
 
         <div className="space-y-2.5 pt-1">
-          <p className="text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200">
+          <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
             {texts.fasilitatorSaranPrompt}
           </p>
           <div className="flex items-center gap-2">
@@ -664,7 +664,7 @@ export default function EvaluasiDanPernyataanPage() {
                 value={fasSaran}
                 onChange={(e) => setFasSaran(e.target.value)}
                 placeholder="Tuliskan saran atau masukan Anda untuk fasilitator/pembimbing..."
-                className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[#1D64F2]"
+                className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[#1D64F2]"
               />
             </div>
           )}
@@ -678,10 +678,10 @@ export default function EvaluasiDanPernyataanPage() {
             <Building2 className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
+            <h2 className="text-base font-bold text-slate-900 dark:text-white">
               b. Evaluasi Penyelenggara
             </h2>
-            <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               Evaluasi pelaksanaan, fasilitas, lingkungan, dan pelayanan panitia
               BBPOM di Palembang
             </p>
@@ -694,7 +694,7 @@ export default function EvaluasiDanPernyataanPage() {
               key={idx}
               className="rounded-xl border border-slate-200/80 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/40 p-3.5 space-y-2.5"
             >
-              <p className="text-xs sm:text-sm font-medium text-slate-800 dark:text-slate-200 leading-relaxed">
+              <p className="text-sm font-medium text-slate-800 dark:text-slate-200 leading-relaxed">
                 <span className="font-bold mr-1.5">{idx + 1}.</span>
                 {q}
               </p>
@@ -727,7 +727,7 @@ export default function EvaluasiDanPernyataanPage() {
 
         <div className="space-y-3 pt-1">
           <div className="space-y-1.5">
-            <p className="text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200">
+            <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
               {texts.penyelenggaraBermanfaatPrompt}
             </p>
             <div className="flex items-center gap-2">
@@ -749,7 +749,7 @@ export default function EvaluasiDanPernyataanPage() {
           </div>
 
           <div className="space-y-1.5">
-            <p className="text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200">
+            <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
               {texts.penyelenggaraMasukanPrompt}
             </p>
             <div className="flex items-center gap-2">
@@ -781,7 +781,7 @@ export default function EvaluasiDanPernyataanPage() {
                 value={penMasukan}
                 onChange={(e) => setPenMasukan(e.target.value)}
                 placeholder="Tuliskan masukan Anda untuk penyelenggara..."
-                className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-emerald-600"
+                className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-emerald-600"
               />
             </div>
           )}
@@ -795,10 +795,10 @@ export default function EvaluasiDanPernyataanPage() {
             <FileSignature className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
+            <h2 className="text-base font-bold text-slate-900 dark:text-white">
               c. Surat Pernyataan
             </h2>
-            <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               Data identitas pembuat surat pernyataan PKL/Magang
             </p>
           </div>
@@ -814,7 +814,7 @@ export default function EvaluasiDanPernyataanPage() {
               value={spNama}
               onChange={(e) => setSpNama(e.target.value)}
               placeholder="Nama lengkap peserta"
-              className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[#1D64F2]"
+              className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[#1D64F2]"
             />
           </div>
 
@@ -827,7 +827,7 @@ export default function EvaluasiDanPernyataanPage() {
               value={spNim}
               onChange={(e) => setSpNim(e.target.value)}
               placeholder="Masukkan NIM atau NISN Anda"
-              className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[#1D64F2]"
+              className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[#1D64F2]"
             />
           </div>
 
@@ -840,7 +840,7 @@ export default function EvaluasiDanPernyataanPage() {
               value={spProdi}
               onChange={(e) => setSpProdi(e.target.value)}
               placeholder="Contoh: Profesi Apoteker / Farmasi (S1)"
-              className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[#1D64F2]"
+              className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[#1D64F2]"
             />
           </div>
 
@@ -853,7 +853,7 @@ export default function EvaluasiDanPernyataanPage() {
               value={spUniv}
               onChange={(e) => setSpUniv(e.target.value)}
               placeholder="Nama universitas / sekolah"
-              className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[#1D64F2]"
+              className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[#1D64F2]"
             />
           </div>
 
@@ -865,7 +865,7 @@ export default function EvaluasiDanPernyataanPage() {
               type="date"
               value={spTanggal}
               onChange={(e) => setSpTanggal(e.target.value)}
-              className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[#1D64F2]"
+              className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[#1D64F2]"
             />
           </div>
         </div>
@@ -874,10 +874,10 @@ export default function EvaluasiDanPernyataanPage() {
         <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-900/50 p-3.5 sm:p-4 space-y-3">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div>
-              <p className="text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200">
+              <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
                 Tanda Tangan (TTD) Pembuat Surat
               </p>
-              <p className="text-[11px] sm:text-xs text-amber-700 dark:text-amber-400 font-medium mt-0.5">
+              <p className="text-xs text-amber-700 dark:text-amber-400 font-medium mt-0.5">
                 Catatan: Foto tanda tangan (TTD) harus berformat PNG (.png),
                 maksimal 2 MB. Disarankan latar belakang transparan atau putih
                 bersih.
@@ -918,7 +918,7 @@ export default function EvaluasiDanPernyataanPage() {
 
           {spTtdImage && (
             <div className="rounded-xl bg-white border border-slate-200 p-3 flex flex-col items-center justify-center gap-1.5 w-full sm:max-w-xs">
-              <span className="text-[11px] text-slate-500">
+              <span className="text-xs text-slate-500">
                 Pratinjau TTD di Surat Pernyataan:
               </span>
               <img
@@ -953,7 +953,7 @@ export default function EvaluasiDanPernyataanPage() {
               type="button"
               disabled={downloadingPdf}
               onClick={handleDownloadOnly}
-              className="w-full sm:w-auto px-5 py-3 rounded-xl text-xs sm:text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs inline-flex items-center justify-center gap-2 transition disabled:opacity-60"
+              className="w-full sm:w-auto px-5 py-3 rounded-xl text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs inline-flex items-center justify-center gap-2 transition disabled:opacity-60"
             >
               <Download className="w-4 h-4" />
               <span>
@@ -962,7 +962,7 @@ export default function EvaluasiDanPernyataanPage() {
             </button>
           </>
         ) : evalStatus === "Menunggu" ? (
-          <div className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/70 px-4 py-3 text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-300 inline-flex items-center justify-center gap-2">
+          <div className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/70 px-4 py-3 text-sm font-semibold text-slate-600 dark:text-slate-300 inline-flex items-center justify-center gap-2">
             <Lock className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
             <span>
               Menunggu Persetujuan Mentor • Unduh PDF Terkunci
@@ -970,7 +970,7 @@ export default function EvaluasiDanPernyataanPage() {
           </div>
         ) : (
           <>
-            <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               {evalStatus === "Revisi"
                 ? "Perbaiki data sesuai catatan mentor lalu kirim ulang revisi Anda."
                 : "Data hanya bisa dikirim 1 kali. PDF dapat diunduh setelah disetujui mentor."}
@@ -979,7 +979,7 @@ export default function EvaluasiDanPernyataanPage() {
               type="button"
               disabled={saving}
               onClick={handleSave}
-              className="w-full sm:w-auto px-5 py-3 rounded-xl text-xs sm:text-sm font-bold bg-[#1D64F2] hover:bg-blue-700 text-white shadow-xs inline-flex items-center justify-center gap-2 transition disabled:opacity-60 shrink-0"
+              className="w-full sm:w-auto px-5 py-3 rounded-xl text-sm font-bold bg-[#1D64F2] hover:bg-blue-700 text-white shadow-xs inline-flex items-center justify-center gap-2 transition disabled:opacity-60 shrink-0"
             >
               <Save className="w-4 h-4" />
               <span>

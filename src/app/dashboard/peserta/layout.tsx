@@ -118,7 +118,7 @@ export default function PesertaLayout({
 
   return (
     <ConfirmProvider>
-      <div className="min-h-screen bg-[#E9EDF4] dark:bg-slate-950 text-slate-800 dark:text-slate-100 flex justify-center">
+      <div className="min-h-screen bg-[#E9EDF4] dark:bg-slate-950 text-slate-800 dark:text-slate-100 flex justify-center [font-family:var(--font-inter),system-ui,sans-serif]">
         {/* Centered App-Shell Container (Proportional on Web Desktop & Full on Mobile) */}
         <div className="w-full max-w-[780px] min-h-screen bg-[#F5F7FA] dark:bg-slate-900 flex flex-col relative shadow-[0_0_40px_rgba(15,23,42,0.07)] border-x border-slate-200/70 dark:border-slate-800">
           {/* Main Scrollable Content */}
@@ -130,7 +130,7 @@ export default function PesertaLayout({
           <div className="print:hidden fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[780px] z-40 pointer-events-none">
             {/* Server Clock Pill */}
             <div className="flex justify-center pb-5 sm:pb-6 pt-2 bg-linear-to-t from-[#F5F7FA] via-[#F5F7FA]/95 to-transparent dark:from-slate-900 dark:via-slate-900/95">
-              <div className="pointer-events-auto inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-1 sm:py-1.5 rounded-full bg-white dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700 shadow-2xs text-[11px] sm:text-xs text-slate-600 dark:text-slate-300">
+              <div className="pointer-events-auto inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-1 sm:py-1.5 rounded-full bg-white dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700 shadow-2xs text-xs text-slate-600 dark:text-slate-300">
                 <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 shrink-0" />
                 <span>Waktu Server</span>
                 <span className="font-bold text-slate-800 dark:text-white tabular-nums">
@@ -187,7 +187,7 @@ export default function PesertaLayout({
                       strokeWidth={item.isActive ? 2.4 : 1.9}
                     />
                     <span
-                      className={`text-[10.5px] sm:text-xs leading-none tracking-tight ${
+                      className={`text-[11.5px] sm:text-xs leading-none tracking-tight ${
                         item.isActive ? "font-bold" : "font-medium"
                       }`}
                     >

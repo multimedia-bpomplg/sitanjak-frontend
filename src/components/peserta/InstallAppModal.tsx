@@ -96,7 +96,7 @@ export function InstallAppModal({ open, onClose }: InstallAppModalProps) {
                   type="button"
                   onClick={handleInstallClick}
                   disabled={installing}
-                  className="flex-1 inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-[#1D64F2] hover:bg-blue-700 text-white text-xs sm:text-sm font-bold shadow-xs transition disabled:opacity-60"
+                  className="flex-1 inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-[#1D64F2] hover:bg-blue-700 text-white text-sm font-bold shadow-xs transition disabled:opacity-60"
                 >
                   <Download className="w-4 h-4" />
                   <span>
@@ -106,7 +106,7 @@ export function InstallAppModal({ open, onClose }: InstallAppModalProps) {
                 <button
                   type="button"
                   onClick={onClose}
-                  className="py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs sm:text-sm font-semibold transition"
+                  className="py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-sm font-semibold transition"
                 >
                   Nanti Saja
                 </button>
@@ -124,7 +124,7 @@ export function InstallAppModal({ open, onClose }: InstallAppModalProps) {
               <button
                 type="button"
                 onClick={onClose}
-                className="w-full py-2.5 px-4 rounded-xl bg-[#1D64F2] hover:bg-blue-700 text-white text-xs sm:text-sm font-bold transition"
+                className="w-full py-2.5 px-4 rounded-xl bg-[#1D64F2] hover:bg-blue-700 text-white text-sm font-bold transition"
               >
                 Mengerti
               </button>
@@ -138,7 +138,7 @@ export function InstallAppModal({ open, onClose }: InstallAppModalProps) {
 
               <ol className="space-y-2.5 text-xs text-slate-700 dark:text-slate-200">
                 <li className="flex items-start gap-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200/70 dark:border-slate-700/70 p-3">
-                  <span className="w-5 h-5 rounded-full bg-[#1D64F2] text-white font-bold text-[11px] flex items-center justify-center shrink-0">
+                  <span className="w-5 h-5 rounded-full bg-[#1D64F2] text-white font-bold text-xs flex items-center justify-center shrink-0">
                     1
                   </span>
                   <span className="leading-relaxed">
@@ -150,7 +150,7 @@ export function InstallAppModal({ open, onClose }: InstallAppModalProps) {
                   </span>
                 </li>
                 <li className="flex items-start gap-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200/70 dark:border-slate-700/70 p-3">
-                  <span className="w-5 h-5 rounded-full bg-[#1D64F2] text-white font-bold text-[11px] flex items-center justify-center shrink-0">
+                  <span className="w-5 h-5 rounded-full bg-[#1D64F2] text-white font-bold text-xs flex items-center justify-center shrink-0">
                     2
                   </span>
                   <span className="leading-relaxed">
@@ -163,7 +163,7 @@ export function InstallAppModal({ open, onClose }: InstallAppModalProps) {
                   </span>
                 </li>
                 <li className="flex items-start gap-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200/70 dark:border-slate-700/70 p-3">
-                  <span className="w-5 h-5 rounded-full bg-[#1D64F2] text-white font-bold text-[11px] flex items-center justify-center shrink-0">
+                  <span className="w-5 h-5 rounded-full bg-[#1D64F2] text-white font-bold text-xs flex items-center justify-center shrink-0">
                     3
                   </span>
                   <span className="leading-relaxed">
@@ -175,7 +175,7 @@ export function InstallAppModal({ open, onClose }: InstallAppModalProps) {
               <button
                 type="button"
                 onClick={onClose}
-                className="w-full py-2.5 px-4 rounded-xl bg-[#1D64F2] hover:bg-blue-700 text-white text-xs sm:text-sm font-bold transition"
+                className="w-full py-2.5 px-4 rounded-xl bg-[#1D64F2] hover:bg-blue-700 text-white text-sm font-bold transition"
               >
                 Mengerti
               </button>
@@ -199,7 +199,7 @@ export function InstallAppModal({ open, onClose }: InstallAppModalProps) {
               <button
                 type="button"
                 onClick={onClose}
-                className="w-full py-2.5 px-4 rounded-xl bg-[#1D64F2] hover:bg-blue-700 text-white text-xs sm:text-sm font-bold transition"
+                className="w-full py-2.5 px-4 rounded-xl bg-[#1D64F2] hover:bg-blue-700 text-white text-sm font-bold transition"
               >
                 Nanti Saja
               </button>

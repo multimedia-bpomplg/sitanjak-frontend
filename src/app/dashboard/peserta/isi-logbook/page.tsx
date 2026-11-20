@@ -591,7 +591,7 @@ export default function IsiLogbookPage() {
           <h1 className="text-xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
             Riwayat Kehadiran
           </h1>
-          <p className="text-xs sm:text-base text-slate-500 dark:text-slate-400 mt-1">
+          <p className="text-base text-slate-500 dark:text-slate-400 mt-1">
             Lihat catatan kehadiran dan laporan harian Anda.
           </p>
         </div>
@@ -602,7 +602,7 @@ export default function IsiLogbookPage() {
             onClick={handleDownloadAll}
             disabled={isDownloading}
             title="Unduh semua logbook (PDF)"
-            className="inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-2xs transition shrink-0 disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-2xs transition shrink-0 disabled:opacity-50"
           >
             <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#1D64F2]" />
             <span>{isDownloading ? "Unduh..." : "PDF"}</span>
@@ -624,13 +624,13 @@ export default function IsiLogbookPage() {
 
           <div className="text-center">
             <p
-              className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white tracking-tight"
+              className="text-base font-extrabold text-slate-900 dark:text-white tracking-tight"
               style={{ fontWeight: 800 }}
             >
               Periode {activePeriod.index}
             </p>
             <p
-              className="text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-300 mt-0.5"
+              className="text-sm font-semibold text-slate-600 dark:text-slate-300 mt-0.5"
               style={{ fontWeight: 600 }}
             >
               {activePeriod.label}
@@ -656,7 +656,7 @@ export default function IsiLogbookPage() {
         <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden bg-white dark:bg-slate-900">
           {/* Days of week header */}
           <div
-            className="grid grid-cols-7 bg-white dark:bg-slate-800/90 border-b border-slate-200 dark:border-slate-700 py-3 sm:py-3.5 text-center text-xs sm:text-sm font-bold text-slate-600 dark:text-slate-300"
+            className="grid grid-cols-7 bg-white dark:bg-slate-800/90 border-b border-slate-200 dark:border-slate-700 py-3 sm:py-3.5 text-center text-sm font-bold text-slate-600 dark:text-slate-300"
             style={{ fontWeight: 700 }}
           >
             {["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"].map((day) => (
@@ -702,7 +702,7 @@ export default function IsiLogbookPage() {
                       }`}
                     >
                       <span
-                        className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full text-xs sm:text-sm flex items-center justify-center transition ${
+                        className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full text-sm flex items-center justify-center transition ${
                           isSelected
                             ? "border-2 border-[#1D64F2] bg-blue-100/80 text-slate-800 dark:border-blue-400 dark:bg-blue-950/70 dark:text-white font-bold"
                             : isToday
@@ -730,7 +730,7 @@ export default function IsiLogbookPage() {
 
         {/* Legend */}
         <div
-          className="pt-2 flex flex-wrap items-center text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200"
+          className="pt-2 flex flex-wrap items-center text-sm font-bold text-slate-800 dark:text-slate-200"
           style={{ columnGap: "24px", rowGap: "12px", fontWeight: 700 }}
         >
           <div
@@ -823,7 +823,7 @@ export default function IsiLogbookPage() {
           className="rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 p-4 sm:p-6 shadow-2xs space-y-4 sm:space-y-5 overflow-hidden"
         >
           {loadingInitial || loadingDetail ? (
-            <div className="py-8 text-center text-xs sm:text-sm text-slate-400">
+            <div className="py-8 text-center text-sm text-slate-400">
               Memuat catatan kehadiran...
             </div>
           ) : selectedLogSummary && detailData ? (
@@ -844,11 +844,11 @@ export default function IsiLogbookPage() {
             <>
               {/* Date & Status Badge */}
               <div className="flex items-center justify-between gap-2 pb-3 border-b border-slate-100 dark:border-slate-700/70">
-                <h2 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white">
+                <h2 className="text-base font-extrabold text-slate-900 dark:text-white">
                   {formatLongDateID(selectedDate)}
                 </h2>
                 <span
-                  className={`px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full text-[11px] sm:text-xs font-semibold border ${
+                  className={`px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full text-xs font-semibold border ${
                     getDetailBadge(detailData).className
                   }`}
                 >
@@ -861,16 +861,16 @@ export default function IsiLogbookPage() {
                 detailData.revisionNote ||
                 detailData.approvalStatus === "disetujui") && (
                 <div className="rounded-xl bg-[#FFFBEB] dark:bg-amber-950/40 border border-[#FDE68A] dark:border-amber-800/70 p-3.5 sm:p-4 space-y-1 overflow-hidden">
-                  <div className="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-amber-900 dark:text-amber-200">
+                  <div className="flex items-center gap-1.5 text-sm font-bold text-amber-900 dark:text-amber-200">
                     <AlertCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-600 shrink-0" />
                     <span>Catatan Mentor</span>
                   </div>
-                  <p className="text-xs sm:text-sm font-medium text-amber-900 dark:text-amber-100 pl-5 sm:pl-6 break-words [overflow-wrap:anywhere]">
+                  <p className="text-sm font-medium text-amber-900 dark:text-amber-100 pl-5 sm:pl-6 break-words [overflow-wrap:anywhere]">
                     {detailData.revisionNote ||
                       detailData.mentorNote ||
                       "Baik, terima kasih"}
                   </p>
-                  <p className="text-[11px] sm:text-xs text-amber-700/85 dark:text-amber-300/80 pl-5 sm:pl-6">
+                  <p className="text-xs text-amber-700/85 dark:text-amber-300/80 pl-5 sm:pl-6">
                     {detailData.approvalStatus === "revisi"
                       ? "Laporan Anda memerlukan perbaikan sesuai catatan di atas."
                       : detailData.approvalStatus === "ditolak"
@@ -884,8 +884,8 @@ export default function IsiLogbookPage() {
               <div className="divide-y divide-slate-100 dark:divide-slate-700/70">
                 {/* Kehadiran */}
                 <div className="py-3 sm:py-3.5 first:pt-0">
-                  <p className="text-[11px] sm:text-xs text-slate-400">Kehadiran</p>
-                  <p className="text-xs sm:text-base font-medium text-slate-900 dark:text-white mt-0.5">
+                  <p className="text-xs text-slate-400">Kehadiran</p>
+                  <p className="text-base font-medium text-slate-900 dark:text-white mt-0.5">
                     {detailData.status === "hadir"
                       ? "Hadir"
                       : detailData.status === "tidak_hadir_keterangan"
@@ -898,40 +898,40 @@ export default function IsiLogbookPage() {
                   <>
                     {/* Uraian Aktivitas */}
                     <div className="py-3 sm:py-3.5 min-w-0">
-                      <p className="text-[11px] sm:text-xs text-slate-400">
+                      <p className="text-xs text-slate-400">
                         Uraian Aktivitas
                       </p>
-                      <p className="text-xs sm:text-base text-slate-800 dark:text-slate-200 leading-relaxed mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere]">
+                      <p className="text-base text-slate-800 dark:text-slate-200 leading-relaxed mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere]">
                         {detailData.judul || "-"}
                       </p>
                     </div>
 
                     {/* Pembelajaran yang Diperoleh */}
                     <div className="py-3 sm:py-3.5 min-w-0">
-                      <p className="text-[11px] sm:text-xs text-slate-400">
+                      <p className="text-xs text-slate-400">
                         Pembelajaran yang Diperoleh
                       </p>
-                      <p className="text-xs sm:text-base text-slate-800 dark:text-slate-200 leading-relaxed mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere]">
+                      <p className="text-base text-slate-800 dark:text-slate-200 leading-relaxed mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere]">
                         {detailData.pengalaman || "-"}
                       </p>
                     </div>
 
                     {/* Kendala yang Dialami */}
                     <div className="py-3 sm:py-3.5 last:pb-0 min-w-0">
-                      <p className="text-[11px] sm:text-xs text-slate-400">
+                      <p className="text-xs text-slate-400">
                         Kendala yang Dialami
                       </p>
-                      <p className="text-xs sm:text-base text-slate-800 dark:text-slate-200 leading-relaxed mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere]">
+                      <p className="text-base text-slate-800 dark:text-slate-200 leading-relaxed mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere]">
                         {detailData.kendala || "-"}
                       </p>
                     </div>
                   </>
                 ) : detailData.status === "tidak_hadir_keterangan" ? (
                   <div className="py-3 sm:py-3.5 last:pb-0 min-w-0">
-                    <p className="text-[11px] sm:text-xs text-slate-400">
+                    <p className="text-xs text-slate-400">
                       Keterangan Ketidakhadiran
                     </p>
-                    <p className="text-xs sm:text-base text-slate-800 dark:text-slate-200 leading-relaxed mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere]">
+                    <p className="text-base text-slate-800 dark:text-slate-200 leading-relaxed mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere]">
                       {detailData.keterangan || "-"}
                     </p>
                   </div>
@@ -941,7 +941,7 @@ export default function IsiLogbookPage() {
                 {Array.isArray(detailData.files) &&
                   detailData.files.length > 0 && (
                     <div className="py-3 last:pb-0 space-y-2">
-                      <p className="text-[11px] text-slate-400">
+                      <p className="text-xs text-slate-400">
                         Dokumentasi Kegiatan
                       </p>
                       <div className="grid grid-cols-3 gap-2">
@@ -969,7 +969,7 @@ export default function IsiLogbookPage() {
                 {/* Lampiran PDF Surat Izin (Jika Ada) */}
                 {detailData.pdfFile && (
                   <div className="py-3 last:pb-0 space-y-1.5">
-                    <p className="text-[11px] text-slate-400">
+                    <p className="text-xs text-slate-400">
                       Surat Keterangan (PDF)
                     </p>
                     <a
@@ -991,7 +991,7 @@ export default function IsiLogbookPage() {
                   <button
                     type="button"
                     onClick={() => setIsEditingRevisi(true)}
-                    className="w-full py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xs transition"
+                    className="w-full py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-xs transition"
                   >
                     <Edit3 className="w-4 h-4" />
                     <span>Perbaiki Laporan Harian</span>
@@ -1004,7 +1004,7 @@ export default function IsiLogbookPage() {
             Boolean(todayAbsensi?.checkIn) || todayAbsensi?.attendanceMode === "izin" ? (
               <div className="space-y-4">
                 {todayAbsensi?.attendanceMode === "izin" && !todayAbsensi?.checkIn && (
-                  <div className="rounded-xl bg-violet-50/80 dark:bg-violet-950/40 border border-violet-200 dark:border-violet-800/70 p-3.5 text-xs sm:text-sm text-violet-900 dark:text-violet-200">
+                  <div className="rounded-xl bg-violet-50/80 dark:bg-violet-950/40 border border-violet-200 dark:border-violet-800/70 p-3.5 text-sm text-violet-900 dark:text-violet-200">
                     <b>Status Absensi Hari Ini: Izin.</b> Silakan pilih kategori <b>Izin / Sakit (Dengan Keterangan)</b> jika ingin melengkapi catatan di riwayat logbook.
                   </div>
                 )}
@@ -1024,17 +1024,17 @@ export default function IsiLogbookPage() {
                   <Lock className="w-6 h-6 sm:w-7 sm:h-7" />
                 </div>
                 <div className="space-y-1.5">
-                  <h2 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white">
+                  <h2 className="text-lg font-extrabold text-slate-900 dark:text-white">
                     Lakukan Check-In Absensi Terlebih Dahulu
                   </h2>
-                  <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
+                  <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
                     Pengisian logbook harian pada <b>{formatLongDateID(selectedDate)}</b> hanya dibuka setelah Anda melakukan Absen Pagi (Check-In) atau mengajukan keterangan Izin pada hari ini.
                   </p>
                 </div>
                 <div className="pt-1">
                   <Link
                     href="/dashboard/peserta/absen"
-                    className="inline-flex items-center justify-center gap-2 px-5 py-2.5 sm:py-3 rounded-xl bg-[#1D64F2] hover:bg-blue-700 text-white text-xs sm:text-sm font-bold shadow-xs transition"
+                    className="inline-flex items-center justify-center gap-2 px-5 py-2.5 sm:py-3 rounded-xl bg-[#1D64F2] hover:bg-blue-700 text-white text-sm font-bold shadow-xs transition"
                   >
                     <ScanFace className="w-4 h-4" />
                     <span>Ke Halaman Absensi (Check-In)</span>
@@ -1046,10 +1046,10 @@ export default function IsiLogbookPage() {
             /* Other unfilled date, weekend/holiday, or outside internship period */
             <div className="space-y-3">
               <div className="flex items-center justify-between gap-2 pb-2 border-b border-slate-100 dark:border-slate-700/70">
-                <h2 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white">
+                <h2 className="text-base font-extrabold text-slate-900 dark:text-white">
                   {formatLongDateID(selectedDate)}
                 </h2>
-                <span className="px-2.5 py-0.5 rounded-full text-[11px] sm:text-xs font-semibold bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300">
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300">
                   {!isSelectedInPeriod
                     ? "Di Luar Masa Magang"
                     : isSelectedWeekend
@@ -1059,17 +1059,17 @@ export default function IsiLogbookPage() {
               </div>
 
               {!isSelectedInPeriod ? (
-                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+                <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
                   Tanggal ini berada di luar periode magang Anda. Pengisian
                   laporan harian baru tidak tersedia.
                 </p>
               ) : isSelectedWeekend ? (
-                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+                <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
                   Tanggal ini merupakan jadwal hari libur. Laporan harian dan
                   kehadiran tidak perlu diisi.
                 </p>
               ) : (
-                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+                <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
                   Tidak ada catatan kehadiran atau laporan harian pada tanggal
                   ini. Pengisian logbook baru hanya dapat dilakukan pada hari
                   yang bersangkutan selama periode magang aktif.

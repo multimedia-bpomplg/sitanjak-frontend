@@ -3,7 +3,7 @@
 
 import { Suspense } from "react";
 import Link from "next/link";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { toast } from "react-toastify";
 import { plusJakarta, caveat } from '@/lib/font';
 import Navbar from "@/components/layouts/Navbar";
@@ -27,6 +27,7 @@ import {
   HiOutlineClipboardList,
   HiOutlineCalendar,
   HiOutlineExclamationCircle,
+  HiOutlineInformationCircle,
 } from "react-icons/hi";
 import { FaMars, FaVenus } from "react-icons/fa";
 import {
@@ -297,8 +298,6 @@ function PendaftaranForm() {
   const [selectedFormasi, setSelectedFormasi] = useState<IFormasi | null>(null);
   const [formasiList, setFormasiList] = useState<IFormasi[]>([]);
   const [, setLoadingFormasi] = useState(true);
-  const [slotWarning, setSlotWarning] = useState<string | null>(null);
-  const [slotPenuh, setSlotPenuh] = useState(false);
 
   /* ================== LOAD PROVINSI ================== */
   useEffect(() => {
@@ -307,41 +306,38 @@ function PendaftaranForm() {
       .then(setProvinsi);
   }, []);
 
-  /* ================== Slot Prediksi Magang ================== */
-  useEffect(() => {
-    let warningFound = false;
-    peserta.forEach((p) => {
-      if (!p.posisi || !p.tanggalMulaiMagang || !p.tanggalSelesaiMagang) return;
+  /* ================== Slot Prediksi Magang Per Peserta ================== */
+  const slotChecks = useMemo(() => {
+    return peserta.map((p) => {
+      if (
+        !p.posisi ||
+        !p.tanggalMulaiMagang ||
+        !p.tanggalSelesaiMagang ||
+        p.tanggalSelesaiMagang < p.tanggalMulaiMagang
+      ) {
+        return null;
+      }
 
       const formasi = formasiList.find((f) => f.title === p.posisi);
-      if (!formasi) return;
+      if (!formasi) return null;
 
-      const cek = cekSlotMagangByBulan(
-        formasi,
-        p.tanggalMulaiMagang,
-        p.tanggalSelesaiMagang,
-      );
-
-      if (cek.penuh) {
-        setSlotPenuh(true);
-        setSlotWarning(
-          `Posisi ${p.posisi} pada periode ${p.tanggalMulaiMagang} hingga ${p.tanggalSelesaiMagang} sudah penuh${cek.bulanPenuh ? ` (kuota bulan ${cek.bulanPenuh} telah terpenuhi)` : ""}.`,
-        );
-        warningFound = true;
-      } else if (cek.aktif > 0) {
-        setSlotPenuh(false);
-        setSlotWarning(
-          `Informasi: Sudah ada ${cek.aktif} orang magang yang terjadwal pada rentang tanggal tersebut.`,
-        );
-        warningFound = true;
-      }
+      return {
+        posisi: p.posisi,
+        mulai: p.tanggalMulaiMagang,
+        selesai: p.tanggalSelesaiMagang,
+        ...cekSlotMagangByBulan(
+          formasi,
+          p.tanggalMulaiMagang,
+          p.tanggalSelesaiMagang,
+        ),
+      };
     });
-
-    if (!warningFound) {
-      setSlotPenuh(false);
-      setSlotWarning(null);
-    }
   }, [peserta, formasiList]);
+
+  const slotPenuh = useMemo(
+    () => slotChecks.some((item) => Boolean(item?.penuh)),
+    [slotChecks],
+  );
 
   /* ================== UPDATE DATA ================== */
   const update = async (
@@ -1220,19 +1216,90 @@ function PendaftaranForm() {
                     </div>
                   </div>
 
-                  {/* Slot Warning Alert */}
-                  {slotWarning && (
-                    <div
-                      className={`mt-3 sm:mt-4 p-3 sm:p-3.5 rounded-xl text-xs sm:text-sm font-medium flex items-center gap-2.5 ${
-                        slotPenuh
-                          ? "bg-rose-50 text-rose-700 border border-rose-200"
-                          : "bg-amber-50 text-amber-800 border border-amber-200"
-                      }`}
-                    >
-                      <HiOutlineExclamationCircle className="text-base shrink-0" />
-                      <span>{slotWarning}</span>
-                    </div>
-                  )}
+                  {/* Status Ketersediaan Kuota Periode */}
+                  {(() => {
+                    const slotCheck = slotChecks[i];
+                    if (!slotCheck) return null;
+
+                    if (slotCheck.penuh) {
+                      return (
+                        <div className="mt-3 sm:mt-4 p-3.5 sm:p-4 rounded-xl bg-rose-50 border border-rose-200 flex items-start gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center shrink-0 mt-0.5">
+                            <HiOutlineExclamationCircle className="text-lg" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <p className="text-xs sm:text-sm font-bold text-rose-800">
+                                Kuota Periode Ini Sudah Penuh
+                              </p>
+                              <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-700">
+                                Sisa 0 / {slotCheck.kuota} Kursi
+                              </span>
+                            </div>
+                            <p className="text-xs text-rose-700 mt-1 leading-relaxed">
+                              Posisi <strong>{slotCheck.posisi}</strong> pada periode{" "}
+                              <strong>{slotCheck.mulai}</strong> s.d.{" "}
+                              <strong>{slotCheck.selesai}</strong> sudah terisi penuh
+                              {slotCheck.bulanPenuh
+                                ? ` (kuota bulan ${slotCheck.bulanPenuh} telah terpenuhi)`
+                                : ""}
+                              . Silakan sesuaikan tanggal atau pilih posisi lain.
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    if (slotCheck.aktif > 0) {
+                      return (
+                        <div className="mt-3 sm:mt-4 p-3.5 sm:p-4 rounded-xl bg-[#F0F7FF] border border-blue-200 flex items-start gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-[#0088FF]/15 text-[#0088FF] flex items-center justify-center shrink-0 mt-0.5">
+                            <HiOutlineInformationCircle className="text-lg" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <p className="text-xs sm:text-sm font-bold text-[#0B1B3D]">
+                                Jadwal Tersedia — Tetap Dapat Mendaftar
+                              </p>
+                              <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-white text-[#0088FF] border border-blue-200 shadow-2xs">
+                                Sisa {slotCheck.sisa} dari {slotCheck.kuota} Kuota
+                              </span>
+                            </div>
+                            <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                              Sudah ada <strong>{slotCheck.aktif} peserta</strong>{" "}
+                              terjadwal pada rentang tanggal ini di posisi{" "}
+                              <strong>{slotCheck.posisi}</strong>, namun masih tersedia{" "}
+                              <strong>{slotCheck.sisa} kuota kosong</strong>. Anda tetap
+                              bisa memilih jadwal ini dan melanjutkan pendaftaran.
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div className="mt-3 sm:mt-4 p-3.5 sm:p-4 rounded-xl bg-emerald-50/70 border border-emerald-200 flex items-start gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5">
+                          <HiCheckCircle className="text-lg" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <p className="text-xs sm:text-sm font-bold text-emerald-900">
+                              Jadwal Tersedia Penuh
+                            </p>
+                            <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-white text-emerald-700 border border-emerald-200 shadow-2xs">
+                              Tersedia {slotCheck.sisa} / {slotCheck.kuota} Kuota
+                            </span>
+                          </div>
+                          <p className="text-xs text-emerald-800/90 mt-1 leading-relaxed">
+                            Belum ada peserta terjadwal pada rentang tanggal tersebut di
+                            posisi <strong>{slotCheck.posisi}</strong>. Jadwal siap
+                            diajukan.
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {/* SUB-SEKSI C: IDENTITAS DIRI */}

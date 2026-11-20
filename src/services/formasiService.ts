@@ -240,7 +240,13 @@ export function cekSlotMagangByBulan(
   const newStart = parseLocalDate(mulai);
   const newEnd = parseLocalDate(selesai);
   if (!newStart || !newEnd || newEnd < newStart) {
-    return { penuh: false, aktif: 0, bulanPenuh: undefined as string | undefined };
+    return {
+      penuh: false,
+      aktif: 0,
+      kuota: formasi.kuotaDefault ?? formasi.kuota ?? 0,
+      sisa: formasi.kuotaDefault ?? formasi.kuota ?? 0,
+      bulanPenuh: undefined as string | undefined,
+    };
   }
 
   const mulaiList = formasi.tanggalMulaiMagang || [];
@@ -249,6 +255,8 @@ export function cekSlotMagangByBulan(
   const monthKeys = getOverlappingMonthKeys(mulai, selesai);
 
   let maxAktif = 0;
+  let limitingKuota = formasi.kuotaDefault ?? formasi.kuota ?? 0;
+  let minSisa = Number.POSITIVE_INFINITY;
   let bulanPenuh: string | undefined;
 
   for (const monthKey of monthKeys) {
@@ -271,14 +279,28 @@ export function cekSlotMagangByBulan(
       }
     });
 
-    if (aktifBulanIni > maxAktif) maxAktif = aktifBulanIni;
+    const sisaBulanIni = Math.max(0, kuotaBulan - aktifBulanIni);
+
+    if (
+      sisaBulanIni < minSisa ||
+      (sisaBulanIni === minSisa && aktifBulanIni > maxAktif)
+    ) {
+      minSisa = sisaBulanIni;
+      limitingKuota = kuotaBulan;
+      maxAktif = aktifBulanIni;
+    }
+
     if (aktifBulanIni >= kuotaBulan && !bulanPenuh) {
       bulanPenuh = formatMonthKeyLabel(monthKey, "long");
     }
   }
 
+  const resolvedSisa = Number.isFinite(minSisa) ? minSisa : limitingKuota;
+
   return {
     aktif: maxAktif,
+    kuota: limitingKuota,
+    sisa: resolvedSisa,
     penuh: Boolean(bulanPenuh),
     bulanPenuh,
   };

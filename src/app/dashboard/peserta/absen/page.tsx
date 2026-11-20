@@ -897,14 +897,14 @@ export default function AbsenPesertaPage() {
           >
             Absensi Kehadiran
           </h1>
-          <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 mt-1">
+          <p className="text-base text-slate-500 dark:text-slate-400 mt-1">
             {formatFullDateID(todayWIB)}
           </p>
         </div>
 
         {(record.checkIn || isIzinToday) && (
           <span
-            className={`px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-bold border ${
+            className={`px-3.5 py-1.5 rounded-full text-sm font-bold border ${
               isIzinToday
                 ? "bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-950/50 dark:text-violet-300 dark:border-violet-800"
                 : record.attendanceMode === "wfh"
@@ -931,13 +931,13 @@ export default function AbsenPesertaPage() {
               </div>
               <div>
                 <p
-                  className="text-xs sm:text-sm font-bold text-slate-500 dark:text-slate-400"
+                  className="text-sm font-bold text-slate-500 dark:text-slate-400"
                   style={{ fontWeight: 600 }}
                 >
                   Kehadiran Hari Ini (Izin)
                 </p>
                 <p
-                  className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white mt-0.5 tabular-nums"
+                  className="text-xl font-extrabold text-slate-900 dark:text-white mt-0.5 tabular-nums"
                   style={{ fontWeight: 800 }}
                 >
                   {record.izinSubmittedWIB || "Tercatat"}
@@ -950,7 +950,7 @@ export default function AbsenPesertaPage() {
             </span>
           </div>
 
-          <div className="rounded-xl bg-violet-50/60 dark:bg-violet-950/30 border border-violet-100 dark:border-violet-900/60 p-3.5 text-xs sm:text-sm text-slate-700 dark:text-slate-200">
+          <div className="rounded-xl bg-violet-50/60 dark:bg-violet-950/30 border border-violet-100 dark:border-violet-900/60 p-3.5 text-sm text-slate-700 dark:text-slate-200">
             <span className="font-bold text-violet-700 dark:text-violet-300 block mb-0.5">
               Keterangan Izin:
             </span>
@@ -976,13 +976,13 @@ export default function AbsenPesertaPage() {
               </div>
               <div>
                 <p
-                  className="text-xs sm:text-sm font-bold text-slate-500 dark:text-slate-400"
+                  className="text-sm font-bold text-slate-500 dark:text-slate-400"
                   style={{ fontWeight: 600 }}
                 >
                   Absen Pagi (Check-In)
                 </p>
                 <p
-                  className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white mt-0.5 tabular-nums"
+                  className="text-xl font-extrabold text-slate-900 dark:text-white mt-0.5 tabular-nums"
                   style={{ fontWeight: 800 }}
                 >
                   {record.checkIn ? record.checkIn.timeWIB : "--.-- WIB"}
@@ -991,7 +991,7 @@ export default function AbsenPesertaPage() {
             </div>
 
             <span
-              className={`px-2.5 py-1 rounded-full text-[11px] sm:text-xs font-bold border shrink-0 ${
+              className={`px-2.5 py-1 rounded-full text-xs font-bold border shrink-0 ${
                 record.checkIn
                   ? getTimeStatusBadgeStyle(record.checkIn.timeStatus)
                   : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800"
@@ -1001,7 +1001,7 @@ export default function AbsenPesertaPage() {
             </span>
           </div>
 
-          <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-700/70 text-xs sm:text-sm text-slate-600 dark:text-slate-300 flex items-center justify-between gap-2">
+          <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-700/70 text-sm text-slate-600 dark:text-slate-300 flex items-center justify-between gap-2">
             <div className="flex items-center gap-1.5 min-w-0">
               <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
               <span className="truncate">
@@ -1032,13 +1032,13 @@ export default function AbsenPesertaPage() {
               </div>
               <div>
                 <p
-                  className="text-xs sm:text-sm font-bold text-slate-500 dark:text-slate-400"
+                  className="text-sm font-bold text-slate-500 dark:text-slate-400"
                   style={{ fontWeight: 600 }}
                 >
                   Absen Pulang (Check-Out)
                 </p>
                 <p
-                  className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white mt-0.5 tabular-nums"
+                  className="text-xl font-extrabold text-slate-900 dark:text-white mt-0.5 tabular-nums"
                   style={{ fontWeight: 800 }}
                 >
                   {record.checkOut ? record.checkOut.timeWIB : "--.-- WIB"}
@@ -1047,7 +1047,7 @@ export default function AbsenPesertaPage() {
             </div>
 
             <span
-              className={`px-2.5 py-1 rounded-full text-[11px] sm:text-xs font-bold border shrink-0 ${
+              className={`px-2.5 py-1 rounded-full text-xs font-bold border shrink-0 ${
                 record.checkOut
                   ? getTimeStatusBadgeStyle(record.checkOut.timeStatus)
                   : activeStep === "check_out" && !hasFilledLogbookToday
@@ -1063,7 +1063,7 @@ export default function AbsenPesertaPage() {
             </span>
           </div>
 
-          <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-700/70 text-xs sm:text-sm text-slate-600 dark:text-slate-300 flex items-center justify-between gap-2">
+          <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-700/70 text-sm text-slate-600 dark:text-slate-300 flex items-center justify-between gap-2">
             <div className="flex items-center gap-1.5 min-w-0">
               <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
               <span className="truncate">
@@ -1119,14 +1119,14 @@ export default function AbsenPesertaPage() {
           </div>
           <div className="space-y-1">
             <h2
-              className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white"
+              className="text-lg font-extrabold text-slate-900 dark:text-white"
               style={{ fontWeight: 800 }}
             >
               {internshipPeriodStatus.reason === "before_start"
                 ? "Periode Magang Belum Dimulai"
                 : "Masa Magang Telah Selesai"}
             </h2>
-            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
+            <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
               {internshipPeriodStatus.reason === "before_start"
                 ? `Fitur absensi akan aktif otomatis mulai tanggal ${formatShortDateID(
                     pesertaProfile.tanggalMulaiMagang,
@@ -1146,12 +1146,12 @@ export default function AbsenPesertaPage() {
           </div>
           <div className="space-y-1">
             <h2
-              className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white"
+              className="text-lg font-extrabold text-slate-900 dark:text-white"
               style={{ fontWeight: 800 }}
             >
               Batas Waktu Pengisian Hari Ini Berakhir
             </h2>
-            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
+            <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
               Pengisian absensi harian dibuka maksimal sampai pukul 23.00 WIB. Silakan lakukan absensi kembali besok.
             </p>
           </div>
@@ -1167,12 +1167,12 @@ export default function AbsenPesertaPage() {
                 </div>
                 <div>
                   <p
-                    className="text-sm sm:text-base font-bold text-slate-900 dark:text-white"
+                    className="text-base font-bold text-slate-900 dark:text-white"
                     style={{ fontWeight: 700 }}
                   >
                     Ingin Memperbarui Absen Pulang?
                   </p>
-                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-0.5 leading-relaxed">
+                  <p className="text-sm text-slate-600 dark:text-slate-300 mt-0.5 leading-relaxed">
                     Absen pulang dapat diulang. Sistem otomatis menyimpan dan
                     menggunakan data <b>absen pulang terakhir</b> Anda
                     {record.checkOut.attemptCount &&
@@ -1190,7 +1190,7 @@ export default function AbsenPesertaPage() {
                   setCheckOutNote(record.checkOut?.keterangan || "");
                   setIsRepeatingCheckOut(true);
                 }}
-                className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-[#1D64F2] hover:bg-blue-700 text-white text-xs sm:text-sm font-bold shrink-0 transition shadow-2xs"
+                className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-[#1D64F2] hover:bg-blue-700 text-white text-sm font-bold shrink-0 transition shadow-2xs"
               >
                 Absen Pulang Ulang
               </button>
@@ -1224,7 +1224,7 @@ export default function AbsenPesertaPage() {
                   </div>
                   <div>
                     <h2
-                      className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white leading-snug"
+                      className="text-lg font-extrabold text-slate-900 dark:text-white leading-snug"
                       style={{ fontWeight: 800 }}
                     >
                       {activeStep === "check_in"
@@ -1237,7 +1237,7 @@ export default function AbsenPesertaPage() {
                           ? `Perbarui Absen Pulang${record.attendanceMode === "wfh" ? " (WFH)" : ""}`
                           : `Form Absen Pulang${record.attendanceMode === "wfh" ? " (WFH)" : " (Check-Out)"}`}
                     </h2>
-                    <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
                       {activeStep === "check_in"
                         ? selectedMode === "izin"
                           ? "Tidak perlu mengambil foto dan lokasi GPS. Cukup isi keterangan izin Anda hari ini."
@@ -1276,7 +1276,7 @@ export default function AbsenPesertaPage() {
               {activeStep === "check_in" && (
                 <div className="space-y-2.5">
                   <label
-                    className="text-sm sm:text-base font-bold text-slate-900 dark:text-white block"
+                    className="text-base font-bold text-slate-900 dark:text-white block"
                     style={{ fontWeight: 700 }}
                   >
                     Pilih Jenis Kehadiran Hari Ini
@@ -1291,11 +1291,11 @@ export default function AbsenPesertaPage() {
                           : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50"
                       }`}
                     >
-                      <div className="flex items-center gap-2 font-bold text-xs sm:text-sm">
+                      <div className="flex items-center gap-2 font-bold text-sm">
                         <Building2 className="w-4 h-4 shrink-0" />
                         <span>Masuk (Kantor)</span>
                       </div>
-                      <p className="text-[11px] opacity-80 mt-1">
+                      <p className="text-xs opacity-80 mt-1">
                         Hadir di BBPOM, wajib foto &amp; lokasi GPS masuk/pulang.
                       </p>
                     </button>
@@ -1309,11 +1309,11 @@ export default function AbsenPesertaPage() {
                           : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50"
                       }`}
                     >
-                      <div className="flex items-center gap-2 font-bold text-xs sm:text-sm">
+                      <div className="flex items-center gap-2 font-bold text-sm">
                         <Home className="w-4 h-4 shrink-0" />
                         <span>WFH</span>
                       </div>
-                      <p className="text-[11px] opacity-80 mt-1">
+                      <p className="text-xs opacity-80 mt-1">
                         Tetap wajib absen foto &amp; lokasi, tercatat sebagai WFH.
                       </p>
                     </button>
@@ -1330,11 +1330,11 @@ export default function AbsenPesertaPage() {
                           : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50"
                       }`}
                     >
-                      <div className="flex items-center gap-2 font-bold text-xs sm:text-sm">
+                      <div className="flex items-center gap-2 font-bold text-sm">
                         <FileText className="w-4 h-4 shrink-0" />
                         <span>Izin</span>
                       </div>
-                      <p className="text-[11px] opacity-80 mt-1">
+                      <p className="text-xs opacity-80 mt-1">
                         Tidak perlu foto &amp; GPS, cukup isi keterangan izin saja.
                       </p>
                     </button>
@@ -1346,7 +1346,7 @@ export default function AbsenPesertaPage() {
               {activeStep === "check_in" && selectedMode === "izin" ? (
                 <div className="space-y-4">
                   <div className="rounded-2xl border border-violet-200 dark:border-violet-800/70 bg-violet-50/60 dark:bg-violet-950/30 p-4 space-y-2.5">
-                    <label className="block text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200">
+                    <label className="block text-sm font-bold text-slate-800 dark:text-slate-200">
                       Keterangan / Alasan Izin Hari Ini{" "}
                       <span className="text-red-500">*</span>
                     </label>
@@ -1355,9 +1355,9 @@ export default function AbsenPesertaPage() {
                       onChange={(e) => setIzinNote(e.target.value)}
                       rows={3}
                       placeholder="Contoh: Izin sakit / urusan keluarga / kegiatan akademik kampus atas sepengetahuan pembimbing..."
-                      className="w-full rounded-xl px-3.5 py-2.5 text-xs sm:text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 border border-slate-200 dark:border-slate-700 focus:outline-none focus:border-violet-600 focus:ring-2 focus:ring-violet-600/20"
+                      className="w-full rounded-xl px-3.5 py-2.5 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 border border-slate-200 dark:border-slate-700 focus:outline-none focus:border-violet-600 focus:ring-2 focus:ring-violet-600/20"
                     />
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
                       Minimal 5 karakter. Setelah dikirim, Anda tidak perlu Check-In maupun Check-Out hari ini.
                     </p>
                   </div>
@@ -1366,7 +1366,7 @@ export default function AbsenPesertaPage() {
                     type="button"
                     disabled={submitting || izinNote.trim().length < 5}
                     onClick={handleSubmitIzin}
-                    className="w-full py-3.5 px-5 rounded-xl bg-violet-600 hover:bg-violet-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 disabled:text-slate-500 disabled:cursor-not-allowed text-white text-sm sm:text-base font-extrabold shadow-xs transition flex items-center justify-center gap-2"
+                    className="w-full py-3.5 px-5 rounded-xl bg-violet-600 hover:bg-violet-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 disabled:text-slate-500 disabled:cursor-not-allowed text-white text-base font-extrabold shadow-xs transition flex items-center justify-center gap-2"
                     style={{ fontWeight: 800 }}
                   >
                     <FileText className="w-5 h-5" />
@@ -1383,16 +1383,16 @@ export default function AbsenPesertaPage() {
                   </div>
 
                   <div className="space-y-2 max-w-md mx-auto">
-                    <span className="px-3 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-wide bg-amber-100 text-amber-800 dark:bg-amber-900/70 dark:text-amber-300 inline-block">
+                    <span className="px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wide bg-amber-100 text-amber-800 dark:bg-amber-900/70 dark:text-amber-300 inline-block">
                       Prasyarat Absen Pulang
                     </span>
                     <h3
-                      className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white"
+                      className="text-lg font-extrabold text-slate-900 dark:text-white"
                       style={{ fontWeight: 800 }}
                     >
                       Wajib Mengisi Logbook Terlebih Dahulu
                     </h3>
-                    <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                    <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
                       Anda belum mengisi laporan kegiatan harian (logbook) hari ini.
                       Sesuai ketentuan, Anda wajib melengkapi dan menyimpan logbook hari ini terlebih dahulu agar form Absen Pulang terbuka.
                     </p>
@@ -1401,7 +1401,7 @@ export default function AbsenPesertaPage() {
                   <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3 max-w-md mx-auto">
                     <Link
                       href="/dashboard/peserta/isi-logbook"
-                      className="w-full sm:w-auto flex-1 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-[#1D64F2] hover:bg-blue-700 text-white text-xs sm:text-sm font-extrabold transition shadow-xs"
+                      className="w-full sm:w-auto flex-1 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-[#1D64F2] hover:bg-blue-700 text-white text-sm font-extrabold transition shadow-xs"
                       style={{ fontWeight: 800 }}
                     >
                       <BookOpen className="w-4 h-4" />
@@ -1411,7 +1411,7 @@ export default function AbsenPesertaPage() {
                     <button
                       type="button"
                       onClick={() => fetchAbsensiAndProfile()}
-                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs sm:text-sm font-bold transition shadow-2xs"
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-sm font-bold transition shadow-2xs"
                     >
                       <RefreshCw className="w-4 h-4 text-[#1D64F2]" />
                       <span>Cek Status</span>
@@ -1422,7 +1422,7 @@ export default function AbsenPesertaPage() {
                 <>
                   {/* INFO BANNER WFH JIKA MODE WFH */}
                   {(selectedMode === "wfh" || record.attendanceMode === "wfh") && (
-                    <div className="rounded-xl bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-800/70 p-3.5 text-xs sm:text-sm text-indigo-900 dark:text-indigo-200 flex items-start gap-2.5">
+                    <div className="rounded-xl bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-800/70 p-3.5 text-sm text-indigo-900 dark:text-indigo-200 flex items-start gap-2.5">
                       <Home className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
                       <span>
                         <b>Mode WFH Aktif:</b> Hari ini Anda tercatat bekerja dari rumah (WFH). Tetap lakukan foto wajah dan kunci lokasi saat Check-In maupun Check-Out.
@@ -1432,7 +1432,7 @@ export default function AbsenPesertaPage() {
 
                   {/* INFO ATURAN JAM ABSEN REAL-TIME */}
               <div className="rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-700/80 p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-                <div className="flex items-start sm:items-center gap-2.5 text-xs sm:text-sm text-slate-700 dark:text-slate-200">
+                <div className="flex items-start sm:items-center gap-2.5 text-sm text-slate-700 dark:text-slate-200">
                   <Info className="w-4 h-4 sm:w-5 sm:h-5 text-[#1D64F2] shrink-0 mt-0.5 sm:mt-0" />
                   <span>
                     {activeStep === "check_in"
@@ -1458,7 +1458,7 @@ export default function AbsenPesertaPage() {
               {activeStep === "check_out" && (
                 <div className="space-y-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/40 p-4">
                   <label
-                    className="text-sm sm:text-base font-bold text-slate-900 dark:text-white flex items-center gap-2"
+                    className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2"
                     style={{ fontWeight: 700 }}
                   >
                     <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-[#1D64F2] shrink-0" />
@@ -1476,12 +1476,12 @@ export default function AbsenPesertaPage() {
                       }`}
                     >
                       <p
-                        className="text-xs sm:text-sm font-bold"
+                        className="text-sm font-bold"
                         style={{ fontWeight: 700 }}
                       >
                         Pulang Reguler (Tanpa Keterangan)
                       </p>
-                      <p className="text-[11px] sm:text-xs opacity-80 mt-0.5">
+                      <p className="text-xs opacity-80 mt-0.5">
                         Tepat waktu jika absen pukul 16.00 WIB atau lebih
                       </p>
                     </button>
@@ -1496,12 +1496,12 @@ export default function AbsenPesertaPage() {
                       }`}
                     >
                       <p
-                        className="text-xs sm:text-sm font-bold"
+                        className="text-sm font-bold"
                         style={{ fontWeight: 700 }}
                       >
                         Pulang dengan Keterangan / Izin
                       </p>
-                      <p className="text-[11px] sm:text-xs opacity-80 mt-0.5">
+                      <p className="text-xs opacity-80 mt-0.5">
                         Tetap dihitung tepat waktu meski pulang sebelum 16.00
                         WIB
                       </p>
@@ -1510,7 +1510,7 @@ export default function AbsenPesertaPage() {
 
                   {useCheckOutNote && (
                     <div className="pt-1 space-y-1.5">
-                      <label className="block text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200">
+                      <label className="block text-sm font-bold text-slate-800 dark:text-slate-200">
                         Keterangan / Alasan Pulang{" "}
                         <span className="text-red-500">*</span>
                       </label>
@@ -1519,7 +1519,7 @@ export default function AbsenPesertaPage() {
                         onChange={(e) => setCheckOutNote(e.target.value)}
                         rows={2}
                         placeholder="Contoh: Izin pulang lebih awal karena bimbingan skripsi / kegiatan kampus atas izin Mentor..."
-                        className="w-full rounded-xl px-3.5 py-2.5 text-xs sm:text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 border border-slate-200 dark:border-slate-700 focus:outline-none focus:border-[#1D64F2] focus:ring-2 focus:ring-[#1D64F2]/20"
+                        className="w-full rounded-xl px-3.5 py-2.5 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 border border-slate-200 dark:border-slate-700 focus:outline-none focus:border-[#1D64F2] focus:ring-2 focus:ring-[#1D64F2]/20"
                       />
                     </div>
                   )}
@@ -1530,7 +1530,7 @@ export default function AbsenPesertaPage() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between gap-2">
                   <label
-                    className="text-sm sm:text-base font-bold text-slate-900 dark:text-white flex items-center gap-2"
+                    className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2"
                     style={{ fontWeight: 700 }}
                   >
                     <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-[#1D64F2] shrink-0" />
@@ -1541,7 +1541,7 @@ export default function AbsenPesertaPage() {
                     type="button"
                     onClick={lockGpsLocation}
                     disabled={loadingGps}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 transition disabled:opacity-50 shrink-0"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-sm font-bold text-slate-700 dark:text-slate-200 transition disabled:opacity-50 shrink-0"
                   >
                     <RefreshCw
                       className={`w-3.5 h-3.5 text-[#1D64F2] ${
@@ -1553,7 +1553,7 @@ export default function AbsenPesertaPage() {
                 </div>
 
                 {gpsError ? (
-                  <div className="rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/70 p-4 text-xs sm:text-sm text-red-700 dark:text-red-300 flex items-start gap-3">
+                  <div className="rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/70 p-4 text-sm text-red-700 dark:text-red-300 flex items-start gap-3">
                     <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
                     <div className="space-y-2.5">
                       <p className="font-semibold leading-relaxed">
@@ -1562,14 +1562,14 @@ export default function AbsenPesertaPage() {
                       <button
                         type="button"
                         onClick={lockGpsLocation}
-                        className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs sm:text-sm font-bold transition"
+                        className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-bold transition"
                       >
                         Coba Kunci Ulang Lokasi
                       </button>
                     </div>
                   </div>
                 ) : loadingGps && !gpsLocation ? (
-                  <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 h-52 flex flex-col items-center justify-center gap-2.5 p-4 text-center text-xs sm:text-sm text-slate-500">
+                  <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 h-52 flex flex-col items-center justify-center gap-2.5 p-4 text-center text-sm text-slate-500">
                     <Navigation className="w-6 h-6 text-[#1D64F2] animate-pulse" />
                     <span>Mengunci titik koordinat GPS perangkat Anda...</span>
                   </div>
@@ -1597,7 +1597,7 @@ export default function AbsenPesertaPage() {
                     <div className="p-4 space-y-3">
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <span
-                          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs sm:text-sm font-bold ${
+                          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-bold ${
                             gpsLocation.isInsideBpom
                               ? "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800"
                               : "bg-amber-50 text-amber-800 border border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800"
@@ -1615,7 +1615,7 @@ export default function AbsenPesertaPage() {
                           href={`https://www.google.com/maps?q=${gpsLocation.lat},${gpsLocation.lng}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-xs sm:text-sm font-bold text-[#1D64F2] hover:underline"
+                          className="inline-flex items-center gap-1 text-sm font-bold text-[#1D64F2] hover:underline"
                         >
                           <span>Buka Google Maps</span>
                           <ExternalLink className="w-3.5 h-3.5" />
@@ -1626,12 +1626,12 @@ export default function AbsenPesertaPage() {
                         <p className="text-xs font-bold text-slate-500 dark:text-slate-400">
                           Alamat Terdeteksi:
                         </p>
-                        <p className="text-xs sm:text-sm font-medium text-slate-800 dark:text-slate-200 leading-relaxed break-words">
+                        <p className="text-sm font-medium text-slate-800 dark:text-slate-200 leading-relaxed break-words">
                           {gpsLocation.address}
                         </p>
                       </div>
 
-                      <div className="pt-2.5 border-t border-slate-200/80 dark:border-slate-700/80 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+                      <div className="pt-2.5 border-t border-slate-200/80 dark:border-slate-700/80 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 text-sm text-slate-500 dark:text-slate-400">
                         <span>
                           Koordinat:{" "}
                           <b className="text-slate-800 dark:text-slate-200 tabular-nums">
@@ -1651,7 +1651,7 @@ export default function AbsenPesertaPage() {
                         record.attendanceMode !== "wfh" && (
                         <div className="pt-1">
                           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl bg-amber-50/90 dark:bg-amber-950/40 border border-amber-200/90 dark:border-amber-800/70 p-3.5">
-                            <p className="text-xs sm:text-sm text-amber-900 dark:text-amber-200 leading-relaxed">
+                            <p className="text-sm text-amber-900 dark:text-amber-200 leading-relaxed">
                               <b>Membuka dari Laptop/PC di Kantor BBPOM?</b>{" "}
                               Browser komputer menggunakan lokasi IP provider
                               internet sehingga titik dapat meleset.
@@ -1659,7 +1659,7 @@ export default function AbsenPesertaPage() {
                             <button
                               type="button"
                               onClick={calibrateToBpomOffice}
-                              className="w-full sm:w-auto px-3.5 py-2 rounded-xl bg-[#1D64F2] hover:bg-blue-700 text-white text-xs sm:text-sm font-bold shrink-0 transition shadow-2xs"
+                              className="w-full sm:w-auto px-3.5 py-2 rounded-xl bg-[#1D64F2] hover:bg-blue-700 text-white text-sm font-bold shrink-0 transition shadow-2xs"
                             >
                               Set Titik Kantor BBPOM
                             </button>
@@ -1674,7 +1674,7 @@ export default function AbsenPesertaPage() {
               {/* STEP B: KAMERA SWAFOTO WAJAH */}
               <div className="space-y-3">
                 <label
-                  className="text-sm sm:text-base font-bold text-slate-900 dark:text-white flex items-center gap-2"
+                  className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2"
                   style={{ fontWeight: 700 }}
                 >
                   <Camera className="w-4 h-4 sm:w-5 sm:h-5 text-[#1D64F2] shrink-0" />
@@ -1684,7 +1684,7 @@ export default function AbsenPesertaPage() {
                 <canvas ref={canvasRef} className="hidden" />
 
                 {cameraError && (
-                  <div className="rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/70 p-3.5 text-xs sm:text-sm text-red-700 dark:text-red-300 flex items-center gap-2.5">
+                  <div className="rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/70 p-3.5 text-sm text-red-700 dark:text-red-300 flex items-center gap-2.5">
                     <AlertCircle className="w-5 h-5 shrink-0" />
                     <span>{cameraError}</span>
                   </div>
@@ -1710,7 +1710,7 @@ export default function AbsenPesertaPage() {
                     <button
                       type="button"
                       onClick={startCamera}
-                      className="w-full sm:w-auto mx-auto flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 transition"
+                      className="w-full sm:w-auto mx-auto flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-sm font-bold text-slate-700 dark:text-slate-200 transition"
                     >
                       <RefreshCw className="w-4 h-4 text-[#1D64F2]" />
                       <span>Ambil Ulang Foto</span>
@@ -1742,7 +1742,7 @@ export default function AbsenPesertaPage() {
                       <button
                         type="button"
                         onClick={stopCamera}
-                        className="w-full sm:w-auto px-5 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 transition"
+                        className="w-full sm:w-auto px-5 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 text-sm font-bold text-slate-700 dark:text-slate-200 transition"
                       >
                         Matikan Kamera
                       </button>
@@ -1763,12 +1763,12 @@ export default function AbsenPesertaPage() {
                     </div>
                     <div className="space-y-1">
                       <p
-                        className="text-sm sm:text-base font-bold text-slate-900 dark:text-white"
+                        className="text-base font-bold text-slate-900 dark:text-white"
                         style={{ fontWeight: 700 }}
                       >
                         Kamera Swafoto Wajah
                       </p>
-                      <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-sm mx-auto leading-relaxed">
+                      <p className="text-sm text-slate-500 dark:text-slate-400 max-w-sm mx-auto leading-relaxed">
                         Ambil foto wajah secara langsung. Foto otomatis diberi
                         stempel jam WIB dan titik koordinat GPS Anda.
                       </p>
@@ -1798,7 +1798,7 @@ export default function AbsenPesertaPage() {
                       checkOutNote.trim().length < 5)
                   }
                   onClick={handleSubmitAbsen}
-                  className="w-full py-3.5 px-5 rounded-xl bg-[#1D64F2] hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 disabled:text-slate-500 disabled:cursor-not-allowed text-white text-sm sm:text-base font-extrabold shadow-xs transition flex items-center justify-center gap-2"
+                  className="w-full py-3.5 px-5 rounded-xl bg-[#1D64F2] hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 disabled:text-slate-500 disabled:cursor-not-allowed text-white text-base font-extrabold shadow-xs transition flex items-center justify-center gap-2"
                   style={{ fontWeight: 800 }}
                 >
                   {activeStep === "check_in" ? (
@@ -1830,7 +1830,7 @@ export default function AbsenPesertaPage() {
       {(record.checkIn || record.checkOut) && !isIzinToday && (
         <div className="space-y-3.5 pt-1">
           <h2
-            className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white"
+            className="text-lg font-extrabold text-slate-900 dark:text-white"
             style={{ fontWeight: 800 }}
           >
             Rekaman Bukti Absen Hari Ini
@@ -1866,7 +1866,7 @@ export default function AbsenPesertaPage() {
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <span
-                        className="text-sm sm:text-base font-bold text-slate-900 dark:text-white block"
+                        className="text-base font-bold text-slate-900 dark:text-white block"
                         style={{ fontWeight: 700 }}
                       >
                         {item.label}
@@ -1878,7 +1878,7 @@ export default function AbsenPesertaPage() {
                     </div>
 
                     <span
-                      className={`px-2.5 py-1 rounded-full text-[11px] font-bold border shrink-0 ${getTimeStatusBadgeStyle(
+                      className={`px-2.5 py-1 rounded-full text-xs font-bold border shrink-0 ${getTimeStatusBadgeStyle(
                         timeStatus,
                       )}`}
                     >
@@ -1901,7 +1901,7 @@ export default function AbsenPesertaPage() {
                   )}
 
                   {keterangan && (
-                    <div className="rounded-xl bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200/80 dark:border-blue-800/70 p-3 text-xs sm:text-sm text-slate-700 dark:text-slate-200">
+                    <div className="rounded-xl bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200/80 dark:border-blue-800/70 p-3 text-sm text-slate-700 dark:text-slate-200">
                       <span className="font-bold text-[#1D64F2] dark:text-blue-400 block mb-0.5">
                         Keterangan Pulang:
                       </span>
@@ -1909,7 +1909,7 @@ export default function AbsenPesertaPage() {
                     </div>
                   )}
 
-                  <div className="space-y-2 text-xs sm:text-sm">
+                  <div className="space-y-2 text-sm">
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-slate-500">Status Area:</span>
                       <span

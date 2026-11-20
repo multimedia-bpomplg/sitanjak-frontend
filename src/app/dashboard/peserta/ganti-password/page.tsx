@@ -379,33 +379,33 @@ export default function AkunPesertaPage() {
         <h1 className="text-xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
           Akun Peserta
         </h1>
-        <p className="text-xs sm:text-base text-slate-500 dark:text-slate-400 mt-1">
+        <p className="text-base text-slate-500 dark:text-slate-400 mt-1">
           Kelola informasi akun, program magang, dan keamanan akun Anda.
         </p>
       </div>
 
       {/* ================= 2. CARD PROFIL PESERTA ================= */}
       <div className="rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 p-4 sm:p-6 shadow-2xs flex items-center gap-4 sm:gap-5">
-        <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-linear-to-br from-[#0284c7] via-sky-600 to-blue-700 dark:from-[#0369a1] dark:to-blue-800 text-white font-extrabold text-lg sm:text-xl flex items-center justify-center shrink-0 ring-2 ring-slate-100 dark:ring-slate-700 shadow-xs">
+        <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-linear-to-br from-[#0284c7] via-sky-600 to-blue-700 dark:from-[#0369a1] dark:to-blue-800 text-white font-extrabold text-xl flex items-center justify-center shrink-0 ring-2 ring-slate-100 dark:ring-slate-700 shadow-xs">
           {getInitial(peserta?.nama || "P")}
         </div>
 
         <div className="min-w-0 space-y-0.5">
           <div className="flex items-center gap-2 flex-wrap">
-            <h2 className="text-sm sm:text-lg font-bold text-slate-900 dark:text-white truncate">
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white truncate">
               {peserta?.nama || "Peserta Magang"}
             </h2>
             {isPkpa && (
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-bold tracking-wide bg-violet-50 text-violet-700 border border-violet-200 dark:bg-violet-950/60 dark:text-violet-300 dark:border-violet-800 shrink-0">
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold tracking-wide bg-violet-50 text-violet-700 border border-violet-200 dark:bg-violet-950/60 dark:text-violet-300 dark:border-violet-800 shrink-0">
                 PKPA
               </span>
             )}
           </div>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+          <p className="text-sm text-slate-500 dark:text-slate-400">
             Peserta Magang
           </p>
 
-          <div className="pt-1.5 space-y-1 text-xs sm:text-sm text-slate-600 dark:text-slate-300">
+          <div className="pt-1.5 space-y-1 text-sm text-slate-600 dark:text-slate-300">
             <div className="flex items-center gap-1.5 truncate">
               <Mail className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 shrink-0" />
               <span className="truncate">
@@ -423,22 +423,22 @@ export default function AkunPesertaPage() {
       {/* ================= 3. CARD INFORMASI MAGANG ================= */}
       <div className="rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 p-4 sm:p-6 shadow-2xs">
         <div className="flex items-center justify-between gap-2 pb-3 sm:pb-3.5 border-b border-slate-100 dark:border-slate-700/70">
-          <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
+          <h3 className="text-base font-bold text-slate-900 dark:text-white">
             Informasi Magang
           </h3>
           <div className="flex items-center gap-1.5 shrink-0">
             {isPkpa && (
-              <span className="px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full text-[11px] sm:text-xs font-bold bg-violet-50 text-violet-700 border border-violet-200 dark:bg-violet-950/60 dark:text-violet-300 dark:border-violet-800">
+              <span className="px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full text-xs font-bold bg-violet-50 text-violet-700 border border-violet-200 dark:bg-violet-950/60 dark:text-violet-300 dark:border-violet-800">
                 PKPA
               </span>
             )}
-            <span className="px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full text-[11px] sm:text-xs font-semibold bg-emerald-50 text-emerald-600 border border-emerald-200/70 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800/60">
+            <span className="px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-600 border border-emerald-200/70 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800/60">
               Aktif
             </span>
           </div>
         </div>
 
-        <div className="divide-y divide-slate-100 dark:divide-slate-700/70 text-xs sm:text-sm">
+        <div className="divide-y divide-slate-100 dark:divide-slate-700/70 text-sm">
           <div className="py-3 sm:py-3.5 flex items-center justify-between gap-4">
             <span className="text-slate-500 dark:text-slate-400 shrink-0">
               Perusahaan
@@ -499,10 +499,10 @@ export default function AkunPesertaPage() {
               <FileText className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
             </div>
             <div>
-              <p className="text-xs sm:text-base font-bold text-slate-900 dark:text-white">
+              <p className="text-base font-bold text-slate-900 dark:text-white">
                 Dokumen Resmi Magang
               </p>
-              <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 Surat pengantar, surat balasan BBPOM, dan surat selesai.
               </p>
             </div>
@@ -544,13 +544,13 @@ export default function AkunPesertaPage() {
             ].map((doc, idx) => (
               <div
                 key={idx}
-                className="rounded-xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 px-3.5 py-2.5 sm:py-3 flex items-center justify-between gap-2 text-xs sm:text-sm"
+                className="rounded-xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 px-3.5 py-2.5 sm:py-3 flex items-center justify-between gap-2 text-sm"
               >
                 <span className="font-semibold text-slate-800 dark:text-slate-200">
                   {doc.label}
                 </span>
                 {doc.locked ? (
-                  <span className="inline-flex items-center gap-1 text-[11px] sm:text-xs font-semibold text-amber-600 dark:text-amber-400">
+                  <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-600 dark:text-amber-400">
                     <Lock className="w-3.5 h-3.5" />
                     <span>Selesaikan Laporan &amp; Survei</span>
                   </span>
@@ -596,7 +596,7 @@ export default function AkunPesertaPage() {
                     </a>
                   )
                 ) : (
-                  <span className="text-[11px] sm:text-xs text-slate-400">
+                  <span className="text-xs text-slate-400">
                     Belum tersedia
                   </span>
                 )}
@@ -618,10 +618,10 @@ export default function AkunPesertaPage() {
               <KeyRound className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
             </div>
             <div>
-              <p className="text-xs sm:text-base font-bold text-slate-900 dark:text-white">
+              <p className="text-base font-bold text-slate-900 dark:text-white">
                 Ganti Password
               </p>
-              <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 Perbarui kata sandi keamanan akun Anda.
               </p>
             </div>
@@ -639,7 +639,7 @@ export default function AkunPesertaPage() {
             className="px-4 sm:px-5 pb-4 sm:pb-5 pt-3 border-t border-slate-100 dark:border-slate-700/70 space-y-3 sm:space-y-3.5 bg-slate-50/40 dark:bg-slate-800/40"
           >
             <div>
-              <label className="block text-[11px] sm:text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
                 Password Lama
               </label>
               <div className="relative">
@@ -648,7 +648,7 @@ export default function AkunPesertaPage() {
                   value={passwordLama}
                   onChange={(e) => setPasswordLama(e.target.value)}
                   placeholder="Masukkan password lama"
-                  className="w-full rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-3.5 py-2 sm:py-2.5 pr-9 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[#1D64F2]"
+                  className="w-full rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-3.5 py-2 sm:py-2.5 pr-9 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[#1D64F2]"
                 />
                 <button
                   type="button"
@@ -665,7 +665,7 @@ export default function AkunPesertaPage() {
             </div>
 
             <div>
-              <label className="block text-[11px] sm:text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
                 Password Baru
               </label>
               <div className="relative">
@@ -674,7 +674,7 @@ export default function AkunPesertaPage() {
                   value={passwordBaru}
                   onChange={(e) => setPasswordBaru(e.target.value)}
                   placeholder="Minimal 8 karakter"
-                  className="w-full rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-3.5 py-2 sm:py-2.5 pr-9 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[#1D64F2]"
+                  className="w-full rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-3.5 py-2 sm:py-2.5 pr-9 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[#1D64F2]"
                 />
                 <button
                   type="button"
@@ -691,7 +691,7 @@ export default function AkunPesertaPage() {
             </div>
 
             <div>
-              <label className="block text-[11px] sm:text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
                 Konfirmasi Password Baru
               </label>
               <div className="relative">
@@ -700,7 +700,7 @@ export default function AkunPesertaPage() {
                   value={konfirmasi}
                   onChange={(e) => setKonfirmasi(e.target.value)}
                   placeholder="Ulangi password baru"
-                  className="w-full rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-3.5 py-2 sm:py-2.5 pr-9 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[#1D64F2]"
+                  className="w-full rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-3.5 py-2 sm:py-2.5 pr-9 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[#1D64F2]"
                 />
                 <button
                   type="button"
@@ -719,7 +719,7 @@ export default function AkunPesertaPage() {
             <button
               type="submit"
               disabled={submittingPassword}
-              className="w-full py-2.5 sm:py-3 rounded-xl bg-[#1D64F2] hover:bg-blue-700 text-white font-bold text-xs sm:text-sm shadow-xs transition disabled:opacity-50"
+              className="w-full py-2.5 sm:py-3 rounded-xl bg-[#1D64F2] hover:bg-blue-700 text-white font-bold text-sm shadow-xs transition disabled:opacity-50"
             >
               {submittingPassword ? "Menyimpan..." : "Simpan Password Baru"}
             </button>
@@ -739,10 +739,10 @@ export default function AkunPesertaPage() {
             <BookOpen className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
           </div>
           <div>
-            <p className="text-xs sm:text-base font-bold text-slate-900 dark:text-white">
+            <p className="text-base font-bold text-slate-900 dark:text-white">
               Panduan Pengguna
             </p>
-            <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               Pelajari penggunaan SI TANJAK untuk Peserta.
             </p>
           </div>
@@ -760,10 +760,10 @@ export default function AkunPesertaPage() {
             <Bell className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
           </div>
           <div className="min-w-0">
-            <p className="text-xs sm:text-base font-bold text-slate-900 dark:text-white">
+            <p className="text-base font-bold text-slate-900 dark:text-white">
               Notifikasi perangkat
             </p>
-            <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 leading-snug">
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-snug">
               Aktifkan agar pemberitahuan penting tetap masuk walau aplikasi
               sedang ditutup.
             </p>
@@ -792,7 +792,7 @@ export default function AkunPesertaPage() {
       <button
         type="button"
         onClick={handleLogout}
-        className="w-full rounded-2xl bg-white dark:bg-slate-800/90 hover:bg-red-50/70 dark:hover:bg-red-950/30 border border-slate-200/80 dark:border-slate-700/80 py-3.5 sm:py-4 px-4 flex items-center justify-center gap-2 text-red-600 dark:text-red-400 font-bold text-xs sm:text-base shadow-2xs transition"
+        className="w-full rounded-2xl bg-white dark:bg-slate-800/90 hover:bg-red-50/70 dark:hover:bg-red-950/30 border border-slate-200/80 dark:border-slate-700/80 py-3.5 sm:py-4 px-4 flex items-center justify-center gap-2 text-red-600 dark:text-red-400 font-bold text-base shadow-2xs transition"
       >
         <LogOut className="w-4 h-4 sm:w-5 sm:h-5" />
         <span>Keluar dari akun</span>

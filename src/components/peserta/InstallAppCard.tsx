@@ -41,10 +41,10 @@ export function InstallAppCard() {
             <Smartphone className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
           </div>
           <div className="min-w-0">
-            <p className="text-xs sm:text-base font-bold text-slate-900 dark:text-white">
+            <p className="text-base font-bold text-slate-900 dark:text-white">
               Install Aplikasi di HP
             </p>
-            <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 leading-snug">
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-snug">
               Pasang SI TANJAK ke layar utama untuk akses cepat seperti
               aplikasi native.
             </p>

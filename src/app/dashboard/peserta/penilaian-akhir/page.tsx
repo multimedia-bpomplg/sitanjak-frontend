@@ -658,11 +658,11 @@ export default function PenilaianAkhirPage() {
           </Link>
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-lg sm:text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-snug">
+              <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-snug">
                 Penilaian Akhir Magang
               </h1>
               <span
-                className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                className={`px-2 py-0.5 rounded-full text-xs font-bold border ${
                   isPkpa
                     ? "bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-950/50 dark:text-violet-300 dark:border-violet-800"
                     : "bg-blue-50 text-[#1D64F2] border-blue-200 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-800"
@@ -671,7 +671,7 @@ export default function PenilaianAkhirPage() {
                 {isPkpa ? "Khusus PKPA" : "Reguler"}
               </span>
             </div>
-            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
               Rekapitulasi nilai kedisiplinan, sikap kerja, dan kemampuan selama
               program magang di BBPOM di Palembang.
             </p>
@@ -682,7 +682,7 @@ export default function PenilaianAkhirPage() {
           type="button"
           onClick={handleDownloadPdf}
           disabled={downloadingPdf}
-          className="print:hidden w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2.5 sm:py-2 rounded-xl bg-[#1D64F2] hover:bg-blue-700 disabled:opacity-60 text-xs sm:text-sm font-bold text-white transition shrink-0 shadow-2xs"
+          className="print:hidden w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2.5 sm:py-2 rounded-xl bg-[#1D64F2] hover:bg-blue-700 disabled:opacity-60 text-sm font-bold text-white transition shrink-0 shadow-2xs"
         >
           <Download className="w-4 h-4" />
           <span>{downloadingPdf ? "Mengunduh..." : "Unduh PDF"}</span>
@@ -697,10 +697,10 @@ export default function PenilaianAkhirPage() {
               <CheckCircle2 className="w-5 h-5" />
             </div>
             <div className="min-w-0">
-              <p className="text-xs sm:text-sm font-bold text-emerald-900 dark:text-emerald-200">
+              <p className="text-sm font-bold text-emerald-900 dark:text-emerald-200">
                 Penilaian Akhir Telah Diterbitkan
               </p>
-              <p className="text-[11px] sm:text-xs text-emerald-700 dark:text-emerald-300 mt-0.5 leading-relaxed">
+              <p className="text-xs text-emerald-700 dark:text-emerald-300 mt-0.5 leading-relaxed">
                 Dinilai oleh{" "}
                 <b>{penilaian?.penilaiNama || peserta.mentorNama}</b>
                 {penilaian?.tanggalPenilaian
@@ -713,10 +713,10 @@ export default function PenilaianAkhirPage() {
 
           {computedSummary.rataRata !== null && (
             <div className="w-full sm:w-auto flex sm:block items-center justify-between px-3.5 py-2 sm:py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-emerald-200 dark:border-emerald-700 text-center shrink-0">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 Nilai Rata-Rata
               </p>
-              <p className="text-base sm:text-lg font-extrabold text-emerald-600 dark:text-emerald-400 tabular-nums">
+              <p className="text-lg font-extrabold text-emerald-600 dark:text-emerald-400 tabular-nums">
                 {formatScoreCell(computedSummary.rataRata)}
               </p>
             </div>
@@ -728,10 +728,10 @@ export default function PenilaianAkhirPage() {
             <Clock className="w-5 h-5" />
           </div>
           <div className="min-w-0">
-            <p className="text-xs sm:text-sm font-bold text-amber-900 dark:text-amber-200">
+            <p className="text-sm font-bold text-amber-900 dark:text-amber-200">
               Menunggu Penilaian Akhir dari Mentor
             </p>
-            <p className="text-[11px] sm:text-xs text-amber-800/90 dark:text-amber-300 mt-0.5 leading-relaxed">
+            <p className="text-xs text-amber-800/90 dark:text-amber-300 mt-0.5 leading-relaxed">
               Nilai akhir magang Anda belum diinput oleh Mentor / Admin. Di
               bawah ini adalah rincian komponen penilaian akhir magang yang
               akan dinilai.
@@ -742,11 +742,11 @@ export default function PenilaianAkhirPage() {
 
       {/* ================= 3. INFORMASI PESERTA ================= */}
       <div className="rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 p-3.5 sm:p-5 shadow-2xs">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-3.5 text-xs sm:text-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-3.5 text-sm">
           <div className="flex items-start gap-2.5">
             <User className="w-4 h-4 text-[#1D64F2] shrink-0 mt-0.5" />
             <div className="min-w-0">
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 Nama Peserta
               </p>
               <p className="font-bold text-slate-900 dark:text-white break-words leading-snug">
@@ -758,7 +758,7 @@ export default function PenilaianAkhirPage() {
           <div className="flex items-start gap-2.5">
             <Briefcase className="w-4 h-4 text-[#1D64F2] shrink-0 mt-0.5" />
             <div className="min-w-0">
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 Fungsi / Bidang Penempatan
               </p>
               <p className="font-bold text-slate-900 dark:text-white break-words leading-snug">
@@ -770,7 +770,7 @@ export default function PenilaianAkhirPage() {
           <div className="flex items-start gap-2.5">
             <Calendar className="w-4 h-4 text-[#1D64F2] shrink-0 mt-0.5" />
             <div className="min-w-0">
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 Periode Magang
               </p>
               <p className="font-bold text-slate-900 dark:text-white leading-snug">
@@ -783,7 +783,7 @@ export default function PenilaianAkhirPage() {
           <div className="flex items-start gap-2.5">
             <UserCheck className="w-4 h-4 text-[#1D64F2] shrink-0 mt-0.5" />
             <div className="min-w-0">
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 Mentor Pembimbing
               </p>
               <p className="font-bold text-slate-900 dark:text-white break-words leading-snug">
@@ -801,13 +801,13 @@ export default function PenilaianAkhirPage() {
             <div className="w-8 h-8 rounded-lg bg-violet-50 dark:bg-violet-950/60 text-violet-600 dark:text-violet-400 flex items-center justify-center shrink-0">
               <ClipboardList className="w-4 h-4" />
             </div>
-            <h2 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white">
+            <h2 className="text-base font-extrabold text-slate-900 dark:text-white">
               Daftar Nilai Akhir Magang
             </h2>
           </div>
 
           <span
-            className={`px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold border shrink-0 ${
+            className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border shrink-0 ${
               computedSummary.hasAnyScore
                 ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800"
                 : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800"
@@ -825,7 +825,7 @@ export default function PenilaianAkhirPage() {
               className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden bg-white dark:bg-slate-900/40"
             >
               <div className="px-3.5 py-2.5 bg-slate-100/90 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700 flex items-center gap-2">
-                <span className="w-5 h-5 rounded-md bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-[11px] font-bold text-slate-700 dark:text-slate-200 flex items-center justify-center shrink-0">
+                <span className="w-5 h-5 rounded-md bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center justify-center shrink-0">
                   {group.no}
                 </span>
                 <span className="text-xs font-extrabold text-slate-900 dark:text-white leading-snug">
@@ -841,14 +841,14 @@ export default function PenilaianAkhirPage() {
                     </p>
                     <div className="flex items-center justify-between gap-2 text-xs">
                       <div className="inline-flex items-center gap-1.5">
-                        <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                        <span className="text-xs text-slate-500 dark:text-slate-400">
                           Nilai:
                         </span>
                         <span className="font-bold text-slate-900 dark:text-white tabular-nums">
                           {item.data ? formatScoreCell(item.data.nilai) : "-"}
                         </span>
                       </div>
-                      <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 text-right">
+                      <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 text-right">
                         {item.data?.keterangan || "-"}
                       </span>
                     </div>
@@ -864,7 +864,7 @@ export default function PenilaianAkhirPage() {
               <p className="text-xs font-extrabold text-slate-900 dark:text-white">
                 Nilai Rata-Rata
               </p>
-              <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-0.5">
+              <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">
                 {computedSummary.keterangan || "Belum dinilai"}
               </p>
             </div>
@@ -878,7 +878,7 @@ export default function PenilaianAkhirPage() {
 
         {/* DESKTOP VIEW (>= sm): Tabel berbingkai resmi */}
         <div className="hidden sm:block overflow-x-auto rounded-lg border border-slate-300 dark:border-slate-600">
-          <table className="w-full border-collapse text-xs sm:text-sm text-slate-800 dark:text-slate-100">
+          <table className="w-full border-collapse text-sm text-slate-800 dark:text-slate-100">
             <thead>
               <tr className="bg-slate-100 dark:bg-slate-900/80 text-slate-900 dark:text-white font-bold">
                 <th className="border-b border-r border-slate-300 dark:border-slate-600 px-3 py-2.5 text-center w-12">
@@ -948,13 +948,13 @@ export default function PenilaianAkhirPage() {
         </div>
 
         {/* Acuan Nilai & Kesan / Saran */}
-        <div className="pt-1 space-y-3 sm:space-y-4 text-xs sm:text-sm text-slate-800 dark:text-slate-200">
+        <div className="pt-1 space-y-3 sm:space-y-4 text-sm text-slate-800 dark:text-slate-200">
           {/* Acuan Nilai (Horizontal) */}
           <div className="rounded-xl bg-slate-50/90 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-700 p-3 sm:p-4 space-y-2">
             <p className="text-xs font-bold text-slate-900 dark:text-white">
               Nilai :
             </p>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] sm:text-xs">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
               {[
                 {
                   range: "91-100",
@@ -995,19 +995,19 @@ export default function PenilaianAkhirPage() {
           {/* Kesan & Saran */}
           <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/60 divide-y divide-slate-200 dark:divide-slate-700 overflow-hidden">
             <div className="p-3.5 sm:p-4 space-y-1">
-              <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
+              <p className="text-sm font-bold text-slate-900 dark:text-white">
                 Kesan :
               </p>
-              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 whitespace-pre-line break-words leading-relaxed min-h-[2rem]">
+              <p className="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-line break-words leading-relaxed min-h-[2rem]">
                 {penilaian?.kesan || "-"}
               </p>
             </div>
 
             <div className="p-3.5 sm:p-4 space-y-1">
-              <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
+              <p className="text-sm font-bold text-slate-900 dark:text-white">
                 Saran :
               </p>
-              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 whitespace-pre-line break-words leading-relaxed min-h-[2rem]">
+              <p className="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-line break-words leading-relaxed min-h-[2rem]">
                 {penilaian?.saran || "-"}
               </p>
             </div>
