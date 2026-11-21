@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
+  Award,
   Mail,
   Phone,
   BookOpen,
@@ -385,36 +386,53 @@ export default function AkunPesertaPage() {
       </div>
 
       {/* ================= 2. CARD PROFIL PESERTA ================= */}
-      <div className="rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 p-4 sm:p-6 shadow-2xs flex items-center gap-4 sm:gap-5">
-        <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-linear-to-br from-[#0284c7] via-sky-600 to-blue-700 dark:from-[#0369a1] dark:to-blue-800 text-white font-extrabold text-xl flex items-center justify-center shrink-0 ring-2 ring-slate-100 dark:ring-slate-700 shadow-xs">
-          {getInitial(peserta?.nama || "P")}
+      <div className="relative overflow-hidden rounded-2xl bg-[#0747a8] border border-blue-800/70 p-5 sm:p-6 shadow-lg shadow-slate-900/15 text-white">
+        {/* Aksen garis lingkaran tipis tanpa gradasi biru muda */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -right-10 -bottom-14 w-44 h-44 rounded-full border border-white/10"
+        />
+
+        {/* Icon lencana emas di pojok kanan atas */}
+        <div
+          aria-hidden="true"
+          className="absolute top-4 right-4 sm:top-5 sm:right-5 w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white/10 border border-amber-300/60 flex items-center justify-center shadow-md"
+        >
+          <Award className="w-5 h-5 sm:w-6 sm:h-6 text-[#FCD34D] drop-shadow-xs" />
         </div>
 
-        <div className="min-w-0 space-y-0.5">
-          <div className="flex items-center gap-2 flex-wrap">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white truncate">
-              {peserta?.nama || "Peserta Magang"}
-            </h2>
-            {isPkpa && (
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold tracking-wide bg-violet-50 text-violet-700 border border-violet-200 dark:bg-violet-950/60 dark:text-violet-300 dark:border-violet-800 shrink-0">
-                PKPA
-              </span>
-            )}
+        <div className="relative z-10 flex items-center gap-4 sm:gap-5">
+          <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-full bg-linear-to-br from-[#FDE68A] via-[#F59E0B] to-[#D97706] border-2 border-amber-200/80 text-[#0B2A6B] font-extrabold text-xl sm:text-2xl flex items-center justify-center shrink-0 shadow-md">
+            {getInitial(peserta?.nama || "P")}
           </div>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            Peserta Magang
-          </p>
 
-          <div className="pt-1.5 space-y-1 text-sm text-slate-600 dark:text-slate-300">
-            <div className="flex items-center gap-1.5 truncate">
-              <Mail className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 shrink-0" />
-              <span className="truncate">
-                {peserta?.email || emailLogin || "-"}
-              </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 flex-wrap pr-12 sm:pr-14">
+              <h2 className="text-lg sm:text-xl font-extrabold text-white tracking-tight truncate">
+                {peserta?.nama || "Peserta Magang"}
+              </h2>
+              {isPkpa && (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wide bg-white/20 text-white border border-white/30 shrink-0">
+                  PKPA
+                </span>
+              )}
             </div>
-            <div className="flex items-center gap-1.5">
-              <Phone className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 shrink-0" />
-              <span>{peserta?.wa || "-"}</span>
+
+            <p className="text-sm font-medium text-sky-100 mt-0.5">
+              Peserta Magang
+            </p>
+
+            <div className="mt-3 pt-3 border-t border-white/15 flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-5 text-sm text-white/95">
+              <div className="flex items-center gap-2 min-w-0">
+                <Mail className="w-4 h-4 text-sky-200 shrink-0" />
+                <span className="truncate font-medium">
+                  {peserta?.email || emailLogin || "-"}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <Phone className="w-4 h-4 text-sky-200 shrink-0" />
+                <span className="font-medium">{peserta?.wa || "-"}</span>
+              </div>
             </div>
           </div>
         </div>

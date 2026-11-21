@@ -236,43 +236,67 @@ export default function KelolaAbsensiView({ role }: KelolaAbsensiViewProps) {
         return entry.location.isInsideBpom ? `Di BBPOM (${dist} m)` : `Luar Area (${dist} m)`;
       };
 
-      const harianRows = items.map((row, idx) => ({
-        No: idx + 1,
-        Tanggal: row.date || "-",
-        "Nama Peserta": row.namaPeserta || "-",
-        Email: row.email || "-",
-        Posisi: row.posisi || "-",
-        Institusi: row.institusi || "-",
-        Pembimbing: row.mentorName || "-",
-        "Mode Kehadiran":
-          row.attendanceMode === "izin"
-            ? "Izin"
-            : row.attendanceMode === "wfh"
-              ? "WFH"
-              : "Masuk (WFO)",
-        "Keterangan Izin": row.izinNote || "-",
-        "Jam Masuk (WIB)": row.attendanceMode === "izin" ? "-" : row.checkIn?.timeWIB || "-",
-        "Status Masuk":
-          row.attendanceMode === "izin"
-            ? "Izin (100%)"
-            : row.checkIn?.timeStatusLabel || "Belum Check-In",
-        "Selisih Masuk (Menit)": row.checkIn ? (row.checkIn.diffMinutes ?? 0) : "-",
-        "Skor Masuk (%)": row.attendanceMode === "izin" ? 100 : row.checkIn ? (row.checkIn.score ?? 0) : 0,
-        "Area Masuk": formatAreaLabel(row.checkIn),
-        "Jam Pulang (WIB)": row.attendanceMode === "izin" ? "-" : row.checkOut?.timeWIB || "-",
-        "Status Pulang":
-          row.attendanceMode === "izin"
-            ? "Izin"
-            : row.checkOut?.timeStatusLabel || "Belum Check-Out",
-        "Selisih Pulang (Menit)": row.checkOut ? (row.checkOut.diffMinutes ?? 0) : "-",
-        "Skor Pulang (%)": row.attendanceMode === "izin" ? 100 : row.checkOut ? (row.checkOut.score ?? 0) : 0,
-        "Area Pulang": formatAreaLabel(row.checkOut),
-        "Nilai Harian (%)": row.dailyScore ?? 0,
-        "Catatan Koreksi": row.koreksiNote || "-",
-        "Dikoreksi Oleh": row.koreksiBy?.name
-          ? `${row.koreksiBy.name} (${row.koreksiBy.role || "-"})`
-          : "-",
-      }));
+      const harianRows = items.map((row, idx) => {
+        const isMissed = row.attendanceMode === "tidak_absen" || row.isVirtualMissed;
+        return {
+          No: idx + 1,
+          Tanggal: row.date || "-",
+          "Nama Peserta": row.namaPeserta || "-",
+          Email: row.email || "-",
+          Posisi: row.posisi || "-",
+          Institusi: row.institusi || "-",
+          Pembimbing: row.mentorName || "-",
+          "Mode Kehadiran": isMissed
+            ? "Tidak Absen (0%)"
+            : row.attendanceMode === "izin"
+              ? "Izin"
+              : row.attendanceMode === "wfh"
+                ? "WFH"
+                : "Masuk (WFO)",
+          "Keterangan Izin": row.izinNote || "-",
+          "Jam Masuk (WIB)":
+            isMissed || row.attendanceMode === "izin"
+              ? "-"
+              : row.checkIn?.timeWIB || "-",
+          "Status Masuk": isMissed
+            ? "Tidak Absen"
+            : row.attendanceMode === "izin"
+              ? "Izin (100%)"
+              : row.checkIn?.timeStatusLabel || "Belum Check-In",
+          "Selisih Masuk (Menit)": row.checkIn ? (row.checkIn.diffMinutes ?? 0) : "-",
+          "Skor Masuk (%)": isMissed
+            ? 0
+            : row.attendanceMode === "izin"
+              ? 100
+              : row.checkIn
+                ? (row.checkIn.score ?? 0)
+                : 0,
+          "Area Masuk": formatAreaLabel(row.checkIn),
+          "Jam Pulang (WIB)":
+            isMissed || row.attendanceMode === "izin"
+              ? "-"
+              : row.checkOut?.timeWIB || "-",
+          "Status Pulang": isMissed
+            ? "Tidak Absen"
+            : row.attendanceMode === "izin"
+              ? "Izin"
+              : row.checkOut?.timeStatusLabel || "Belum Check-Out",
+          "Selisih Pulang (Menit)": row.checkOut ? (row.checkOut.diffMinutes ?? 0) : "-",
+          "Skor Pulang (%)": isMissed
+            ? 0
+            : row.attendanceMode === "izin"
+              ? 100
+              : row.checkOut
+                ? (row.checkOut.score ?? 0)
+                : 0,
+          "Area Pulang": formatAreaLabel(row.checkOut),
+          "Nilai Harian (%)": row.dailyScore ?? 0,
+          "Catatan Koreksi": row.koreksiNote || "-",
+          "Dikoreksi Oleh": row.koreksiBy?.name
+            ? `${row.koreksiBy.name} (${row.koreksiBy.role || "-"})`
+            : "-",
+        };
+      });
 
       const rekapRows = rekapList.map((r, idx) => ({
         No: idx + 1,
@@ -634,6 +658,7 @@ export default function KelolaAbsensiView({ role }: KelolaAbsensiViewProps) {
                 <option value="outside">Masuk • Di Luar Area BBPOM</option>
                 <option value="wfh">Mode WFH</option>
                 <option value="izin">Status Izin</option>
+                <option value="missed">Tidak Absen (0%)</option>
               </select>
             )}
 
@@ -712,6 +737,11 @@ export default function KelolaAbsensiView({ role }: KelolaAbsensiViewProps) {
                                     Izin
                                   </span>
                                 )}
+                                {row.attendanceMode === "tidak_absen" && (
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300">
+                                    Tidak Absen
+                                  </span>
+                                )}
                               </div>
                               <p className="text-[11px] text-slate-500 dark:text-slate-400">
                                 {row.posisi} • {row.institusi}
@@ -725,7 +755,18 @@ export default function KelolaAbsensiView({ role }: KelolaAbsensiViewProps) {
                           </div>
                         </td>
 
-                        {row.attendanceMode === "izin" ? (
+                        {row.attendanceMode === "tidak_absen" ? (
+                          <td colSpan={2} className="py-3.5 px-4 max-w-[300px]">
+                            <div className="rounded-xl bg-rose-50/80 dark:bg-rose-950/30 border border-rose-200/80 dark:border-rose-800/60 px-3 py-2 space-y-0.5">
+                              <span className="text-[11px] font-bold text-rose-700 dark:text-rose-300 block">
+                                Tidak Melakukan Absen Masuk &amp; Pulang
+                              </span>
+                              <p className="text-[11px] text-rose-600/90 dark:text-rose-400">
+                                Peserta tidak Check-In, Check-Out, maupun Izin pada hari kerja ini.
+                              </p>
+                            </div>
+                          </td>
+                        ) : row.attendanceMode === "izin" ? (
                           <td colSpan={2} className="py-3.5 px-4 max-w-[300px]">
                             <div className="rounded-xl bg-violet-50/70 dark:bg-violet-950/30 border border-violet-200/80 dark:border-violet-800/60 px-3 py-2 space-y-0.5">
                               <div className="flex items-center justify-between gap-2">
@@ -806,7 +847,11 @@ export default function KelolaAbsensiView({ role }: KelolaAbsensiViewProps) {
                         )}
 
                         <td className="py-3.5 px-4 whitespace-nowrap">
-                          {row.attendanceMode === "izin" ? (
+                          {row.attendanceMode === "tidak_absen" ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300 text-[11px] font-semibold">
+                              Tidak Absen
+                            </span>
+                          ) : row.attendanceMode === "izin" ? (
                             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-violet-100 text-violet-700 dark:bg-violet-950/50 dark:text-violet-300 text-[11px] font-semibold">
                               Izin
                             </span>
@@ -847,14 +892,20 @@ export default function KelolaAbsensiView({ role }: KelolaAbsensiViewProps) {
                         </td>
 
                         <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                          <button
-                            type="button"
-                            onClick={() => handleOpenDetail(row)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-50 hover:bg-sky-100 dark:bg-sky-950/50 dark:hover:bg-sky-900/60 text-sky-700 dark:text-sky-300 font-semibold transition"
-                          >
-                            <Eye className="w-3.5 h-3.5" />
-                            {role === "mentor" ? "Detail & Koreksi" : "Detail"}
-                          </button>
+                          {row.attendanceMode === "tidak_absen" || row.isVirtualMissed ? (
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                              Tanpa Record
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleOpenDetail(row)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-50 hover:bg-sky-100 dark:bg-sky-950/50 dark:hover:bg-sky-900/60 text-sky-700 dark:text-sky-300 font-semibold transition"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                              {role === "mentor" ? "Detail & Koreksi" : "Detail"}
+                            </button>
+                          )}
                         </td>
                       </tr>
                     ))
@@ -937,9 +988,33 @@ export default function KelolaAbsensiView({ role }: KelolaAbsensiViewProps) {
 
                         <td className="py-3.5 px-4 text-center whitespace-nowrap">
                           {(r.tidakAbsen ?? 0) > 0 ? (
-                            <span className="inline-block px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300 font-bold">
-                              {r.tidakAbsen} hari
-                            </span>
+                            <div className="inline-flex flex-col items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSearchInput(r.email);
+                                  setDebouncedSearch(r.email);
+                                  setAreaFilter("missed");
+                                  setActiveTab("harian");
+                                }}
+                                title="Klik untuk melihat tanggal tidak absen"
+                                className="inline-block px-2.5 py-0.5 rounded-full bg-rose-100 hover:bg-rose-200 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300 font-bold transition"
+                              >
+                                {r.tidakAbsen} hari
+                              </button>
+                              {Array.isArray(r.missedDates) &&
+                                r.missedDates.length > 0 && (
+                                  <span className="text-[10px] text-rose-600/90 dark:text-rose-400 max-w-[150px] truncate">
+                                    {r.missedDates
+                                      .slice(0, 2)
+                                      .map(formatDateShortID)
+                                      .join(", ")}
+                                    {r.missedDates.length > 2
+                                      ? ` +${r.missedDates.length - 2}`
+                                      : ""}
+                                  </span>
+                                )}
+                            </div>
                           ) : (
                             <span className="text-slate-400 font-medium">0 hari</span>
                           )}

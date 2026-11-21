@@ -2,24 +2,29 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  CalendarCheck2,
   CalendarDays,
   CalendarPlus,
+  ChevronDown,
+  ChevronUp,
+  Info,
   Loader2,
   RefreshCw,
   Search,
-  Sparkles,
   Trash2,
 } from "lucide-react";
 import { showToast } from "@/components/ui/toastDashboard";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 
 type HolidayType = "libur_nasional" | "cuti_bersama" | "khusus";
+type HolidaySource = "auto" | "manual";
 
 interface HolidayItem {
   _id: string;
   date: string;
   name: string;
   type: HolidayType;
+  source?: HolidaySource;
 }
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
@@ -58,29 +63,40 @@ function formatDisplayDate(dateIso: string): string {
   });
 }
 
+function isAutoCalendarHoliday(item: HolidayItem): boolean {
+  return (
+    item.source === "auto" ||
+    (!item.source && item.type === "libur_nasional")
+  );
+}
+
 /**
- * Halaman pengelolaan Tanggal Merah / Hari Libur Nasional & Cuti Bersama.
- * Digunakan oleh cron reminder absen pulang jam 19.00 WIB agar tidak mengirim pengingat saat hari libur.
+ * Halaman pengaturan Libur Hari Tertentu (Khusus / Cuti Bersama) untuk Admin & Superadmin.
+ * Akhir pekan (Sabtu-Minggu) dan Libur Nasional mengikuti kalender Indonesia secara otomatis.
  */
 export default function KelolaHariLiburView() {
   const confirm = useConfirm();
+  const currentYear = new Date().getFullYear();
+
   const [holidays, setHolidays] = useState<HolidayItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [seeding, setSeeding] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [search, setSearch] = useState("");
+  const [selectedYear, setSelectedYear] = useState<number>(currentYear);
+  const [showAutoCalendar, setShowAutoCalendar] = useState(false);
 
   const [date, setDate] = useState("");
   const [name, setName] = useState("");
-  const [type, setType] = useState<HolidayType>("libur_nasional");
+  const [type, setType] = useState<"khusus" | "cuti_bersama">("khusus");
 
-  const fetchHolidays = useCallback(async () => {
+  const fetchHolidays = useCallback(async (year: number) => {
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
       if (!token) return;
 
-      const res = await fetch(`${API_BASE}/holidays`, {
+      const res = await fetch(`${API_BASE}/holidays?year=${year}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error("Gagal memuat data hari libur");
@@ -96,19 +112,25 @@ export default function KelolaHariLiburView() {
   }, []);
 
   useEffect(() => {
-    fetchHolidays();
-  }, [fetchHolidays]);
+    fetchHolidays(selectedYear);
+  }, [fetchHolidays, selectedYear]);
 
-  const filteredHolidays = useMemo(() => {
+  const manualHolidays = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return holidays;
-    return holidays.filter(
-      (h) =>
+    return holidays.filter((h) => {
+      if (isAutoCalendarHoliday(h)) return false;
+      if (!q) return true;
+      return (
         h.name.toLowerCase().includes(q) ||
         h.date.toLowerCase().includes(q) ||
-        TYPE_META[h.type]?.label.toLowerCase().includes(q),
-    );
+        TYPE_META[h.type]?.label.toLowerCase().includes(q)
+      );
+    });
   }, [holidays, search]);
+
+  const autoHolidays = useMemo(() => {
+    return holidays.filter((h) => isAutoCalendarHoliday(h));
+  }, [holidays]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -118,7 +140,7 @@ export default function KelolaHariLiburView() {
     }
 
     setSubmitting(true);
-    const toastId = showToast.loading("Menyimpan hari libur...");
+    const toastId = showToast.loading("Menyimpan hari libur khusus...");
     try {
       const token = localStorage.getItem("token") || "";
       const res = await fetch(`${API_BASE}/holidays`, {
@@ -135,11 +157,17 @@ export default function KelolaHariLiburView() {
         throw new Error(json?.message || "Gagal menyimpan hari libur");
       }
 
-      showToast.updateSuccess(toastId, "Hari libur berhasil disimpan");
+      const savedYear = Number(date.slice(0, 4));
+      showToast.updateSuccess(toastId, "Hari libur khusus berhasil disimpan");
       setDate("");
       setName("");
-      setType("libur_nasional");
-      await fetchHolidays();
+      setType("khusus");
+
+      if (savedYear && savedYear !== selectedYear) {
+        setSelectedYear(savedYear);
+      } else {
+        await fetchHolidays(selectedYear);
+      }
     } catch (err: unknown) {
       showToast.updateError(
         toastId,
@@ -150,31 +178,40 @@ export default function KelolaHariLiburView() {
     }
   };
 
-  const handleSeed2026 = async () => {
-    setSeeding(true);
-    const toastId = showToast.loading("Memuat libur nasional 2026...");
+  const handleSyncCalendar = async () => {
+    setSyncing(true);
+    const toastId = showToast.loading(
+      `Menyinkronkan kalender libur nasional ${selectedYear}...`,
+    );
     try {
       const token = localStorage.getItem("token") || "";
-      const res = await fetch(`${API_BASE}/holidays/seed-2026`, {
+      const res = await fetch(`${API_BASE}/holidays/sync`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ year: selectedYear }),
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(json?.message || "Gagal sinkronisasi libur 2026");
+        throw new Error(
+          json?.message || "Gagal menyinkronkan kalender libur nasional",
+        );
       }
       showToast.updateSuccess(
         toastId,
-        json?.message || "Daftar libur nasional 2026 diperbarui",
+        json?.message ||
+          `Kalender libur nasional ${selectedYear} berhasil disinkronkan`,
       );
-      await fetchHolidays();
+      await fetchHolidays(selectedYear);
     } catch (err: unknown) {
       showToast.updateError(
         toastId,
-        err instanceof Error ? err.message : "Gagal memuat libur 2026",
+        err instanceof Error ? err.message : "Gagal menyinkronkan kalender",
       );
     } finally {
-      setSeeding(false);
+      setSyncing(false);
     }
   };
 
@@ -196,7 +233,7 @@ export default function KelolaHariLiburView() {
             throw new Error(json?.message || "Gagal menghapus hari libur");
           }
           showToast.updateSuccess(toastId, "Hari libur dihapus");
-          await fetchHolidays();
+          await fetchHolidays(selectedYear);
         } catch (err: unknown) {
           showToast.updateError(
             toastId,
@@ -207,6 +244,10 @@ export default function KelolaHariLiburView() {
     });
   };
 
+  const yearOptions = useMemo(() => {
+    return [currentYear - 1, currentYear, currentYear + 1, currentYear + 2];
+  }, [currentYear]);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -214,37 +255,61 @@ export default function KelolaHariLiburView() {
         <div>
           <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2.5">
             <CalendarDays className="w-6 h-6 text-[#1D64F2]" />
-            <span>Hari Libur Nasional &amp; Cuti Bersama</span>
+            <span>Pengaturan Hari Libur Khusus</span>
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Daftar tanggal merah digunakan untuk menonaktifkan pengingat absensi
-            pukul 19.00 WIB otomatis di hari libur (selain Sabtu &amp; Minggu).
+            Atur libur untuk hari-hari tertentu saja (misal libur khusus kantor
+            atau cuti bersama tambahan). Akhir pekan (Sabtu–Minggu) dan libur
+            nasional sudah mengikuti kalender secara otomatis.
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={handleSeed2026}
-          disabled={seeding}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 text-xs sm:text-sm font-bold border border-slate-200 dark:border-slate-700 transition disabled:opacity-60 shrink-0"
-        >
-          {seeding ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Sparkles className="w-4 h-4 text-amber-500" />
-          )}
-          <span>Muat Libur Nasional 2026</span>
-        </button>
+        <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+          <select
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(Number(e.target.value))}
+            aria-label="Pilih tahun kalender"
+            className="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-3 py-2.5 text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-[#1D64F2]"
+          >
+            {yearOptions.map((y) => (
+              <option key={y} value={y}>
+                Tahun {y}
+              </option>
+            ))}
+          </select>
+
+          <button
+            type="button"
+            onClick={handleSyncCalendar}
+            disabled={syncing}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 text-xs sm:text-sm font-bold border border-slate-200 dark:border-slate-700 transition disabled:opacity-60"
+          >
+            <RefreshCw className={`w-4 h-4 text-[#1D64F2] ${syncing ? "animate-spin" : ""}`} />
+            <span>Sinkron Kalender</span>
+          </button>
+        </div>
       </div>
 
-      {/* Form Tambah / Update */}
+      {/* Info Banner Sinkronisasi Otomatis */}
+      <div className="rounded-2xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200/80 dark:border-blue-800/60 p-4 flex items-start gap-3">
+        <Info className="w-5 h-5 text-[#1D64F2] dark:text-blue-400 shrink-0 mt-0.5" />
+        <div className="text-xs sm:text-sm text-slate-700 dark:text-slate-200 leading-relaxed">
+          <strong>Libur Nasional Otomatis Aktif:</strong> Pada hari Sabtu,
+          Minggu, serta tanggal merah kalender nasional Indonesia, absensi
+          peserta otomatis ditutup, pengingat pukul 19.00 WIB tidak dikirim, dan
+          tidak mengurangi skor Kehadiran &amp; Taat Jadwal. Anda hanya perlu
+          menambahkan tanggal di bawah jika ada <strong>hari libur khusus</strong>.
+        </div>
+      </div>
+
+      {/* Form Tambah Libur Khusus */}
       <form
         onSubmit={handleSave}
         className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 shadow-xs space-y-4"
       >
         <div className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white">
           <CalendarPlus className="w-4 h-4 text-[#1D64F2]" />
-          <span>Tambah atau Perbarui Tanggal Libur</span>
+          <span>Tambah Libur Hari Tertentu</span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
@@ -268,7 +333,7 @@ export default function KelolaHariLiburView() {
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Contoh: Cuti Bersama Idulfitri"
+              placeholder="Contoh: Libur Khusus Kegiatan Kantor / Cuti Bersama Lokal"
               className="w-full rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[#1D64F2]"
             />
           </div>
@@ -279,12 +344,13 @@ export default function KelolaHariLiburView() {
             </label>
             <select
               value={type}
-              onChange={(e) => setType(e.target.value as HolidayType)}
+              onChange={(e) =>
+                setType(e.target.value as "khusus" | "cuti_bersama")
+              }
               className="w-full rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[#1D64F2]"
             >
-              <option value="libur_nasional">Libur Nasional</option>
-              <option value="cuti_bersama">Cuti Bersama</option>
               <option value="khusus">Libur Khusus</option>
+              <option value="cuti_bersama">Cuti Bersama</option>
             </select>
           </div>
         </div>
@@ -296,17 +362,23 @@ export default function KelolaHariLiburView() {
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#1D64F2] hover:bg-blue-700 text-white text-xs sm:text-sm font-bold shadow-xs transition disabled:opacity-60"
           >
             {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
-            <span>Simpan Hari Libur</span>
+            <span>Simpan Libur Khusus</span>
           </button>
         </div>
       </form>
 
-      {/* List */}
+      {/* Daftar Libur Khusus (Manual Admin/Superadmin) */}
       <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden">
         <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <p className="text-sm font-bold text-slate-900 dark:text-white">
-            Daftar Hari Libur ({filteredHolidays.length})
-          </p>
+          <div>
+            <p className="text-sm font-bold text-slate-900 dark:text-white">
+              Daftar Libur Hari Tertentu ({manualHolidays.length})
+            </p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Libur khusus atau cuti bersama tambahan yang diatur untuk tahun{" "}
+              {selectedYear}.
+            </p>
+          </div>
 
           <div className="flex items-center gap-2">
             <div className="relative flex-1 sm:w-64">
@@ -315,14 +387,14 @@ export default function KelolaHariLiburView() {
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Cari tanggal atau nama..."
+                placeholder="Cari libur khusus..."
                 className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 pl-9 pr-3 py-2 text-xs sm:text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:border-[#1D64F2]"
               />
             </div>
 
             <button
               type="button"
-              onClick={fetchHolidays}
+              onClick={() => fetchHolidays(selectedYear)}
               title="Muat ulang"
               className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
             >
@@ -335,14 +407,15 @@ export default function KelolaHariLiburView() {
           <div className="p-10 text-center text-sm text-slate-500">
             Memuat daftar hari libur...
           </div>
-        ) : filteredHolidays.length === 0 ? (
-          <div className="p-10 text-center text-sm text-slate-500">
-            Belum ada data hari libur yang sesuai.
+        ) : manualHolidays.length === 0 ? (
+          <div className="p-8 text-center text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+            Belum ada hari libur khusus tambahan untuk tahun {selectedYear}.
+            Libur nasional dan akhir pekan tetap berjalan otomatis.
           </div>
         ) : (
           <div className="divide-y divide-slate-100 dark:divide-slate-800">
-            {filteredHolidays.map((item) => {
-              const meta = TYPE_META[item.type] || TYPE_META.libur_nasional;
+            {manualHolidays.map((item) => {
+              const meta = TYPE_META[item.type] || TYPE_META.khusus;
               return (
                 <div
                   key={item._id}
@@ -375,6 +448,84 @@ export default function KelolaHariLiburView() {
                 </div>
               );
             })}
+          </div>
+        )}
+      </div>
+
+      {/* Referensi Libur Nasional Otomatis (Collapsible Read-Only) */}
+      <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setShowAutoCalendar((prev) => !prev)}
+          className="w-full p-4 sm:p-5 flex items-center justify-between gap-3 text-left hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition"
+        >
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+              <CalendarCheck2 className="w-4.5 h-4.5" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-slate-900 dark:text-white">
+                Kalender Libur Nasional Otomatis {selectedYear} (
+                {autoHolidays.length} hari)
+              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Tersinkronisasi otomatis mengikuti kalender Indonesia (tanpa
+                perlu diinput manual).
+              </p>
+            </div>
+          </div>
+
+          <span className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 dark:text-slate-400 shrink-0">
+            <span>{showAutoCalendar ? "Sembunyikan" : "Lihat Daftar"}</span>
+            {showAutoCalendar ? (
+              <ChevronUp className="w-4 h-4" />
+            ) : (
+              <ChevronDown className="w-4 h-4" />
+            )}
+          </span>
+        </button>
+
+        {showAutoCalendar && (
+          <div className="border-t border-slate-100 dark:border-slate-800">
+            {autoHolidays.length === 0 ? (
+              <div className="p-6 text-center text-xs sm:text-sm text-slate-500">
+                Belum ada data kalender otomatis untuk tahun {selectedYear}.
+                Klik tombol <strong>Sinkron Kalender</strong> di atas untuk
+                memuatnya.
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                {autoHolidays.map((item) => {
+                  const meta = TYPE_META[item.type] || TYPE_META.libur_nasional;
+                  return (
+                    <div
+                      key={item._id}
+                      className="px-4 sm:px-5 py-3 flex items-center justify-between gap-3"
+                    >
+                      <div className="min-w-0 space-y-0.5">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-100">
+                            {item.name}
+                          </span>
+                          <span
+                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold border ${meta.badgeClass}`}
+                          >
+                            {meta.label}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          {formatDisplayDate(item.date)} ({item.date})
+                        </p>
+                      </div>
+
+                      <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 px-2.5 py-0.5 rounded-full shrink-0">
+                        Otomatis
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
       </div>

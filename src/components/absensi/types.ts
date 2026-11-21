@@ -1,5 +1,5 @@
 export type ManageRole = "mentor" | "admin" | "superadmin";
-export type AttendanceMode = "masuk" | "wfh" | "izin";
+export type AttendanceMode = "masuk" | "wfh" | "izin" | "tidak_absen";
 
 export interface AbsensiLocation {
   lat: number;
@@ -39,6 +39,7 @@ export interface ManageAbsensiItem {
   institusi: string;
   mentorName: string;
   attendanceMode: AttendanceMode;
+  isVirtualMissed?: boolean;
   izinNote?: string;
   izinSubmittedWIB?: string;
   checkIn: AbsensiEntry | null;
@@ -74,6 +75,7 @@ export interface ManageRekapPesertaItem {
   wfhCount: number;
   izinCount: number;
   tidakAbsen: number;
+  missedDates?: string[];
   totalHariKerja: number;
   tepatWaktuMasuk: number;
   telatMasuk: number;

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  AlertTriangle,
   BookOpen,
   Calendar as CalendarIcon,
   CalendarPlus,
@@ -28,14 +29,23 @@ type PesertaStat = {
   _id: string;
   name: string;
   email: string;
+  posisi?: string;
+  mentorName?: string;
   totalLogbooks: number;
   approvedLogbooks: number;
   pendingLogbooks: number;
   rejectedLogbooks: number;
   revisiLogbooks: number;
+  missedCount: number;
+  missedDates: string[];
 };
 
-type FilterTab = "Semua" | "Perlu Review" | "Disetujui" | "Ditolak";
+type FilterTab =
+  | "Semua"
+  | "Belum Isi Logbook"
+  | "Perlu Review"
+  | "Disetujui"
+  | "Ditolak";
 
 type FilledDateMap = Record<
   string,
@@ -66,10 +76,23 @@ function getInitials(name = "P"): string {
   );
 }
 
+function formatDateCompactID(dateStr: string): string {
+  if (!dateStr) return "-";
+  const d = new Date(`${dateStr}T00:00:00+07:00`);
+  if (Number.isNaN(d.getTime())) return dateStr;
+  return d.toLocaleDateString("id-ID", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
 /* ================= COMPONENT ================= */
 
 export default function ViewLogbookSuperadminPage() {
   const [allLogbooks, setAllLogbooks] = useState<AdminLogbookItem[]>([]);
+  const [monitoringPeserta, setMonitoringPeserta] = useState<PesertaStat[]>([]);
+  const [holidayDates, setHolidayDates] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -98,7 +121,7 @@ export default function ViewLogbookSuperadminPage() {
       else setLoading(true);
 
       const token = localStorage.getItem("token");
-      const res = await fetch(`${API_BASE}/superadmin/logbook`, {
+      const res = await fetch(`${API_BASE}/superadmin/logbook/monitoring`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -107,7 +130,13 @@ export default function ViewLogbookSuperadminPage() {
       }
 
       const json = await res.json();
-      setAllLogbooks(Array.isArray(json) ? json : []);
+      setAllLogbooks(Array.isArray(json?.logbooks) ? json.logbooks : []);
+      setMonitoringPeserta(
+        Array.isArray(json?.pesertaMonitoring) ? json.pesertaMonitoring : [],
+      );
+      setHolidayDates(
+        Array.isArray(json?.holidayDates) ? json.holidayDates : [],
+      );
     } catch {
       showToast.error("Gagal memuat data logbook peserta");
     } finally {
@@ -123,6 +152,10 @@ export default function ViewLogbookSuperadminPage() {
   /* ================= GROUP PER PESERTA ================= */
 
   const pesertaList = useMemo<PesertaStat[]>(() => {
+    if (monitoringPeserta.length > 0) {
+      return monitoringPeserta;
+    }
+
     const map = new Map<string, PesertaStat>();
 
     for (const lb of allLogbooks) {
@@ -139,6 +172,8 @@ export default function ViewLogbookSuperadminPage() {
           pendingLogbooks: 0,
           rejectedLogbooks: 0,
           revisiLogbooks: 0,
+          missedCount: 0,
+          missedDates: [],
         };
         map.set(uid, entry);
       }
@@ -159,7 +194,7 @@ export default function ViewLogbookSuperadminPage() {
       }
       return a.name.localeCompare(b.name);
     });
-  }, [allLogbooks]);
+  }, [allLogbooks, monitoringPeserta]);
 
   /* ================= DEEP LINK ?email= ================= */
 
@@ -213,6 +248,7 @@ export default function ViewLogbookSuperadminPage() {
 
     const counts: Record<FilterTab, number> = {
       Semua: pesertaList.length,
+      "Belum Isi Logbook": pesertaList.filter((p) => p.missedCount > 0).length,
       "Perlu Review": pesertaList.filter((p) => p.pendingLogbooks > 0).length,
       Disetujui: pesertaList.filter(
         (p) =>
@@ -240,10 +276,12 @@ export default function ViewLogbookSuperadminPage() {
     const q = search.trim().toLowerCase();
 
     return pesertaList.filter((p) => {
+      if (filterTab === "Belum Isi Logbook" && p.missedCount === 0) return false;
       if (filterTab === "Perlu Review" && p.pendingLogbooks === 0) return false;
       if (
         filterTab === "Disetujui" &&
-        (p.pendingLogbooks > 0 ||
+        (p.totalLogbooks === 0 ||
+          p.pendingLogbooks > 0 ||
           p.rejectedLogbooks > 0 ||
           p.revisiLogbooks > 0)
       ) {
@@ -577,7 +615,15 @@ export default function ViewLogbookSuperadminPage() {
       {/* ================= FILTER & SEARCH ================= */}
       <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/30 p-3.5 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
         <div className="flex flex-wrap items-center gap-1.5">
-          {(["Semua", "Perlu Review", "Disetujui", "Ditolak"] as FilterTab[]).map(
+          {(
+            [
+              "Semua",
+              "Belum Isi Logbook",
+              "Perlu Review",
+              "Disetujui",
+              "Ditolak",
+            ] as FilterTab[]
+          ).map(
             (tab) => {
               const active = filterTab === tab;
               return (
@@ -699,20 +745,48 @@ export default function ViewLogbookSuperadminPage() {
                       </td>
 
                       <td className="py-3.5 px-4">
-                        <div className="flex flex-wrap items-center gap-1.5 text-[11px] font-semibold">
-                          <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800">
-                            {p.approvedLogbooks} disetujui
-                          </span>
-                          {p.pendingLogbooks > 0 && (
-                            <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800">
-                              {p.pendingLogbooks} menunggu
-                            </span>
-                          )}
-                          {p.rejectedLogbooks + p.revisiLogbooks > 0 && (
-                            <span className="px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/50 dark:text-rose-300 dark:border-rose-800">
-                              {p.rejectedLogbooks + p.revisiLogbooks}{" "}
-                              ditolak/revisi
-                            </span>
+                        <div className="space-y-1.5">
+                          <div className="flex flex-wrap items-center gap-1.5 text-[11px] font-semibold">
+                            {p.missedCount > 0 && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/50 dark:text-rose-300 dark:border-rose-800">
+                                <AlertTriangle className="w-3 h-3" />
+                                {p.missedCount} hari belum isi
+                              </span>
+                            )}
+                            {p.totalLogbooks === 0 ? (
+                              <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700">
+                                Belum ada entri logbook
+                              </span>
+                            ) : (
+                              <>
+                                <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800">
+                                  {p.approvedLogbooks} disetujui
+                                </span>
+                                {p.pendingLogbooks > 0 && (
+                                  <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800">
+                                    {p.pendingLogbooks} menunggu
+                                  </span>
+                                )}
+                                {p.rejectedLogbooks + p.revisiLogbooks > 0 && (
+                                  <span className="px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200 dark:bg-purple-950/50 dark:text-purple-300 dark:border-purple-800">
+                                    {p.rejectedLogbooks + p.revisiLogbooks}{" "}
+                                    ditolak/revisi
+                                  </span>
+                                )}
+                              </>
+                            )}
+                          </div>
+                          {p.missedCount > 0 && p.missedDates.length > 0 && (
+                            <p className="text-[11px] text-rose-600/90 dark:text-rose-400">
+                              Terlewat:{" "}
+                              {p.missedDates
+                                .slice(0, 3)
+                                .map(formatDateCompactID)
+                                .join(", ")}
+                              {p.missedDates.length > 3
+                                ? ` (+${p.missedDates.length - 3} lainnya)`
+                                : ""}
+                            </p>
                           )}
                         </div>
                       </td>
@@ -721,9 +795,9 @@ export default function ViewLogbookSuperadminPage() {
                         <div className="inline-flex items-center gap-2">
                           <button
                             type="button"
-                            disabled={downloadingId === p._id}
+                            disabled={downloadingId === p._id || p.totalLogbooks === 0}
                             onClick={() => handleDownloadPdf(p._id, p.name)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition disabled:opacity-60"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition disabled:opacity-50"
                           >
                             <Download className="w-3.5 h-3.5" />
                             {downloadingId === p._id ? "Unduh..." : "PDF"}
@@ -797,7 +871,7 @@ export default function ViewLogbookSuperadminPage() {
             </div>
 
             {/* Summary */}
-            <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 grid grid-cols-2 sm:grid-cols-4 gap-3 shrink-0">
+            <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 grid grid-cols-2 sm:grid-cols-5 gap-3 shrink-0">
               <SummaryPill label="Total" value={calendarSummary.total} />
               <SummaryPill
                 label="Hadir"
@@ -814,10 +888,48 @@ export default function ViewLogbookSuperadminPage() {
                 value={calendarSummary.alpa}
                 accent="rose"
               />
+              <SummaryPill
+                label="Belum Mengisi"
+                value={selectedPeserta.missedCount}
+                accent="rose"
+              />
             </div>
 
             {/* Calendar + Superadmin Enable Missed Day */}
             <div className="p-4 sm:p-6 overflow-y-auto space-y-4">
+              {selectedPeserta.missedCount > 0 && (
+                <div className="rounded-xl border border-rose-200 dark:border-rose-800/70 bg-rose-50/80 dark:bg-rose-950/30 p-3.5 space-y-2">
+                  <p className="text-xs font-bold text-rose-800 dark:text-rose-200 flex items-center gap-1.5">
+                    <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
+                    <span>
+                      Terdapat {selectedPeserta.missedCount} hari kerja belum
+                      mengisi logbook (klik tanggal untuk memilih):
+                    </span>
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {selectedPeserta.missedDates.slice(0, 12).map((d) => (
+                      <button
+                        key={d}
+                        type="button"
+                        onClick={() => setMissedDate(d)}
+                        className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold border transition ${
+                          missedDate === d
+                            ? "bg-rose-600 text-white border-rose-600"
+                            : "bg-white dark:bg-slate-900 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800 hover:bg-rose-100"
+                        }`}
+                      >
+                        {formatDateCompactID(d)}
+                      </button>
+                    ))}
+                    {selectedPeserta.missedDates.length > 12 && (
+                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold text-rose-700 dark:text-rose-300">
+                        +{selectedPeserta.missedDates.length - 12} hari lainnya
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+
               <div className="p-3.5 rounded-xl border border-sky-200 dark:border-sky-800/60 bg-sky-50/60 dark:bg-sky-950/20 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div className="text-xs">
                   <p className="font-bold text-[#0284c7] dark:text-sky-300 flex items-center gap-1.5">
@@ -851,6 +963,8 @@ export default function ViewLogbookSuperadminPage() {
               <Calendar
                 onSelectDate={handleSelectDate}
                 filledDates={filledDates}
+                missedDates={selectedPeserta.missedDates}
+                holidayDates={holidayDates}
               />
             </div>
           </div>

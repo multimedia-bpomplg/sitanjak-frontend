@@ -298,6 +298,10 @@ export default function AbsenPesertaPage() {
   const [record, setRecord] = useState<DailyAttendanceRecord>({
     date: todayIso,
   });
+  const [holidayInfo, setHolidayInfo] = useState<{
+    isHoliday: boolean;
+    reason?: string;
+  }>({ isHoliday: false });
 
   // Attendance mode & Izin state
   const [selectedMode, setSelectedMode] = useState<AttendanceMode>("masuk");
@@ -348,6 +352,21 @@ export default function AbsenPesertaPage() {
     const interval = setInterval(checkCutoff, 30000);
     return () => clearInterval(interval);
   }, []);
+
+  const isWeekend = useMemo(() => {
+    const day = todayWIB.getDay();
+    return day === 0 || day === 6; // Minggu (0) atau Sabtu (6)
+  }, [todayWIB]);
+
+  const holidayReasonLabel = useMemo(() => {
+    if (holidayInfo.reason) return holidayInfo.reason;
+    const day = todayWIB.getDay();
+    if (day === 0) return "Hari Minggu";
+    if (day === 6) return "Hari Sabtu";
+    return "Hari Libur";
+  }, [holidayInfo.reason, todayWIB]);
+
+  const isHolidayToday = isWeekend || holidayInfo.isHoliday;
 
   // Validate active internship period strictly
   const internshipPeriodStatus = useMemo(() => {
@@ -414,7 +433,7 @@ export default function AbsenPesertaPage() {
         // ignore
       }
 
-      const [absenRes, pendRes, logbookRes] = await Promise.all([
+      const [absenRes, pendRes, logbookRes, holidayRes] = await Promise.all([
         fetch(`${process.env.NEXT_PUBLIC_API_URL}/absensi/today`, {
           headers,
         }).catch(() => null),
@@ -427,7 +446,20 @@ export default function AbsenPesertaPage() {
         fetch(`${process.env.NEXT_PUBLIC_API_URL}/logbook/date/${todayIso}`, {
           headers,
         }).catch(() => null),
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/holidays/check`, {
+          headers,
+        }).catch(() => null),
       ]);
+
+      let resolvedHoliday = false;
+      let resolvedHolidayReason: string | undefined;
+      if (holidayRes && holidayRes.ok) {
+        const holData = await holidayRes.json().catch(() => null);
+        if (holData && typeof holData.isHoliday === "boolean") {
+          resolvedHoliday = holData.isHoliday;
+          resolvedHolidayReason = holData.reason || undefined;
+        }
+      }
 
       let isLogbookFilled = false;
       if (logbookRes && logbookRes.ok) {
@@ -436,6 +468,11 @@ export default function AbsenPesertaPage() {
 
       if (absenRes && absenRes.ok) {
         const absenJson = await absenRes.json();
+        if (typeof absenJson?.isHoliday === "boolean" && absenJson.isHoliday) {
+          resolvedHoliday = true;
+          resolvedHolidayReason =
+            absenJson.holidayReason || resolvedHolidayReason;
+        }
         if (typeof absenJson?.hasLogbookToday === "boolean") {
           isLogbookFilled = isLogbookFilled || absenJson.hasLogbookToday;
         }
@@ -452,6 +489,11 @@ export default function AbsenPesertaPage() {
           setRecord({ date: absenJson?.date || todayIso });
         }
       }
+
+      setHolidayInfo({
+        isHoliday: resolvedHoliday,
+        reason: resolvedHolidayReason,
+      });
 
       setHasFilledLogbookToday(isLogbookFilled);
 
@@ -574,13 +616,22 @@ export default function AbsenPesertaPage() {
     if (
       !loadingPage &&
       internshipPeriodStatus.isActive &&
+      !isHolidayToday &&
       !isPastCutoff &&
       selectedMode !== "izin" &&
       activeStep !== "completed"
     ) {
       lockGpsLocation();
     }
-  }, [loadingPage, internshipPeriodStatus.isActive, isPastCutoff, selectedMode, activeStep, lockGpsLocation]);
+  }, [
+    loadingPage,
+    internshipPeriodStatus.isActive,
+    isHolidayToday,
+    isPastCutoff,
+    selectedMode,
+    activeStep,
+    lockGpsLocation,
+  ]);
 
   // Start WebRTC front camera
   const startCamera = async () => {
@@ -957,7 +1008,7 @@ export default function AbsenPesertaPage() {
             <p className="leading-relaxed break-words">{record.izinNote || "-"}</p>
           </div>
         </div>
-      ) : (
+      ) : isHolidayToday && !record.checkIn ? null : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
         {/* Card Check-In Pagi */}
         <div
@@ -1078,6 +1129,7 @@ export default function AbsenPesertaPage() {
             </div>
 
             {internshipPeriodStatus.isActive &&
+              !isHolidayToday &&
               !isPastCutoff &&
               activeStep === "check_out" &&
               !hasFilledLogbookToday && (
@@ -1091,6 +1143,7 @@ export default function AbsenPesertaPage() {
               )}
 
             {internshipPeriodStatus.isActive &&
+              !isHolidayToday &&
               !isPastCutoff &&
               record.checkOut &&
               !isRepeatingCheckOut && (
@@ -1137,6 +1190,35 @@ export default function AbsenPesertaPage() {
                     pesertaProfile.tanggalSelesaiMagang,
                   )}) telah berakhir. Absensi hanya tersedia bagi peserta magang aktif.`}
             </p>
+          </div>
+        </div>
+      ) : isHolidayToday ? (
+        <div className="rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 p-6 sm:p-8 text-center shadow-2xs space-y-4">
+          <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-blue-50 dark:bg-blue-950/50 text-[#1D64F2] dark:text-blue-400 flex items-center justify-center mx-auto">
+            <CalendarX2 className="w-6 h-6 sm:w-7 sm:h-7" />
+          </div>
+          <div className="space-y-1.5">
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200 dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600">
+              {holidayReasonLabel}
+            </span>
+            <h2
+              className="text-lg font-extrabold text-slate-900 dark:text-white pt-1"
+              style={{ fontWeight: 800 }}
+            >
+              Hari Ini Adalah Hari Libur
+            </h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
+              Hari ini ({holidayReasonLabel}) termasuk jadwal libur sehingga Anda tidak perlu melakukan Check-In, Check-Out, maupun pengajuan Izin. Hari libur tidak mengurangi nilai Kehadiran &amp; Taat Jadwal pada Penilaian Akhir.
+            </p>
+          </div>
+          <div className="pt-1">
+            <Link
+              href="/dashboard/peserta"
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white transition"
+            >
+              <Home className="w-4 h-4" />
+              <span>Kembali ke Beranda</span>
+            </Link>
           </div>
         </div>
       ) : isPastCutoff && activeStep !== "completed" ? (

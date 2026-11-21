@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 type FilledDate = {
@@ -16,6 +16,8 @@ type Props = {
     approvalStatus?: "menunggu" | "disetujui" | "ditolak" | "revisi",
   ) => void;
   filledDates: Record<string, FilledDate>;
+  missedDates?: string[];
+  holidayDates?: string[];
   disableEmptyDates?: boolean;
 };
 
@@ -30,10 +32,18 @@ function getNowWIB() {
 export default function Calendar({
   onSelectDate,
   filledDates,
+  missedDates,
+  holidayDates,
   disableEmptyDates = false,
 }: Props) {
   const today = getNowWIB();
   today.setHours(0, 0, 0, 0);
+
+  const missedSet = useMemo(() => new Set(missedDates || []), [missedDates]);
+  const holidaySet = useMemo(
+    () => new Set(holidayDates || []),
+    [holidayDates],
+  );
 
   const [currentMonth, setCurrentMonth] = useState(getNowWIB());
 
@@ -79,6 +89,14 @@ export default function Calendar({
       label: "Tidak Hadir",
       dotClass: "bg-orange-400 border-orange-500",
     },
+    ...(missedDates !== undefined
+      ? [
+          {
+            label: "Belum Mengisi Logbook",
+            dotClass: "bg-rose-500 border-rose-600",
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -139,9 +157,11 @@ export default function Calendar({
             timeZone: "Asia/Jakarta",
           });
 
-          const isSunday = date.getDay() === 0;
+          const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+          const isHoliday = isWeekend || holidaySet.has(isoDate);
           const log = filledDates?.[isoDate];
           const isFilled = Boolean(log);
+          const isMissed = !isFilled && !isHoliday && missedSet.has(isoDate);
           const status = log?.status;
           const approval = log?.approvalStatus;
           const isToday = date.getTime() === today.getTime();
@@ -149,7 +169,7 @@ export default function Calendar({
 
           const disabled = disableEmptyDates
             ? !isFilled
-            : isSunday || (!isToday && !isFilled && !isRevisi);
+            : date.getDay() === 0 || (!isToday && !isFilled && !isRevisi && !isMissed);
 
           let statusClass = "";
           let statusText = "";
@@ -176,6 +196,10 @@ export default function Calendar({
                 "bg-orange-50 border-orange-300 text-orange-700 dark:bg-orange-950/50 dark:border-orange-700 dark:text-orange-300";
               statusText = "Tidak Hadir";
             }
+          } else if (isMissed) {
+            statusClass =
+              "bg-rose-50/90 border-rose-200 text-rose-700 dark:bg-rose-950/40 dark:border-rose-800 dark:text-rose-300";
+            statusText = "Belum Isi";
           }
 
           return (
@@ -193,14 +217,16 @@ export default function Calendar({
                     ? statusClass
                     : isToday
                       ? "bg-sky-50 border-sky-400 text-[#0284c7] dark:bg-sky-950/40 dark:border-sky-600 dark:text-sky-300"
-                      : isSunday
+                      : isHoliday
                         ? "bg-slate-50/70 dark:bg-slate-800/30 border-slate-100 dark:border-slate-800 text-rose-400"
                         : "bg-slate-50 dark:bg-slate-800/60 border-slate-200/70 dark:border-slate-800 text-slate-400"
                 }
                 ${
-                  disabled
+                  disabled && !isMissed
                     ? "cursor-default opacity-65"
-                    : "cursor-pointer hover:shadow-sm hover:-translate-y-0.5 hover:ring-2 hover:ring-[#0284c7]/30"
+                    : disabled
+                      ? "cursor-default"
+                      : "cursor-pointer hover:shadow-sm hover:-translate-y-0.5 hover:ring-2 hover:ring-[#0284c7]/30"
                 }
               `}
             >
@@ -213,13 +239,17 @@ export default function Calendar({
                 )}
               </div>
 
-              {isFilled && statusText ? (
+              {(isFilled || isMissed) && statusText ? (
                 <span className="hidden sm:inline-block text-[10px] font-semibold truncate w-full">
                   {statusText}
                 </span>
               ) : isToday ? (
                 <span className="hidden sm:inline-block text-[10px] font-semibold text-[#0284c7] dark:text-sky-300 truncate w-full">
                   Hari Ini
+                </span>
+              ) : holidaySet.has(isoDate) ? (
+                <span className="hidden sm:inline-block text-[10px] font-medium text-rose-400 truncate w-full">
+                  Libur
                 </span>
               ) : null}
             </button>
