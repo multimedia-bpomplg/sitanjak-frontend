@@ -558,7 +558,7 @@ export default function PenilaianAkhirPage() {
       if (capInfo) {
         const capH = 24;
         const capW = (capInfo.width / capInfo.height) * capH;
-        const capX = signX - 10;
+        const capX = signX - 20;
         const capY = signLabelY + 0.5;
         doc.addImage(capInfo.dataUrl, "PNG", capX, capY, capW, capH);
       }

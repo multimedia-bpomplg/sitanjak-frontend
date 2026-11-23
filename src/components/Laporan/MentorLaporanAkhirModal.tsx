@@ -10,8 +10,8 @@ import {
   Eye,
   FileText,
   Lock,
+  MessageSquare,
   Paperclip,
-  Star,
   X,
   XCircle,
 } from "lucide-react";
@@ -26,17 +26,6 @@ type Props = {
   };
   onClose: () => void;
   onStatusUpdate?: () => void;
-};
-
-type Penilaian = {
-  kehadiranDisiplin: string;
-  sikapPerilaku: string;
-  kemampuanKomunikasi: string;
-  inisiatifTanggungJawab: string;
-  kemampuanAdaptasi: string;
-  pengetahuanTeknis: string;
-  produktivitasKetepatanWaktu: string;
-  kerjaSamaTim: string;
 };
 
 type LaporanData = {
@@ -55,52 +44,6 @@ type LaporanData = {
   submittedAt?: string;
   createdAt?: string;
   approvedAt?: string;
-  penilaian?: Partial<Penilaian>;
-};
-
-const EMPTY_PENILAIAN: Penilaian = {
-  kehadiranDisiplin: "",
-  sikapPerilaku: "",
-  kemampuanKomunikasi: "",
-  inisiatifTanggungJawab: "",
-  kemampuanAdaptasi: "",
-  pengetahuanTeknis: "",
-  produktivitasKetepatanWaktu: "",
-  kerjaSamaTim: "",
-};
-
-const penilaianOptions = [
-  {
-    value: "sangat buruk",
-    label: "Sangat Buruk",
-    activeClass: "bg-rose-600 text-white border-rose-600",
-  },
-  {
-    value: "buruk",
-    label: "Buruk",
-    activeClass: "bg-amber-500 text-white border-amber-500",
-  },
-  {
-    value: "baik",
-    label: "Baik",
-    activeClass: "bg-[#0284c7] text-white border-[#0284c7]",
-  },
-  {
-    value: "sangat baik",
-    label: "Sangat Baik",
-    activeClass: "bg-emerald-600 text-white border-emerald-600",
-  },
-];
-
-const penilaianLabels: Record<keyof Penilaian, string> = {
-  kehadiranDisiplin: "Kehadiran & Disiplin",
-  sikapPerilaku: "Sikap & Perilaku",
-  kemampuanKomunikasi: "Kemampuan Komunikasi",
-  inisiatifTanggungJawab: "Inisiatif & Tanggung Jawab",
-  kemampuanAdaptasi: "Kemampuan Adaptasi",
-  pengetahuanTeknis: "Pengetahuan Teknis",
-  produktivitasKetepatanWaktu: "Produktivitas & Ketepatan Waktu",
-  kerjaSamaTim: "Kerja Sama Tim",
 };
 
 function formatFileSize(bytes?: number | null): string {
@@ -144,7 +87,6 @@ export default function MentorLaporanAkhirModal({
   const [status, setStatus] = useState<"Disetujui" | "Ditolak">("Disetujui");
   const [showConfirm, setShowConfirm] = useState(false);
   const [showPdf, setShowPdf] = useState(false);
-  const [penilaian, setPenilaian] = useState<Penilaian>(EMPTY_PENILAIAN);
 
   const fetchLaporanAkhirPeserta = useCallback(async () => {
     setLoading(true);
@@ -167,7 +109,6 @@ export default function MentorLaporanAkhirModal({
         setLaporan(null);
         setMentorNote("");
         setStatus("Disetujui");
-        setPenilaian(EMPTY_PENILAIAN);
         return;
       }
 
@@ -175,22 +116,6 @@ export default function MentorLaporanAkhirModal({
       setLaporan(data);
       setMentorNote(data.mentorNote || "");
       setStatus(data.status === "Ditolak" ? "Ditolak" : "Disetujui");
-
-      if (data.penilaian) {
-        setPenilaian({
-          kehadiranDisiplin: data.penilaian.kehadiranDisiplin || "",
-          sikapPerilaku: data.penilaian.sikapPerilaku || "",
-          kemampuanKomunikasi: data.penilaian.kemampuanKomunikasi || "",
-          inisiatifTanggungJawab: data.penilaian.inisiatifTanggungJawab || "",
-          kemampuanAdaptasi: data.penilaian.kemampuanAdaptasi || "",
-          pengetahuanTeknis: data.penilaian.pengetahuanTeknis || "",
-          produktivitasKetepatanWaktu:
-            data.penilaian.produktivitasKetepatanWaktu || "",
-          kerjaSamaTim: data.penilaian.kerjaSamaTim || "",
-        });
-      } else {
-        setPenilaian(EMPTY_PENILAIAN);
-      }
     } catch (error) {
       console.error("Gagal memuat laporan akhir:", error);
       setLaporan(null);
@@ -220,34 +145,14 @@ export default function MentorLaporanAkhirModal({
   const alreadyReviewed =
     laporan?.status === "Disetujui" || laporan?.status === "Ditolak";
 
-  const filledPenilaianCount = Object.values(penilaian).filter(
-    (v) => v !== "",
-  ).length;
-  const isPenilaianComplete = filledPenilaianCount === 8;
   const isCommentFilled = mentorNote.trim().length > 0;
-  const canSubmit =
-    !submitting &&
-    !alreadyReviewed &&
-    isCommentFilled &&
-    (status === "Ditolak" || isPenilaianComplete);
-
-  const updatePenilaian = (key: keyof Penilaian, value: string) => {
-    if (alreadyReviewed) return;
-    setPenilaian((prev) => ({ ...prev, [key]: value }));
-  };
+  const canSubmit = !submitting && !alreadyReviewed && isCommentFilled;
 
   const handleUpdateStatus = async () => {
     if (!laporan || alreadyReviewed) return;
 
     if (!mentorNote.trim()) {
       showToast.error("Komentar mentor wajib diisi");
-      return;
-    }
-
-    if (status === "Disetujui" && !isPenilaianComplete) {
-      showToast.error(
-        "Semua aspek penilaian harus diisi untuk menyetujui laporan",
-      );
       return;
     }
 
@@ -267,7 +172,6 @@ export default function MentorLaporanAkhirModal({
           body: JSON.stringify({
             status,
             mentorNote: mentorNote.trim(),
-            penilaian: status === "Disetujui" ? penilaian : undefined,
           }),
         },
       );
@@ -361,7 +265,7 @@ export default function MentorLaporanAkhirModal({
             </div>
             <div className="min-w-0">
               <h2 className="text-base sm:text-lg font-extrabold truncate">
-                Review & Penilaian Laporan Akhir
+                Review Laporan Akhir
               </h2>
               <p className="text-xs sm:text-sm text-sky-100 truncate">
                 {peserta.nama} • {peserta.posisi}
@@ -426,7 +330,7 @@ export default function MentorLaporanAkhirModal({
                         ? "Laporan Disetujui"
                         : laporan.status === "Ditolak"
                           ? "Laporan Ditolak"
-                          : "Menunggu Review & Penilaian"}
+                          : "Menunggu Review Mentor"}
                     </p>
                     <p className="text-xs opacity-85 mt-0.5">
                       {alreadyReviewed && laporan.approvedAt
@@ -527,21 +431,21 @@ export default function MentorLaporanAkhirModal({
                 )}
               </div>
 
-              {/* Form Review & Penilaian */}
+              {/* Form Review & Catatan Mentor */}
               <div className="rounded-xl bg-white dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-800 p-4 sm:p-5 space-y-5">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2.5">
                     <div className="w-9 h-9 rounded-xl bg-sky-50 text-[#0284c7] dark:bg-sky-950/60 dark:text-sky-300 flex items-center justify-center shrink-0">
-                      <Star className="w-4 h-4" />
+                      <MessageSquare className="w-4 h-4" />
                     </div>
                     <div>
                       <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                        Keputusan & Penilaian Mentor
+                        Review & Catatan Mentor
                       </h3>
                       <p className="text-xs text-slate-500 dark:text-slate-400">
                         {alreadyReviewed
                           ? "Review sudah bersifat final dan tidak dapat diubah"
-                          : "Pilih status keputusan, isi penilaian (jika disetujui), dan berikan catatan"}
+                          : "Pilih keputusan persetujuan laporan dan berikan catatan atau komentar"}
                       </p>
                     </div>
                   </div>
@@ -586,69 +490,6 @@ export default function MentorLaporanAkhirModal({
                     })}
                   </div>
                 </div>
-
-                {/* 8 Aspek Penilaian (muncul jika Disetujui) */}
-                {status === "Disetujui" && (
-                  <div className="space-y-3 pt-1">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <span className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
-                        Aspek Penilaian Kinerja{" "}
-                        {!alreadyReviewed && (
-                          <span className="text-rose-500">*</span>
-                        )}
-                      </span>
-                      <span
-                        className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${
-                          isPenilaianComplete
-                            ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300"
-                            : "bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300"
-                        }`}
-                      >
-                        {filledPenilaianCount}/8 aspek terisi
-                      </span>
-                    </div>
-
-                    <div className="space-y-2.5">
-                      {(
-                        Object.keys(penilaianLabels) as Array<keyof Penilaian>
-                      ).map((key) => (
-                        <div
-                          key={key}
-                          className="rounded-xl border border-slate-200/80 dark:border-slate-700/80 bg-slate-50/70 dark:bg-slate-900/60 p-3 flex flex-col md:flex-row md:items-center md:justify-between gap-2.5"
-                        >
-                          <span className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200">
-                            {penilaianLabels[key]}
-                          </span>
-
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-                            {penilaianOptions.map((opt) => {
-                              const selected = penilaian[key] === opt.value;
-                              return (
-                                <button
-                                  key={opt.value}
-                                  type="button"
-                                  disabled={alreadyReviewed}
-                                  onClick={() => updatePenilaian(key, opt.value)}
-                                  className={`px-2.5 py-1.5 rounded-lg text-[11px] font-semibold border transition ${
-                                    selected
-                                      ? opt.activeClass
-                                      : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700"
-                                  } ${
-                                    alreadyReviewed && !selected
-                                      ? "opacity-45 cursor-not-allowed"
-                                      : ""
-                                  }`}
-                                >
-                                  {opt.label}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
 
                 {/* Komentar Mentor */}
                 <div className="space-y-2">
@@ -699,7 +540,7 @@ export default function MentorLaporanAkhirModal({
               {status === "Disetujui" ? (
                 <>
                   <CheckCircle2 className="w-4 h-4" />
-                  Setujui & Simpan Nilai
+                  Setujui Laporan
                 </>
               ) : (
                 <>

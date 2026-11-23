@@ -1,8 +1,15 @@
 // components/Laporan/PenilaianModal.tsx
 "use client";
 
-import { useState, useEffect } from "react";
-import { FiX, FiStar, FiUser, FiCalendar } from "react-icons/fi";
+import { useEffect, useState } from "react";
+import {
+  AlertCircle,
+  Award,
+  Calendar,
+  CheckCircle2,
+  UserCheck,
+  X,
+} from "lucide-react";
 import { showToast } from "@/components/ui/toastDashboard";
 
 type Props = {
@@ -20,6 +27,42 @@ type Penilaian = {
   kerjaSamaTim: string;
 };
 
+const PENILAIAN_LABELS: Record<keyof Penilaian, string> = {
+  kehadiranDisiplin: "Kehadiran dan Disiplin",
+  sikapPerilaku: "Sikap dan Perilaku",
+  kemampuanKomunikasi: "Kemampuan Komunikasi",
+  inisiatifTanggungJawab: "Inisiatif dan Tanggung Jawab",
+  kemampuanAdaptasi: "Kemampuan Adaptasi",
+  pengetahuanTeknis: "Pengetahuan Teknis",
+  produktivitasKetepatanWaktu: "Produktivitas dan Ketepatan Waktu",
+  kerjaSamaTim: "Kerja Sama Tim",
+};
+
+function getNilaiColor(nilai: string): string {
+  switch (nilai) {
+    case "sangat baik":
+      return "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800";
+    case "baik":
+      return "bg-blue-50 text-[#1D64F2] border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800";
+    case "buruk":
+      return "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800";
+    case "sangat buruk":
+      return "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800";
+    default:
+      return "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700";
+  }
+}
+
+function formatNilai(nilai: string): string {
+  const map: Record<string, string> = {
+    "sangat baik": "Sangat Baik",
+    baik: "Baik",
+    buruk: "Buruk",
+    "sangat buruk": "Sangat Buruk",
+  };
+  return map[nilai] || nilai || "-";
+}
+
 export default function PenilaianModal({ onClose }: Props) {
   const [loading, setLoading] = useState(true);
   const [penilaian, setPenilaian] = useState<Penilaian | null>(null);
@@ -28,251 +71,184 @@ export default function PenilaianModal({ onClose }: Props) {
   const [mentorName, setMentorName] = useState("");
 
   useEffect(() => {
-    fetchPenilaian();
-  }, []);
+    let active = true;
 
-  const fetchPenilaian = async () => {
-    setLoading(true);
-    try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/laporan-akhir/penilaian`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
+    const fetchPenilaian = async () => {
+      setLoading(true);
+      try {
+        const token = localStorage.getItem("token") ?? "";
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/laporan-akhir/penilaian`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        );
 
-      if (res.ok) {
-        const data = await res.json();
-        setPenilaian(data.penilaian);
-        setMentorNote(data.mentorNote || "");
-        setApprovedAt(data.approvedAt);
-        setMentorName(data.approvedBy?.name || "Mentor");
-      } else {
-        showToast.error("Gagal mengambil data penilaian");
-        onClose();
+        if (!active) return;
+
+        if (res.ok) {
+          const data = await res.json();
+          setPenilaian(data.penilaian);
+          setMentorNote(data.mentorNote || "");
+          setApprovedAt(data.approvedAt || "");
+          setMentorName(data.approvedBy?.name || "Mentor");
+        } else {
+          showToast.error("Gagal mengambil data penilaian");
+          onClose();
+        }
+      } catch (error) {
+        console.error(error);
+        if (active) {
+          showToast.error("Terjadi kesalahan saat memuat penilaian");
+          onClose();
+        }
+      } finally {
+        if (active) setLoading(false);
       }
-    } catch (error) {
-      console.error(error);
-      showToast.error("Terjadi kesalahan");
-      onClose();
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  /* ================= LABEL PENILAIAN ================= */
-  const penilaianLabels: Record<keyof Penilaian, string> = {
-    kehadiranDisiplin: "Kehadiran dan Disiplin",
-    sikapPerilaku: "Sikap dan Perilaku",
-    kemampuanKomunikasi: "Kemampuan Komunikasi",
-    inisiatifTanggungJawab: "Inisiatif dan Tanggung Jawab",
-    kemampuanAdaptasi: "Kemampuan Adaptasi",
-    pengetahuanTeknis: "Pengetahuan Teknis",
-    produktivitasKetepatanWaktu: "Produktivitas dan Ketepatan Waktu",
-    kerjaSamaTim: "Kerja Sama Tim",
-  };
-
-  /* ================= GET NILAI COLOR ================= */
-  const getNilaiColor = (nilai: string) => {
-    switch (nilai) {
-      case "sangat baik":
-        return "bg-emerald-100 text-emerald-700 border-emerald-300 dark:bg-emerald-900/30 dark:text-emerald-300";
-      case "baik":
-        return "bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-900/30 dark:text-blue-300";
-      case "buruk":
-        return "bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-900/30 dark:text-amber-300";
-      case "sangat buruk":
-        return "bg-rose-100 text-rose-700 border-rose-300 dark:bg-rose-900/30 dark:text-rose-300";
-      default:
-        return "bg-slate-100 text-slate-700 border-slate-300";
-    }
-  };
-
-  /* ================= FORMAT NILAI ================= */
-  const formatNilai = (nilai: string) => {
-    const map: Record<string, string> = {
-      "sangat baik": "Sangat Baik",
-      baik: "Baik",
-      buruk: "Buruk",
-      "sangat buruk": "Sangat Buruk",
     };
-    return map[nilai] || nilai;
-  };
+
+    fetchPenilaian();
+    return () => {
+      active = false;
+    };
+  }, [onClose]);
 
   if (loading) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-        <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 shadow-2xl">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-          <p className="mt-4 text-slate-600 dark:text-slate-400">
-            Memuat penilaian...
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/55 backdrop-blur-xs p-4">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-2xl text-center space-y-3 min-w-[240px]">
+          <div className="animate-spin rounded-full h-10 w-10 border-2 border-slate-200 border-t-[#1D64F2] mx-auto" />
+          <p className="text-sm font-medium text-slate-600 dark:text-slate-300">
+            Memuat penilaian mentor...
           </p>
         </div>
       </div>
     );
   }
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-3 sm:p-6">
-      <div
-        className="
-          w-full max-w-3xl
-          rounded-3xl
-          bg-white dark:bg-slate-900
-          shadow-2xl
-          flex flex-col
-          max-h-[90vh]
-          overflow-hidden
-          border border-slate-200 dark:border-slate-800
-        "
-      >
-        {/* HEADER */}
-        <div
-          className="
-            px-5 sm:px-6 py-4
-            border-b border-slate-200 dark:border-slate-800
-            bg-linear-to-r
-            from-[#FFF7ED] via-[#FEF3C7] to-[#FDE68A]
-            dark:from-indigo-800 dark:via-indigo-700 dark:to-violet-700
-            flex items-start justify-between
-          "
-        >
-          <div className="flex items-center gap-3">
-            <div
-              className="
-                p-3 rounded-xl
-                bg-white/60 dark:bg-white/10
-                backdrop-blur
-                shadow-sm
-              "
-            >
-              <FiStar className="text-xl text-amber-600 dark:text-amber-300" />
-            </div>
+  const aspectKeys = Object.keys(PENILAIAN_LABELS) as Array<keyof Penilaian>;
+  const goodCount = penilaian
+    ? Object.values(penilaian).filter(
+        (v) => v === "sangat baik" || v === "baik",
+      ).length
+    : 0;
 
-            <div>
-              <h2 className="text-lg sm:text-xl font-extrabold text-slate-800 dark:text-white">
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/55 backdrop-blur-xs p-3 sm:p-5"
+      onClick={onClose}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-2xl rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col max-h-[90vh] overflow-hidden"
+      >
+        {/* ================= HEADER ================= */}
+        <div className="px-5 sm:px-6 py-4 border-b border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-[#1D64F2] dark:text-blue-400 flex items-center justify-center shrink-0">
+              <Award className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <h2
+                className="text-lg font-extrabold text-slate-900 dark:text-white leading-tight"
+                style={{ fontWeight: 800 }}
+              >
                 Penilaian Mentor
               </h2>
-              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300">
-                Hasil evaluasi dari mentor magang
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5 truncate">
+                Hasil evaluasi laporan akhir dari mentor pembimbing
               </p>
             </div>
           </div>
 
           <button
+            type="button"
             onClick={onClose}
-            className="p-2 rounded-full bg-white/60 dark:bg-white/10 hover:bg-red-100 dark:hover:bg-red-900/30 transition"
+            aria-label="Tutup modal penilaian"
+            className="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center transition shrink-0"
           >
-            <FiX className="text-xl text-red-500" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* BODY */}
-        <div className="flex-1 overflow-y-auto px-5 sm:px-6 py-6 space-y-6">
+        {/* ================= BODY ================= */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-5 bg-[#F8FAFC] dark:bg-slate-950/50 space-y-4">
           {/* INFO MENTOR */}
-          <div
-            className="
-              rounded-2xl
-              border border-indigo-200 dark:border-indigo-800
-              bg-linear-to-br
-              from-indigo-50 via-white to-indigo-50
-              dark:from-indigo-950 dark:via-slate-900 dark:to-indigo-950
-              p-5
-            "
-          >
-            <div className="flex items-center gap-4">
-              <div
-                className="
-                  w-12 h-12
-                  rounded-xl
-                  bg-indigo-100 dark:bg-indigo-800/40
-                  flex items-center justify-center
-                "
-              >
-                <FiUser className="text-indigo-600 dark:text-indigo-300 text-xl" />
+          <div className="rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-4 flex items-center justify-between gap-3 shadow-2xs">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-[#1D64F2] dark:text-blue-400 flex items-center justify-center shrink-0">
+                <UserCheck className="w-5 h-5" />
               </div>
-              <div>
-                <p className="text-xs uppercase tracking-wide text-indigo-600 dark:text-indigo-300">
-                  Direview oleh
+              <div className="min-w-0">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                  Direview Oleh
                 </p>
-                <p className="font-semibold text-slate-800 dark:text-white">
+                <p className="text-sm sm:text-base font-bold text-slate-900 dark:text-white truncate">
                   {mentorName}
                 </p>
                 {approvedAt && (
-                  <div className="flex items-center gap-1 mt-1 text-xs text-slate-500 dark:text-slate-400">
-                    <FiCalendar className="w-3 h-3" />
-                    {new Date(approvedAt).toLocaleDateString("id-ID", {
-                      day: "numeric",
-                      month: "long",
-                      year: "numeric",
-                    })}
-                  </div>
+                  <p className="inline-flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span>
+                      {new Date(approvedAt).toLocaleDateString("id-ID", {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      })}
+                    </span>
+                  </p>
                 )}
               </div>
             </div>
+
+            <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800 shrink-0">
+              Disetujui
+            </span>
           </div>
 
-          {/* PENILAIAN GRID */}
+          {/* ASPEK PENILAIAN */}
           {penilaian && (
-            <div className="space-y-4">
-              <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
-                <FiStar className="text-amber-500" />
-                Aspek Penilaian
-              </h3>
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between gap-2 px-0.5">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <Award className="w-4 h-4 text-[#1D64F2] dark:text-blue-400" />
+                  <span>Aspek Penilaian</span>
+                </h3>
+                <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                  {aspectKeys.length} indikator
+                </span>
+              </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {(Object.keys(penilaianLabels) as Array<keyof Penilaian>).map(
-                  (key) => (
-                    <div
-                      key={key}
-                      className="
-                        p-4
-                        rounded-xl
-                        border border-slate-200 dark:border-slate-800
-                        bg-white dark:bg-slate-900
-                        shadow-sm
-                        flex items-center justify-between
-                      "
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {aspectKeys.map((key) => (
+                  <div
+                    key={key}
+                    className="rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 px-3.5 py-3 flex items-center justify-between gap-2.5 shadow-2xs"
+                  >
+                    <span className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200 leading-snug">
+                      {PENILAIAN_LABELS[key]}
+                    </span>
+                    <span
+                      className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border shrink-0 whitespace-nowrap ${getNilaiColor(
+                        penilaian[key],
+                      )}`}
                     >
-                      <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
-                        {penilaianLabels[key]}
-                      </span>
-                      <span
-                        className={`
-                          px-3 py-1.5
-                          rounded-full
-                          text-xs font-semibold
-                          border
-                          ${getNilaiColor(penilaian[key])}
-                        `}
-                      >
-                        {formatNilai(penilaian[key])}
-                      </span>
-                    </div>
-                  ),
-                )}
+                      {formatNilai(penilaian[key])}
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
           )}
 
           {/* CATATAN MENTOR */}
           {mentorNote && (
-            <div
-              className="
-                rounded-2xl
-                border border-amber-200 dark:border-amber-700
-                bg-linear-to-br
-                from-amber-50 via-white to-amber-50
-                dark:from-amber-900/20 dark:via-slate-900 dark:to-amber-900/20
-                p-5
-                space-y-2
-              "
-            >
-              <p className="text-xs font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-300">
-                Catatan Mentor
-              </p>
-              <p className="text-sm text-slate-700 dark:text-slate-200 whitespace-pre-line leading-relaxed">
+            <div className="rounded-xl bg-[#FFFBEB] dark:bg-amber-950/40 border border-[#FDE68A] dark:border-amber-800/70 p-3.5 sm:p-4 space-y-1">
+              <div className="flex items-center gap-1.5 text-sm font-bold text-amber-900 dark:text-amber-200">
+                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                <span>Catatan Review Mentor</span>
+              </div>
+              <p className="text-xs sm:text-sm text-amber-900 dark:text-amber-100 pl-5.5 whitespace-pre-line break-words [overflow-wrap:anywhere] leading-relaxed">
                 {mentorNote}
               </p>
             </div>
@@ -280,40 +256,22 @@ export default function PenilaianModal({ onClose }: Props) {
 
           {/* RINGKASAN */}
           {penilaian && (
-            <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800">
-            <p className="text-sm text-emerald-800 dark:text-emerald-200">
-              <span className="font-bold">Ringkasan:</span>{" "}
-                {
-                  Object.values(penilaian).filter(
-                    (v) => v === "sangat baik" || v === "baik",
-                  ).length
-                }{" "}
-                dari 8 aspek mendapat nilai Baik atau Sangat Baik.
+            <div className="rounded-xl bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/70 px-4 py-3 flex items-center gap-2.5 text-xs sm:text-sm text-emerald-800 dark:text-emerald-200">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <p>
+                <span className="font-bold">Ringkasan:</span> {goodCount} dari{" "}
+                {aspectKeys.length} aspek mendapat nilai Baik atau Sangat Baik.
               </p>
             </div>
           )}
         </div>
 
-        {/* FOOTER */}
-        <div
-          className="
-            px-4 sm:px-6 py-4
-            border-t border-slate-200 dark:border-slate-800
-            bg-slate-50 dark:bg-slate-900
-            flex justify-end
-          "
-        >
+        {/* ================= FOOTER ================= */}
+        <div className="px-5 sm:px-6 py-4 border-t border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 flex justify-end">
           <button
+            type="button"
             onClick={onClose}
-            className="
-              px-6 py-2.5
-              rounded-xl
-              text-sm font-semibold
-              text-slate-600 dark:text-slate-300
-              border border-slate-300 dark:border-slate-600
-              hover:bg-slate-100 dark:hover:bg-white/10
-              transition
-            "
+            className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-200 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition"
           >
             Tutup
           </button>

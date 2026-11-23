@@ -90,6 +90,7 @@ export default function AkunPesertaPage() {
   const [suratSelesai, setSuratSelesai] = useState<SuratSelesai | null>(null);
   const [sertifikat, setSertifikat] = useState<SuratSelesai | null>(null);
   const [canDownloadCompletionDocs, setCanDownloadCompletionDocs] = useState(false);
+  const [canDownloadSertifikat, setCanDownloadSertifikat] = useState(false);
   const [emailLogin, setEmailLogin] = useState<string | null>(null);
   const [tokenMagangMeta, setTokenMagangMeta] = useState<{
     jurusan?: string;
@@ -197,11 +198,17 @@ export default function AkunPesertaPage() {
       }
       const lapJson = lapRes && lapRes.ok ? await lapRes.json().catch(() => null) : null;
       const fbJson = fbRes && fbRes.ok ? await fbRes.json().catch(() => []) : [];
-      setCanDownloadCompletionDocs(
-        lapJson?.status === "Disetujui" &&
-          Array.isArray(fbJson) &&
-          fbJson.length > 0,
-      );
+      const isLapApproved = lapJson?.status === "Disetujui";
+      const hasFb = Array.isArray(fbJson) && fbJson.length > 0;
+      const isFbResponded =
+        hasFb &&
+        fbJson.some(
+          (fb: { status?: string; mentorResponse?: string }) =>
+            fb?.status === "Direspon" ||
+            Boolean(fb?.mentorResponse && String(fb.mentorResponse).trim()),
+        );
+      setCanDownloadCompletionDocs(isLapApproved && hasFb);
+      setCanDownloadSertifikat(isLapApproved && isFbResponded);
     } catch (err) {
       console.error("Gagal memuat data akun peserta", err);
     } finally {
@@ -534,24 +541,30 @@ export default function AkunPesertaPage() {
                 label: "Surat Pengantar",
                 file: pendaftaran?.suratPengantar,
                 locked: false,
+                lockText: "",
                 protectedEndpoint: "",
               },
               {
                 label: "Surat Balasan Resmi BBPOM",
                 file: pendaftaran?.suratBalasan,
                 locked: false,
+                lockText: "",
                 protectedEndpoint: "",
               },
               {
                 label: "Surat Selesai Magang",
                 file: suratSelesai?.file,
                 locked: !canDownloadCompletionDocs,
+                lockText: "Selesaikan Laporan & Survei",
                 protectedEndpoint: `${FILE_BASE_URL}/surat-selesai/download?inline=1`,
               },
               {
                 label: "Sertifikat Magang",
                 file: sertifikat?.file,
-                locked: !canDownloadCompletionDocs,
+                locked: !canDownloadSertifikat,
+                lockText: canDownloadCompletionDocs
+                  ? "Menunggu Respon Feedback Mentor"
+                  : "Selesaikan Laporan & Survei",
                 protectedEndpoint: `${FILE_BASE_URL}/sertifikat/download?inline=1`,
               },
             ].map((doc, idx) => (
@@ -565,7 +578,7 @@ export default function AkunPesertaPage() {
                 {doc.locked ? (
                   <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-600 dark:text-amber-400">
                     <Lock className="w-3.5 h-3.5" />
-                    <span>Selesaikan Laporan &amp; Survei</span>
+                    <span>{doc.lockText}</span>
                   </span>
                 ) : doc.file ? (
                   doc.protectedEndpoint ? (
