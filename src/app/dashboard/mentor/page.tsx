@@ -10,6 +10,7 @@ import {
   ChevronRight,
   Clock,
   FileCheck2,
+  FileSignature,
   GraduationCap,
   Mail,
   MessageSquareHeart,
@@ -80,6 +81,13 @@ type PenilaianAkhirSummary = {
   tanggalPenilaian: string | null;
 };
 
+type EvaluasiSummary = {
+  _id: string;
+  status: "Menunggu" | "Revisi" | "Disetujui";
+  submittedAt: string | null;
+  reviewedAt: string | null;
+};
+
 type EnrichedPeserta = Peserta & {
   phase: InternshipPhase;
   logbookStats: LogbookStats;
@@ -87,6 +95,7 @@ type EnrichedPeserta = Peserta & {
   feedbackStats: FeedbackStats;
   absensiStats?: AbsensiStats;
   penilaianAkhir?: PenilaianAkhirSummary | null;
+  evaluasi?: EvaluasiSummary | null;
 };
 
 type DashboardSummary = {
@@ -110,6 +119,10 @@ type DashboardSummary = {
   penilaianAkhirSudah?: number;
   penilaianAkhirBelum?: number;
   penilaianAkhirRataRata?: number | null;
+  evaluasiMenunggu?: number;
+  evaluasiRevisi?: number;
+  evaluasiDisetujui?: number;
+  evaluasiBelumMengisi?: number;
 };
 
 type MentorDashboardResponse = {
@@ -253,6 +266,36 @@ function getLaporanBadge(laporan: LaporanAkhirSummary | null) {
   }
 }
 
+function getEvaluasiBadge(evaluasi?: EvaluasiSummary | null) {
+  if (!evaluasi) {
+    return {
+      label: "Belum Mengisi",
+      className:
+        "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700",
+    };
+  }
+  switch (evaluasi.status) {
+    case "Disetujui":
+      return {
+        label: "Disetujui",
+        className:
+          "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800/70",
+      };
+    case "Revisi":
+      return {
+        label: "Perlu Revisi",
+        className:
+          "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/50 dark:text-rose-300 dark:border-rose-800/70",
+      };
+    default:
+      return {
+        label: "Menunggu Review",
+        className:
+          "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800/70",
+      };
+  }
+}
+
 const ITEMS_PER_PAGE = 6;
 
 /* ================= MAIN PAGE ================= */
@@ -353,6 +396,10 @@ export default function MentorDashboard() {
     penilaianAkhirSudah: 0,
     penilaianAkhirBelum: 0,
     penilaianAkhirRataRata: null,
+    evaluasiMenunggu: 0,
+    evaluasiRevisi: 0,
+    evaluasiDisetujui: 0,
+    evaluasiBelumMengisi: 0,
   };
 
   const pesertaMenungguLogbookList = useMemo(
@@ -754,6 +801,48 @@ export default function MentorDashboard() {
             </div>
             <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition shrink-0 mt-1" />
           </Link>
+
+          {/* Task 6: Evaluasi & Surat Pernyataan */}
+          <Link
+            href="/dashboard/mentor/ViewEvaluasi"
+            className="group flex items-start justify-between gap-3 p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 hover:border-teal-300 dark:hover:border-teal-700 hover:shadow-sm transition"
+          >
+            <div className="flex items-start gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-xl bg-teal-50 dark:bg-teal-950/60 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0">
+                <FileSignature className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-slate-800 dark:text-slate-100">
+                  Evaluasi & Pernyataan
+                </p>
+                {(summary.evaluasiMenunggu ?? 0) > 0 ? (
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    <span className="font-semibold text-teal-600 dark:text-teal-400">
+                      {summary.evaluasiMenunggu} peserta
+                    </span>{" "}
+                    menunggu persetujuan
+                    {(summary.evaluasiRevisi ?? 0) > 0
+                      ? ` • ${summary.evaluasiRevisi} revisi`
+                      : ""}
+                  </p>
+                ) : (summary.evaluasiRevisi ?? 0) > 0 ? (
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    <span className="font-semibold text-amber-600 dark:text-amber-400">
+                      {summary.evaluasiRevisi} peserta
+                    </span>{" "}
+                    menunggu revisi dari peserta
+                  </p>
+                ) : (
+                  <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-0.5">
+                    {(summary.evaluasiDisetujui ?? 0) > 0
+                      ? `${summary.evaluasiDisetujui} disetujui • Tidak ada yang tertunda`
+                      : "Tidak ada evaluasi & pernyataan tertunda"}
+                  </p>
+                )}
+              </div>
+            </div>
+            <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition shrink-0 mt-1" />
+          </Link>
         </div>
       </div>
 
@@ -1045,6 +1134,7 @@ function PesertaBimbinganCard({
 }) {
   const phaseBadge = getPhaseBadge(peserta.phase);
   const laporanBadge = getLaporanBadge(peserta.laporanAkhir);
+  const evaluasiBadge = getEvaluasiBadge(peserta.evaluasi);
   const progress = calculateMagangProgress(
     peserta.tanggalMulaiMagang,
     peserta.tanggalSelesaiMagang,
@@ -1227,6 +1317,24 @@ function PesertaBimbinganCard({
             </span>
           )}
         </div>
+
+        <div className="col-span-2 rounded-xl border border-slate-200/80 dark:border-slate-800 p-2.5 flex items-center justify-between gap-2">
+          <div>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              Evaluasi &amp; Pernyataan
+            </p>
+            {peserta.evaluasi?.submittedAt && (
+              <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
+                Dikirim {formatShortDate(peserta.evaluasi.submittedAt)}
+              </p>
+            )}
+          </div>
+          <span
+            className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold border shrink-0 ${evaluasiBadge.className}`}
+          >
+            {evaluasiBadge.label}
+          </span>
+        </div>
       </div>
 
       {/* Actions */}
@@ -1268,6 +1376,14 @@ function PesertaBimbinganCard({
         >
           <Award className="w-3.5 h-3.5" />
           Penilaian
+        </Link>
+
+        <Link
+          href="/dashboard/mentor/ViewEvaluasi"
+          className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border border-teal-200 dark:border-teal-800/80 bg-teal-50/70 dark:bg-teal-950/40 text-teal-700 dark:text-teal-300 hover:bg-teal-100 dark:hover:bg-teal-900/50 transition"
+        >
+          <FileSignature className="w-3.5 h-3.5" />
+          Evaluasi
         </Link>
       </div>
     </div>
