@@ -63,6 +63,7 @@ export default function EvaluasiDanPernyataanPage() {
   // Bagian B: Evaluasi Penyelenggara
   const [penScores, setPenScores] = useState<number[]>([0, 0, 0, 0, 0]);
   const [penBermanfaat, setPenBermanfaat] = useState<"Ya" | "Tidak">("Ya");
+  const [penAlasanBermanfaat, setPenAlasanBermanfaat] = useState("");
   const [penAdaMasukan, setPenAdaMasukan] = useState<"Ya" | "Tidak">("Ya");
   const [penMasukan, setPenMasukan] = useState("");
 
@@ -152,6 +153,7 @@ export default function EvaluasiDanPernyataanPage() {
           setPenBermanfaat(
             ev.penyelenggara?.bermanfaat === "Tidak" ? "Tidak" : "Ya",
           );
+          setPenAlasanBermanfaat(ev.penyelenggara?.alasanBermanfaat || "");
           setPenAdaMasukan(
             ev.penyelenggara?.adaMasukan === "Tidak" ? "Tidak" : "Ya",
           );
@@ -284,6 +286,14 @@ export default function EvaluasiDanPernyataanPage() {
       );
       return null;
     }
+    if (!penAlasanBermanfaat.trim()) {
+      showToast.error(
+        penBermanfaat === "Ya"
+          ? "Mohon jelaskan manfaat yang diperoleh pada Evaluasi Penyelenggara"
+          : "Mohon jelaskan alasan pada pertanyaan kebermanfaatan Evaluasi Penyelenggara",
+      );
+      return null;
+    }
     if (penAdaMasukan === "Ya" && !penMasukan.trim()) {
       showToast.error("Mohon isi masukan untuk Penyelenggara");
       return null;
@@ -319,6 +329,7 @@ export default function EvaluasiDanPernyataanPage() {
         skor4: penScores[3],
         skor5: penScores[4],
         bermanfaat: penBermanfaat,
+        alasanBermanfaat: penAlasanBermanfaat.trim(),
         adaMasukan: penAdaMasukan,
         masukan: penAdaMasukan === "Ya" ? penMasukan.trim() : "",
       },
@@ -726,7 +737,7 @@ export default function EvaluasiDanPernyataanPage() {
         </div>
 
         <div className="space-y-3 pt-1">
-          <div className="space-y-1.5">
+          <div className="rounded-xl border border-slate-200/80 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/40 p-3.5 space-y-2.5">
             <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
               {texts.penyelenggaraBermanfaatPrompt}
             </p>
@@ -746,9 +757,28 @@ export default function EvaluasiDanPernyataanPage() {
                 </button>
               ))}
             </div>
+            <div>
+              <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">
+                {penBermanfaat === "Ya"
+                  ? "Jika ya, manfaat apa yang dapat Saudara jelaskan:"
+                  : "Jika tidak, alasan apa yang dapat Saudara jelaskan:"}{" "}
+                <span className="text-rose-500">*</span>
+              </label>
+              <textarea
+                rows={3}
+                value={penAlasanBermanfaat}
+                onChange={(e) => setPenAlasanBermanfaat(e.target.value)}
+                placeholder={
+                  penBermanfaat === "Ya"
+                    ? "Tuliskan manfaat yang Anda peroleh dari kegiatan ini..."
+                    : "Tuliskan alasan mengapa kegiatan dirasa kurang bermanfaat..."
+                }
+                className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-emerald-600"
+              />
+            </div>
           </div>
 
-          <div className="space-y-1.5">
+          <div className="rounded-xl border border-slate-200/80 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/40 p-3.5 space-y-2.5">
             <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
               {texts.penyelenggaraMasukanPrompt}
             </p>
@@ -768,23 +798,23 @@ export default function EvaluasiDanPernyataanPage() {
                 </button>
               ))}
             </div>
-          </div>
 
-          {penAdaMasukan === "Ya" && (
-            <div>
-              <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">
-                Jika ya, masukan apa yang dapat Saudara berikan:{" "}
-                <span className="text-rose-500">*</span>
-              </label>
-              <textarea
-                rows={3}
-                value={penMasukan}
-                onChange={(e) => setPenMasukan(e.target.value)}
-                placeholder="Tuliskan masukan Anda untuk penyelenggara..."
-                className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-emerald-600"
-              />
-            </div>
-          )}
+            {penAdaMasukan === "Ya" && (
+              <div>
+                <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">
+                  Jika ya, masukan apa yang dapat Saudara berikan:{" "}
+                  <span className="text-rose-500">*</span>
+                </label>
+                <textarea
+                  rows={3}
+                  value={penMasukan}
+                  onChange={(e) => setPenMasukan(e.target.value)}
+                  placeholder="Tuliskan masukan Anda untuk penyelenggara..."
+                  className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-emerald-600"
+                />
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

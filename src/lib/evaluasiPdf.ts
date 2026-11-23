@@ -17,6 +17,7 @@ export interface EvaluasiMagangPayload {
     skor4: number;
     skor5: number;
     bermanfaat: "Ya" | "Tidak";
+    alasanBermanfaat?: string;
     adaMasukan: "Ya" | "Tidak";
     masukan: string;
   };
@@ -470,6 +471,19 @@ export async function downloadEvaluasiDanPernyataanPdf(
     {
       text: `• ${texts.penyelenggaraBermanfaatPrompt} ${payload.penyelenggara.bermanfaat}`,
     },
+    ...(payload.penyelenggara.alasanBermanfaat?.trim()
+      ? [
+          {
+            text:
+              payload.penyelenggara.bermanfaat === "Ya"
+                ? "• Jika ya, manfaat apa yang dapat Saudara jelaskan:"
+                : "• Jika tidak, alasan yang disampaikan:",
+          },
+          {
+            text: payload.penyelenggara.alasanBermanfaat.trim(),
+          },
+        ]
+      : []),
     {
       text: `• ${texts.penyelenggaraMasukanPrompt} ${payload.penyelenggara.adaMasukan}`,
     },

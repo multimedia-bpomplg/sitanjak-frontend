@@ -123,6 +123,7 @@ export default function EvaluasiReviewModal({
     skor4: ev?.penyelenggara?.skor4 || 5,
     skor5: ev?.penyelenggara?.skor5 || 5,
     bermanfaat: ev?.penyelenggara?.bermanfaat || ("Ya" as "Ya" | "Tidak"),
+    alasanBermanfaat: ev?.penyelenggara?.alasanBermanfaat || "",
     adaMasukan: ev?.penyelenggara?.adaMasukan || ("Ya" as "Ya" | "Tidak"),
     masukan: ev?.penyelenggara?.masukan || "",
   }));
@@ -238,6 +239,7 @@ export default function EvaluasiReviewModal({
             },
             penyelenggara: {
               ...editPen,
+              alasanBermanfaat: editPen.alasanBermanfaat.trim(),
               masukan: editPen.adaMasukan === "Ya" ? editPen.masukan.trim() : "",
             },
             suratPernyataan: {
@@ -563,22 +565,33 @@ export default function EvaluasiReviewModal({
                     </div>
                   ))}
                 </div>
-                <div className="rounded-lg bg-slate-50 dark:bg-slate-800/40 px-3 py-2 text-xs space-y-1">
-                  <p className="text-slate-700 dark:text-slate-200">
-                    Bermanfaat?{" "}
-                    <b className="text-emerald-600">
-                      {ev.penyelenggara.bermanfaat}
-                    </b>{" "}
-                    • Ada masukan penyelenggara?{" "}
-                    <b className="text-emerald-600">
-                      {ev.penyelenggara.adaMasukan}
-                    </b>
-                  </p>
-                  {ev.penyelenggara.adaMasukan === "Ya" && (
-                    <p className="text-slate-600 dark:text-slate-300 whitespace-pre-line">
-                      {ev.penyelenggara.masukan || "-"}
+                <div className="rounded-lg bg-slate-50 dark:bg-slate-800/40 px-3 py-2 text-xs space-y-1.5">
+                  <div>
+                    <p className="text-slate-700 dark:text-slate-200">
+                      Bermanfaat?{" "}
+                      <b className="text-emerald-600">
+                        {ev.penyelenggara.bermanfaat}
+                      </b>
                     </p>
-                  )}
+                    {ev.penyelenggara.alasanBermanfaat && (
+                      <p className="text-slate-600 dark:text-slate-300 whitespace-pre-line mt-0.5">
+                        {ev.penyelenggara.alasanBermanfaat}
+                      </p>
+                    )}
+                  </div>
+                  <div className="pt-1 border-t border-slate-200/70 dark:border-slate-700/60">
+                    <p className="text-slate-700 dark:text-slate-200">
+                      Ada masukan penyelenggara?{" "}
+                      <b className="text-emerald-600">
+                        {ev.penyelenggara.adaMasukan}
+                      </b>
+                    </p>
+                    {ev.penyelenggara.adaMasukan === "Ya" && (
+                      <p className="text-slate-600 dark:text-slate-300 whitespace-pre-line mt-0.5">
+                        {ev.penyelenggara.masukan || "-"}
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -810,15 +823,37 @@ export default function EvaluasiReviewModal({
                     ))}
                   </div>
                 </div>
-                {editPen.adaMasukan === "Ya" && (
+                <div>
+                  <label className="block text-[11px] font-semibold mb-1">
+                    Penjelasan kebermanfaatan
+                  </label>
                   <textarea
                     rows={2}
-                    value={editPen.masukan}
+                    value={editPen.alasanBermanfaat}
                     onChange={(e) =>
-                      setEditPen((p) => ({ ...p, masukan: e.target.value }))
+                      setEditPen((p) => ({
+                        ...p,
+                        alasanBermanfaat: e.target.value,
+                      }))
                     }
+                    placeholder="Manfaat / alasan..."
                     className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs"
                   />
+                </div>
+                {editPen.adaMasukan === "Ya" && (
+                  <div>
+                    <label className="block text-[11px] font-semibold mb-1">
+                      Masukan untuk penyelenggara
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={editPen.masukan}
+                      onChange={(e) =>
+                        setEditPen((p) => ({ ...p, masukan: e.target.value }))
+                      }
+                      className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs"
+                    />
+                  </div>
                 )}
               </div>
 

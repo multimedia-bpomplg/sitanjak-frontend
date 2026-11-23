@@ -93,6 +93,7 @@ export default function ManajemenTampilanBannerSuperadminPage() {
   const [isActive, setIsActive] = useState(true);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [removeImage, setRemoveImage] = useState(false);
 
   /* ---------- Delete Confirm State ---------- */
   const [deleteTarget, setDeleteTarget] = useState<Announcement | null>(null);
@@ -188,6 +189,7 @@ export default function ManajemenTampilanBannerSuperadminPage() {
     setIsActive(true);
     setImageFile(null);
     setImagePreview(null);
+    setRemoveImage(false);
   };
 
   const openCreateModal = () => {
@@ -204,6 +206,7 @@ export default function ManajemenTampilanBannerSuperadminPage() {
     setIsActive(item.isActive);
     setImageFile(null);
     setImagePreview(getBannerImageUrl(item.image));
+    setRemoveImage(false);
     setShowForm(true);
   };
 
@@ -225,6 +228,7 @@ export default function ManajemenTampilanBannerSuperadminPage() {
 
     setImageFile(file);
     setImagePreview(URL.createObjectURL(file));
+    setRemoveImage(false);
   };
 
   const handleSave = async () => {
@@ -260,6 +264,8 @@ export default function ManajemenTampilanBannerSuperadminPage() {
       }
       if (imageFile) {
         formData.append("image", imageFile);
+      } else if (editId && removeImage) {
+        formData.append("removeImage", "true");
       }
 
       const res = await fetch(
@@ -798,10 +804,11 @@ export default function ManajemenTampilanBannerSuperadminPage() {
                       onClick={() => {
                         setImageFile(null);
                         setImagePreview(null);
+                        if (editId) setRemoveImage(true);
                       }}
                       className="text-xs font-semibold text-rose-600 hover:underline"
                     >
-                      Hapus pratinjau
+                      {editId && !imageFile ? "Hapus gambar" : "Hapus pratinjau"}
                     </button>
                   )}
                 </div>
