@@ -9,6 +9,7 @@ import {
   Download,
   Edit3,
   Eye,
+  Lock,
   PlusCircle,
   RefreshCw,
   ScanFace,
@@ -53,13 +54,24 @@ function getInitials(name = "P"): string {
   );
 }
 
-function formatDateShort(dateStr?: string): string {
+function formatDateShort(dateStr?: string | null): string {
   if (!dateStr) return "-";
-  const d = new Date(dateStr);
+  const d = new Date(dateStr.includes("T") ? dateStr : `${dateStr}T00:00:00`);
   if (Number.isNaN(d.getTime())) return dateStr;
   return d.toLocaleDateString("id-ID", {
     day: "numeric",
     month: "short",
+    year: "numeric",
+  });
+}
+
+function formatDateLongIndo(dateStr?: string | null): string {
+  if (!dateStr) return "-";
+  const d = new Date(dateStr.includes("T") ? dateStr : `${dateStr}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return dateStr;
+  return d.toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "long",
     year: "numeric",
   });
 }
@@ -207,6 +219,40 @@ export default function KelolaPenilaianAkhirView({ role }: Props) {
     return filteredItems.slice(start, start + ITEMS_PER_PAGE);
   }, [filteredItems, safePage]);
 
+  const mentorRatingStats = useMemo(() => {
+    if (isAdminScope) {
+      return {
+        lockedTooEarly: [] as PesertaPenilaianItem[],
+        readyToRate: [] as PesertaPenilaianItem[],
+        earliestOpenIso: null as string | null,
+        earliestDays: 0,
+      };
+    }
+    const lockedTooEarly = items.filter(
+      (i) => !i.penilaianAkhir && i.ratingSchedule?.reason === "too_early",
+    );
+    const readyToRate = items.filter(
+      (i) =>
+        !i.penilaianAkhir &&
+        Boolean(i.userId) &&
+        (!i.ratingSchedule || i.ratingSchedule.canRate),
+    );
+    const sortedByOpen = [...lockedTooEarly]
+      .filter((i) => Boolean(i.ratingSchedule?.openDateIso))
+      .sort((a, b) =>
+        (a.ratingSchedule?.openDateIso || "").localeCompare(
+          b.ratingSchedule?.openDateIso || "",
+        ),
+      );
+    const earliest = sortedByOpen[0]?.ratingSchedule;
+    return {
+      lockedTooEarly,
+      readyToRate,
+      earliestOpenIso: earliest?.openDateIso || null,
+      earliestDays: earliest?.daysUntilOpen ?? 0,
+    };
+  }, [items, isAdminScope]);
+
   const handleExportExcel = async () => {
     if (filteredItems.length === 0) {
       showToast.error("Tidak ada data untuk diekspor");
@@ -348,6 +394,55 @@ export default function KelolaPenilaianAkhirView({ role }: Props) {
           </button>
         </div>
       </div>
+
+      {/* ================= BANNER JADWAL PENGISIAN H-3 (KHUSUS MENTOR) ================= */}
+      {!isAdminScope && mentorRatingStats.lockedTooEarly.length > 0 && (
+        <div className="rounded-2xl border border-amber-200 dark:border-amber-800/70 bg-amber-50/90 dark:bg-amber-950/40 p-4 sm:p-5 flex items-start gap-3.5 shadow-2xs">
+          <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 flex items-center justify-center shrink-0">
+            <Lock className="w-5 h-5" />
+          </div>
+          <div className="space-y-1 min-w-0">
+            <h2 className="text-sm sm:text-base font-bold text-amber-950 dark:text-amber-100">
+              {mentorRatingStats.readyToRate.length === 0
+                ? "Belum Waktunya Pengisian Penilaian Akhir"
+                : "Sebagian Peserta Belum Memasuki Jadwal Pengisian Nilai"}
+            </h2>
+            <p className="text-xs sm:text-sm text-amber-900/90 dark:text-amber-200/90 leading-relaxed">
+              {mentorRatingStats.readyToRate.length === 0 ? (
+                <>
+                  Pengisian Penilaian Akhir Magang hanya dibuka mulai{" "}
+                  <b>H-3 sebelum tanggal selesai magang</b>. Saat ini terdapat{" "}
+                  <b>{mentorRatingStats.lockedTooEarly.length} peserta</b> yang
+                  belum memasuki masa penilaian
+                  {mentorRatingStats.earliestOpenIso
+                    ? ` (pengisian terdekat dibuka mulai ${formatDateLongIndo(
+                        mentorRatingStats.earliestOpenIso,
+                      )}${
+                        mentorRatingStats.earliestDays > 0
+                          ? ` • ${mentorRatingStats.earliestDays} hari lagi`
+                          : ""
+                      })`
+                    : ""}
+                  .
+                </>
+              ) : (
+                <>
+                  <b>{mentorRatingStats.readyToRate.length} peserta</b> sudah
+                  memasuki H-3 selesai magang dan siap dinilai, sedangkan{" "}
+                  <b>{mentorRatingStats.lockedTooEarly.length} peserta</b>{" "}
+                  lainnya belum waktunya pengisian
+                  {mentorRatingStats.earliestOpenIso
+                    ? ` (terdekat dibuka mulai ${formatDateLongIndo(
+                        mentorRatingStats.earliestOpenIso,
+                      )})`
+                    : ""}
+                  .
+                </>
+              )}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* ================= STATISTIC CARDS ================= */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
@@ -566,7 +661,11 @@ export default function KelolaPenilaianAkhirView({ role }: Props) {
                   const rowNumber = (safePage - 1) * ITEMS_PER_PAGE + i + 1;
                   const pen = p.penilaianAkhir;
                   const canRate = Boolean(p.userId);
-                  const canOpenModal = isAdminScope ? Boolean(pen) : canRate;
+                  const isScheduleOpen =
+                    !p.ratingSchedule || p.ratingSchedule.canRate;
+                  const canOpenModal = isAdminScope
+                    ? Boolean(pen)
+                    : canRate && (Boolean(pen) || isScheduleOpen);
 
                   return (
                     <tr
@@ -689,27 +788,47 @@ export default function KelolaPenilaianAkhirView({ role }: Props) {
                             </span>
                           )
                         ) : canRate ? (
-                          <button
-                            type="button"
-                            onClick={() => setSelectedPeserta(p)}
-                            className={`inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition ${
-                              pen
-                                ? "bg-sky-50 text-[#0284c7] border border-sky-200 hover:bg-[#0284c7] hover:text-white dark:bg-sky-950/60 dark:text-sky-300 dark:border-sky-800"
-                                : "bg-[#0284c7] hover:bg-sky-700 text-white shadow-2xs"
-                            }`}
-                          >
-                            {pen ? (
-                              <>
-                                <Edit3 className="w-3.5 h-3.5" />
-                                <span>Edit Nilai</span>
-                              </>
-                            ) : (
-                              <>
-                                <PlusCircle className="w-3.5 h-3.5" />
-                                <span>Isi Nilai</span>
-                              </>
-                            )}
-                          </button>
+                          pen || isScheduleOpen ? (
+                            <button
+                              type="button"
+                              onClick={() => setSelectedPeserta(p)}
+                              className={`inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition ${
+                                pen
+                                  ? "bg-sky-50 text-[#0284c7] border border-sky-200 hover:bg-[#0284c7] hover:text-white dark:bg-sky-950/60 dark:text-sky-300 dark:border-sky-800"
+                                  : "bg-[#0284c7] hover:bg-sky-700 text-white shadow-2xs"
+                              }`}
+                            >
+                              {pen ? (
+                                <>
+                                  <Edit3 className="w-3.5 h-3.5" />
+                                  <span>Edit Nilai</span>
+                                </>
+                              ) : (
+                                <>
+                                  <PlusCircle className="w-3.5 h-3.5" />
+                                  <span>Isi Nilai</span>
+                                </>
+                              )}
+                            </button>
+                          ) : (
+                            <span
+                              title={
+                                p.ratingSchedule?.openDateIso
+                                  ? `Penilaian dibuka mulai H-3 (${formatDateLongIndo(p.ratingSchedule.openDateIso)})`
+                                  : "Belum waktunya pengisian penilaian"
+                              }
+                              className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800/70"
+                            >
+                              <Lock className="w-3.5 h-3.5 shrink-0" />
+                              <span>
+                                {p.ratingSchedule?.reason === "inactive"
+                                  ? "Tidak Magang"
+                                  : p.ratingSchedule?.openDateIso
+                                    ? `Dibuka ${formatDateShort(p.ratingSchedule.openDateIso)}`
+                                    : "Belum Waktunya"}
+                              </span>
+                            </span>
+                          )
                         ) : (
                           <span className="inline-flex items-center px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-400">
                             Akun Belum Aktif

@@ -81,6 +81,14 @@ type PenilaianAkhirSummary = {
   tanggalPenilaian: string | null;
 };
 
+type PenilaianSchedule = {
+  canRate: boolean;
+  reason: "ok" | "too_early" | "inactive";
+  openDateIso: string | null;
+  todayIso?: string;
+  daysUntilOpen: number;
+};
+
 type EvaluasiSummary = {
   _id: string;
   status: "Menunggu" | "Revisi" | "Disetujui";
@@ -95,6 +103,7 @@ type EnrichedPeserta = Peserta & {
   feedbackStats: FeedbackStats;
   absensiStats?: AbsensiStats;
   penilaianAkhir?: PenilaianAkhirSummary | null;
+  penilaianSchedule?: PenilaianSchedule;
   evaluasi?: EvaluasiSummary | null;
 };
 
@@ -119,6 +128,8 @@ type DashboardSummary = {
   penilaianAkhirSudah?: number;
   penilaianAkhirBelum?: number;
   penilaianAkhirRataRata?: number | null;
+  penilaianSiapDinilai?: number;
+  penilaianBelumWaktunya?: number;
   evaluasiMenunggu?: number;
   evaluasiRevisi?: number;
   evaluasiDisetujui?: number;
@@ -396,6 +407,8 @@ export default function MentorDashboard() {
     penilaianAkhirSudah: 0,
     penilaianAkhirBelum: 0,
     penilaianAkhirRataRata: null,
+    penilaianSiapDinilai: 0,
+    penilaianBelumWaktunya: 0,
     evaluasiMenunggu: 0,
     evaluasiRevisi: 0,
     evaluasiDisetujui: 0,
@@ -404,6 +417,14 @@ export default function MentorDashboard() {
 
   const pesertaMenungguLogbookList = useMemo(
     () => pesertaList.filter((p) => p.logbookStats.menunggu > 0),
+    [pesertaList],
+  );
+
+  const pesertaSiapDinilaiList = useMemo(
+    () =>
+      pesertaList.filter(
+        (p) => !p.penilaianAkhir && Boolean(p.penilaianSchedule?.canRate),
+      ),
     [pesertaList],
   );
 
@@ -547,6 +568,48 @@ export default function MentorDashboard() {
 
       {/* ================= 2. PENGUMUMAN ================= */}
       <AnnouncementBox type="mentor" />
+
+      {/* ================= 2B. BANNER PENGISIAN NILAI AKHIR (H-3) ================= */}
+      {pesertaSiapDinilaiList.length > 0 && (
+        <div className="rounded-2xl border border-violet-300/80 dark:border-violet-700/70 bg-linear-to-r from-violet-50 via-indigo-50/90 to-sky-50 dark:from-violet-950/60 dark:via-indigo-950/50 dark:to-slate-900 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 shadow-2xs">
+          <div className="flex items-start gap-3.5 min-w-0">
+            <div className="w-11 h-11 rounded-xl bg-violet-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+              <Award className="w-5 h-5" />
+            </div>
+            <div className="min-w-0 space-y-1">
+              <p className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white">
+                Waktunya Mengisi Penilaian Akhir Magang
+              </p>
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                Terdapat{" "}
+                <span className="font-bold text-violet-700 dark:text-violet-300">
+                  {pesertaSiapDinilaiList.length} peserta bimbingan
+                </span>{" "}
+                yang sudah memasuki masa H-3 selesai magang dan siap dilakukan
+                pengisian nilai:{" "}
+                <span className="font-semibold text-slate-800 dark:text-slate-100">
+                  {pesertaSiapDinilaiList
+                    .slice(0, 3)
+                    .map((p) => p.nama.split(" ")[0])
+                    .join(", ")}
+                  {pesertaSiapDinilaiList.length > 3
+                    ? ` +${pesertaSiapDinilaiList.length - 3} lainnya`
+                    : ""}
+                </span>
+                .
+              </p>
+            </div>
+          </div>
+
+          <Link
+            href="/dashboard/mentor/ViewPenilaianAkhir"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-xs sm:text-sm font-bold shrink-0 shadow-xs transition"
+          >
+            <span>Isi Nilai Sekarang</span>
+            <ChevronRight className="w-4 h-4" />
+          </Link>
+        </div>
+      )}
 
       {/* ================= 3. KPI SUMMARY CARDS ================= */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1311,9 +1374,16 @@ function PesertaBimbinganCard({
                 {peserta.penilaianAkhir.keteranganRataRata || "Sudah Dinilai"}
               </span>
             </div>
+          ) : peserta.penilaianSchedule?.reason === "too_early" ? (
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold border bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700">
+              Dibuka{" "}
+              {peserta.penilaianSchedule.openDateIso
+                ? formatShortDate(peserta.penilaianSchedule.openDateIso)
+                : "H-3"}
+            </span>
           ) : (
             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold border bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800/70">
-              Belum Dinilai
+              Siap Dinilai
             </span>
           )}
         </div>

@@ -60,6 +60,13 @@ export type PesertaPenilaianItem = {
     averageScore: number | null;
   };
   penilaianAkhir?: ExistingPenilaianAkhir | null;
+  ratingSchedule?: {
+    canRate: boolean;
+    reason: "ok" | "too_early" | "inactive";
+    openDateIso: string | null;
+    todayIso?: string;
+    daysUntilOpen: number;
+  };
 };
 
 type AspectKey =
@@ -165,6 +172,9 @@ export default function MentorPenilaianAkhirModal({
   onSaved,
 }: Props) {
   const existing = peserta.penilaianAkhir;
+  const isScheduleLocked =
+    !readOnly && Boolean(peserta.ratingSchedule && !peserta.ratingSchedule.canRate);
+  const effectiveReadOnly = readOnly || isScheduleLocked;
   const [aspects, setAspects] = useState<FormAspectState>(() =>
     buildInitialAspects(existing, peserta.absensiRef?.averageScore),
   );
@@ -417,7 +427,7 @@ export default function MentorPenilaianAkhirModal({
   };
 
   const renderAspectRow = (key: AspectKey, label: string) => {
-    const isLocked = readOnly || key === "kehadiranTaatJadwal";
+    const isLocked = effectiveReadOnly || key === "kehadiranTaatJadwal";
     const isAutoAttendance = key === "kehadiranTaatJadwal";
 
     return (
@@ -497,7 +507,7 @@ export default function MentorPenilaianAkhirModal({
             </div>
             <div className="min-w-0">
               <h2 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white truncate">
-                {readOnly
+                {effectiveReadOnly
                   ? "Detail Penilaian Akhir Magang"
                   : existing
                     ? "Edit Penilaian Akhir Magang"
@@ -757,7 +767,7 @@ export default function MentorPenilaianAkhirModal({
               <label className="block text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
                 Kesan
               </label>
-              {readOnly ? (
+              {effectiveReadOnly ? (
                 <p className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/50 px-3.5 py-2.5 text-xs sm:text-sm text-slate-700 dark:text-slate-200 whitespace-pre-line leading-relaxed">
                   {kesan || "-"}
                 </p>
@@ -776,7 +786,7 @@ export default function MentorPenilaianAkhirModal({
               <label className="block text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
                 Saran
               </label>
-              {readOnly ? (
+              {effectiveReadOnly ? (
                 <p className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/50 px-3.5 py-2.5 text-xs sm:text-sm text-slate-700 dark:text-slate-200 whitespace-pre-line leading-relaxed">
                   {saran || "-"}
                 </p>
@@ -791,7 +801,7 @@ export default function MentorPenilaianAkhirModal({
               )}
             </div>
 
-            {readOnly ? (
+            {effectiveReadOnly ? (
               <div className="space-y-3">
                 {(existing?.penilaiNip || peserta.mentorNip) && (
                   <div className="text-xs text-slate-600 dark:text-slate-300">
@@ -886,11 +896,16 @@ export default function MentorPenilaianAkhirModal({
 
         {/* FOOTER */}
         <div className="px-5 sm:px-6 py-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3">
-          {readOnly ? (
+          {effectiveReadOnly ? (
             <>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Mode pantau Admin / Superadmin (hanya Mentor pembimbing yang
-                dapat mengisi atau mengubah nilai).
+                {isScheduleLocked
+                  ? `Pengisian penilaian akhir hanya dibuka mulai H-3 sebelum selesai magang${
+                      peserta.ratingSchedule?.openDateIso
+                        ? ` (${formatDateIndo(peserta.ratingSchedule.openDateIso)})`
+                        : ""
+                    }.`
+                  : "Mode pantau Admin / Superadmin (hanya Mentor pembimbing yang dapat mengisi atau mengubah nilai)."}
               </p>
               <button
                 type="button"
