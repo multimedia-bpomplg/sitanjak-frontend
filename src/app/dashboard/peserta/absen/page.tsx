@@ -29,9 +29,9 @@ import { PesertaDashboardSkeleton } from "@/components/dashboard/skeletons";
 
 // Koordinat Kantor Balai Besar POM di Palembang (Jl. Pangeran Ratu, 5 Ulu, Seberang Ulu I, Palembang)
 const BBPOM_PALEMBANG_COORD = {
-  lat: -3.012694,
-  lng: 104.774716,
-  radiusMeters: 400,
+  lat: -3.0220638,
+  lng: 104.7736571,
+  radiusMeters: 200,
   defaultAddress:
     "Balai Besar POM di Palembang, Jl. Pangeran Ratu, 5 Ulu, Kec. Seberang Ulu I, Kota Palembang, Sumatera Selatan 30254",
 };
@@ -902,7 +902,8 @@ export default function AbsenPesertaPage() {
     }
   };
 
-  // Calibrate to BBPOM Palembang office coordinates (for PC/Laptop whose IP ISP location drifts)
+  // [DINONAKTIFKAN] Calibrate to BBPOM Palembang office coordinates (for PC/Laptop whose IP ISP location drifts)
+  /*
   const calibrateToBpomOffice = () => {
     setGpsError(null);
     setGpsLocation({
@@ -918,6 +919,7 @@ export default function AbsenPesertaPage() {
       "Titik lokasi dikalibrasi ke Kantor BBPOM di Palembang 📍",
     );
   };
+  */
 
   // Build OpenStreetMap embed bbox around locked coordinates
   const mapEmbedUrl = useMemo(() => {
@@ -1208,7 +1210,7 @@ export default function AbsenPesertaPage() {
               Hari Ini Adalah Hari Libur
             </h2>
             <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
-              Hari ini ({holidayReasonLabel}) termasuk jadwal libur sehingga Anda tidak perlu melakukan Check-In, Check-Out, maupun pengajuan Izin. Hari libur tidak mengurangi nilai Kehadiran &amp; Taat Jadwal pada Penilaian Akhir.
+              Hari ini ({holidayReasonLabel}) termasuk jadwal libur sehingga Anda tidak perlu melakukan Check-In, Check-Out, maupun pengajuan Izin.
             </p>
           </div>
           <div className="pt-1">
@@ -1728,7 +1730,8 @@ export default function AbsenPesertaPage() {
                         </span>
                       </div>
 
-                      {!gpsLocation.isInsideBpom &&
+                      {/* [DINONAKTIFKAN] Fitur Set Titik Kantor BBPOM untuk kalibrasi PC/Laptop */}
+                      {/* {!gpsLocation.isInsideBpom &&
                         selectedMode === "masuk" &&
                         record.attendanceMode !== "wfh" && (
                         <div className="pt-1">
@@ -1747,7 +1750,7 @@ export default function AbsenPesertaPage() {
                             </button>
                           </div>
                         </div>
-                      )}
+                      )} */}
                     </div>
                   </div>
                 ) : null}
