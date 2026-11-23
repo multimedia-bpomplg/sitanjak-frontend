@@ -2,9 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  ArcElement,
   Chart as ChartJS,
   ChartData,
   ChartOptions,
+  Plugin,
   registerables,
 } from "chart.js";
 import { Bar, Doughnut, Line, Pie } from "react-chartjs-2";
@@ -159,12 +161,69 @@ export default function SuperadminOversistemDashboard() {
   const [selectedMonth, setSelectedMonth] = useState<number>(
     () => new Date().getMonth() + 1,
   );
+  const [breakdownYear, setBreakdownYear] = useState<number | "all">("all");
+  const [breakdownMonth, setBreakdownMonth] = useState<number | "all">("all");
+  const [breakdownLoading, setBreakdownLoading] = useState(false);
   const [availableYears, setAvailableYears] = useState<number[]>(() => [
     new Date().getFullYear(),
   ]);
   const [lastUpdated, setLastUpdated] = useState<string>("");
 
   /* ================= FETCH ================= */
+
+  const fetchBreakdownStats = useCallback(async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      if (isMountedRef.current) setBreakdownLoading(true);
+
+      const params = new URLSearchParams();
+      if (breakdownYear !== "all") params.set("year", String(breakdownYear));
+      if (breakdownMonth !== "all") params.set("month", String(breakdownMonth));
+      const qs = params.toString() ? `?${params.toString()}` : "";
+
+      const headers = { Authorization: `Bearer ${token}` };
+      const [posisiRes, asalRes, genderRes, selesaiRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/oversistem/statistik/posisi${qs}`, {
+          headers,
+          cache: "no-store",
+        }),
+        fetch(`${API_BASE_URL}/oversistem/statistik/asal${qs}`, {
+          headers,
+          cache: "no-store",
+        }),
+        fetch(`${API_BASE_URL}/oversistem/statistik/gender${qs}`, {
+          headers,
+          cache: "no-store",
+        }),
+        fetch(`${API_BASE_URL}/oversistem/statistik/selesai${qs}`, {
+          headers,
+          cache: "no-store",
+        }),
+      ]);
+
+      if (!isMountedRef.current) return;
+
+      const [posisiData, asalData, genderData, selesaiData] = await Promise.all([
+        posisiRes.ok ? posisiRes.json() : [],
+        asalRes.ok ? asalRes.json() : [],
+        genderRes.ok ? genderRes.json() : [],
+        selesaiRes.ok ? selesaiRes.json() : [],
+      ]);
+
+      if (!isMountedRef.current) return;
+
+      setStatistikPosisi(Array.isArray(posisiData) ? posisiData : []);
+      setStatistikAsal(Array.isArray(asalData) ? asalData : []);
+      setStatistikGender(Array.isArray(genderData) ? genderData : []);
+      setStatistikSelesai(Array.isArray(selesaiData) ? selesaiData : []);
+    } catch {
+      // Keep existing state on transient error
+    } finally {
+      if (isMountedRef.current) setBreakdownLoading(false);
+    }
+  }, [breakdownYear, breakdownMonth]);
 
   const fetchAllData = useCallback(
     async (isManual = false) => {
@@ -183,9 +242,7 @@ export default function SuperadminOversistemDashboard() {
         }
 
         const headers = { Authorization: `Bearer ${token}` };
-        const needsDaily =
-          (activeTab === "logbook" || activeTab === "pendaftaran") &&
-          dataMode === "daily";
+        const needsDaily = dataMode === "daily";
 
         const [
           statsRes,
@@ -193,7 +250,6 @@ export default function SuperadminOversistemDashboard() {
           detailedRes,
           lbStatsRes,
           pendStatsRes,
-          selesaiRes,
           yearsRes,
         ] = await Promise.all([
           fetch(`${API_BASE_URL}/oversistem/stats`, {
@@ -218,10 +274,6 @@ export default function SuperadminOversistemDashboard() {
             `${API_BASE_URL}/oversistem/statistik/pendaftaran?year=${selectedYear}`,
             { headers, cache: "no-store" },
           ),
-          fetch(`${API_BASE_URL}/oversistem/statistik/selesai`, {
-            headers,
-            cache: "no-store",
-          }),
           fetch(`${API_BASE_URL}/oversistem/years`, {
             headers,
             cache: "no-store",
@@ -243,9 +295,6 @@ export default function SuperadminOversistemDashboard() {
             totalLogbook: statsData.totalLogbook || 0,
             lastUpdated: new Date().toISOString(),
           });
-          setStatistikPosisi(statsData.statistikPosisi || []);
-          setStatistikAsal(statsData.statistikAsal || []);
-          setStatistikGender(statsData.statistikGender || []);
           setApiStatus("connected");
         } else {
           setApiStatus("disconnected");
@@ -279,11 +328,14 @@ export default function SuperadminOversistemDashboard() {
         setPendaftaranStats(
           pendStatsRes.ok ? await pendStatsRes.json() : null,
         );
-        setStatistikSelesai(selesaiRes.ok ? await selesaiRes.json() : []);
 
         if (yearsRes.ok) {
           const yrs = await yearsRes.json();
           if (Array.isArray(yrs) && yrs.length > 0) setAvailableYears(yrs);
+        }
+
+        if (isManual) {
+          await fetchBreakdownStats();
         }
 
         setLastUpdated(format(new Date(), "HH:mm:ss"));
@@ -298,7 +350,7 @@ export default function SuperadminOversistemDashboard() {
         }
       }
     },
-    [selectedYear, selectedMonth, activeTab, dataMode],
+    [selectedYear, selectedMonth, dataMode, fetchBreakdownStats],
   );
 
   useEffect(() => {
@@ -317,13 +369,27 @@ export default function SuperadminOversistemDashboard() {
     };
   }, [fetchAllData]);
 
+  useEffect(() => {
+    fetchBreakdownStats();
+  }, [fetchBreakdownStats]);
+
   /* ================= CHART SOURCE & CONFIG ================= */
 
-  const useDailySource =
-    (activeTab === "logbook" || activeTab === "pendaftaran") &&
-    dataMode === "daily";
+  const useDailySource = dataMode === "daily";
 
-  const activeSourceData = useDailySource ? detailedData : rawData;
+  const activeSourceData = useMemo(() => {
+    if (!useDailySource) return rawData;
+    if (activeTab === "pendaftaran" || activeTab === "logbook") {
+      return detailedData.filter(
+        (row) => (row.pendaftaran || 0) > 0 || (row.logbook || 0) > 0,
+      );
+    }
+    return detailedData.filter((row) => {
+      if (activeTab === "peserta") return (row.peserta_aktif || 0) > 0;
+      if (activeTab === "mentor") return (row.mentor_aktif || 0) > 0;
+      return (row.admin_aktif || 0) > 0;
+    });
+  }, [useDailySource, activeTab, rawData, detailedData]);
 
   const activeTabMeta = useMemo(() => {
     const meta: Record<ActiveTab, { label: string; color: string }> = {
@@ -459,11 +525,119 @@ export default function SuperadminOversistemDashboard() {
     },
   };
 
+  const formatPercent = (value: number, total: number) => {
+    if (total <= 0) return "0%";
+    const pct = (value / total) * 100;
+    return `${pct.toFixed(1).replace(/\.0$/, "")}%`;
+  };
+
+  const piePercentagePlugin: Plugin<"pie"> = {
+    id: "piePercentageLabels",
+    afterDatasetsDraw(chart) {
+      const { ctx } = chart;
+      const dataset = chart.data.datasets[0];
+      const meta = chart.getDatasetMeta(0);
+      if (!dataset || !meta?.data?.length) return;
+
+      const values = dataset.data.map((val, idx) =>
+        chart.getDataVisibility(idx) ? Number(val) || 0 : 0,
+      );
+      const total = values.reduce((sum, v) => sum + v, 0);
+      if (total <= 0) return;
+
+      meta.data.forEach((element, idx) => {
+        if (!chart.getDataVisibility(idx)) return;
+        const value = values[idx];
+        if (value <= 0) return;
+
+        const pct = (value / total) * 100;
+        if (pct < 4) return;
+
+        const arc = element as unknown as ArcElement;
+        const { x: cx, y: cy, startAngle, endAngle, innerRadius, outerRadius } =
+          arc.getProps(
+            [
+              "x",
+              "y",
+              "startAngle",
+              "endAngle",
+              "innerRadius",
+              "outerRadius",
+            ],
+            true,
+          );
+
+        if (cx === null || cy === null) return;
+
+        const midAngle = (startAngle + endAngle) / 2;
+        const radius =
+          innerRadius > 0
+            ? (innerRadius + outerRadius) / 2
+            : outerRadius * 0.64;
+        const x = cx + Math.cos(midAngle) * radius;
+        const y = cy + Math.sin(midAngle) * radius;
+        const label = formatPercent(value, total);
+
+        ctx.save();
+        ctx.font = "700 11px Plus Jakarta Sans, Inter, system-ui, sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = "rgba(15, 23, 42, 0.55)";
+        ctx.strokeText(label, x, y);
+        ctx.fillStyle = "#ffffff";
+        ctx.fillText(label, x, y);
+        ctx.restore();
+      });
+    },
+  };
+
   const pieOptions: ChartOptions<"pie"> = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { position: "right" },
+      legend: {
+        position: "right",
+        labels: {
+          generateLabels(chart) {
+            const defaultItems =
+              ChartJS.overrides.pie.plugins.legend.labels.generateLabels(chart);
+            const dataset = chart.data.datasets[0];
+            if (!dataset) return defaultItems;
+
+            const values = dataset.data.map((val, idx) =>
+              chart.getDataVisibility(idx) ? Number(val) || 0 : 0,
+            );
+            const total = values.reduce((sum, v) => sum + v, 0);
+
+            return defaultItems.map((item) => {
+              const idx = item.index ?? 0;
+              const val = Number(dataset.data[idx]) || 0;
+              const pctText = chart.getDataVisibility(idx)
+                ? formatPercent(val, total)
+                : "0%";
+              return {
+                ...item,
+                text: `${item.text} (${pctText})`,
+              };
+            });
+          },
+        },
+      },
+      tooltip: {
+        callbacks: {
+          label(context) {
+            const dataset = context.dataset;
+            const values = dataset.data.map((val, idx) =>
+              context.chart.getDataVisibility(idx) ? Number(val) || 0 : 0,
+            );
+            const total = values.reduce((sum, v) => sum + v, 0);
+            const val = Number(context.parsed) || 0;
+            const label = context.label || "";
+            return ` ${label}: ${val} (${formatPercent(val, total)})`;
+          },
+        },
+      },
     },
   };
 
@@ -834,18 +1008,16 @@ export default function SuperadminOversistemDashboard() {
 
           {/* Right Filters */}
           <div className="flex flex-wrap items-center gap-2">
-            {(activeTab === "logbook" || activeTab === "pendaftaran") && (
-              <select
-                value={dataMode}
-                onChange={(e) =>
-                  setDataMode(e.target.value as "monthly" | "daily")
-                }
-                className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200"
-              >
-                <option value="monthly">Mode Bulanan</option>
-                <option value="daily">Mode Harian</option>
-              </select>
-            )}
+            <select
+              value={dataMode}
+              onChange={(e) =>
+                setDataMode(e.target.value as "monthly" | "daily")
+              }
+              className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200"
+            >
+              <option value="monthly">Mode Bulanan</option>
+              <option value="daily">Mode Harian</option>
+            </select>
 
             {useDailySource && (
               <select
@@ -909,11 +1081,16 @@ export default function SuperadminOversistemDashboard() {
                 options={lineChartOptions}
               />
             ) : chartType === "pie" ? (
-              <Pie data={pieOrDoughnutSeriesData} options={pieOptions} />
+              <Pie
+                data={pieOrDoughnutSeriesData}
+                options={pieOptions}
+                plugins={[piePercentagePlugin]}
+              />
             ) : (
               <Doughnut
                 data={pieOrDoughnutSeriesData as ChartData<"doughnut">}
                 options={pieOptions as ChartOptions<"doughnut">}
+                plugins={[piePercentagePlugin as unknown as Plugin<"doughnut">]}
               />
             )}
           </div>
@@ -924,7 +1101,7 @@ export default function SuperadminOversistemDashboard() {
                   new Date(selectedYear, selectedMonth - 1, 1),
                   "MMMM yyyy",
                   { locale: localeId },
-                )} • ${detailedData.length} hari tercatat`
+                )} • ${activeSourceData.length} hari tercatat`
               : `Menampilkan data bulanan tahun ${selectedYear} • ${rawData.length} bulan tercatat`}
           </p>
         </div>
@@ -1068,7 +1245,92 @@ export default function SuperadminOversistemDashboard() {
       )}
 
       {/* ================= 4 BREAKDOWN CHARTS ================= */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="space-y-4">
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-xs">
+          <div>
+            <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <PieChart className="w-4 h-4 text-[#0284c7]" />
+              <span>Statistik Breakdown Peserta</span>
+              {breakdownLoading && (
+                <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#0284c7]" />
+              )}
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Periode:{" "}
+              <span className="font-semibold text-slate-700 dark:text-slate-200">
+                {breakdownMonth !== "all" && breakdownYear !== "all"
+                  ? `${format(new Date(breakdownYear, breakdownMonth - 1, 1), "MMMM yyyy", { locale: localeId })}`
+                  : breakdownMonth !== "all"
+                    ? `Bulan ${format(new Date(2025, breakdownMonth - 1, 1), "MMMM", { locale: localeId })} (Semua Tahun)`
+                    : breakdownYear !== "all"
+                      ? `Tahun ${breakdownYear}`
+                      : "Semua Periode"}
+              </span>
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              aria-label="Filter bulan breakdown"
+              value={breakdownMonth}
+              onChange={(e) =>
+                setBreakdownMonth(
+                  e.target.value === "all" ? "all" : Number(e.target.value),
+                )
+              }
+              className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200"
+            >
+              <option value="all">Semua Bulan</option>
+              {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => (
+                <option key={month} value={month}>
+                  {format(new Date(2025, month - 1, 1), "MMMM", {
+                    locale: localeId,
+                  })}
+                </option>
+              ))}
+            </select>
+
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+              <Calendar className="w-3.5 h-3.5 text-[#0284c7]" />
+              <select
+                aria-label="Filter tahun breakdown"
+                value={breakdownYear}
+                onChange={(e) =>
+                  setBreakdownYear(
+                    e.target.value === "all" ? "all" : Number(e.target.value),
+                  )
+                }
+                className="text-xs font-semibold bg-transparent text-slate-700 dark:text-slate-200 focus:outline-none"
+              >
+                <option value="all">Semua Tahun</option>
+                {availableYears.map((yr) => (
+                  <option key={yr} value={yr}>
+                    {yr}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {(breakdownYear !== "all" || breakdownMonth !== "all") && (
+              <button
+                type="button"
+                onClick={() => {
+                  setBreakdownYear("all");
+                  setBreakdownMonth("all");
+                }}
+                className="px-3 py-1.5 rounded-xl text-xs font-semibold text-[#0284c7] bg-sky-50 hover:bg-sky-100 dark:bg-sky-950/50 dark:text-sky-300 dark:hover:bg-sky-950 border border-sky-200 dark:border-sky-800 transition"
+              >
+                Reset
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div
+          className={`grid grid-cols-1 lg:grid-cols-2 gap-6 transition-opacity ${
+            breakdownLoading ? "opacity-60" : "opacity-100"
+          }`}
+        >
         <BreakdownCard
           title="Posisi Magang"
           total={statistikPosisi.reduce((s, x) => s + x.count, 0)}
@@ -1090,6 +1352,7 @@ export default function SuperadminOversistemDashboard() {
               ],
             }}
             options={pieOptions}
+            plugins={[piePercentagePlugin]}
           />
         </BreakdownCard>
 
@@ -1114,6 +1377,7 @@ export default function SuperadminOversistemDashboard() {
               ],
             }}
             options={pieOptions as ChartOptions<"doughnut">}
+            plugins={[piePercentagePlugin as unknown as Plugin<"doughnut">]}
           />
         </BreakdownCard>
 
@@ -1140,6 +1404,7 @@ export default function SuperadminOversistemDashboard() {
               ],
             }}
             options={pieOptions}
+            plugins={[piePercentagePlugin]}
           />
         </BreakdownCard>
 
@@ -1172,6 +1437,7 @@ export default function SuperadminOversistemDashboard() {
             }}
           />
         </BreakdownCard>
+        </div>
       </div>
 
       {/* ================= TIME SERIES TABLE ================= */}
