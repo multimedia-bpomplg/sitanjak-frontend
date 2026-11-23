@@ -22,6 +22,7 @@ import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { PesertaDashboardSkeleton } from "@/components/dashboard/skeletons";
 import { isPkpaPeserta } from "@/lib/pesertaKategori";
 import { InstallAppCard } from "@/components/peserta/InstallAppCard";
+import { PesertaAvatar } from "@/components/peserta/PesertaAvatar";
 import { clearAuthSession } from "@/lib/authSession";
 import {
   getDevicePushStatus,
@@ -37,6 +38,7 @@ type Peserta = {
   posisi: string;
   jurusan?: string;
   kategoriMagang?: "PKPA" | "Reguler";
+  jenisKelamin?: string;
   tanggalMulaiMagang: string;
   tanggalSelesaiMagang: string;
   kota?: string;
@@ -68,15 +70,6 @@ type SuratSelesai = {
 
 const GUIDE_URL =
   "https://docs.google.com/document/d/1kBAVAJvKjtcx0jiZq1xnZ0nlhiGMcVJtobQeX6nQwWU/edit?usp=sharing";
-
-const getInitial = (nama = "-") =>
-  nama
-    .split(" ")
-    .filter(Boolean)
-    .map((n) => n[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
 
 function formatPeriodDate(dateStr?: string): string {
   if (!dateStr) return "-";
@@ -402,9 +395,11 @@ export default function AkunPesertaPage() {
         </div>
 
         <div className="relative z-10 flex items-center gap-4 sm:gap-5">
-          <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-full bg-linear-to-br from-[#FDE68A] via-[#F59E0B] to-[#D97706] border-2 border-amber-200/80 text-[#0B2A6B] font-extrabold text-xl sm:text-2xl flex items-center justify-center shrink-0 shadow-md">
-            {getInitial(peserta?.nama || "P")}
-          </div>
+          <PesertaAvatar
+            nama={peserta?.nama || "P"}
+            jenisKelamin={peserta?.jenisKelamin}
+            className="w-16 h-16 sm:w-18 sm:h-18 bg-linear-to-br from-[#FDE68A] via-[#F59E0B] to-[#D97706] border-2 border-amber-200/80 text-[#0B2A6B] text-xl sm:text-2xl shadow-md"
+          />
 
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap pr-12 sm:pr-14">

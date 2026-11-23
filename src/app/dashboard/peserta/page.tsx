@@ -19,6 +19,7 @@ import { PesertaDashboardSkeleton } from "@/components/dashboard/skeletons";
 import { isPkpaPeserta } from "@/lib/pesertaKategori";
 import { usePwa } from "@/components/pwa/PwaProvider";
 import { InstallAppModal } from "@/components/peserta/InstallAppModal";
+import { PesertaAvatar } from "@/components/peserta/PesertaAvatar";
 import { clearAuthSession, parseJwtPayload } from "@/lib/authSession";
 
 /* ================= TYPES ================= */
@@ -103,15 +104,6 @@ function formatFullTodayDate(date: Date): string {
     year: "numeric",
   });
 }
-
-const getInitial = (nama = "-") =>
-  nama
-    .split(" ")
-    .filter(Boolean)
-    .map((n) => n[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
 
 export default function PesertaDashboard() {
   const [pendaftaran, setPendaftaran] = useState<Pendaftaran | null>(null);
@@ -459,9 +451,13 @@ export default function PesertaDashboard() {
         <Link
           href="/dashboard/peserta/ganti-password"
           title="Akun Peserta"
-          className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-linear-to-br from-[#0284c7] via-sky-600 to-blue-700 dark:from-[#0369a1] dark:to-blue-800 text-white font-bold text-sm flex items-center justify-center shrink-0 ring-2 ring-white dark:ring-slate-800 shadow-sm hover:opacity-95 transition"
+          className="rounded-full shrink-0 hover:opacity-95 transition"
         >
-          {getInitial(displayNama)}
+          <PesertaAvatar
+            nama={displayNama}
+            jenisKelamin={peserta?.jenisKelamin}
+            className="w-10 h-10 sm:w-12 sm:h-12 bg-linear-to-br from-[#0284c7] via-sky-600 to-blue-700 dark:from-[#0369a1] dark:to-blue-800 text-white font-bold text-sm ring-2 ring-white dark:ring-slate-800 shadow-sm"
+          />
         </Link>
       </div>
 
