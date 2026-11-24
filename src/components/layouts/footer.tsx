@@ -297,19 +297,33 @@ export default function Footer() {
             © {currentYear} <span className="font-semibold text-white">SITANJAK V2.0</span> • BBPOM di Palembang. Hak Cipta Dilindungi.
           </p>
 
-          <Link
-            href="/aboutdev"
-            className="
-              inline-flex items-center gap-1.5 px-3 py-1 rounded-full
-              bg-white/10 hover:bg-[#0088FF]/30 border border-white/15
-              text-white/90 hover:text-sky-200
-              transition-colors group
-            "
-          >
-            <span>Dikembangkan oleh</span>
-            <strong className="font-semibold underline">Tim Pengembang</strong>
-            <HiHeart className="w-3 h-3 text-rose-400 group-hover:scale-125 transition-transform" />
-          </Link>
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <span className="text-slate-300">Dikembangkan oleh</span>
+            <Link
+              href="/aboutdev"
+              className="
+                inline-flex items-center gap-1.5 px-3 py-1 rounded-full
+                bg-white/10 hover:bg-[#0088FF]/30 border border-white/15
+                text-white/90 hover:text-sky-200
+                transition-colors group
+              "
+            >
+              <strong className="font-semibold underline">Tim Pengembang v1</strong>
+              <HiHeart className="w-3 h-3 text-rose-400 group-hover:scale-125 transition-transform" />
+            </Link>
+            <Link
+              href="/aboutdev-v2"
+              className="
+                inline-flex items-center gap-1.5 px-3 py-1 rounded-full
+                bg-white/10 hover:bg-[#0088FF]/30 border border-white/15
+                text-white/90 hover:text-sky-200
+                transition-colors group
+              "
+            >
+              <strong className="font-semibold underline">Tim Pengembang v2</strong>
+              <HiHeart className="w-3 h-3 text-sky-400 group-hover:scale-125 transition-transform" />
+            </Link>
+          </div>
         </div>
 
       </div>

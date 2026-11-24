@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Award,
@@ -16,6 +17,7 @@ import {
   Eye,
   EyeOff,
   Lock,
+  Code2,
 } from "lucide-react";
 import { showToast } from "@/components/ui/toastDashboard";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
@@ -815,7 +817,28 @@ export default function AkunPesertaPage() {
         </button>
       </div>
 
-      {/* ================= 8. TOMBOL KELUAR DARI AKUN ================= */}
+      {/* ================= 9. CARD TIM PENGEMBANG ================= */}
+      <Link
+        href="/aboutdev-v2"
+        className="rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 p-4 sm:p-5 flex items-center justify-between gap-3 shadow-2xs hover:bg-slate-50/70 dark:hover:bg-slate-700/40 transition"
+      >
+        <div className="flex items-center gap-3 sm:gap-3.5 min-w-0">
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-[#1D64F2] dark:text-blue-400 flex items-center justify-center shrink-0">
+            <Code2 className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-base font-bold text-slate-900 dark:text-white">
+              Tim Pengembang V2.0
+            </p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-snug">
+              Kenali tim pengembang di balik SI TANJAK.
+            </p>
+          </div>
+        </div>
+        <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400 shrink-0" />
+      </Link>
+
+      {/* ================= 10. TOMBOL KELUAR DARI AKUN ================= */}
       <button
         type="button"
         onClick={handleLogout}
