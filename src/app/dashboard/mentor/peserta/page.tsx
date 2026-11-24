@@ -7,6 +7,7 @@ import {
   Calendar,
   CheckCircle2,
   Clock,
+  Download,
   Eye,
   Mail,
   Phone,
@@ -16,7 +17,9 @@ import {
 } from "lucide-react";
 import PesertaDetailModal from "@/components/peserta/PesertaDetailModal";
 import { TablePageSkeleton } from "@/components/dashboard/skeletons";
+import { showToast } from "@/components/ui/toastDashboard";
 import { isPkpaPeserta } from "@/lib/pesertaKategori";
+import { downloadPesertaLengkapPdf } from "@/lib/pesertaPdf";
 import type { Peserta } from "@/types/peserta";
 
 type InternshipPhase =
@@ -26,6 +29,23 @@ type InternshipPhase =
   | "tidak_magang";
 
 type FilterPhase = "semua" | "sedang_magang" | "belum_mulai" | "selesai";
+type FilterBulan = "semua" | number;
+type FilterTahun = "semua" | number;
+
+const BULAN_OPTIONS: Array<{ value: number; label: string }> = [
+  { value: 1, label: "Januari" },
+  { value: 2, label: "Februari" },
+  { value: 3, label: "Maret" },
+  { value: 4, label: "April" },
+  { value: 5, label: "Mei" },
+  { value: 6, label: "Juni" },
+  { value: 7, label: "Juli" },
+  { value: 8, label: "Agustus" },
+  { value: 9, label: "September" },
+  { value: 10, label: "Oktober" },
+  { value: 11, label: "November" },
+  { value: 12, label: "Desember" },
+];
 
 type PesertaRow = Peserta & {
   phase?: InternshipPhase;
@@ -39,6 +59,11 @@ type PesertaRow = Peserta & {
 };
 
 type SummaryResponse = {
+  mentor?: {
+    name: string;
+    email: string;
+    posisiMentor?: string;
+  } | null;
   summary: {
     totalPeserta: number;
     sedangMagang: number;
@@ -72,6 +97,77 @@ function formatShortDate(dateStr?: string): string {
     month: "short",
     year: "numeric",
   });
+}
+
+function extractYearMonth(
+  dateStr?: string,
+): { year: number; month: number } | null {
+  if (!dateStr) return null;
+  const isoMatch = /^(\d{4})-(\d{2})-(\d{2})/.exec(dateStr.trim());
+  if (isoMatch) {
+    return {
+      year: Number(isoMatch[1]),
+      month: Number(isoMatch[2]),
+    };
+  }
+  const parsed = new Date(dateStr);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return {
+    year: parsed.getFullYear(),
+    month: parsed.getMonth() + 1,
+  };
+}
+
+function getPesertaYearMonthRange(
+  peserta: Pick<Peserta, "tanggalMulaiMagang" | "tanggalSelesaiMagang">,
+): { minYm: number; maxYm: number } | null {
+  const start = extractYearMonth(peserta.tanggalMulaiMagang);
+  const end = extractYearMonth(peserta.tanggalSelesaiMagang);
+  if (!start && !end) return null;
+
+  const s = start ?? end!;
+  const e = end ?? start!;
+  const sYm = s.year * 12 + (s.month - 1);
+  const eYm = e.year * 12 + (e.month - 1);
+  return {
+    minYm: Math.min(sYm, eYm),
+    maxYm: Math.max(sYm, eYm),
+  };
+}
+
+function matchesPeriodeFilter(
+  peserta: Pick<Peserta, "tanggalMulaiMagang" | "tanggalSelesaiMagang">,
+  bulan: FilterBulan,
+  tahun: FilterTahun,
+): boolean {
+  if (bulan === "semua" && tahun === "semua") return true;
+
+  const range = getPesertaYearMonthRange(peserta);
+  if (!range) return false;
+
+  const { minYm, maxYm } = range;
+
+  if (tahun !== "semua" && bulan !== "semua") {
+    const targetYm = tahun * 12 + (bulan - 1);
+    return targetYm >= minYm && targetYm <= maxYm;
+  }
+
+  if (tahun !== "semua") {
+    const yearStartYm = tahun * 12;
+    const yearEndYm = tahun * 12 + 11;
+    return maxYm >= yearStartYm && minYm <= yearEndYm;
+  }
+
+  if (maxYm - minYm >= 11) return true;
+  const startYear = Math.floor(minYm / 12);
+  const endYear = Math.floor(maxYm / 12);
+  for (let y = startYear; y <= endYear; y++) {
+    const candidateYm = y * 12 + ((bulan as number) - 1);
+    if (candidateYm >= minYm && candidateYm <= maxYm) {
+      return true;
+    }
+  }
+  return false;
 }
 
 function getPhaseBadge(phase?: InternshipPhase) {
@@ -111,6 +207,7 @@ function getPhaseBadge(phase?: InternshipPhase) {
 
 export default function MentorPesertaPage() {
   const [data, setData] = useState<PesertaRow[]>([]);
+  const [mentorInfo, setMentorInfo] = useState<SummaryResponse["mentor"]>(null);
   const [summary, setSummary] = useState<SummaryResponse["summary"]>({
     totalPeserta: 0,
     sedangMagang: 0,
@@ -119,10 +216,13 @@ export default function MentorPesertaPage() {
     pesertaDenganLogbookMenunggu: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [exportingPdf, setExportingPdf] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [activePhase, setActivePhase] = useState<FilterPhase>("semua");
+  const [filterBulan, setFilterBulan] = useState<FilterBulan>("semua");
+  const [filterTahun, setFilterTahun] = useState<FilterTahun>("semua");
   const [page, setPage] = useState(1);
 
   const [openModal, setOpenModal] = useState(false);
@@ -146,6 +246,7 @@ export default function MentorPesertaPage() {
 
       const json: SummaryResponse = await res.json();
       const list = json.peserta || [];
+      setMentorInfo(json.mentor || null);
       setData(list);
       setSummary(
         json.summary || {
@@ -187,9 +288,29 @@ export default function MentorPesertaPage() {
     fetchPeserta();
   }, [fetchPeserta]);
 
+  const availableYears = useMemo(() => {
+    const years = new Set<number>([new Date().getFullYear()]);
+    for (const p of data) {
+      const range = getPesertaYearMonthRange(p);
+      if (!range) continue;
+      const startYear = Math.floor(range.minYm / 12);
+      const endYear = Math.floor(range.maxYm / 12);
+      for (let y = startYear; y <= endYear; y++) {
+        years.add(y);
+      }
+    }
+    return Array.from(years).sort((a, b) => b - a);
+  }, [data]);
+
+  const periodFilteredData = useMemo(() => {
+    return data.filter((p) =>
+      matchesPeriodeFilter(p, filterBulan, filterTahun),
+    );
+  }, [data, filterBulan, filterTahun]);
+
   const filteredData = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    return data.filter((p) => {
+    return periodFilteredData.filter((p) => {
       if (activePhase !== "semua" && p.phase !== activePhase) {
         return false;
       }
@@ -202,17 +323,25 @@ export default function MentorPesertaPage() {
         p.asal?.nama?.toLowerCase().includes(q)
       );
     });
-  }, [data, activePhase, searchQuery]);
+  }, [periodFilteredData, activePhase, searchQuery]);
 
-  useEffect(() => {
+  const handleResetFilters = () => {
+    setSearchQuery("");
+    setActivePhase("semua");
+    setFilterBulan("semua");
+    setFilterTahun("semua");
     setPage(1);
-  }, [activePhase, searchQuery]);
+  };
 
   const totalPage = Math.max(1, Math.ceil(filteredData.length / ITEMS_PER_PAGE));
+  const safePage = Math.min(page, totalPage);
   const paginatedData = filteredData.slice(
-    (page - 1) * ITEMS_PER_PAGE,
-    page * ITEMS_PER_PAGE,
+    (safePage - 1) * ITEMS_PER_PAGE,
+    safePage * ITEMS_PER_PAGE,
   );
+  const hasPeriodFilter = filterBulan !== "semua" || filterTahun !== "semua";
+  const hasActiveFilters =
+    Boolean(searchQuery.trim()) || activePhase !== "semua" || hasPeriodFilter;
 
   const handleOpenDetail = (peserta: PesertaRow) => {
     setSelectedPeserta(peserta);
@@ -256,10 +385,32 @@ export default function MentorPesertaPage() {
   }
 
   const filterTabs: Array<{ id: FilterPhase; label: string; count: number }> = [
-    { id: "semua", label: "Semua", count: summary.totalPeserta },
-    { id: "sedang_magang", label: "Sedang Magang", count: summary.sedangMagang },
-    { id: "belum_mulai", label: "Belum Mulai", count: summary.belumMulai },
-    { id: "selesai", label: "Selesai", count: summary.selesaiMagang },
+    {
+      id: "semua",
+      label: "Semua",
+      count: hasPeriodFilter ? periodFilteredData.length : summary.totalPeserta,
+    },
+    {
+      id: "sedang_magang",
+      label: "Sedang Magang",
+      count: hasPeriodFilter
+        ? periodFilteredData.filter((p) => p.phase === "sedang_magang").length
+        : summary.sedangMagang,
+    },
+    {
+      id: "belum_mulai",
+      label: "Belum Mulai",
+      count: hasPeriodFilter
+        ? periodFilteredData.filter((p) => p.phase === "belum_mulai").length
+        : summary.belumMulai,
+    },
+    {
+      id: "selesai",
+      label: "Selesai",
+      count: hasPeriodFilter
+        ? periodFilteredData.filter((p) => p.phase === "selesai").length
+        : summary.selesaiMagang,
+    },
   ];
 
   return (
@@ -275,13 +426,74 @@ export default function MentorPesertaPage() {
           </p>
         </div>
 
-        <button
-          onClick={fetchPeserta}
-          className="self-start sm:self-auto inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-        >
-          <RefreshCw className="w-3.5 h-3.5" />
-          Refresh
-        </button>
+        <div className="self-start sm:self-auto flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={async () => {
+              if (filteredData.length === 0) {
+                showToast.error("Tidak ada data peserta untuk diunduh");
+                return;
+              }
+              try {
+                setExportingPdf(true);
+                const activeTabLabel =
+                  filterTabs.find((t) => t.id === activePhase)?.label ||
+                  "Semua";
+                const filterParts: string[] = [];
+                if (activePhase !== "semua") {
+                  filterParts.push(`Status: ${activeTabLabel}`);
+                }
+                if (filterBulan !== "semua") {
+                  const bulanLabel =
+                    BULAN_OPTIONS.find((b) => b.value === filterBulan)?.label ||
+                    String(filterBulan);
+                  filterParts.push(`Bulan: ${bulanLabel}`);
+                }
+                if (filterTahun !== "semua") {
+                  filterParts.push(`Tahun: ${filterTahun}`);
+                }
+                if (searchQuery.trim()) {
+                  filterParts.push(`Pencarian: "${searchQuery.trim()}"`);
+                }
+
+                await downloadPesertaLengkapPdf(filteredData, {
+                  title: "DATA LENGKAP PESERTA BIMBINGAN MAGANG",
+                  subtitle:
+                    "Balai Besar Pengawas Obat dan Makanan di Palembang",
+                  roleLabel: "Mentor Pembimbing",
+                  printedByName: mentorInfo?.name,
+                  printedByDetail:
+                    mentorInfo?.posisiMentor || mentorInfo?.email,
+                  filterSummary:
+                    filterParts.length > 0
+                      ? filterParts.join(" • ")
+                      : "Semua Peserta Bimbingan",
+                  fileName: `peserta-bimbingan-${new Date().toISOString().slice(0, 10)}.pdf`,
+                });
+                showToast.success("PDF data peserta berhasil diunduh");
+              } catch (err) {
+                console.error("Error export PDF peserta:", err);
+                showToast.error("Gagal membuat file PDF");
+              } finally {
+                setExportingPdf(false);
+              }
+            }}
+            disabled={exportingPdf || filteredData.length === 0}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-[#0284c7] hover:bg-sky-700 text-white shadow-2xs disabled:opacity-50 disabled:cursor-not-allowed transition"
+          >
+            <Download className="w-3.5 h-3.5" />
+            {exportingPdf ? "Menyiapkan PDF..." : "Unduh PDF"}
+          </button>
+
+          <button
+            type="button"
+            onClick={fetchPeserta}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            Refresh
+          </button>
+        </div>
       </div>
 
       {/* ================= STATISTICS CARDS ================= */}
@@ -350,14 +562,19 @@ export default function MentorPesertaPage() {
       </div>
 
       {/* ================= FILTER & SEARCH BAR ================= */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+      <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/50 p-3.5 space-y-3">
+        {/* Baris 1: Tab Status */}
         <div className="flex flex-wrap items-center gap-2">
           {filterTabs.map((tab) => {
             const active = activePhase === tab.id;
             return (
               <button
                 key={tab.id}
-                onClick={() => setActivePhase(tab.id)}
+                type="button"
+                onClick={() => {
+                  setActivePhase(tab.id);
+                  setPage(1);
+                }}
                 className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold border transition ${
                   active
                     ? "bg-[#0284c7] text-white border-[#0284c7] shadow-2xs"
@@ -379,24 +596,112 @@ export default function MentorPesertaPage() {
           })}
         </div>
 
-        <div className="relative w-full lg:w-80">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Cari nama, email, posisi, kampus/SMK..."
-            className="w-full pl-10 pr-8 py-2 rounded-xl text-sm bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40 focus:border-[#0284c7] transition"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery("")}
-              aria-label="Hapus pencarian"
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-            >
-              ✕
-            </button>
-          )}
+        {/* Baris 2: Pencarian & Filter Periode */}
+        <div className="pt-3 border-t border-slate-200/70 dark:border-slate-800 flex flex-col md:flex-row md:items-center gap-2.5">
+          <div className="relative flex-1 min-w-0">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setPage(1);
+              }}
+              placeholder="Cari nama, email, posisi, kampus/SMK..."
+              className="w-full h-10 pl-10 pr-8 rounded-xl text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40 focus:border-[#0284c7] transition"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchQuery("");
+                  setPage(1);
+                }}
+                aria-label="Hapus pencarian"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 shrink-0">
+            {/* Filter Bulan Periode Magang */}
+            <div className="h-10 inline-flex items-center gap-1.5 px-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus-within:ring-2 focus-within:ring-[#0284c7]/40 focus-within:border-[#0284c7] transition">
+              <Calendar className="w-3.5 h-3.5 text-[#0284c7] shrink-0" />
+              <select
+                aria-label="Filter bulan periode magang"
+                value={filterBulan}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setFilterBulan(val === "semua" ? "semua" : Number(val));
+                  setPage(1);
+                }}
+                className="text-xs font-semibold bg-transparent text-slate-700 dark:text-slate-200 focus:outline-none cursor-pointer"
+              >
+                <option
+                  value="semua"
+                  className="bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200"
+                >
+                  Semua Bulan
+                </option>
+                {BULAN_OPTIONS.map((opt) => (
+                  <option
+                    key={opt.value}
+                    value={opt.value}
+                    className="bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200"
+                  >
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Filter Tahun Periode Magang */}
+            <div className="h-10 inline-flex items-center gap-1.5 px-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus-within:ring-2 focus-within:ring-[#0284c7]/40 focus-within:border-[#0284c7] transition">
+              <Calendar className="w-3.5 h-3.5 text-[#0284c7] shrink-0" />
+              <select
+                aria-label="Filter tahun periode magang"
+                value={filterTahun}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setFilterTahun(val === "semua" ? "semua" : Number(val));
+                  setPage(1);
+                }}
+                className="text-xs font-semibold bg-transparent text-slate-700 dark:text-slate-200 focus:outline-none cursor-pointer"
+              >
+                <option
+                  value="semua"
+                  className="bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200"
+                >
+                  Semua Tahun
+                </option>
+                {availableYears.map((yr) => (
+                  <option
+                    key={yr}
+                    value={yr}
+                    className="bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200"
+                  >
+                    {yr}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {hasPeriodFilter && (
+              <button
+                type="button"
+                onClick={() => {
+                  setFilterBulan("semua");
+                  setFilterTahun("semua");
+                  setPage(1);
+                }}
+                className="h-10 px-3 rounded-xl text-xs font-semibold whitespace-nowrap text-slate-600 hover:text-slate-800 dark:text-slate-300 dark:hover:text-white bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+              >
+                Reset Periode
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -413,15 +718,13 @@ export default function MentorPesertaPage() {
             <p className="text-xs text-slate-500 dark:text-slate-400">
               {data.length === 0
                 ? "Peserta akan muncul di sini setelah ditugaskan kepada Anda."
-                : "Coba ubah kata kunci pencarian atau pilih filter status lain."}
+                : "Coba ubah kata kunci pencarian atau pilih filter status dan periode magang lain."}
             </p>
           </div>
-          {(searchQuery || activePhase !== "semua") && (
+          {hasActiveFilters && (
             <button
-              onClick={() => {
-                setSearchQuery("");
-                setActivePhase("semua");
-              }}
+              type="button"
+              onClick={handleResetFilters}
               className="px-4 py-2 rounded-xl text-xs font-semibold bg-[#0284c7] hover:bg-sky-700 text-white transition"
             >
               Reset Filter
@@ -450,7 +753,7 @@ export default function MentorPesertaPage() {
 
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/70">
                 {paginatedData.map((p, idx) => {
-                  const rowNumber = (page - 1) * ITEMS_PER_PAGE + idx + 1;
+                  const rowNumber = (safePage - 1) * ITEMS_PER_PAGE + idx + 1;
                   const phaseBadge = getPhaseBadge(p.phase);
                   const isBersama = (p.kategori || "").toLowerCase() === "bersama";
 
@@ -578,26 +881,26 @@ export default function MentorPesertaPage() {
           {/* Pagination Footer */}
           <div className="bg-slate-50/70 dark:bg-slate-800/40 border-t border-slate-200 dark:border-slate-800 px-4 sm:px-6 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Menampilkan {(page - 1) * ITEMS_PER_PAGE + 1}–
-              {Math.min(page * ITEMS_PER_PAGE, filteredData.length)} dari{" "}
+              Menampilkan {(safePage - 1) * ITEMS_PER_PAGE + 1}–
+              {Math.min(safePage * ITEMS_PER_PAGE, filteredData.length)} dari{" "}
               {filteredData.length} peserta
             </p>
 
             {totalPage > 1 && (
               <div className="flex items-center gap-2">
                 <button
-                  disabled={page === 1}
-                  onClick={() => setPage((prev) => prev - 1)}
+                  disabled={safePage === 1}
+                  onClick={() => setPage(safePage - 1)}
                   className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 transition"
                 >
                   Sebelumnya
                 </button>
                 <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 px-2">
-                  {page} / {totalPage}
+                  {safePage} / {totalPage}
                 </span>
                 <button
-                  disabled={page === totalPage}
-                  onClick={() => setPage((prev) => prev + 1)}
+                  disabled={safePage === totalPage}
+                  onClick={() => setPage(safePage + 1)}
                   className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 transition"
                 >
                   Berikutnya
