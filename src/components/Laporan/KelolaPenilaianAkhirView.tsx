@@ -563,7 +563,7 @@ export default function KelolaPenilaianAkhirView({ role }: Props) {
         </div>
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full lg:w-auto">
-          <select
+          {/* <select
             value={activeFilter}
             onChange={(e) => setActiveFilter(e.target.value as FilterTab)}
             aria-label="Filter Status Penilaian"
@@ -572,7 +572,7 @@ export default function KelolaPenilaianAkhirView({ role }: Props) {
             <option value="semua">Semua Status Nilai</option>
             <option value="belum_dinilai">Belum Dinilai</option>
             <option value="sudah_dinilai">Sudah Dinilai</option>
-          </select>
+          </select> */}
 
           {isAdminScope && mentorOptions.length > 0 && (
             <select

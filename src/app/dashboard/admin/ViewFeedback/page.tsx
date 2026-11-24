@@ -13,6 +13,7 @@ import {
   Search,
   Star,
   Table2,
+  UserCheck,
   Users,
   X,
 } from "lucide-react";
@@ -22,6 +23,7 @@ import AdminFeedbackModal, {
 import PaginationFooter from "@/components/dashboard/PaginationFooter";
 import { TablePageSkeleton } from "@/components/dashboard/skeletons";
 import { showToast } from "@/components/ui/toastDashboard";
+import { getMentorFilterKey } from "@/lib/pesertaFilter";
 
 /* ================= TYPES ================= */
 
@@ -29,6 +31,11 @@ type PesertaFeedback = {
   _id: string;
   name: string;
   email: string;
+  mentor?: {
+    _id?: string;
+    name?: string;
+    email?: string;
+  } | null;
   totalFeedback: number;
   sentToMentor: number;
   notSentToMentor: number;
@@ -112,6 +119,7 @@ export default function ViewFeedbackAdminPage() {
 
   const [search, setSearch] = useState("");
   const [filterTab, setFilterTab] = useState<FilterTab>("Semua");
+  const [filterMentor, setFilterMentor] = useState("semua");
   const [viewMode, setViewMode] = useState<ViewMode>("tabel");
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -231,6 +239,20 @@ export default function ViewFeedbackAdminPage() {
     };
   }, [pesertaFeedback, feedbackList]);
 
+  const mentorOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const p of pesertaFeedback) {
+      if (!p.mentor?.name) continue;
+      const key = getMentorFilterKey(p.mentor);
+      if (key && !map.has(key)) {
+        map.set(key, p.mentor.name);
+      }
+    }
+    return Array.from(map.entries())
+      .map(([value, label]) => ({ value, label }))
+      .sort((a, b) => a.label.localeCompare(b.label, "id-ID"));
+  }, [pesertaFeedback]);
+
   const filteredPeserta = useMemo(() => {
     const q = search.trim().toLowerCase();
 
@@ -238,12 +260,23 @@ export default function ViewFeedbackAdminPage() {
       if (filterTab === "Menunggu Respon" && p.unresponded === 0) return false;
       if (filterTab === "Sudah Direspon" && p.unresponded > 0) return false;
 
+      if (filterMentor === "tanpa_mentor" && p.mentor?.name) return false;
+      if (
+        filterMentor !== "semua" &&
+        filterMentor !== "tanpa_mentor" &&
+        getMentorFilterKey(p.mentor) !== filterMentor
+      ) {
+        return false;
+      }
+
       if (!q) return true;
       return (
-        p.name.toLowerCase().includes(q) || p.email.toLowerCase().includes(q)
+        p.name.toLowerCase().includes(q) ||
+        p.email.toLowerCase().includes(q) ||
+        Boolean(p.mentor?.name?.toLowerCase().includes(q))
       );
     });
-  }, [pesertaFeedback, search, filterTab]);
+  }, [pesertaFeedback, search, filterTab, filterMentor]);
 
   const totalPages = Math.max(
     1,
@@ -318,7 +351,7 @@ export default function ViewFeedbackAdminPage() {
       <TablePageSkeleton
         title="Evaluasi & Feedback Peserta"
         subtitle="Memuat ringkasan feedback dan rating survei peserta..."
-        columnsCount={6}
+        columnsCount={7}
         rowsCount={8}
       />
     );
@@ -481,7 +514,29 @@ export default function ViewFeedbackAdminPage() {
           )}
         </div>
 
-        <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 flex-wrap">
+          {/* Filter Mentor */}
+          <div className="relative min-w-[190px]">
+            <UserCheck className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <select
+              aria-label="Filter berdasarkan mentor"
+              value={filterMentor}
+              onChange={(e) => {
+                setFilterMentor(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="w-full pl-8 pr-8 py-2 rounded-xl text-xs font-medium bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40 focus:border-[#0284c7]"
+            >
+              <option value="semua">Semua Mentor</option>
+              {mentorOptions.map((m) => (
+                <option key={m.value} value={m.value}>
+                  {m.label}
+                </option>
+              ))}
+              <option value="tanpa_mentor">Belum Ditetapkan</option>
+            </select>
+          </div>
+
           {/* View Toggle */}
           <div className="inline-flex rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-1 self-start sm:self-auto">
             <button
@@ -549,6 +604,7 @@ export default function ViewFeedbackAdminPage() {
                 <tr className="bg-slate-50 dark:bg-slate-800/70 border-b border-slate-200 dark:border-slate-800 text-[11px] uppercase tracking-wider font-bold text-slate-500 dark:text-slate-400">
                   <th className="py-3.5 px-4 w-12 text-center">No</th>
                   <th className="py-3.5 px-4">Peserta</th>
+                  <th className="py-3.5 px-4">Mentor</th>
                   <th className="py-3.5 px-4">Periode Terbaru</th>
                   <th className="py-3.5 px-4">Rating (1–5 Bintang)</th>
                   <th className="py-3.5 px-4">Status Respon</th>
@@ -559,7 +615,7 @@ export default function ViewFeedbackAdminPage() {
                 {paginatedPeserta.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={6}
+                      colSpan={7}
                       className="py-14 px-4 text-center text-slate-500 dark:text-slate-400"
                     >
                       <div className="flex flex-col items-center gap-2">
@@ -605,6 +661,26 @@ export default function ViewFeedbackAdminPage() {
                               </p>
                             </div>
                           </div>
+                        </td>
+
+                        <td className="py-3.5 px-4 text-xs">
+                          {p.mentor?.name ? (
+                            <div className="min-w-0">
+                              <span className="inline-flex items-center gap-1.5 font-semibold text-slate-800 dark:text-slate-100">
+                                <UserCheck className="w-3.5 h-3.5 text-[#0284c7] shrink-0" />
+                                <span className="truncate">{p.mentor.name}</span>
+                              </span>
+                              {p.mentor.email && (
+                                <p className="text-[11px] text-slate-400 truncate mt-0.5 pl-5">
+                                  {p.mentor.email}
+                                </p>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-xs italic text-slate-400">
+                              Belum ditetapkan
+                            </span>
+                          )}
                         </td>
 
                         <td className="py-3.5 px-4 text-xs">
@@ -719,6 +795,20 @@ export default function ViewFeedbackAdminPage() {
                           <Calendar className="w-3 h-3" />
                           {latest ? formatMonthLabel(latest.month) : "-"}
                         </span>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300">
+                        <UserCheck className="w-3.5 h-3.5 text-[#0284c7] shrink-0" />
+                        <span className="text-slate-400">Mentor:</span>
+                        {p.mentor?.name ? (
+                          <span className="font-semibold text-slate-800 dark:text-slate-100 truncate">
+                            {p.mentor.name}
+                          </span>
+                        ) : (
+                          <span className="italic text-slate-400">
+                            Belum ditetapkan
+                          </span>
+                        )}
                       </div>
 
                       {/* Star Ratings Breakdown */}
