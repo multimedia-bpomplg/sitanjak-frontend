@@ -589,7 +589,7 @@ export default function IsiLogbookPage() {
       <div className="flex items-start justify-between gap-3 pt-1">
         <div>
           <h1 className="text-xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-            Riwayat Kehadiran
+            Logbook Peserta
           </h1>
           <p className="text-base text-slate-500 dark:text-slate-400 mt-1">
             Lihat catatan kehadiran dan laporan harian Anda.
