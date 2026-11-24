@@ -1,775 +1,332 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  ArcElement,
-  Chart as ChartJS,
-  ChartData,
-  ChartOptions,
-  Plugin,
-  registerables,
-} from "chart.js";
-import { Bar, Doughnut, Line, Pie } from "react-chartjs-2";
+import { useCallback, useEffect, useState } from "react";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
+import { format } from "date-fns";
 import {
-  AlertCircle,
   AlertTriangle,
-  ArrowUpRight,
-  BarChart3,
-  BookOpen,
-  Calendar,
-  CheckCircle2,
   Clock,
-  Database,
   DatabaseZap,
   Download,
-  FileSpreadsheet,
-  PieChart,
   RefreshCw,
   ShieldCheck,
-  TrendingUp,
-  UserCheck,
-  UserCog,
-  UserPlus,
-  Users,
   XCircle,
 } from "lucide-react";
-import { format, parseISO } from "date-fns";
-import { id as localeId } from "date-fns/locale";
 import { SuperAdminDashboardSkeleton } from "@/components/dashboard/skeletons";
+import SuperadminActionQueues from "@/components/superadmin/dashboard/SuperadminActionQueues";
+import SuperadminActivityCharts from "@/components/superadmin/dashboard/SuperadminActivityCharts";
+import SuperadminAnalyticsGrid from "@/components/superadmin/dashboard/SuperadminAnalyticsGrid";
+import SuperadminKpiGrid from "@/components/superadmin/dashboard/SuperadminKpiGrid";
+import type {
+  DashboardFilterState,
+  SuperadminDashboardSummary,
+} from "@/components/superadmin/dashboard/types";
 import { showToast } from "@/components/ui/toastDashboard";
-
-ChartJS.register(...registerables);
-
-/* ================= TYPES ================= */
-
-type DataRow = {
-  date: string;
-  logbook: number;
-  pendaftaran: number;
-  peserta_aktif: number;
-  mentor_aktif: number;
-  admin_aktif: number;
-};
-
-type StatistikPosisi = { posisi: string; count: number };
-type StatistikAsal = { jenis: string; count: number };
-type StatistikGender = { gender: string; count: number };
-type StatistikSelesai = { periode: string; count: number };
-
-type OverviewStats = {
-  pesertaAktif: number;
-  mentorAktif: number;
-  adminAktif: number;
-  pendaftaranAktif: number;
-  pendaftaranHariIni: number;
-  logbookHariIni: number;
-  totalPendaftar: number;
-  totalLogbook: number;
-  lastUpdated: string;
-};
-
-type DetailStatusGroup = {
-  _id?: string;
-  count: number;
-};
-
-type LogbookDetailStats = {
-  monthly?: Array<{ total: number; approved?: number }>;
-  byStatus?: DetailStatusGroup[];
-  topPeserta?: Array<{ name?: string; count: number }>;
-};
-
-type PendaftaranDetailStats = {
-  monthly?: Array<{ total: number; approved?: number }>;
-  byStatus?: DetailStatusGroup[];
-  topPosisi?: Array<{ _id?: string; count: number }>;
-};
-
-type ActiveTab = "pendaftaran" | "logbook" | "peserta" | "mentor" | "admin";
-type ChartKind = "bar" | "line" | "pie" | "doughnut";
-
-/* ================= CONSTANTS ================= */
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
-const PALETTE = [
-  "rgba(2, 132, 199, 0.85)",
-  "rgba(16, 185, 129, 0.85)",
-  "rgba(245, 158, 11, 0.85)",
-  "rgba(99, 102, 241, 0.85)",
-  "rgba(244, 63, 94, 0.85)",
-  "rgba(236, 72, 153, 0.85)",
-  "rgba(14, 165, 233, 0.85)",
-  "rgba(20, 184, 166, 0.85)",
-  "rgba(168, 85, 247, 0.85)",
-  "rgba(100, 116, 139, 0.85)",
-  "rgba(234, 179, 8, 0.85)",
-  "rgba(37, 99, 235, 0.85)",
-];
-
-const EMPTY_STATS: OverviewStats = {
-  pesertaAktif: 0,
-  mentorAktif: 0,
-  adminAktif: 0,
-  pendaftaranAktif: 0,
-  pendaftaranHariIni: 0,
-  logbookHariIni: 0,
-  totalPendaftar: 0,
-  totalLogbook: 0,
-  lastUpdated: "",
-};
-
-/* ================= COMPONENT ================= */
+function createInitialFilters(): DashboardFilterState {
+  const now = new Date();
+  return {
+    range: "all",
+    year: now.getFullYear(),
+    month: now.getMonth() + 1,
+    posisi: "",
+    mentorId: "",
+    kategoriMagang: "",
+    asalJenis: "",
+    statusMagang: "",
+  };
+}
 
 export default function SuperadminOversistemDashboard() {
-  const isMountedRef = useRef(true);
-
-  const [rawData, setRawData] = useState<DataRow[]>([]);
-  const [detailedData, setDetailedData] = useState<DataRow[]>([]);
-  const [statistikPosisi, setStatistikPosisi] = useState<StatistikPosisi[]>([]);
-  const [statistikAsal, setStatistikAsal] = useState<StatistikAsal[]>([]);
-  const [statistikGender, setStatistikGender] = useState<StatistikGender[]>([]);
-  const [statistikSelesai, setStatistikSelesai] = useState<StatistikSelesai[]>(
-    [],
+  const [filters] = useState<DashboardFilterState>(() =>
+    createInitialFilters(),
   );
-
-  const [stats, setStats] = useState<OverviewStats>(EMPTY_STATS);
-  const [logbookStats, setLogbookStats] = useState<LogbookDetailStats | null>(
+  const [summary, setSummary] = useState<SuperadminDashboardSummary | null>(
     null,
   );
-  const [pendaftaranStats, setPendaftaranStats] =
-    useState<PendaftaranDetailStats | null>(null);
-
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [exporting, setExporting] = useState(false);
-  const [dataStatus, setDataStatus] = useState<"available" | "empty" | "error">(
-    "available",
-  );
   const [apiStatus, setApiStatus] = useState<
     "connected" | "disconnected" | "checking"
   >("checking");
-
-  const [activeTab, setActiveTab] = useState<ActiveTab>("pendaftaran");
-  const [chartType, setChartType] = useState<ChartKind>("bar");
-  const [dataMode, setDataMode] = useState<"monthly" | "daily">("monthly");
-  const [selectedYear, setSelectedYear] = useState<number>(() =>
-    new Date().getFullYear(),
-  );
-  const [selectedMonth, setSelectedMonth] = useState<number>(
-    () => new Date().getMonth() + 1,
-  );
-  const [breakdownYear, setBreakdownYear] = useState<number | "all">("all");
-  const [breakdownMonth, setBreakdownMonth] = useState<number | "all">("all");
-  const [breakdownLoading, setBreakdownLoading] = useState(false);
-  const [availableYears, setAvailableYears] = useState<number[]>(() => [
-    new Date().getFullYear(),
-  ]);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string>("");
 
-  /* ================= FETCH ================= */
-
-  const fetchBreakdownStats = useCallback(async () => {
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) return;
-
-      if (isMountedRef.current) setBreakdownLoading(true);
-
-      const params = new URLSearchParams();
-      if (breakdownYear !== "all") params.set("year", String(breakdownYear));
-      if (breakdownMonth !== "all") params.set("month", String(breakdownMonth));
-      const qs = params.toString() ? `?${params.toString()}` : "";
-
-      const headers = { Authorization: `Bearer ${token}` };
-      const [posisiRes, asalRes, genderRes, selesaiRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/oversistem/statistik/posisi${qs}`, {
-          headers,
-          cache: "no-store",
-        }),
-        fetch(`${API_BASE_URL}/oversistem/statistik/asal${qs}`, {
-          headers,
-          cache: "no-store",
-        }),
-        fetch(`${API_BASE_URL}/oversistem/statistik/gender${qs}`, {
-          headers,
-          cache: "no-store",
-        }),
-        fetch(`${API_BASE_URL}/oversistem/statistik/selesai${qs}`, {
-          headers,
-          cache: "no-store",
-        }),
-      ]);
-
-      if (!isMountedRef.current) return;
-
-      const [posisiData, asalData, genderData, selesaiData] = await Promise.all([
-        posisiRes.ok ? posisiRes.json() : [],
-        asalRes.ok ? asalRes.json() : [],
-        genderRes.ok ? genderRes.json() : [],
-        selesaiRes.ok ? selesaiRes.json() : [],
-      ]);
-
-      if (!isMountedRef.current) return;
-
-      setStatistikPosisi(Array.isArray(posisiData) ? posisiData : []);
-      setStatistikAsal(Array.isArray(asalData) ? asalData : []);
-      setStatistikGender(Array.isArray(genderData) ? genderData : []);
-      setStatistikSelesai(Array.isArray(selesaiData) ? selesaiData : []);
-    } catch {
-      // Keep existing state on transient error
-    } finally {
-      if (isMountedRef.current) setBreakdownLoading(false);
-    }
-  }, [breakdownYear, breakdownMonth]);
-
-  const fetchAllData = useCallback(
+  const fetchSummary = useCallback(
     async (isManual = false) => {
       try {
         if (isManual) setRefreshing(true);
-        else setLoading(true);
+        else if (!summary) setLoading(true);
+        else setRefreshing(true);
 
         const token = localStorage.getItem("token");
         if (!token) {
-          if (isMountedRef.current) {
-            setApiStatus("disconnected");
-            setLoading(false);
-            setRefreshing(false);
-          }
+          setApiStatus("disconnected");
+          setLoading(false);
+          setRefreshing(false);
           return;
         }
 
-        const headers = { Authorization: `Bearer ${token}` };
-        const needsDaily = dataMode === "daily";
-
-        const [
-          statsRes,
-          tsRes,
-          detailedRes,
-          lbStatsRes,
-          pendStatsRes,
-          yearsRes,
-        ] = await Promise.all([
-          fetch(`${API_BASE_URL}/oversistem/stats`, {
-            headers,
-            cache: "no-store",
-          }),
-          fetch(`${API_BASE_URL}/oversistem/timeseries?year=${selectedYear}`, {
-            headers,
-            cache: "no-store",
-          }),
-          needsDaily
-            ? fetch(
-                `${API_BASE_URL}/oversistem/timeseries/detailed?year=${selectedYear}&month=${selectedMonth}`,
-                { headers, cache: "no-store" },
-              )
-            : Promise.resolve(null),
-          fetch(
-            `${API_BASE_URL}/oversistem/statistik/logbook?year=${selectedYear}`,
-            { headers, cache: "no-store" },
-          ),
-          fetch(
-            `${API_BASE_URL}/oversistem/statistik/pendaftaran?year=${selectedYear}`,
-            { headers, cache: "no-store" },
-          ),
-          fetch(`${API_BASE_URL}/oversistem/years`, {
-            headers,
-            cache: "no-store",
-          }),
-        ]);
-
-        if (!isMountedRef.current) return;
-
-        if (statsRes.ok) {
-          const statsData = await statsRes.json();
-          setStats({
-            pesertaAktif: statsData.pesertaAktif || 0,
-            mentorAktif: statsData.mentorAktif || 0,
-            adminAktif: statsData.adminAktif || 0,
-            pendaftaranAktif: statsData.pendaftaranAktif || 0,
-            pendaftaranHariIni: statsData.pendaftaranHariIni || 0,
-            logbookHariIni: statsData.logbookHariIni || 0,
-            totalPendaftar: statsData.totalPendaftar || 0,
-            totalLogbook: statsData.totalLogbook || 0,
-            lastUpdated: new Date().toISOString(),
-          });
-          setApiStatus("connected");
-        } else {
-          setApiStatus("disconnected");
+        const params = new URLSearchParams();
+        params.set("range", filters.range);
+        params.set("year", String(filters.year));
+        params.set("month", String(filters.month));
+        if (filters.posisi) params.set("posisi", filters.posisi);
+        if (filters.mentorId) params.set("mentorId", filters.mentorId);
+        if (filters.kategoriMagang) {
+          params.set("kategoriMagang", filters.kategoriMagang);
+        }
+        if (filters.asalJenis) params.set("asalJenis", filters.asalJenis);
+        if (filters.statusMagang) {
+          params.set("statusMagang", filters.statusMagang);
         }
 
-        if (tsRes.ok) {
-          const tsData: DataRow[] = await tsRes.json();
-          const activeRows = (Array.isArray(tsData) ? tsData : []).filter(
-            (row) =>
-              row.logbook > 0 ||
-              row.pendaftaran > 0 ||
-              row.peserta_aktif > 0 ||
-              row.mentor_aktif > 0 ||
-              row.admin_aktif > 0,
-          );
-          setRawData(activeRows);
-          setDataStatus(activeRows.length === 0 ? "empty" : "available");
-        } else {
-          setRawData([]);
-          setDataStatus("empty");
-        }
-
-        if (detailedRes && detailedRes.ok) {
-          const dJson = await detailedRes.json();
-          setDetailedData(Array.isArray(dJson) ? dJson : []);
-        } else if (!needsDaily) {
-          setDetailedData([]);
-        }
-
-        setLogbookStats(lbStatsRes.ok ? await lbStatsRes.json() : null);
-        setPendaftaranStats(
-          pendStatsRes.ok ? await pendStatsRes.json() : null,
+        const res = await fetch(
+          `${API_BASE_URL}/oversistem/superadmin-summary?${params.toString()}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+            cache: "no-store",
+          },
         );
 
-        if (yearsRes.ok) {
-          const yrs = await yearsRes.json();
-          if (Array.isArray(yrs) && yrs.length > 0) setAvailableYears(yrs);
+        const json = await res.json().catch(() => null);
+        if (!res.ok || !json?.success) {
+          throw new Error(
+            json?.message || "Gagal memuat statistik dashboard superadmin",
+          );
         }
 
-        if (isManual) {
-          await fetchBreakdownStats();
-        }
-
+        setSummary(json as SuperadminDashboardSummary);
+        setApiStatus("connected");
+        setErrorMessage(null);
         setLastUpdated(format(new Date(), "HH:mm:ss"));
-      } catch {
-        if (!isMountedRef.current) return;
+      } catch (err) {
         setApiStatus("disconnected");
-        setDataStatus("error");
+        setErrorMessage(
+          err instanceof Error
+            ? err.message
+            : "Gagal memuat statistik dashboard superadmin",
+        );
       } finally {
-        if (isMountedRef.current) {
-          setLoading(false);
-          setRefreshing(false);
-        }
+        setLoading(false);
+        setRefreshing(false);
       }
     },
-    [selectedYear, selectedMonth, dataMode, fetchBreakdownStats],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [filters],
   );
 
   useEffect(() => {
-    isMountedRef.current = true;
-    fetchAllData();
-
+    void fetchSummary();
     const interval = setInterval(() => {
-      if (isMountedRef.current) {
-        fetchAllData(true);
-      }
-    }, 3600000);
-
-    return () => {
-      isMountedRef.current = false;
-      clearInterval(interval);
-    };
-  }, [fetchAllData]);
-
-  useEffect(() => {
-    fetchBreakdownStats();
-  }, [fetchBreakdownStats]);
-
-  /* ================= CHART SOURCE & CONFIG ================= */
-
-  const useDailySource = dataMode === "daily";
-
-  const activeSourceData = useMemo(() => {
-    if (!useDailySource) return rawData;
-    if (activeTab === "pendaftaran" || activeTab === "logbook") {
-      return detailedData.filter(
-        (row) => (row.pendaftaran || 0) > 0 || (row.logbook || 0) > 0,
-      );
-    }
-    return detailedData.filter((row) => {
-      if (activeTab === "peserta") return (row.peserta_aktif || 0) > 0;
-      if (activeTab === "mentor") return (row.mentor_aktif || 0) > 0;
-      return (row.admin_aktif || 0) > 0;
-    });
-  }, [useDailySource, activeTab, rawData, detailedData]);
-
-  const activeTabMeta = useMemo(() => {
-    const meta: Record<ActiveTab, { label: string; color: string }> = {
-      pendaftaran: { label: "Pendaftaran", color: "rgba(2, 132, 199, 0.85)" },
-      logbook: { label: "Logbook", color: "rgba(16, 185, 129, 0.85)" },
-      peserta: { label: "Peserta Aktif", color: "rgba(245, 158, 11, 0.85)" },
-      mentor: { label: "Mentor Aktif", color: "rgba(99, 102, 241, 0.85)" },
-      admin: { label: "Admin Aktif", color: "rgba(244, 63, 94, 0.85)" },
-    };
-    return meta[activeTab];
-  }, [activeTab]);
-
-  const seriesValues = useMemo(() => {
-    return activeSourceData.map((row) => {
-      switch (activeTab) {
-        case "pendaftaran":
-          return row.pendaftaran || 0;
-        case "logbook":
-          return row.logbook || 0;
-        case "peserta":
-          return row.peserta_aktif || 0;
-        case "mentor":
-          return row.mentor_aktif || 0;
-        case "admin":
-          return row.admin_aktif || 0;
-      }
-    });
-  }, [activeSourceData, activeTab]);
-
-  const seriesLabels = useMemo(() => {
-    return activeSourceData.map((row) => {
-      const parsed = parseISO(row.date);
-      if (Number.isNaN(parsed.getTime())) return row.date;
-      return format(parsed, useDailySource ? "d MMM" : "MMM yyyy", {
-        locale: localeId,
-      });
-    });
-  }, [activeSourceData, useDailySource]);
-
-  const barOrLineChartData: ChartData<"bar"> = useMemo(() => {
-    if (activeSourceData.length === 0) {
-      return {
-        labels: ["Tidak ada data"],
-        datasets: [
-          {
-            label: "Tidak ada data",
-            data: [0],
-            backgroundColor: "rgba(148, 163, 184, 0.3)",
-            borderColor: "rgba(148, 163, 184, 0.5)",
-            borderWidth: 1,
-          },
-        ],
-      };
-    }
-
-    return {
-      labels: seriesLabels,
-      datasets: [
-        {
-          label: activeTabMeta.label,
-          data: seriesValues,
-          backgroundColor: activeTabMeta.color,
-          borderColor: activeTabMeta.color.replace("0.85", "1"),
-          borderWidth: 2,
-          borderRadius: 6,
-        },
-      ],
-    };
-  }, [activeSourceData.length, seriesLabels, seriesValues, activeTabMeta]);
-
-  const pieOrDoughnutSeriesData: ChartData<"pie"> = useMemo(() => {
-    if (activeSourceData.length === 0) {
-      return {
-        labels: ["Tidak ada data"],
-        datasets: [
-          {
-            data: [1],
-            backgroundColor: ["rgba(148, 163, 184, 0.4)"],
-            borderWidth: 1,
-          },
-        ],
-      };
-    }
-
-    return {
-      labels: seriesLabels,
-      datasets: [
-        {
-          label: activeTabMeta.label,
-          data: seriesValues,
-          backgroundColor: seriesLabels.map(
-            (_, idx) => PALETTE[idx % PALETTE.length],
-          ),
-          borderWidth: 2,
-        },
-      ],
-    };
-  }, [activeSourceData.length, seriesLabels, seriesValues, activeTabMeta]);
-
-  const barChartOptions: ChartOptions<"bar"> = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { position: "top" },
-      title: {
-        display: true,
-        text: `Statistik ${activeTabMeta.label} (${selectedYear})`,
-        font: { size: 14, weight: "bold" },
-      },
-    },
-    scales: {
-      y: { beginAtZero: true, ticks: { precision: 0 } },
-    },
-  };
-
-  const lineChartOptions: ChartOptions<"line"> = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { position: "top" },
-      title: {
-        display: true,
-        text: `Tren ${activeTabMeta.label} (${selectedYear})`,
-        font: { size: 14, weight: "bold" },
-      },
-    },
-    scales: {
-      y: { beginAtZero: true, ticks: { precision: 0 } },
-    },
-    elements: {
-      line: { tension: 0.35 },
-      point: { radius: 4, hoverRadius: 6 },
-    },
-  };
-
-  const formatPercent = (value: number, total: number) => {
-    if (total <= 0) return "0%";
-    const pct = (value / total) * 100;
-    return `${pct.toFixed(1).replace(/\.0$/, "")}%`;
-  };
-
-  const piePercentagePlugin: Plugin<"pie"> = {
-    id: "piePercentageLabels",
-    afterDatasetsDraw(chart) {
-      const { ctx } = chart;
-      const dataset = chart.data.datasets[0];
-      const meta = chart.getDatasetMeta(0);
-      if (!dataset || !meta?.data?.length) return;
-
-      const values = dataset.data.map((val, idx) =>
-        chart.getDataVisibility(idx) ? Number(val) || 0 : 0,
-      );
-      const total = values.reduce((sum, v) => sum + v, 0);
-      if (total <= 0) return;
-
-      meta.data.forEach((element, idx) => {
-        if (!chart.getDataVisibility(idx)) return;
-        const value = values[idx];
-        if (value <= 0) return;
-
-        const pct = (value / total) * 100;
-        if (pct < 4) return;
-
-        const arc = element as unknown as ArcElement;
-        const { x: cx, y: cy, startAngle, endAngle, innerRadius, outerRadius } =
-          arc.getProps(
-            [
-              "x",
-              "y",
-              "startAngle",
-              "endAngle",
-              "innerRadius",
-              "outerRadius",
-            ],
-            true,
-          );
-
-        if (cx === null || cy === null) return;
-
-        const midAngle = (startAngle + endAngle) / 2;
-        const radius =
-          innerRadius > 0
-            ? (innerRadius + outerRadius) / 2
-            : outerRadius * 0.64;
-        const x = cx + Math.cos(midAngle) * radius;
-        const y = cy + Math.sin(midAngle) * radius;
-        const label = formatPercent(value, total);
-
-        ctx.save();
-        ctx.font = "700 11px Plus Jakarta Sans, Inter, system-ui, sans-serif";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.lineWidth = 3;
-        ctx.strokeStyle = "rgba(15, 23, 42, 0.55)";
-        ctx.strokeText(label, x, y);
-        ctx.fillStyle = "#ffffff";
-        ctx.fillText(label, x, y);
-        ctx.restore();
-      });
-    },
-  };
-
-  const pieOptions: ChartOptions<"pie"> = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: "right",
-        labels: {
-          generateLabels(chart) {
-            const defaultItems =
-              ChartJS.overrides.pie.plugins.legend.labels.generateLabels(chart);
-            const dataset = chart.data.datasets[0];
-            if (!dataset) return defaultItems;
-
-            const values = dataset.data.map((val, idx) =>
-              chart.getDataVisibility(idx) ? Number(val) || 0 : 0,
-            );
-            const total = values.reduce((sum, v) => sum + v, 0);
-
-            return defaultItems.map((item) => {
-              const idx = item.index ?? 0;
-              const val = Number(dataset.data[idx]) || 0;
-              const pctText = chart.getDataVisibility(idx)
-                ? formatPercent(val, total)
-                : "0%";
-              return {
-                ...item,
-                text: `${item.text} (${pctText})`,
-              };
-            });
-          },
-        },
-      },
-      tooltip: {
-        callbacks: {
-          label(context) {
-            const dataset = context.dataset;
-            const values = dataset.data.map((val, idx) =>
-              context.chart.getDataVisibility(idx) ? Number(val) || 0 : 0,
-            );
-            const total = values.reduce((sum, v) => sum + v, 0);
-            const val = Number(context.parsed) || 0;
-            const label = context.label || "";
-            return ` ${label}: ${val} (${formatPercent(val, total)})`;
-          },
-        },
-      },
-    },
-  };
-
-  /* ================= DETAIL STATS HELPERS ================= */
-
-  const totalLogbookYear = useMemo(() => {
-    if (!logbookStats?.monthly) return stats.totalLogbook;
-    return logbookStats.monthly.reduce((acc, item) => acc + item.total, 0);
-  }, [logbookStats, stats.totalLogbook]);
-
-  const approvedLogbookYear = useMemo(() => {
-    if (!logbookStats?.monthly) return 0;
-    return logbookStats.monthly.reduce(
-      (acc, item) => acc + (item.approved || 0),
-      0,
-    );
-  }, [logbookStats]);
-
-  const totalPendaftaranYear = useMemo(() => {
-    if (!pendaftaranStats?.monthly) return stats.totalPendaftar;
-    return pendaftaranStats.monthly.reduce((acc, item) => acc + item.total, 0);
-  }, [pendaftaranStats, stats.totalPendaftar]);
-
-  const approvedPendaftaranYear = useMemo(() => {
-    if (!pendaftaranStats?.monthly) return stats.pendaftaranAktif;
-    return pendaftaranStats.monthly.reduce(
-      (acc, item) => acc + (item.approved || 0),
-      0,
-    );
-  }, [pendaftaranStats, stats.pendaftaranAktif]);
-
-  /* ================= EXPORT EXCEL ================= */
+      void fetchSummary(true);
+    }, 300000);
+    return () => clearInterval(interval);
+  }, [fetchSummary]);
 
   const exportToExcel = async () => {
-    const toastId = showToast.loading("Menyiapkan laporan Excel oversistem...");
+    if (!summary) {
+      showToast.error("Data dashboard belum tersedia untuk diekspor");
+      return;
+    }
+
+    setExporting(true);
+    const toastId = showToast.loading("Menyiapkan laporan Excel lengkap...");
+
     try {
-      setExporting(true);
-      const token = localStorage.getItem("token");
-      if (!token) {
-        showToast.updateError(toastId, "Sesi login habis. Silakan login ulang.");
-        return;
-      }
+      const workbook = XLSX.utils.book_new();
+      const c = summary.cards;
 
-      const startStr = `${selectedYear}-01-01`;
-      const endStr = `${selectedYear}-12-31`;
-
-      const exportRes = await fetch(
-        `${API_BASE_URL}/oversistem/export?startDate=${startStr}&endDate=${endStr}`,
-        { headers: { Authorization: `Bearer ${token}` } },
+      const kpiRows = [
+        {
+          Kategori: "Peserta",
+          Indikator: "Peserta Sedang Magang",
+          Jumlah: c.pesertaSedangMagang,
+        },
+        {
+          Kategori: "Peserta",
+          Indikator: "Peserta Belum Mulai",
+          Jumlah: c.pesertaBelumMulai,
+        },
+        {
+          Kategori: "Peserta",
+          Indikator: "Peserta Selesai",
+          Jumlah: c.pesertaSelesai,
+        },
+        {
+          Kategori: "Peserta",
+          Indikator: "Peserta Tanpa Mentor",
+          Jumlah: c.pesertaTanpaMentor,
+        },
+        {
+          Kategori: "Pendaftaran",
+          Indikator: "Pendaftaran Menunggu",
+          Jumlah: c.pendaftaranMenunggu,
+        },
+        {
+          Kategori: "Pendaftaran",
+          Indikator: "Pendaftaran Sedang Diproses",
+          Jumlah: c.pendaftaranSedangDiproses,
+        },
+        {
+          Kategori: "Pendaftaran",
+          Indikator: "Pendaftaran Disetujui",
+          Jumlah: c.pendaftaranDisetujui,
+        },
+        {
+          Kategori: "Pendaftaran",
+          Indikator: "Pendaftaran Ditolak",
+          Jumlah: c.pendaftaranDitolak,
+        },
+        {
+          Kategori: "Logbook",
+          Indikator: "Logbook Belum Diverifikasi (Menunggu)",
+          Jumlah: c.logbookMenunggu,
+        },
+        {
+          Kategori: "Logbook",
+          Indikator: "Logbook Disetujui",
+          Jumlah: c.logbookDisetujui,
+        },
+        {
+          Kategori: "Logbook",
+          Indikator: "Logbook Revisi",
+          Jumlah: c.logbookRevisi,
+        },
+        {
+          Kategori: "Logbook",
+          Indikator: "Logbook Ditolak",
+          Jumlah: c.logbookDitolak,
+        },
+        {
+          Kategori: "Laporan Akhir",
+          Indikator: "Laporan Menunggu Review",
+          Jumlah: c.laporanMenunggu,
+        },
+        {
+          Kategori: "Laporan Akhir",
+          Indikator: "Laporan Revisi",
+          Jumlah: c.laporanRevisi,
+        },
+        {
+          Kategori: "Laporan Akhir",
+          Indikator: "Laporan Disetujui",
+          Jumlah: c.laporanDisetujui,
+        },
+        {
+          Kategori: "Laporan Akhir",
+          Indikator: "Laporan Ditolak",
+          Jumlah: c.laporanDitolak,
+        },
+        {
+          Kategori: "Evaluasi & Penilaian",
+          Indikator: "Evaluasi Menunggu Review",
+          Jumlah: c.evaluasiMenunggu,
+        },
+        {
+          Kategori: "Evaluasi & Penilaian",
+          Indikator: "Peserta Selesai Belum Dinilai",
+          Jumlah: c.belumDinilaiSelesai,
+        },
+        {
+          Kategori: "Evaluasi & Penilaian",
+          Indikator: "Feedback Belum Direspon Mentor",
+          Jumlah: c.feedbackBelumDirespon,
+        },
+        {
+          Kategori: "Dokumen Selesai",
+          Indikator: "Belum Upload Surat Selesai",
+          Jumlah: c.selesaiBelumSurat,
+        },
+        {
+          Kategori: "Dokumen Selesai",
+          Indikator: "Belum Upload Sertifikat",
+          Jumlah: c.selesaiBelumSertifikat,
+        },
+      ];
+      XLSX.utils.book_append_sheet(
+        workbook,
+        XLSX.utils.json_to_sheet(kpiRows),
+        "KPI & Antrean Verifikasi",
       );
 
-      if (!exportRes.ok) throw new Error("Gagal mengambil data ekspor");
+      XLSX.utils.book_append_sheet(
+        workbook,
+        XLSX.utils.json_to_sheet(
+          summary.pipelineStatus.map((p) => ({
+            Modul: p.label,
+            "Disetujui / Selesai": p.selesai,
+            Menunggu: p.menunggu,
+            Revisi: p.revisi,
+            Ditolak: p.ditolak,
+          })),
+        ),
+        "Status Lintas Modul",
+      );
 
-      const exportData = await exportRes.json();
-      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(
+        workbook,
+        XLSX.utils.json_to_sheet(
+          summary.formasiOccupancy.map((f) => ({
+            Formasi: f.title,
+            "Kapasitas Kuota": f.kuota,
+            "Kuota Terisi": f.terisi,
+            "Sisa Kuota": f.sisaKuota,
+            "Pendaftar Menunggu": f.menungguPendaftar,
+          })),
+        ),
+        "Okupansi Formasi",
+      );
 
-      const timeSeriesRows =
-        exportData.timeSeries ||
-        rawData.map((row) => ({
-          Tanggal: format(parseISO(row.date), "dd/MM/yyyy"),
-          Logbook: row.logbook,
-          Pendaftaran: row.pendaftaran,
-          "Peserta Aktif": row.peserta_aktif,
-          "Mentor Aktif": row.mentor_aktif,
-          "Admin Aktif": row.admin_aktif,
-        }));
+      XLSX.utils.book_append_sheet(
+        workbook,
+        XLSX.utils.json_to_sheet(
+          summary.mentorWorkload.map((m) => ({
+            "Nama Mentor": m.name,
+            "Posisi / Fungsi": m.posisiMentor,
+            "Peserta Aktif": m.pesertaAktif,
+            "Total Peserta Bimbingan": m.pesertaTotal,
+            "Logbook Menunggu": m.logbookMenunggu,
+            "Laporan Menunggu": m.laporanMenunggu,
+            "Evaluasi Menunggu": m.evaluasiMenunggu,
+          })),
+        ),
+        "Beban Mentor",
+      );
 
-      if (timeSeriesRows.length > 0) {
-        XLSX.utils.book_append_sheet(
-          workbook,
-          XLSX.utils.json_to_sheet(timeSeriesRows),
-          "Data Time Series",
-        );
-      }
-
-      if (statistikPosisi.length > 0) {
-        XLSX.utils.book_append_sheet(
-          workbook,
-          XLSX.utils.json_to_sheet(statistikPosisi),
-          "Statistik Posisi",
-        );
-      }
-      if (statistikAsal.length > 0) {
-        XLSX.utils.book_append_sheet(
-          workbook,
-          XLSX.utils.json_to_sheet(statistikAsal),
-          "Statistik Asal",
-        );
-      }
-      if (statistikGender.length > 0) {
-        XLSX.utils.book_append_sheet(
-          workbook,
-          XLSX.utils.json_to_sheet(statistikGender),
-          "Statistik Gender",
-        );
-      }
-      if (statistikSelesai.length > 0) {
-        XLSX.utils.book_append_sheet(
-          workbook,
-          XLSX.utils.json_to_sheet(statistikSelesai),
-          "Statistik Selesai",
-        );
-      }
-
-      const summarySheet = XLSX.utils.json_to_sheet([
-        {
-          "Peserta Aktif": stats.pesertaAktif,
-          "Mentor Aktif": stats.mentorAktif,
-          "Admin Aktif": stats.adminAktif,
-          "Pendaftaran Disetujui": stats.pendaftaranAktif,
-          "Pendaftaran Hari Ini": stats.pendaftaranHariIni,
-          "Logbook Hari Ini": stats.logbookHariIni,
-          "Total Pendaftar": stats.totalPendaftar,
-          "Total Logbook": stats.totalLogbook,
-          Tahun: selectedYear,
-          "Waktu Ekspor": format(new Date(), "dd/MM/yyyy HH:mm:ss"),
-        },
-      ]);
-      XLSX.utils.book_append_sheet(workbook, summarySheet, "Summary Stats");
+      const timeSeriesRows = summary.trendChart.labels.map((lbl, idx) => ({
+        Periode: lbl,
+        "Pendaftaran Masuk": summary.trendChart.pendaftaranMasuk[idx] || 0,
+        "Pendaftaran Disetujui":
+          summary.trendChart.pendaftaranDisetujui[idx] || 0,
+        "Logbook Masuk": summary.trendChart.logbookMasuk[idx] || 0,
+        "Logbook Disetujui": summary.trendChart.logbookDisetujui[idx] || 0,
+        "Logbook Menunggu": summary.trendChart.logbookMenunggu[idx] || 0,
+        "Absensi Hadir": summary.trendChart.absensiHadir[idx] || 0,
+        "Absensi Terlambat": summary.trendChart.absensiTelat[idx] || 0,
+        "Absensi Izin": summary.trendChart.absensiIzin[idx] || 0,
+      }));
+      XLSX.utils.book_append_sheet(
+        workbook,
+        XLSX.utils.json_to_sheet(timeSeriesRows),
+        "Time Series Terfilter",
+      );
 
       const excelBuffer = XLSX.write(workbook, {
         bookType: "xlsx",
         type: "array",
       });
-
       const blob = new Blob([excelBuffer], {
         type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       });
 
       saveAs(
         blob,
-        `oversistem-report-${selectedYear}-${format(new Date(), "yyyyMMdd-HHmm")}.xlsx`,
+        `oversistem-superadmin-${filters.year}-${format(new Date(), "yyyyMMdd-HHmm")}.xlsx`,
       );
       showToast.updateSuccess(toastId, "Laporan Excel berhasil diunduh");
     } catch (err) {
@@ -782,9 +339,7 @@ export default function SuperadminOversistemDashboard() {
     }
   };
 
-  /* ================= RENDER ================= */
-
-  if (loading && !stats.lastUpdated) {
+  if (loading && !summary) {
     return <SuperAdminDashboardSkeleton />;
   }
 
@@ -830,7 +385,8 @@ export default function SuperadminOversistemDashboard() {
           </div>
 
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Pemantauan statistik sistem magang secara menyeluruh
+            Pemantauan ekosistem magang, antrean verifikasi lintas modul, beban
+            mentor, dan okupansi kuota
             {lastUpdated && (
               <span className="ml-2 text-slate-400">
                 • Diperbarui {lastUpdated} WIB
@@ -842,7 +398,7 @@ export default function SuperadminOversistemDashboard() {
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
-            onClick={() => fetchAllData(true)}
+            onClick={() => fetchSummary(true)}
             disabled={refreshing || loading}
             className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition disabled:opacity-60"
           >
@@ -855,7 +411,7 @@ export default function SuperadminOversistemDashboard() {
           <button
             type="button"
             onClick={exportToExcel}
-            disabled={loading || exporting}
+            disabled={loading || exporting || !summary}
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-[#0284c7] hover:bg-sky-700 text-white shadow-xs transition disabled:opacity-60"
           >
             <Download className="w-3.5 h-3.5" />
@@ -864,742 +420,46 @@ export default function SuperadminOversistemDashboard() {
         </div>
       </div>
 
-      {dataStatus === "empty" && !loading && (
-        <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-xs font-medium text-amber-800 dark:text-amber-300 flex items-center gap-2">
+      {errorMessage && (
+        <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800 text-xs font-medium text-rose-700 dark:text-rose-300 flex items-center gap-2">
           <AlertTriangle className="w-4 h-4 shrink-0" />
-          <span>
-            Belum ada aktivitas time-series untuk tahun {selectedYear}. Coba
-            pilih tahun lain pada filter di bawah.
-          </span>
+          <span>{errorMessage}</span>
         </div>
       )}
 
-      {/* ================= 6 KPI CARDS ================= */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-        <div className="rounded-2xl p-4 bg-linear-to-br from-[#0284c7] to-blue-700 text-white shadow-sm">
-          <div className="flex items-center justify-between gap-2">
-            <div>
-              <p className="text-[11px] font-medium text-sky-100">
-                Peserta Aktif
-              </p>
-              <p className="text-2xl font-extrabold mt-1">
-                {stats.pesertaAktif}
-              </p>
-            </div>
-            <div className="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
-              <Users className="w-4 h-4" />
-            </div>
-          </div>
-          <p className="text-[10px] text-sky-100 mt-2">Akun peserta aktif</p>
-        </div>
-
-        <MetricCard
-          title="Mentor Aktif"
-          value={stats.mentorAktif}
-          subtitle="Pembimbing aktif"
-          icon={<UserCheck className="w-4 h-4" />}
-          accent="emerald"
-        />
-
-        <MetricCard
-          title="Admin Aktif"
-          value={stats.adminAktif}
-          subtitle="Pengelola sistem"
-          icon={<UserCog className="w-4 h-4" />}
-          accent="sky"
-        />
-
-        <MetricCard
-          title="Pendaftaran Hari Ini"
-          value={stats.pendaftaranHariIni}
-          subtitle="Disetujui hari ini"
-          icon={<UserPlus className="w-4 h-4" />}
-          accent="amber"
-        />
-
-        <MetricCard
-          title="Logbook Hari Ini"
-          value={stats.logbookHariIni}
-          subtitle="Entri tercatat hari ini"
-          icon={<BookOpen className="w-4 h-4" />}
-          accent="indigo"
-        />
-
-        <MetricCard
-          title="Total Pendaftar"
-          value={stats.totalPendaftar}
-          subtitle={`${stats.pendaftaranAktif} telah disetujui`}
-          icon={<FileSpreadsheet className="w-4 h-4" />}
-          accent="rose"
-        />
-      </div>
-
-      {/* ================= CONTROLS & MAIN CHART ================= */}
-      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs overflow-hidden">
-        <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/30 flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
-          {/* Tabs */}
-          <div className="flex flex-wrap gap-1.5">
-            {(
-              [
-                {
-                  key: "pendaftaran",
-                  label: "Pendaftaran",
-                  icon: <UserPlus className="w-3.5 h-3.5" />,
-                  count: stats.pendaftaranAktif,
-                },
-                {
-                  key: "logbook",
-                  label: "Logbook",
-                  icon: <BookOpen className="w-3.5 h-3.5" />,
-                  count: stats.totalLogbook,
-                },
-                {
-                  key: "peserta",
-                  label: "Peserta",
-                  icon: <Users className="w-3.5 h-3.5" />,
-                  count: stats.pesertaAktif,
-                },
-                {
-                  key: "mentor",
-                  label: "Mentor",
-                  icon: <UserCheck className="w-3.5 h-3.5" />,
-                  count: stats.mentorAktif,
-                },
-                {
-                  key: "admin",
-                  label: "Admin",
-                  icon: <UserCog className="w-3.5 h-3.5" />,
-                  count: stats.adminAktif,
-                },
-              ] as Array<{
-                key: ActiveTab;
-                label: string;
-                icon: React.ReactNode;
-                count: number;
-              }>
-            ).map((tab) => {
-              const active = activeTab === tab.key;
-              return (
-                <button
-                  key={tab.key}
-                  type="button"
-                  onClick={() => setActiveTab(tab.key)}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition ${
-                    active
-                      ? "bg-[#0284c7] text-white shadow-xs"
-                      : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
-                  }`}
-                >
-                  {tab.icon}
-                  <span>{tab.label}</span>
-                  <span
-                    className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold ${
-                      active
-                        ? "bg-white/20 text-white"
-                        : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
-                    }`}
-                  >
-                    {tab.count}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Right Filters */}
-          <div className="flex flex-wrap items-center gap-2">
-            <select
-              value={dataMode}
-              onChange={(e) =>
-                setDataMode(e.target.value as "monthly" | "daily")
-              }
-              className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200"
-            >
-              <option value="monthly">Mode Bulanan</option>
-              <option value="daily">Mode Harian</option>
-            </select>
-
-            {useDailySource && (
-              <select
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(Number(e.target.value))}
-                className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200"
-              >
-                {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => (
-                  <option key={month} value={month}>
-                    {format(new Date(selectedYear, month - 1, 1), "MMMM", {
-                      locale: localeId,
-                    })}
-                  </option>
-                ))}
-              </select>
-            )}
-
-            <select
-              value={chartType}
-              onChange={(e) => setChartType(e.target.value as ChartKind)}
-              className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200"
-            >
-              <option value="bar">Bar Chart</option>
-              <option value="line">Line Chart</option>
-              <option value="pie">Pie Chart</option>
-              <option value="doughnut">Doughnut Chart</option>
-            </select>
-
-            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
-              <Calendar className="w-3.5 h-3.5 text-[#0284c7]" />
-              <select
-                value={selectedYear}
-                onChange={(e) => setSelectedYear(Number(e.target.value))}
-                className="text-xs font-semibold bg-transparent text-slate-700 dark:text-slate-200 focus:outline-none"
-              >
-                {availableYears.map((yr) => (
-                  <option key={yr} value={yr}>
-                    {yr}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </div>
-
-        {/* Main Chart Canvas */}
-        <div className="p-5 sm:p-6">
-          <div className="h-80">
-            {activeSourceData.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-slate-400">
-                <Database className="w-12 h-12 mb-2 opacity-40" />
-                <p className="text-sm font-semibold text-slate-600 dark:text-slate-300">
-                  Tidak ada data {activeTabMeta.label} pada periode ini
-                </p>
-              </div>
-            ) : chartType === "bar" ? (
-              <Bar data={barOrLineChartData} options={barChartOptions} />
-            ) : chartType === "line" ? (
-              <Line
-                data={barOrLineChartData as ChartData<"line">}
-                options={lineChartOptions}
-              />
-            ) : chartType === "pie" ? (
-              <Pie
-                data={pieOrDoughnutSeriesData}
-                options={pieOptions}
-                plugins={[piePercentagePlugin]}
-              />
-            ) : (
-              <Doughnut
-                data={pieOrDoughnutSeriesData as ChartData<"doughnut">}
-                options={pieOptions as ChartOptions<"doughnut">}
-                plugins={[piePercentagePlugin as unknown as Plugin<"doughnut">]}
-              />
-            )}
-          </div>
-
-          <p className="text-xs text-slate-400 text-center mt-4">
-            {useDailySource
-              ? `Menampilkan data harian ${format(
-                  new Date(selectedYear, selectedMonth - 1, 1),
-                  "MMMM yyyy",
-                  { locale: localeId },
-                )} • ${activeSourceData.length} hari tercatat`
-              : `Menampilkan data bulanan tahun ${selectedYear} • ${rawData.length} bulan tercatat`}
-          </p>
-        </div>
-      </div>
-
-      {/* ================= DETAIL STATS (LOGBOOK / PENDAFTARAN) ================= */}
-      {activeTab === "logbook" && logbookStats && (
-        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 space-y-4">
-          <h2 className="text-base font-bold text-slate-900 dark:text-white">
-            Ringkasan Detail Logbook ({selectedYear})
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="p-4 rounded-xl bg-sky-50/70 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-800">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Total Logbook Tahun {selectedYear}
-                  </p>
-                  <p className="text-2xl font-extrabold text-slate-900 dark:text-white mt-1">
-                    {totalLogbookYear}
-                  </p>
-                </div>
-                <TrendingUp className="w-6 h-6 text-[#0284c7]" />
-              </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
-                <span className="font-semibold text-emerald-600">
-                  {approvedLogbookYear}
-                </span>{" "}
-                disetujui
-              </p>
-            </div>
-
-            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800">
-              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">
-                Distribusi Status
-              </p>
-              <div className="space-y-1.5 text-xs">
-                {(logbookStats.byStatus || []).map((item, idx) => (
-                  <div key={idx} className="flex justify-between">
-                    <span className="capitalize text-slate-600 dark:text-slate-300">
-                      {item._id || "Lainnya"}
-                    </span>
-                    <span className="font-bold text-slate-900 dark:text-white">
-                      {item.count}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                  Peserta Paling Aktif
-                </p>
-                <ArrowUpRight className="w-4 h-4 text-[#0284c7]" />
-              </div>
-              <div className="space-y-1.5 text-xs">
-                {(logbookStats.topPeserta || []).slice(0, 3).map((item, idx) => (
-                  <div key={idx} className="flex justify-between gap-2">
-                    <span className="truncate text-slate-600 dark:text-slate-300">
-                      {item.name || "Peserta"}
-                    </span>
-                    <span className="font-bold text-slate-900 dark:text-white">
-                      {item.count}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {activeTab === "pendaftaran" && pendaftaranStats && (
-        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 space-y-4">
-          <h2 className="text-base font-bold text-slate-900 dark:text-white">
-            Ringkasan Detail Pendaftaran ({selectedYear})
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="p-4 rounded-xl bg-sky-50/70 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-800">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Total Pendaftaran ({selectedYear})
-                  </p>
-                  <p className="text-2xl font-extrabold text-slate-900 dark:text-white mt-1">
-                    {totalPendaftaranYear}
-                  </p>
-                </div>
-                <UserPlus className="w-6 h-6 text-[#0284c7]" />
-              </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
-                <span className="font-semibold text-emerald-600">
-                  {approvedPendaftaranYear}
-                </span>{" "}
-                disetujui
-              </p>
-            </div>
-
-            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                  Status Pendaftaran
-                </p>
-                <AlertCircle className="w-4 h-4 text-[#0284c7]" />
-              </div>
-              <div className="space-y-1.5 text-xs">
-                {(pendaftaranStats.byStatus || []).map((item, idx) => (
-                  <div key={idx} className="flex justify-between">
-                    <span className="text-slate-600 dark:text-slate-300">
-                      {item._id || "Lainnya"}
-                    </span>
-                    <span className="font-bold text-slate-900 dark:text-white">
-                      {item.count}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800">
-              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">
-                Posisi Terbanyak Diminati
-              </p>
-              <div className="space-y-1.5 text-xs">
-                {(pendaftaranStats.topPosisi || []).slice(0, 3).map((item, idx) => (
-                  <div key={idx} className="flex justify-between gap-2">
-                    <span className="truncate text-slate-600 dark:text-slate-300">
-                      {item._id || "-"}
-                    </span>
-                    <span className="font-bold text-slate-900 dark:text-white">
-                      {item.count}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ================= 4 BREAKDOWN CHARTS ================= */}
-      <div className="space-y-4">
-        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-xs">
-          <div>
-            <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <PieChart className="w-4 h-4 text-[#0284c7]" />
-              <span>Statistik Breakdown Peserta</span>
-              {breakdownLoading && (
-                <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#0284c7]" />
-              )}
-            </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Periode:{" "}
-              <span className="font-semibold text-slate-700 dark:text-slate-200">
-                {breakdownMonth !== "all" && breakdownYear !== "all"
-                  ? `${format(new Date(breakdownYear, breakdownMonth - 1, 1), "MMMM yyyy", { locale: localeId })}`
-                  : breakdownMonth !== "all"
-                    ? `Bulan ${format(new Date(2025, breakdownMonth - 1, 1), "MMMM", { locale: localeId })} (Semua Tahun)`
-                    : breakdownYear !== "all"
-                      ? `Tahun ${breakdownYear}`
-                      : "Semua Periode"}
-              </span>
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <select
-              aria-label="Filter bulan breakdown"
-              value={breakdownMonth}
-              onChange={(e) =>
-                setBreakdownMonth(
-                  e.target.value === "all" ? "all" : Number(e.target.value),
-                )
-              }
-              className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200"
-            >
-              <option value="all">Semua Bulan</option>
-              {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => (
-                <option key={month} value={month}>
-                  {format(new Date(2025, month - 1, 1), "MMMM", {
-                    locale: localeId,
-                  })}
-                </option>
-              ))}
-            </select>
-
-            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
-              <Calendar className="w-3.5 h-3.5 text-[#0284c7]" />
-              <select
-                aria-label="Filter tahun breakdown"
-                value={breakdownYear}
-                onChange={(e) =>
-                  setBreakdownYear(
-                    e.target.value === "all" ? "all" : Number(e.target.value),
-                  )
-                }
-                className="text-xs font-semibold bg-transparent text-slate-700 dark:text-slate-200 focus:outline-none"
-              >
-                <option value="all">Semua Tahun</option>
-                {availableYears.map((yr) => (
-                  <option key={yr} value={yr}>
-                    {yr}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {(breakdownYear !== "all" || breakdownMonth !== "all") && (
-              <button
-                type="button"
-                onClick={() => {
-                  setBreakdownYear("all");
-                  setBreakdownMonth("all");
-                }}
-                className="px-3 py-1.5 rounded-xl text-xs font-semibold text-[#0284c7] bg-sky-50 hover:bg-sky-100 dark:bg-sky-950/50 dark:text-sky-300 dark:hover:bg-sky-950 border border-sky-200 dark:border-sky-800 transition"
-              >
-                Reset
-              </button>
-            )}
-          </div>
-        </div>
-
+      {summary && (
         <div
-          className={`grid grid-cols-1 lg:grid-cols-2 gap-6 transition-opacity ${
-            breakdownLoading ? "opacity-60" : "opacity-100"
+          className={`space-y-6 transition-opacity ${
+            refreshing ? "opacity-65" : "opacity-100"
           }`}
         >
-        <BreakdownCard
-          title="Posisi Magang"
-          total={statistikPosisi.reduce((s, x) => s + x.count, 0)}
-          icon={<PieChart className="w-4 h-4 text-[#0284c7]" />}
-          isEmpty={statistikPosisi.length === 0}
-          emptyLabel="Data posisi belum tersedia"
-        >
-          <Pie
-            data={{
-              labels: statistikPosisi.map((x) => x.posisi),
-              datasets: [
-                {
-                  data: statistikPosisi.map((x) => x.count),
-                  backgroundColor: statistikPosisi.map(
-                    (_, i) => PALETTE[i % PALETTE.length],
-                  ),
-                  borderWidth: 2,
-                },
-              ],
-            }}
-            options={pieOptions}
-            plugins={[piePercentagePlugin]}
+          {/* ================= 2-LAYER KPI CARDS ================= */}
+          <SuperadminKpiGrid cards={summary.cards} />
+
+          {/* ================= GRAFIK TREN PESERTA MAGANG PER BULAN & STATUS ================= */}
+          <SuperadminActivityCharts
+            initialTrend={summary.participantTrend}
+            initialStatusSummary={summary.participantStatusSummary}
+            filterOptions={summary.filterOptions}
+            defaultYear={filters.year}
           />
-        </BreakdownCard>
 
-        <BreakdownCard
-          title="Asal Instansi"
-          total={statistikAsal.reduce((s, x) => s + x.count, 0)}
-          icon={<PieChart className="w-4 h-4 text-emerald-500" />}
-          isEmpty={statistikAsal.length === 0}
-          emptyLabel="Data asal instansi belum tersedia"
-        >
-          <Doughnut
-            data={{
-              labels: statistikAsal.map((x) => x.jenis || "Lainnya"),
-              datasets: [
-                {
-                  data: statistikAsal.map((x) => x.count),
-                  backgroundColor: statistikAsal.map(
-                    (_, i) => PALETTE[i % PALETTE.length],
-                  ),
-                  borderWidth: 2,
-                },
-              ],
-            }}
-            options={pieOptions as ChartOptions<"doughnut">}
-            plugins={[piePercentagePlugin as unknown as Plugin<"doughnut">]}
+          {/* ================= ANALYTICS GRID (NON-PIE CHARTS) ================= */}
+          <SuperadminAnalyticsGrid
+            surveyIndicators={summary.surveyIndicators}
+            nilaiBuckets={summary.nilaiBuckets}
+            demographics={summary.demographics}
+            perkiraanSelesai={summary.perkiraanSelesai}
           />
-        </BreakdownCard>
 
-        <BreakdownCard
-          title="Jenis Kelamin"
-          total={statistikGender.reduce((s, x) => s + x.count, 0)}
-          icon={<PieChart className="w-4 h-4 text-indigo-500" />}
-          isEmpty={statistikGender.length === 0}
-          emptyLabel="Data jenis kelamin belum tersedia"
-        >
-          <Pie
-            data={{
-              labels: statistikGender.map((x) => x.gender || "Lainnya"),
-              datasets: [
-                {
-                  data: statistikGender.map((x) => x.count),
-                  backgroundColor: [
-                    "rgba(2, 132, 199, 0.85)",
-                    "rgba(236, 72, 153, 0.85)",
-                    "rgba(99, 102, 241, 0.85)",
-                  ],
-                  borderWidth: 2,
-                },
-              ],
-            }}
-            options={pieOptions}
-            plugins={[piePercentagePlugin]}
+          {/* ================= ACTION QUEUES, MENTOR PESERTA & TIME SERIES TABLE ================= */}
+          <SuperadminActionQueues
+            actionQueues={summary.actionQueues}
+            mentorWorkload={summary.mentorWorkload}
+            trendChart={summary.trendChart}
           />
-        </BreakdownCard>
-
-        <BreakdownCard
-          title="Perkiraan Selesai (Kuartal)"
-          total={statistikSelesai.reduce((s, x) => s + x.count, 0)}
-          icon={<BarChart3 className="w-4 h-4 text-amber-500" />}
-          isEmpty={statistikSelesai.length === 0}
-          emptyLabel="Data perkiraan selesai belum tersedia"
-        >
-          <Bar
-            data={{
-              labels: statistikSelesai.map((x) => x.periode),
-              datasets: [
-                {
-                  label: "Jumlah Peserta",
-                  data: statistikSelesai.map((x) => x.count),
-                  backgroundColor: "rgba(16, 185, 129, 0.85)",
-                  borderColor: "rgb(16, 185, 129)",
-                  borderWidth: 2,
-                  borderRadius: 6,
-                },
-              ],
-            }}
-            options={{
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: { legend: { display: false } },
-              scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
-            }}
-          />
-        </BreakdownCard>
         </div>
-      </div>
-
-      {/* ================= TIME SERIES TABLE ================= */}
-      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-xs">
-        <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <h2 className="text-base font-bold text-slate-900 dark:text-white">
-              Rekap Time Series Bulanan ({selectedYear})
-            </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Ringkasan aktivitas bulanan langsung dari MongoDB
-            </p>
-          </div>
-          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-            <CheckCircle2 className="w-4 h-4" />
-            {rawData.length} bulan aktif
-          </span>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50 dark:bg-slate-800/70 border-b border-slate-200 dark:border-slate-800 text-[11px] uppercase tracking-wider font-bold text-slate-500 dark:text-slate-400">
-                <th className="py-3 px-4">Bulan</th>
-                <th className="py-3 px-4 text-center">Pendaftaran</th>
-                <th className="py-3 px-4 text-center">Logbook</th>
-                <th className="py-3 px-4 text-center">Peserta Aktif</th>
-                <th className="py-3 px-4 text-center">Mentor Aktif</th>
-                <th className="py-3 px-4 text-center">Admin Aktif</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
-              {rawData.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={6}
-                    className="py-10 px-4 text-center text-xs text-slate-400"
-                  >
-                    Belum ada data bulanan tercatat pada tahun {selectedYear}.
-                  </td>
-                </tr>
-              ) : (
-                rawData.map((row, idx) => (
-                  <tr
-                    key={`${row.date}-${idx}`}
-                    className="hover:bg-sky-50/40 dark:hover:bg-slate-800/40 transition-colors"
-                  >
-                    <td className="py-3 px-4 font-semibold text-slate-800 dark:text-slate-100">
-                      {format(parseISO(row.date), "MMMM yyyy", {
-                        locale: localeId,
-                      })}
-                    </td>
-                    <td className="py-3 px-4 text-center font-bold text-[#0284c7] dark:text-sky-400">
-                      {row.pendaftaran}
-                    </td>
-                    <td className="py-3 px-4 text-center font-bold text-emerald-600 dark:text-emerald-400">
-                      {row.logbook}
-                    </td>
-                    <td className="py-3 px-4 text-center text-slate-700 dark:text-slate-200">
-                      {row.peserta_aktif}
-                    </td>
-                    <td className="py-3 px-4 text-center text-slate-700 dark:text-slate-200">
-                      {row.mentor_aktif}
-                    </td>
-                    <td className="py-3 px-4 text-center text-slate-700 dark:text-slate-200">
-                      {row.admin_aktif}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ================= SMALL COMPONENTS ================= */
-
-function MetricCard({
-  title,
-  value,
-  subtitle,
-  icon,
-  accent,
-}: {
-  title: string;
-  value: number;
-  subtitle: string;
-  icon: React.ReactNode;
-  accent: "emerald" | "sky" | "amber" | "indigo" | "rose";
-}) {
-  const accentMap = {
-    emerald:
-      "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400",
-    sky: "bg-sky-50 dark:bg-sky-950/60 text-[#0284c7] dark:text-sky-400",
-    amber:
-      "bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400",
-    indigo:
-      "bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400",
-    rose: "bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400",
-  };
-
-  return (
-    <div className="rounded-2xl p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
-      <div className="flex items-center justify-between gap-2">
-        <div className="min-w-0">
-          <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 truncate">
-            {title}
-          </p>
-          <p className="text-2xl font-extrabold text-slate-900 dark:text-white mt-1">
-            {value}
-          </p>
-        </div>
-        <div
-          className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${accentMap[accent]}`}
-        >
-          {icon}
-        </div>
-      </div>
-      <p className="text-[10px] text-slate-400 mt-2 truncate">{subtitle}</p>
-    </div>
-  );
-}
-
-function BreakdownCard({
-  title,
-  total,
-  icon,
-  isEmpty,
-  emptyLabel,
-  children,
-}: {
-  title: string;
-  total: number;
-  icon: React.ReactNode;
-  isEmpty: boolean;
-  emptyLabel: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-xs space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-base font-bold text-slate-900 dark:text-white">
-          {title}
-        </h3>
-        <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400">
-          {icon}
-          <span>{total} total</span>
-        </div>
-      </div>
-      <div className="h-64">
-        {isEmpty ? (
-          <div className="h-full flex flex-col items-center justify-center text-slate-400">
-            <Database className="w-10 h-10 mb-2 opacity-40" />
-            <p className="text-xs font-medium">{emptyLabel}</p>
-          </div>
-        ) : (
-          children
-        )}
-      </div>
+      )}
     </div>
   );
 }

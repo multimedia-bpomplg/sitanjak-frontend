@@ -168,8 +168,8 @@ export const ROLE_NAVIGATION_CONFIG: Record<RoleType, RoleConfig> = {
         sectionTitle: "SISTEM & TAMPILAN",
         items: [
           {
-            title: "Pengaturan Sistem",
-            href: "/dashboard/superadmin/manajemenTampilan",
+            title: "Sistem",
+            href: "/dashboard/superadmin/manajemenTampilan/Maintenance",
             icon: Sliders,
             children: [
               {
@@ -178,19 +178,26 @@ export const ROLE_NAVIGATION_CONFIG: Record<RoleType, RoleConfig> = {
                 icon: Wrench,
               },
               {
-                title: "Informasi Fungsi",
-                href: "/dashboard/superadmin/manajemenTampilan/InformasiFungsi",
-                icon: Sliders,
-              },
-              {
                 title: "Gateway WhatsApp",
                 href: "/dashboard/superadmin/manajemenTampilan/WhatappEdit",
                 icon: MessageCircle,
               },
               {
-                title: "Banner & Pengumuman",
-                href: "/dashboard/superadmin/manajemenTampilan/BannerEdit",
-                icon: Megaphone,
+                title: "Hari Libur Nasional",
+                href: "/dashboard/superadmin/manajemenTampilan/HariLibur",
+                icon: CalendarDays,
+              },
+            ],
+          },
+          {
+            title: "Tampilan",
+            href: "/dashboard/superadmin/manajemenTampilan/ProfilEdit",
+            icon: ImageIcon,
+            children: [
+              {
+                title: "Profil & Visi Misi",
+                href: "/dashboard/superadmin/manajemenTampilan/ProfilEdit",
+                icon: FileText,
               },
               {
                 title: "Gambar Hero Landing",
@@ -198,14 +205,24 @@ export const ROLE_NAVIGATION_CONFIG: Record<RoleType, RoleConfig> = {
                 icon: ImageIcon,
               },
               {
+                title: "Informasi Fungsi",
+                href: "/dashboard/superadmin/manajemenTampilan/InformasiFungsi",
+                icon: Sliders,
+              },
+              {
+                title: "Banner & Pengumuman",
+                href: "/dashboard/superadmin/manajemenTampilan/BannerEdit",
+                icon: Megaphone,
+              },
+              {
+                title: "Footer & Kontak",
+                href: "/dashboard/superadmin/manajemenTampilan/FooterEdit",
+                icon: MessageCircle,
+              },
+              {
                 title: "Kelola File Panduan",
                 href: "/dashboard/superadmin/manajemenTampilan/PanduanEdit",
                 icon: BookOpen,
-              },
-              {
-                title: "Hari Libur Nasional",
-                href: "/dashboard/superadmin/manajemenTampilan/HariLibur",
-                icon: CalendarDays,
               },
             ],
           },

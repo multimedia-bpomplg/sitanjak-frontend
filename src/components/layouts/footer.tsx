@@ -3,7 +3,15 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { FaFacebookF, FaInstagram, FaYoutube, FaGlobe } from "react-icons/fa";
+import {
+  FaFacebookF,
+  FaInstagram,
+  FaYoutube,
+  FaGlobe,
+  FaWhatsapp,
+  FaTiktok,
+  FaLinkedinIn,
+} from "react-icons/fa";
 import {
   HiHome,
   HiUser,
@@ -16,44 +24,88 @@ import {
   HiHeart,
   HiShieldCheck,
 } from "react-icons/hi";
+import {
+  DEFAULT_FOOTER_LANDING,
+  normalizeTelHref,
+  type FooterLandingContent,
+} from "@/lib/footerLanding";
 
 const plusJakarta = { className: "font-sans" };
 const DEFAULT_PANDUAN_PENDAFTARAN =
   "https://docs.google.com/document/d/1d43jgfTZYD1oT6ePshn8NyMfkXxPQ7aGAePx3qDJ-9I/edit?usp=sharing";
 
+function renderSocialIcon(platform?: string) {
+  switch (platform) {
+    case "facebook":
+      return <FaFacebookF size={14} />;
+    case "instagram":
+      return <FaInstagram size={14} />;
+    case "youtube":
+      return <FaYoutube size={14} />;
+    case "whatsapp":
+      return <FaWhatsapp size={14} />;
+    case "tiktok":
+      return <FaTiktok size={14} />;
+    case "linkedin":
+      return <FaLinkedinIn size={14} />;
+    default:
+      return <FaGlobe size={14} />;
+  }
+}
+
 export default function Footer() {
   const currentYear = new Date().getFullYear();
   const [panduanHref, setPanduanHref] = useState(DEFAULT_PANDUAN_PENDAFTARAN);
+  const [footerContent, setFooterContent] = useState<FooterLandingContent>(
+    DEFAULT_FOOTER_LANDING,
+  );
 
   useEffect(() => {
     let active = true;
-    const loadPublicPanduan = async () => {
+    const loadPublicData = async () => {
       try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
         if (!apiUrl) return;
-        const res = await fetch(`${apiUrl}/panduan/public`);
-        if (!res.ok) return;
-        const json = await res.json().catch(() => null);
-        const doc = json?.data?.pendaftaran;
-        if (active) {
-          setPanduanHref(
-            doc?.fileUrl
-              ? `${apiUrl}${doc.fileUrl}`
-              : DEFAULT_PANDUAN_PENDAFTARAN,
-          );
+        const [panduanRes, footerRes] = await Promise.all([
+          fetch(`${apiUrl}/panduan/public`).catch(() => null),
+          fetch(`${apiUrl}/footer-setting`).catch(() => null),
+        ]);
+
+        if (panduanRes && panduanRes.ok) {
+          const json = await panduanRes.json().catch(() => null);
+          const doc = json?.data?.pendaftaran;
+          if (active) {
+            setPanduanHref(
+              doc?.fileUrl
+                ? `${apiUrl}${doc.fileUrl}`
+                : DEFAULT_PANDUAN_PENDAFTARAN,
+            );
+          }
+        }
+
+        if (footerRes && footerRes.ok) {
+          const footerJson = await footerRes.json().catch(() => null);
+          if (active && footerJson?.success && footerJson?.data) {
+            setFooterContent({
+              ...DEFAULT_FOOTER_LANDING,
+              ...footerJson.data,
+            });
+          }
         }
       } catch {
-        // Fallback ke URL default
+        // Fallback ke URL & konten default
       }
     };
-    void loadPublicPanduan();
+    void loadPublicData();
     const onUpdated = () => {
-      void loadPublicPanduan();
+      void loadPublicData();
     };
     window.addEventListener("panduan-updated", onUpdated);
+    window.addEventListener("footer-updated", onUpdated);
     return () => {
       active = false;
       window.removeEventListener("panduan-updated", onUpdated);
+      window.removeEventListener("footer-updated", onUpdated);
     };
   }, []);
 
@@ -68,29 +120,6 @@ export default function Footer() {
       href: panduanHref,
       icon: HiExternalLink,
       external: true,
-    },
-  ];
-
-  const socialLinks = [
-    {
-      icon: FaGlobe,
-      href: "https://palembang.pom.go.id/",
-      label: "Website Resmi BPOM Palembang",
-    },
-    {
-      icon: FaFacebookF,
-      href: "https://www.facebook.com/bpom.plg/",
-      label: "Facebook BBPOM Palembang",
-    },
-    {
-      icon: FaInstagram,
-      href: "https://www.instagram.com/bpom.palembang/",
-      label: "Instagram @bpom.palembang",
-    },
-    {
-      icon: FaYoutube,
-      href: "https://www.youtube.com/@bbpom_palembang",
-      label: "YouTube BBPOM Palembang",
     },
   ];
 
@@ -206,10 +235,10 @@ export default function Footer() {
               </div>
               <div className="text-left md:text-right">
                 <h3 className="text-xs sm:text-sm font-bold text-white leading-tight">
-                  Balai Besar POM di Palembang
+                  {footerContent.institutionName}
                 </h3>
                 <p className="text-[11px] text-slate-300">
-                  Jl. Pangeran Ratu, 5 Ulu, Kota Palembang 30254
+                  {footerContent.address}
                 </p>
               </div>
             </div>
@@ -217,24 +246,24 @@ export default function Footer() {
             {/* Kontak Ringkas (Telepon & Email) */}
             <div className="mt-2.5 flex flex-wrap items-center justify-center md:justify-end gap-2 text-xs text-white/90">
               <a
-                href="tel:0711510195"
+                href={normalizeTelHref(footerContent.phone)}
                 className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/10 hover:bg-[#0088FF]/30 border border-white/10 transition-colors"
               >
                 <HiPhone className="w-3.5 h-3.5 text-[#38BDF8] shrink-0" />
-                <span>(0711) 510195</span>
+                <span>{footerContent.phone}</span>
               </a>
               <a
-                href="mailto:bpom_palembang@pom.go.id"
+                href={`mailto:${footerContent.email}`}
                 className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/10 hover:bg-[#0088FF]/30 border border-white/10 transition-colors"
               >
                 <HiMail className="w-3.5 h-3.5 text-[#38BDF8] shrink-0" />
-                <span>bpom_palembang@pom.go.id</span>
+                <span>{footerContent.email}</span>
               </a>
             </div>
 
             {/* Social Media Buttons (Touch Friendly) */}
-            <div className="flex items-center gap-2 mt-3 justify-center md:justify-end">
-              {socialLinks.map((soc, idx) => (
+            <div className="flex flex-wrap items-center gap-2 mt-3 justify-center md:justify-end">
+              {footerContent.socialLinks.map((soc, idx) => (
                 <a
                   key={idx}
                   href={soc.href}
@@ -251,7 +280,7 @@ export default function Footer() {
                     transition-all duration-150
                   "
                 >
-                  <soc.icon size={14} />
+                  {renderSocialIcon(soc.platform)}
                 </a>
               ))}
             </div>

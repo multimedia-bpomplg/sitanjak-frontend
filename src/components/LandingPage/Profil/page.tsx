@@ -2,18 +2,19 @@
 
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
-import { plusJakarta, caveat } from '@/lib/font';
+import { plusJakarta, caveat } from "@/lib/font";
 import {
   HiOutlineShieldCheck,
   HiOutlineBeaker,
   HiOutlineAcademicCap,
   HiOutlineUserGroup,
   HiOutlineCheckCircle,
+  HiOutlineOfficeBuilding,
 } from "react-icons/hi";
-
-
-
-
+import {
+  DEFAULT_PROFIL_LANDING,
+  type ProfilLandingContent,
+} from "@/lib/profilLanding";
 
 const tabs = [
   { key: "profil", label: "Profil" },
@@ -21,36 +22,67 @@ const tabs = [
   { key: "tugas", label: "Tugas & Fungsi" },
 ];
 
-const highlightItems = [
-  {
-    title: "Pengawasan Terpadu",
-    desc: "Mengawal keamanan, mutu, dan khasiat Obat serta Makanan di masyarakat.",
-    icon: HiOutlineShieldCheck,
-  },
-  {
-    title: "Laboratorium Modern",
-    desc: "Fasilitas pengujian kimia, mikrobiologi, dan molekuler berstandar tinggi.",
-    icon: HiOutlineBeaker,
-  },
-  {
-    title: "Edukasi & Pembinaan",
-    desc: "Wadah pembelajaran nyata bagi mahasiswa dan siswa magang akademik.",
-    icon: HiOutlineAcademicCap,
-  },
-  {
-    title: "SDM Profesional",
-    desc: "Didukung pengawas farmasi dan pangan ahli yang siap membimbing.",
-    icon: HiOutlineUserGroup,
-  },
-];
+function renderHighlightIcon(iconKey?: string) {
+  switch (iconKey) {
+    case "beaker":
+      return <HiOutlineBeaker className="text-2xl" />;
+    case "academic":
+      return <HiOutlineAcademicCap className="text-2xl" />;
+    case "users":
+      return <HiOutlineUserGroup className="text-2xl" />;
+    case "check":
+      return <HiOutlineCheckCircle className="text-2xl" />;
+    case "building":
+      return <HiOutlineOfficeBuilding className="text-2xl" />;
+    default:
+      return <HiOutlineShieldCheck className="text-2xl" />;
+  }
+}
+
+function renderDescriptionWithBrand(text: string) {
+  const keyword = "SI TANJAK";
+  const idx = text.indexOf(keyword);
+  if (idx === -1) return text;
+  const before = text.slice(0, idx);
+  const after = text.slice(idx + keyword.length);
+  return (
+    <>
+      {before}
+      <span className="font-bold text-[#0088FF]">{keyword}</span>
+      {after}
+    </>
+  );
+}
 
 export default function ProfilPage() {
   const [activeTab, setActiveTab] = useState("profil");
+  const [content, setContent] = useState<ProfilLandingContent>(
+    DEFAULT_PROFIL_LANDING,
+  );
 
-  // 🔥 ANIMASI SEKALI SAJA
+  // ANIMASI SEKALI SAJA
   const sectionRef = useRef<HTMLDivElement | null>(null);
   const [visible, setVisible] = useState(false);
   const [hasAnimated, setHasAnimated] = useState(false);
+
+  useEffect(() => {
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || "";
+    if (!apiBase) return;
+    fetch(`${apiBase}/profil-setting`)
+      .then(async (res) => {
+        if (!res.ok) return;
+        const json = await res.json();
+        if (json?.success && json?.data) {
+          setContent({
+            ...DEFAULT_PROFIL_LANDING,
+            ...json.data,
+          });
+        }
+      })
+      .catch(() => {
+        // Tetap tampilkan konten default saat gagal mengambil API
+      });
+  }, []);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -180,14 +212,14 @@ export default function ProfilPage() {
           <div className="flex items-center gap-3">
             <span className="w-8 h-[2px] bg-[#0088FF] rounded-full" />
             <span className="text-xs font-bold tracking-[0.18em] text-[#0B1B3D] uppercase">
-              BALAI BESAR POM DI PALEMBANG
+              {content.overlineTag}
             </span>
           </div>
 
           {/* Judul Utama 2 Warna */}
           <h2 className="text-3xl sm:text-4xl xl:text-[42px] font-extrabold text-[#0B1B3D] leading-[1.18] tracking-[-0.02em]">
-            Balai Besar Pengawas Obat <br />
-            <span className="text-[#0088FF]">dan Makanan di Palembang</span>
+            {content.headingLine1} <br />
+            <span className="text-[#0088FF]">{content.headingHighlight}</span>
           </h2>
 
           {/* Navigasi Tabs (Profil, Visi & Misi, Tugas & Fungsi) */}
@@ -217,34 +249,26 @@ export default function ProfilPage() {
           {activeTab === "profil" && (
             <div className="space-y-6">
               <p className="text-[#475569] text-sm sm:text-[15.5px] leading-relaxed">
-                Balai Besar Pengawas Obat dan Makanan (BBPOM) di Palembang
-                merupakan Unit Pelaksana Teknis Badan POM yang bertugas
-                melaksanakan pengawasan Obat dan Makanan untuk menjamin
-                keamanan, mutu, dan manfaat produk, sekaligus menyediakan wadah
-                pembelajaran profesional melalui program magang{" "}
-                <span className="font-bold text-[#0088FF]">SI TANJAK</span>.
+                {renderDescriptionWithBrand(content.profilDescription)}
               </p>
 
               {/* Grid 2x2 Poin Ber-Ikon Bulat (Persis Seperti Gambar Referensi) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-6 pt-1">
-                {highlightItems.map((item, idx) => {
-                  const Icon = item.icon;
-                  return (
-                    <div key={idx} className="flex items-start gap-3.5">
-                      <div className="w-12 h-12 rounded-full bg-[#EBF5FF] text-[#0088FF] flex items-center justify-center shrink-0">
-                        <Icon className="text-2xl" />
-                      </div>
-                      <div>
-                        <h3 className="text-sm font-extrabold text-[#0B1B3D] leading-snug">
-                          {item.title}
-                        </h3>
-                        <p className="text-xs text-[#64748B] leading-relaxed mt-1">
-                          {item.desc}
-                        </p>
-                      </div>
+                {content.profilHighlights.map((item, idx) => (
+                  <div key={idx} className="flex items-start gap-3.5">
+                    <div className="w-12 h-12 rounded-full bg-[#EBF5FF] text-[#0088FF] flex items-center justify-center shrink-0">
+                      {renderHighlightIcon(item.iconKey)}
                     </div>
-                  );
-                })}
+                    <div>
+                      <h3 className="text-sm font-extrabold text-[#0B1B3D] leading-snug">
+                        {item.title}
+                      </h3>
+                      <p className="text-xs text-[#64748B] leading-relaxed mt-1">
+                        {item.desc}
+                      </p>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}
@@ -261,10 +285,7 @@ export default function ProfilPage() {
                     Visi Badan POM
                   </h3>
                   <p className="text-sm text-[#0B1B3D] font-medium leading-relaxed mt-1">
-                    Terwujudnya Sediaan Farmasi dan Pangan Olahan yang aman,
-                    bermutu, dan berdaya saing dalam mendukung masyarakat sehat
-                    dan sejahtera bersama Indonesia Maju menuju Indonesia Emas
-                    2045.
+                    {content.visi}
                   </p>
                 </div>
               </div>
@@ -275,12 +296,7 @@ export default function ProfilPage() {
                   Misi Badan POM
                 </h3>
                 <div className="grid grid-cols-1 gap-3">
-                  {[
-                    "Meningkatkan efektivitas pengawasan Sediaan Farmasi dan Pangan Olahan serta penindakan kejahatan melalui kolaborasi pemerintah, pelaku usaha, dan masyarakat.",
-                    "Memfasilitasi percepatan pengembangan dunia usaha Sediaan Farmasi dan Pangan Olahan termasuk UMKM guna membangun struktur ekonomi yang produktif dan berdaya saing.",
-                    "Meningkatkan kapasitas masyarakat di bidang Sediaan Farmasi dan Pangan Olahan dengan mengembangkan kemitraan bersama seluruh pemangku kepentingan.",
-                    "Pengelolaan pemerintahan yang bersih, efektif, dan terpercaya untuk memberikan pelayanan publik yang prima.",
-                  ].map((misi, idx) => (
+                  {content.misiList.map((misi, idx) => (
                     <div
                       key={idx}
                       className="flex items-start gap-3 bg-[#F8FAFC] rounded-xl p-3 border border-slate-100"
@@ -303,10 +319,9 @@ export default function ProfilPage() {
               <p className="text-xs sm:text-sm text-[#475569] leading-relaxed">
                 Berdasarkan{" "}
                 <span className="font-bold text-[#0B1B3D]">
-                  Peraturan Badan POM Nomor 19 Tahun 2023
+                  {content.dasarHukumRegulasi}
                 </span>{" "}
-                tentang Organisasi dan Tata Kerja Unit Pelaksana Teknis di
-                Lingkungan Badan POM:
+                {content.dasarHukumTentang}
               </p>
 
               {/* Tugas Pokok */}
@@ -315,9 +330,7 @@ export default function ProfilPage() {
                   Tugas Pokok
                 </h4>
                 <p className="text-xs sm:text-sm text-[#0B1B3D] leading-relaxed">
-                  Melaksanakan tugas teknis operasional di bidang pengawasan
-                  Obat dan Makanan pada wilayah kerja masing-masing sesuai
-                  dengan ketentuan peraturan perundang-undangan.
+                  {content.tugasPokok}
                 </p>
               </div>
 
@@ -327,23 +340,7 @@ export default function ProfilPage() {
                   Fungsi Utama
                 </h4>
                 <div className="space-y-2">
-                  {[
-                    "Penyusunan rencana, program, dan anggaran di bidang pengawasan Obat dan Makanan;",
-                    "Pelaksanaan pemeriksaan fasilitas produksi Obat dan Makanan;",
-                    "Pelaksanaan pemeriksaan fasilitas distribusi Obat dan Makanan dan fasilitas pelayanan kefarmasian;",
-                    "Pelaksanaan sertifikasi produk dan fasilitas produksi dan distribusi Obat dan Makanan;",
-                    "Pelaksanaan sampling Obat dan Makanan;",
-                    "Pelaksanaan pemantauan label dan iklan Obat dan Makanan;",
-                    "Pelaksanaan pengujian rutin Obat dan Makanan;",
-                    "Pelaksanaan pengujian Obat dan Makanan dalam rangka investigasi dan penyidikan;",
-                    "Pelaksanaan cegah tangkal, intelijen, dan penyidikan terhadap pelanggaran ketentuan peraturan perundang-undangan;",
-                    "Pelaksanaan pemantauan peredaran Obat dan Makanan melalui siber;",
-                    "Pengelolaan komunikasi, informasi, edukasi, dan pengaduan masyarakat;",
-                    "Pelaksanaan kerja sama di bidang pengawasan Obat dan Makanan;",
-                    "Pelaksanaan pemantauan, evaluasi, dan pelaporan di bidang pengawasan Obat dan Makanan;",
-                    "Pelaksanaan urusan tata usaha dan rumah tangga; dan",
-                    "Pelaksanaan fungsi lain yang diberikan oleh Kepala Badan.",
-                  ].map((fungsi, idx) => (
+                  {content.fungsiUtamaList.map((fungsi, idx) => (
                     <div
                       key={idx}
                       className="flex items-start gap-2.5 text-xs sm:text-sm text-[#475569]"

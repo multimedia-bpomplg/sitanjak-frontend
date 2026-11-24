@@ -141,9 +141,9 @@ export default function ManageInternalRolesModal({
       return;
     }
 
-    if (hasMentorRole && !posisiMentor.trim()) {
+    if (hasMentorRole && (!posisiMentor.trim() || !nip.trim() || !wa.trim())) {
       showToast.error(
-        "Posisi / Fungsi Pembimbing wajib diisi jika peran Mentor dipilih",
+        "Posisi / Fungsi Pembimbing, NIP Mentor, dan Nomor WhatsApp wajib diisi jika peran Mentor dipilih",
       );
       return;
     }
@@ -315,10 +315,11 @@ export default function ManageInternalRolesModal({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    NIP Mentor (Opsional)
+                    NIP Mentor <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="text"
+                    required
                     value={nip}
                     onChange={(e) =>
                       setNip(e.target.value.replace(/[^0-9\s-]/g, ""))
@@ -329,10 +330,11 @@ export default function ManageInternalRolesModal({
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Nomor WhatsApp (Opsional)
+                    Nomor WhatsApp <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="tel"
+                    required
                     value={wa}
                     onChange={(e) =>
                       setWa(e.target.value.replace(/[^0-9+]/g, ""))
