@@ -57,7 +57,7 @@ type LogbookStats = {
 
 type LaporanAkhirSummary = {
   _id: string;
-  status: "Menunggu" | "Disetujui" | "Ditolak";
+  status: "Menunggu" | "Revisi" | "Disetujui" | "Ditolak";
   fileName: string;
   submittedAt: string;
   approvedAt: string | null;
@@ -268,6 +268,12 @@ function getLaporanBadge(laporan: LaporanAkhirSummary | null) {
         label: "Ditolak",
         className:
           "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/50 dark:text-rose-300 dark:border-rose-800/70",
+      };
+    case "Revisi":
+      return {
+        label: "Perlu Revisi",
+        className:
+          "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/50 dark:text-orange-300 dark:border-orange-800/70",
       };
     default:
       return {

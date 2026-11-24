@@ -205,7 +205,8 @@ export default function AkunPesertaPage() {
         fbJson.some(
           (fb: { status?: string; mentorResponse?: string }) =>
             fb?.status === "Direspon" ||
-            Boolean(fb?.mentorResponse && String(fb.mentorResponse).trim()),
+            (fb?.status !== "Revisi" &&
+              Boolean(fb?.mentorResponse && String(fb.mentorResponse).trim())),
         );
       setCanDownloadCompletionDocs(isLapApproved && hasFb);
       setCanDownloadSertifikat(isLapApproved && isFbResponded);

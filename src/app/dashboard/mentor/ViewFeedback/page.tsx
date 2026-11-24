@@ -11,6 +11,7 @@ import {
   Mail,
   MessageSquareHeart,
   RefreshCw,
+  RotateCcw,
   Search,
   Send,
   Star,
@@ -24,8 +25,18 @@ import { TablePageSkeleton } from "@/components/dashboard/skeletons";
 
 const ITEMS_PER_PAGE = 10;
 
-type FilterTab = "semua" | "belum_direspon" | "direspon";
+type FilterTab = "semua" | "belum_direspon" | "revisi" | "direspon";
 type ViewMode = "tabel" | "kartu";
+
+function getFeedbackStage(
+  f: MentorFeedbackItem,
+): "direspon" | "revisi" | "belum_direspon" {
+  if (f.status === "Revisi") return "revisi";
+  if (f.status === "Direspon" || Boolean(f.mentorResponse?.trim())) {
+    return "direspon";
+  }
+  return "belum_direspon";
+}
 
 function getInitials(name = "P"): string {
   return (
@@ -114,9 +125,14 @@ export default function ViewFeedbackMentor() {
   const stats = useMemo(() => {
     const total = feedbackList.length;
     const belumDirespon = feedbackList.filter(
-      (f) => !f.mentorResponse?.trim(),
+      (f) => getFeedbackStage(f) === "belum_direspon",
     ).length;
-    const sudahDirespon = total - belumDirespon;
+    const perluRevisi = feedbackList.filter(
+      (f) => getFeedbackStage(f) === "revisi",
+    ).length;
+    const sudahDirespon = feedbackList.filter(
+      (f) => getFeedbackStage(f) === "direspon",
+    ).length;
 
     const avgList = feedbackList
       .map((f) => getAverageSurveyScore(f.survey))
@@ -128,15 +144,24 @@ export default function ViewFeedbackMentor() {
           ) / 10
         : null;
 
-    return { total, belumDirespon, sudahDirespon, overallAverage };
+    return {
+      total,
+      belumDirespon,
+      perluRevisi,
+      sudahDirespon,
+      overallAverage,
+    };
   }, [feedbackList]);
 
   const filteredFeedback = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     return feedbackList.filter((f) => {
-      const hasResponse = Boolean(f.mentorResponse?.trim());
-      if (activeFilter === "belum_direspon" && hasResponse) return false;
-      if (activeFilter === "direspon" && !hasResponse) return false;
+      const stage = getFeedbackStage(f);
+      if (activeFilter === "belum_direspon" && stage !== "belum_direspon") {
+        return false;
+      }
+      if (activeFilter === "revisi" && stage !== "revisi") return false;
+      if (activeFilter === "direspon" && stage !== "direspon") return false;
 
       if (!q) return true;
       const monthLabel = formatMonthLabel(f.month).toLowerCase();
@@ -205,6 +230,7 @@ export default function ViewFeedbackMentor() {
       label: "Belum Direspon",
       count: stats.belumDirespon,
     },
+    { id: "revisi", label: "Perlu Revisi", count: stats.perluRevisi },
     { id: "direspon", label: "Sudah Direspon", count: stats.sudahDirespon },
   ];
 
@@ -435,7 +461,9 @@ export default function ViewFeedbackMentor() {
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/70">
                 {paginatedFeedback.map((f, i) => {
                   const rowNumber = (safePage - 1) * ITEMS_PER_PAGE + i + 1;
-                  const hasResponse = Boolean(f.mentorResponse?.trim());
+                  const stage = getFeedbackStage(f);
+                  const hasResponse = stage === "direspon";
+                  const isRevisi = stage === "revisi";
                   const avgScore = getAverageSurveyScore(f.survey);
                   const roundedStars = avgScore ? Math.round(avgScore) : 0;
 
@@ -521,13 +549,20 @@ export default function ViewFeedbackMentor() {
                           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border ${
                             hasResponse
                               ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800"
-                              : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800"
+                              : isRevisi
+                                ? "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/50 dark:text-orange-300 dark:border-orange-800"
+                                : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800"
                           }`}
                         >
                           {hasResponse ? (
                             <>
                               <CheckCircle2 className="w-3.5 h-3.5" />
                               Direspon
+                            </>
+                          ) : isRevisi ? (
+                            <>
+                              <RotateCcw className="w-3.5 h-3.5" />
+                              Perlu Revisi
                             </>
                           ) : (
                             <>
@@ -555,6 +590,11 @@ export default function ViewFeedbackMentor() {
                             <>
                               <Eye className="w-3.5 h-3.5" />
                               Lihat
+                            </>
+                          ) : isRevisi ? (
+                            <>
+                              <RotateCcw className="w-3.5 h-3.5" />
+                              Tinjau
                             </>
                           ) : (
                             <>
@@ -624,7 +664,9 @@ function FeedbackCard({
   feedback: MentorFeedbackItem;
   onOpen: () => void;
 }) {
-  const hasResponse = Boolean(feedback.mentorResponse?.trim());
+  const stage = getFeedbackStage(feedback);
+  const hasResponse = stage === "direspon";
+  const isRevisi = stage === "revisi";
   const avgScore = getAverageSurveyScore(feedback.survey);
   const roundedStars = avgScore ? Math.round(avgScore) : 0;
 
@@ -665,13 +707,20 @@ function FeedbackCard({
           className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold border ${
             hasResponse
               ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800"
-              : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800"
+              : isRevisi
+                ? "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/50 dark:text-orange-300 dark:border-orange-800"
+                : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800"
           }`}
         >
           {hasResponse ? (
             <>
               <CheckCircle2 className="w-3 h-3" />
               Direspon
+            </>
+          ) : isRevisi ? (
+            <>
+              <RotateCcw className="w-3 h-3" />
+              Perlu Revisi
             </>
           ) : (
             <>
@@ -741,7 +790,7 @@ function FeedbackCard({
           {feedback.feedbackMentor || "-"}
         </p>
 
-        {hasResponse && (
+        {hasResponse ? (
           <div className="rounded-xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200/80 dark:border-emerald-800/70 p-2.5">
             <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300 mb-0.5">
               Tanggapan Anda
@@ -750,6 +799,18 @@ function FeedbackCard({
               {feedback.mentorResponse}
             </p>
           </div>
+        ) : (
+          isRevisi &&
+          feedback.revisionNote && (
+            <div className="rounded-xl bg-orange-50/70 dark:bg-orange-950/30 border border-orange-200/80 dark:border-orange-800/70 p-2.5">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-orange-700 dark:text-orange-300 mb-0.5">
+                Catatan Revisi Dikirim
+              </p>
+              <p className="text-xs text-slate-700 dark:text-slate-200 line-clamp-2">
+                {feedback.revisionNote}
+              </p>
+            </div>
+          )
         )}
       </div>
 
@@ -771,6 +832,11 @@ function FeedbackCard({
             <>
               <Eye className="w-3.5 h-3.5" />
               Lihat Detail
+            </>
+          ) : isRevisi ? (
+            <>
+              <RotateCcw className="w-3.5 h-3.5" />
+              Tinjau Revisi
             </>
           ) : (
             <>

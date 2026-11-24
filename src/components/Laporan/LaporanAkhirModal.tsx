@@ -9,6 +9,7 @@ import {
   UploadCloud,
   Check,
   AlertCircle,
+  RotateCcw,
   Trash2,
   ShieldAlert,
 } from "lucide-react";
@@ -16,10 +17,16 @@ import { showToast } from "@/components/ui/toastDashboard";
 
 type Props = {
   isPkpa?: boolean;
+  isRevision?: boolean;
+  revisionNote?: string;
   onClose: (submitted?: boolean) => void;
 };
 
-export default function LaporanAkhirUploadModal({ onClose }: Props) {
+export default function LaporanAkhirUploadModal({
+  isRevision = false,
+  revisionNote,
+  onClose,
+}: Props) {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [agree, setAgree] = useState(false);
@@ -110,11 +117,12 @@ export default function LaporanAkhirUploadModal({ onClose }: Props) {
       setTimeout(() => {
         onClose(true);
       }, 1200);
-    } catch (error: any) {
-      showToast.updateError(
-        toastId,
-        error.message || "Terjadi kesalahan saat mengunggah",
-      );
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Terjadi kesalahan saat mengunggah";
+      showToast.updateError(toastId, message);
     } finally {
       setUploading(false);
     }
@@ -142,10 +150,14 @@ export default function LaporanAkhirUploadModal({ onClose }: Props) {
                 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white leading-tight"
                 style={{ fontWeight: 800 }}
               >
-                Unggah Laporan Akhir
+                {isRevision
+                  ? "Unggah Revisi Laporan Akhir"
+                  : "Unggah Laporan Akhir"}
               </h2>
               <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-                Unggah dokumen laporan akhir magang Anda dalam format PDF
+                {isRevision
+                  ? "Unggah ulang dokumen laporan akhir PDF sesuai catatan revisi mentor"
+                  : "Unggah dokumen laporan akhir magang Anda dalam format PDF"}
               </p>
             </div>
           </div>
@@ -161,21 +173,38 @@ export default function LaporanAkhirUploadModal({ onClose }: Props) {
 
         {/* ================= BODY ================= */}
         <div className="flex-1 overflow-y-auto px-5 sm:px-6 py-5 space-y-5 bg-[#F8FAFC] dark:bg-slate-950/50">
-          {/* INFO PERHATIAN */}
-          <div className="rounded-xl bg-[#FFFBEB] dark:bg-amber-950/40 border border-[#FDE68A] dark:border-amber-800/70 p-3.5 sm:p-4 text-amber-900 dark:text-amber-200">
-            <div className="flex items-start gap-2.5">
-              <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-              <div className="text-xs sm:text-sm leading-relaxed">
-                <p className="font-bold" style={{ fontWeight: 700 }}>
-                  Perhatian
-                </p>
-                <p className="text-amber-800 dark:text-amber-200/90 mt-0.5">
-                  Laporan akhir hanya dapat diunggah <b>satu kali</b> dan
-                  bersifat final. Pastikan dokumen sudah benar sebelum dikirim.
-                </p>
+          {/* INFO PERHATIAN / CATATAN REVISI */}
+          {isRevision ? (
+            <div className="rounded-xl bg-orange-50/90 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-800/70 p-3.5 sm:p-4 text-orange-900 dark:text-orange-200">
+              <div className="flex items-start gap-2.5">
+                <RotateCcw className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600 dark:text-orange-400 shrink-0 mt-0.5" />
+                <div className="text-xs sm:text-sm leading-relaxed space-y-0.5">
+                  <p className="font-bold" style={{ fontWeight: 700 }}>
+                    Catatan Revisi dari Mentor
+                  </p>
+                  <p className="text-orange-800 dark:text-orange-200/90 whitespace-pre-line">
+                    {revisionNote ||
+                      "Silakan perbaiki dan unggah ulang dokumen laporan akhir Anda."}
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
+          ) : (
+            <div className="rounded-xl bg-[#FFFBEB] dark:bg-amber-950/40 border border-[#FDE68A] dark:border-amber-800/70 p-3.5 sm:p-4 text-amber-900 dark:text-amber-200">
+              <div className="flex items-start gap-2.5">
+                <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                <div className="text-xs sm:text-sm leading-relaxed">
+                  <p className="font-bold" style={{ fontWeight: 700 }}>
+                    Perhatian
+                  </p>
+                  <p className="text-amber-800 dark:text-amber-200/90 mt-0.5">
+                    Pastikan dokumen laporan akhir sudah lengkap dan benar
+                    sebelum dikirim untuk ditinjau Mentor.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* FILE LAPORAN AKHIR UTAMA */}
           <div className="space-y-2">
@@ -305,7 +334,11 @@ export default function LaporanAkhirUploadModal({ onClose }: Props) {
           >
             <UploadCloud className="w-4 h-4" />
             <span>
-              {uploading ? "Mengunggah..." : "Kirim Laporan Akhir"}
+              {uploading
+                ? "Mengunggah..."
+                : isRevision
+                  ? "Kirim Revisi Laporan"
+                  : "Kirim Laporan Akhir"}
             </span>
           </button>
         </div>
@@ -324,11 +357,14 @@ export default function LaporanAkhirUploadModal({ onClose }: Props) {
                   className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white"
                   style={{ fontWeight: 800 }}
                 >
-                  Konfirmasi Pengiriman
+                  {isRevision
+                    ? "Konfirmasi Kirim Revisi"
+                    : "Konfirmasi Pengiriman"}
                 </h3>
                 <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-1 leading-relaxed">
-                  Laporan akhir hanya dapat dikirim <b>satu kali</b> dan tidak
-                  dapat diubah kembali setelah dikirim.
+                  {isRevision
+                    ? "Dokumen laporan akhir lama akan diganti dengan file revisi ini dan dikirim ulang untuk ditinjau Mentor."
+                    : "Dokumen laporan akhir akan dikirim ke Mentor pembimbing untuk ditinjau."}
                 </p>
               </div>
             </div>

@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   Mail,
   MessageSquareHeart,
+  RotateCcw,
   Send,
   Star,
   User,
@@ -20,6 +21,8 @@ export type MentorFeedbackItem = {
   status: string;
   mentorResponse?: string;
   mentorRespondedAt?: string;
+  revisionNote?: string;
+  revisionRequestedAt?: string | null;
   feedbackMentorSentAt?: string;
   createdAt?: string;
   isFeedbackMentorSent?: boolean;
@@ -75,8 +78,12 @@ export default function MentorFeedbackModal({
   onClose,
   onResponseSent,
 }: Props) {
-  const [response, setResponse] = useState(feedback.mentorResponse || "");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [response, setResponse] = useState(
+    feedback.mentorResponse || feedback.revisionNote || "",
+  );
+  const [submittingAction, setSubmittingAction] = useState<
+    "Direspon" | "Revisi" | null
+  >(null);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -86,16 +93,27 @@ export default function MentorFeedbackModal({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);
 
-  const alreadyResponded = Boolean(feedback.mentorResponse?.trim());
+  const isRevisionPending = feedback.status === "Revisi";
+  const alreadyResponded =
+    feedback.status === "Direspon" ||
+    (!isRevisionPending && Boolean(feedback.mentorResponse?.trim()));
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (actionStatus: "Direspon" | "Revisi") => {
     if (!response.trim()) {
-      showToast.error("Tanggapan tidak boleh kosong");
+      showToast.error(
+        actionStatus === "Revisi"
+          ? "Catatan revisi tidak boleh kosong"
+          : "Tanggapan tidak boleh kosong",
+      );
       return;
     }
 
-    setIsSubmitting(true);
-    const toastId = showToast.loading("Mengirim tanggapan...");
+    setSubmittingAction(actionStatus);
+    const toastId = showToast.loading(
+      actionStatus === "Revisi"
+        ? "Mengirim permintaan revisi..."
+        : "Mengirim tanggapan...",
+    );
 
     try {
       const token = localStorage.getItem("token");
@@ -107,16 +125,24 @@ export default function MentorFeedbackModal({
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ response: response.trim() }),
+          body: JSON.stringify({
+            response: response.trim(),
+            status: actionStatus,
+          }),
         },
       );
 
       if (!res.ok) {
         const errData = await res.json().catch(() => null);
-        throw new Error(errData?.message || "Gagal mengirim tanggapan");
+        throw new Error(errData?.message || "Gagal memproses feedback");
       }
 
-      showToast.updateSuccess(toastId, "Tanggapan berhasil dikirim");
+      showToast.updateSuccess(
+        toastId,
+        actionStatus === "Revisi"
+          ? "Permintaan revisi berhasil dikirim ke peserta"
+          : "Tanggapan berhasil dikirim",
+      );
       onResponseSent?.();
 
       setTimeout(() => {
@@ -127,7 +153,7 @@ export default function MentorFeedbackModal({
         err instanceof Error ? err.message : "Terjadi kesalahan";
       showToast.updateError(toastId, message);
     } finally {
-      setIsSubmitting(false);
+      setSubmittingAction(null);
     }
   };
 
@@ -249,10 +275,10 @@ export default function MentorFeedbackModal({
             </p>
           </div>
 
-          {/* Bagian Tanggapan Mentor */}
+          {/* Bagian Tanggapan / Revisi Mentor */}
           <div className="rounded-xl bg-white dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-800 p-4 sm:p-5 space-y-3">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
-              Tanggapan Mentor
+              Tanggapan &amp; Penindakan Mentor
             </h3>
 
             {alreadyResponded ? (
@@ -274,6 +300,25 @@ export default function MentorFeedbackModal({
               </div>
             ) : (
               <div className="space-y-3">
+                {isRevisionPending && feedback.revisionNote && (
+                  <div className="rounded-xl bg-orange-50/80 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800/70 p-3.5 space-y-1.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="inline-flex items-center gap-1.5 text-xs font-bold text-orange-700 dark:text-orange-300">
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        Menunggu Revisi Peserta
+                      </span>
+                      {feedback.revisionRequestedAt && (
+                        <span className="text-[11px] text-orange-700/80 dark:text-orange-300/80">
+                          {formatDateTime(feedback.revisionRequestedAt)}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-orange-900 dark:text-orange-100 whitespace-pre-line">
+                      {feedback.revisionNote}
+                    </p>
+                  </div>
+                )}
+
                 <div className="flex flex-wrap gap-1.5">
                   {QUICK_RESPONSES.map((preset) => (
                     <button
@@ -291,13 +336,14 @@ export default function MentorFeedbackModal({
                   value={response}
                   onChange={(e) => setResponse(e.target.value)}
                   rows={4}
-                  placeholder="Tulis tanggapan Anda untuk peserta..."
+                  placeholder="Tulis tanggapan akhir atau catatan perbaikan jika meminta revisi..."
                   className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40 focus:border-[#0284c7] resize-none transition"
                 />
 
                 <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                  Tanggapan akan ditampilkan langsung di halaman feedback
-                  peserta.
+                  Pilih <b>Minta Revisi</b> jika peserta perlu memperbaiki
+                  survei/ulasan, atau <b>Kirim Tanggapan</b> untuk menyelesaikan
+                  review feedback.
                 </p>
               </div>
             )}
@@ -315,15 +361,31 @@ export default function MentorFeedbackModal({
           </button>
 
           {!alreadyResponded && (
-            <button
-              type="button"
-              onClick={handleSubmit}
-              disabled={isSubmitting || !response.trim()}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-5 py-2 rounded-xl text-xs font-semibold bg-[#0284c7] hover:bg-sky-700 text-white disabled:bg-slate-200 disabled:text-slate-400 dark:disabled:bg-slate-800 dark:disabled:text-slate-500 transition"
-            >
-              <Send className="w-3.5 h-3.5" />
-              {isSubmitting ? "Mengirim..." : "Kirim Tanggapan"}
-            </button>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+              <button
+                type="button"
+                onClick={() => handleSubmit("Revisi")}
+                disabled={submittingAction !== null || !response.trim()}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-amber-600 hover:bg-amber-700 text-white disabled:bg-slate-200 disabled:text-slate-400 dark:disabled:bg-slate-800 dark:disabled:text-slate-500 transition"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                {submittingAction === "Revisi"
+                  ? "Mengirim Revisi..."
+                  : "Minta Revisi"}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleSubmit("Direspon")}
+                disabled={submittingAction !== null || !response.trim()}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-5 py-2 rounded-xl text-xs font-semibold bg-[#0284c7] hover:bg-sky-700 text-white disabled:bg-slate-200 disabled:text-slate-400 dark:disabled:bg-slate-800 dark:disabled:text-slate-500 transition"
+              >
+                <Send className="w-3.5 h-3.5" />
+                {submittingAction === "Direspon"
+                  ? "Mengirim..."
+                  : "Kirim Tanggapan"}
+              </button>
+            </div>
           )}
         </div>
       </div>

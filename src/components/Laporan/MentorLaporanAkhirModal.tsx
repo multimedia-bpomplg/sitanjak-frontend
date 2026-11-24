@@ -12,6 +12,7 @@ import {
   Lock,
   MessageSquare,
   Paperclip,
+  RotateCcw,
   X,
   XCircle,
 } from "lucide-react";
@@ -30,7 +31,7 @@ type Props = {
 
 type LaporanData = {
   _id: string;
-  status: "Menunggu" | "Disetujui" | "Ditolak";
+  status: "Menunggu" | "Revisi" | "Disetujui" | "Ditolak";
   filePdf: string;
   fileName?: string;
   fileSize?: number;
@@ -84,7 +85,9 @@ export default function MentorLaporanAkhirModal({
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [mentorNote, setMentorNote] = useState("");
-  const [status, setStatus] = useState<"Disetujui" | "Ditolak">("Disetujui");
+  const [status, setStatus] = useState<"Disetujui" | "Revisi" | "Ditolak">(
+    "Disetujui",
+  );
   const [showConfirm, setShowConfirm] = useState(false);
   const [showPdf, setShowPdf] = useState(false);
 
@@ -311,7 +314,9 @@ export default function MentorLaporanAkhirModal({
                     ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-300"
                     : laporan.status === "Ditolak"
                       ? "border-rose-200 bg-rose-50 text-rose-800 dark:bg-rose-950/40 dark:border-rose-800 dark:text-rose-300"
-                      : "border-amber-200 bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:border-amber-800 dark:text-amber-300"
+                      : laporan.status === "Revisi"
+                        ? "border-orange-200 bg-orange-50 text-orange-800 dark:bg-orange-950/40 dark:border-orange-800 dark:text-orange-300"
+                        : "border-amber-200 bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:border-amber-800 dark:text-amber-300"
                 }`}
               >
                 <div className="flex items-start gap-3">
@@ -320,6 +325,8 @@ export default function MentorLaporanAkhirModal({
                       <CheckCircle2 className="w-5 h-5" />
                     ) : laporan.status === "Ditolak" ? (
                       <XCircle className="w-5 h-5" />
+                    ) : laporan.status === "Revisi" ? (
+                      <RotateCcw className="w-5 h-5" />
                     ) : (
                       <Clock className="w-5 h-5" />
                     )}
@@ -330,12 +337,16 @@ export default function MentorLaporanAkhirModal({
                         ? "Laporan Disetujui"
                         : laporan.status === "Ditolak"
                           ? "Laporan Ditolak"
-                          : "Menunggu Review Mentor"}
+                          : laporan.status === "Revisi"
+                            ? "Menunggu Revisi Peserta"
+                            : "Menunggu Review Mentor"}
                     </p>
                     <p className="text-xs opacity-85 mt-0.5">
-                      {alreadyReviewed && laporan.approvedAt
-                        ? `Direview pada ${formatDateId(laporan.approvedAt, true)}`
-                        : `Diunggah pada ${formatDateId(laporan.submittedAt || laporan.createdAt, true)}`}
+                      {laporan.status === "Revisi" && laporan.approvedAt
+                        ? `Revisi diminta pada ${formatDateId(laporan.approvedAt, true)}`
+                        : alreadyReviewed && laporan.approvedAt
+                          ? `Direview pada ${formatDateId(laporan.approvedAt, true)}`
+                          : `Diunggah pada ${formatDateId(laporan.submittedAt || laporan.createdAt, true)}`}
                     </p>
                   </div>
                 </div>
@@ -493,7 +504,7 @@ export default function MentorLaporanAkhirModal({
                   setStatus("Ditolak");
                   setShowConfirm(true);
                 }}
-                className={`w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-5 py-2 rounded-xl text-xs font-semibold transition ${
+                className={`w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold transition ${
                   !canSubmit
                     ? "bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed"
                     : "bg-rose-600 hover:bg-rose-700 text-white"
@@ -501,6 +512,23 @@ export default function MentorLaporanAkhirModal({
               >
                 <XCircle className="w-4 h-4" />
                 Tolak Laporan
+              </button>
+
+              <button
+                type="button"
+                disabled={!canSubmit}
+                onClick={() => {
+                  setStatus("Revisi");
+                  setShowConfirm(true);
+                }}
+                className={`w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold transition ${
+                  !canSubmit
+                    ? "bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed"
+                    : "bg-amber-600 hover:bg-amber-700 text-white"
+                }`}
+              >
+                <RotateCcw className="w-4 h-4" />
+                Minta Revisi
               </button>
 
               <button
@@ -538,20 +566,30 @@ export default function MentorLaporanAkhirModal({
               className={`mx-auto w-12 h-12 rounded-2xl flex items-center justify-center ${
                 status === "Disetujui"
                   ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400"
-                  : "bg-rose-50 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400"
+                  : status === "Revisi"
+                    ? "bg-amber-50 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400"
+                    : "bg-rose-50 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400"
               }`}
             >
-              <AlertTriangle className="w-6 h-6" />
+              {status === "Revisi" ? (
+                <RotateCcw className="w-6 h-6" />
+              ) : (
+                <AlertTriangle className="w-6 h-6" />
+              )}
             </div>
 
             <div className="space-y-1">
               <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                Konfirmasi {status === "Disetujui" ? "Persetujuan" : "Penolakan"}
+                {status === "Disetujui"
+                  ? "Konfirmasi Persetujuan"
+                  : status === "Revisi"
+                    ? "Konfirmasi Permintaan Revisi"
+                    : "Konfirmasi Penolakan"}
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Keputusan ini bersifat final dan tidak dapat diubah kembali.
-                Lanjutkan {status === "Disetujui" ? "menyetujui" : "menolak"}{" "}
-                laporan akhir ini?
+                {status === "Revisi"
+                  ? "Peserta akan diminta memperbaiki dan mengunggah ulang laporan akhir sesuai catatan Anda. Lanjutkan kirim permintaan revisi?"
+                  : `Keputusan ini bersifat final dan tidak dapat diubah kembali. Lanjutkan ${status === "Disetujui" ? "menyetujui" : "menolak"} laporan akhir ini?`}
               </p>
             </div>
 
@@ -572,7 +610,9 @@ export default function MentorLaporanAkhirModal({
                 className={`flex-1 py-2 rounded-xl text-xs font-semibold text-white transition ${
                   status === "Disetujui"
                     ? "bg-emerald-600 hover:bg-emerald-700"
-                    : "bg-rose-600 hover:bg-rose-700"
+                    : status === "Revisi"
+                      ? "bg-amber-600 hover:bg-amber-700"
+                      : "bg-rose-600 hover:bg-rose-700"
                 }`}
               >
                 Ya, Lanjutkan

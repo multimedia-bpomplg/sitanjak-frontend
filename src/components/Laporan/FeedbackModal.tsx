@@ -10,6 +10,7 @@ import {
   UserCheck,
   MessageSquare,
   Check,
+  RotateCcw,
   ShieldAlert,
   Send,
   Star,
@@ -18,17 +19,31 @@ import { showToast } from "@/components/ui/toastDashboard";
 
 type Props = {
   month: string;
-  mode: "create" | "view";
+  mode: "create" | "view" | "revise";
+  feedbackId?: string;
+  revisionNote?: string;
   onClose: (submitted?: boolean) => void;
 };
 
-export default function FeedbackModal({ month, mode, onClose }: Props) {
+export default function FeedbackModal({
+  month,
+  mode,
+  feedbackId,
+  revisionNote: initialRevisionNote,
+  onClose,
+}: Props) {
   const readonly = mode === "view";
+  const isRevise = mode === "revise";
 
+  const [loadedFeedbackId, setLoadedFeedbackId] = useState(feedbackId || "");
   const [feedbackBPOM, setFeedbackBPOM] = useState("");
   const [feedbackMentor, setFeedbackMentor] = useState("");
   const [mentorComment, setMentorComment] = useState("");
-  const [mentorCommentedBy, setMentorCommentedBy] = useState<any>(null);
+  const [revisionNote, setRevisionNote] = useState(initialRevisionNote || "");
+  const [mentorCommentedBy, setMentorCommentedBy] = useState<{
+    name?: string;
+    email?: string;
+  } | null>(null);
   const [isFeedbackMentorSent, setIsFeedbackMentorSent] = useState(false);
 
   const [agree, setAgree] = useState(false);
@@ -43,9 +58,9 @@ export default function FeedbackModal({ month, mode, onClose }: Props) {
   const [kemudahanProses, setKemudahanProses] = useState(0);
   const [peningkatanSkill, setPeningkatanSkill] = useState(0);
 
-  /* ================= FETCH (VIEW MODE) ================= */
+  /* ================= FETCH (VIEW / REVISE MODE) ================= */
   useEffect(() => {
-    if (mode !== "view") return;
+    if (mode !== "view" && mode !== "revise") return;
 
     const fetchDetail = async () => {
       try {
@@ -61,10 +76,14 @@ export default function FeedbackModal({ month, mode, onClose }: Props) {
         if (!res.ok) return;
 
         const data = await res.json();
+        if (data._id) setLoadedFeedbackId(data._id);
         setFeedbackBPOM(data.feedbackBPOM || "");
         setFeedbackMentor(data.feedbackMentor || "");
-        setMentorComment(data.mentorComment || "");
-        setMentorCommentedBy(data.mentorCommentedBy || null);
+        setMentorComment(data.mentorResponse || data.mentorComment || "");
+        setRevisionNote(data.revisionNote || initialRevisionNote || "");
+        setMentorCommentedBy(
+          data.mentorRespondedBy || data.mentorCommentedBy || null,
+        );
         setIsFeedbackMentorSent(data.isFeedbackMentorSent || false);
         if (data.survey) {
           setKepuasanMagang(data.survey.kepuasanMagang || 0);
@@ -78,7 +97,7 @@ export default function FeedbackModal({ month, mode, onClose }: Props) {
     };
 
     fetchDetail();
-  }, [mode, month]);
+  }, [mode, month, initialRevisionNote]);
 
   /* ================= SUBMIT FEEDBACK ================= */
   const handleSubmit = async () => {
@@ -97,11 +116,23 @@ export default function FeedbackModal({ month, mode, onClose }: Props) {
     }
 
     setSubmitting(true);
-    const toastId = showToast.loading("Mengirim survei & feedback...");
+    const toastId = showToast.loading(
+      isRevise ? "Mengirim ulang revisi survei & feedback..." : "Mengirim survei & feedback...",
+    );
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/feedback`, {
-        method: "POST",
+      const targetId = feedbackId || loadedFeedbackId;
+      if (isRevise && !targetId) {
+        throw new Error("ID feedback tidak ditemukan");
+      }
+
+      const url = isRevise
+        ? `${process.env.NEXT_PUBLIC_API_URL}/feedback/${targetId}`
+        : `${process.env.NEXT_PUBLIC_API_URL}/feedback`;
+      const method = isRevise ? "PUT" : "POST";
+
+      const res = await fetch(url, {
+        method,
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -123,17 +154,23 @@ export default function FeedbackModal({ month, mode, onClose }: Props) {
         throw new Error(data?.message || "Gagal mengirim feedback");
       }
 
-      showToast.updateSuccess(toastId, "Survei & feedback berhasil dikirim! ✅");
+      showToast.updateSuccess(
+        toastId,
+        isRevise
+          ? "Revisi survei & feedback berhasil dikirim! ✅"
+          : "Survei & feedback berhasil dikirim! ✅",
+      );
       setShowConfirm(false);
 
       setTimeout(() => {
         onClose(true);
       }, 1200);
-    } catch (err: any) {
-      showToast.updateError(
-        toastId,
-        err.message || "Terjadi kesalahan saat mengirim feedback",
-      );
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Terjadi kesalahan saat mengirim feedback";
+      showToast.updateError(toastId, message);
     } finally {
       setSubmitting(false);
     }
@@ -173,16 +210,24 @@ export default function FeedbackModal({ month, mode, onClose }: Props) {
                 >
                   {readonly
                     ? "Detail Survei & Feedback"
-                    : "Isi Survei & Feedback"}
+                    : isRevise
+                      ? "Revisi Survei & Feedback"
+                      : "Isi Survei & Feedback"}
                 </h2>
                 <span
                   className={`px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-bold border ${
                     readonly
                       ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800"
-                      : "bg-blue-50 text-[#1D64F2] border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800"
+                      : isRevise
+                        ? "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/60 dark:text-orange-300 dark:border-orange-800"
+                        : "bg-blue-50 text-[#1D64F2] border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800"
                   }`}
                 >
-                  {readonly ? "Sudah Dikirim" : "Pengisian"}
+                  {readonly
+                    ? "Sudah Dikirim"
+                    : isRevise
+                      ? "Revisi"
+                      : "Pengisian"}
                 </span>
               </div>
               <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
@@ -205,8 +250,24 @@ export default function FeedbackModal({ month, mode, onClose }: Props) {
 
         {/* ================= BODY ================= */}
         <div className="flex-1 overflow-y-auto px-5 sm:px-6 py-5 space-y-5 bg-[#F8FAFC] dark:bg-slate-950/50">
-          {/* INFO PENTING */}
-          {!readonly && (
+          {/* INFO PENTING / CATATAN REVISI */}
+          {isRevise && revisionNote && (
+            <div className="rounded-xl bg-orange-50/90 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-800/70 p-3.5 sm:p-4 text-orange-900 dark:text-orange-200">
+              <div className="flex items-start gap-2.5">
+                <RotateCcw className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600 dark:text-orange-400 shrink-0 mt-0.5" />
+                <div className="text-xs sm:text-sm leading-relaxed space-y-0.5">
+                  <p className="font-bold" style={{ fontWeight: 700 }}>
+                    Permintaan Revisi dari Mentor
+                  </p>
+                  <p className="text-orange-800 dark:text-orange-200/90 whitespace-pre-line">
+                    {revisionNote}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {!readonly && !isRevise && (
             <div className="rounded-xl bg-[#FFFBEB] dark:bg-amber-950/40 border border-[#FDE68A] dark:border-amber-800/70 p-3.5 sm:p-4 text-amber-900 dark:text-amber-200">
               <div className="flex items-start gap-2.5">
                 <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
@@ -216,8 +277,7 @@ export default function FeedbackModal({ month, mode, onClose }: Props) {
                   </p>
                   <p className="text-amber-800 dark:text-amber-200/90 mt-0.5">
                     Survei dan masukan akan langsung dikirim ke Balai Besar POM
-                    di Palembang serta Mentor Anda, dan{" "}
-                    <b>tidak dapat diubah setelah dikirim</b>.
+                    di Palembang serta Mentor Anda.
                   </p>
                 </div>
               </div>
@@ -419,7 +479,11 @@ export default function FeedbackModal({ month, mode, onClose }: Props) {
             >
               <Send className="w-4 h-4" />
               <span>
-                {submitting ? "Mengirim..." : "Kirim Survei & Feedback"}
+                {submitting
+                  ? "Mengirim..."
+                  : isRevise
+                    ? "Kirim Revisi Survei"
+                    : "Kirim Survei & Feedback"}
               </span>
             </button>
           )}
@@ -429,10 +493,18 @@ export default function FeedbackModal({ month, mode, onClose }: Props) {
       {/* ================= KONFIRMASI KIRIM ================= */}
       {showConfirm && (
         <ConfirmDialog
-          title="Konfirmasi Pengiriman Survei"
-          message="Apakah Anda yakin ingin mengirim survei dan feedback ini?"
-          warning="Survei dan masukan akan langsung dikirim ke Balai Besar POM di Palembang serta Mentor Anda, dan tidak dapat diubah kembali setelah dikirim."
-          confirmText="Ya, Kirim Sekarang"
+          title={
+            isRevise
+              ? "Konfirmasi Pengiriman Revisi Survei"
+              : "Konfirmasi Pengiriman Survei"
+          }
+          message={
+            isRevise
+              ? "Apakah Anda yakin ingin mengirim ulang hasil revisi survei dan feedback ini?"
+              : "Apakah Anda yakin ingin mengirim survei dan feedback ini?"
+          }
+          warning="Survei dan masukan akan langsung dikirim ke Balai Besar POM di Palembang serta Mentor Anda."
+          confirmText={isRevise ? "Ya, Kirim Revisi" : "Ya, Kirim Sekarang"}
           onConfirm={handleSubmit}
           onCancel={() => setShowConfirm(false)}
         />

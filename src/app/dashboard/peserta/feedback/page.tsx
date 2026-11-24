@@ -9,6 +9,7 @@ import {
   Clock,
   MessageSquare,
   Lock,
+  RotateCcw,
 } from "lucide-react";
 import FeedbackModal from "@/components/Laporan/FeedbackModal";
 import { PesertaDashboardSkeleton } from "@/components/dashboard/skeletons";
@@ -20,6 +21,7 @@ type Feedback = {
   status: string;
   createdAt: string;
   mentorResponse?: string;
+  revisionNote?: string;
   mentorRespondedAt?: string;
   mentorRespondedBy?: {
     name: string;
@@ -31,7 +33,9 @@ export default function FeedbackPage() {
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [laporanStatus, setLaporanStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [modalMode, setModalMode] = useState<"create" | "view">("create");
+  const [modalMode, setModalMode] = useState<"create" | "view" | "revise">(
+    "create",
+  );
   const [showModal, setShowModal] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState("");
 
@@ -86,7 +90,7 @@ export default function FeedbackPage() {
 
     if (feedback) {
       setSelectedMonth(feedback.month);
-      setModalMode("view");
+      setModalMode(feedback.status === "Revisi" ? "revise" : "view");
     } else {
       const now = new Date();
       const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(
@@ -131,12 +135,21 @@ export default function FeedbackPage() {
             <div>
               <p className="text-xs text-slate-400">Status Survei</p>
               <p className="text-sm font-bold text-slate-900 dark:text-white">
-                {feedback ? "Sudah Mengisi" : "Belum Mengisi"}
+                {feedback?.status === "Revisi"
+                  ? "Perlu Revisi Mentor"
+                  : feedback
+                    ? "Sudah Mengisi"
+                    : "Belum Mengisi"}
               </p>
             </div>
           </div>
 
-          {feedback ? (
+          {feedback?.status === "Revisi" ? (
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-orange-50 text-orange-700 border border-orange-200 dark:bg-orange-950/60 dark:text-orange-300 dark:border-orange-800">
+              <RotateCcw className="w-3 h-3" />
+              <span>Perlu Revisi</span>
+            </span>
+          ) : feedback ? (
             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
               <CheckCircle2 className="w-3 h-3" />
               <span>Terkirim</span>
@@ -173,6 +186,18 @@ export default function FeedbackPage() {
               </span>
             </div>
 
+            {feedback.status === "Revisi" && feedback.revisionNote && (
+              <div className="rounded-xl bg-orange-50/80 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-800/70 p-3.5 space-y-1">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-orange-900 dark:text-orange-200">
+                  <RotateCcw className="w-3.5 h-3.5 text-orange-600 shrink-0" />
+                  <span>Permintaan Revisi dari Mentor</span>
+                </div>
+                <p className="text-xs text-orange-900 dark:text-orange-100 pl-5 whitespace-pre-line break-words [overflow-wrap:anywhere]">
+                  {feedback.revisionNote}
+                </p>
+              </div>
+            )}
+
             {feedback.mentorResponse && (
               <div className="rounded-xl bg-[#FFFBEB] dark:bg-amber-950/40 border border-[#FDE68A] dark:border-amber-800/70 p-3.5 space-y-1">
                 <div className="flex items-center gap-1.5 text-xs font-bold text-amber-900 dark:text-amber-200">
@@ -191,9 +216,20 @@ export default function FeedbackPage() {
             <button
               type="button"
               onClick={openModal}
-              className="w-full py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white font-bold text-xs transition"
+              className={`w-full py-2.5 px-4 rounded-xl font-bold text-xs transition ${
+                feedback.status === "Revisi"
+                  ? "bg-orange-600 hover:bg-orange-700 text-white shadow-2xs inline-flex items-center justify-center gap-1.5"
+                  : "bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white"
+              }`}
             >
-              Lihat Detail Survei
+              {feedback.status === "Revisi" ? (
+                <>
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>Revisi Survei &amp; Feedback</span>
+                </>
+              ) : (
+                "Lihat Detail Survei"
+              )}
             </button>
           </div>
         ) : !isLaporanApproved ? (
@@ -231,6 +267,8 @@ export default function FeedbackPage() {
         <FeedbackModal
           month={selectedMonth}
           mode={modalMode}
+          feedbackId={feedback?._id}
+          revisionNote={feedback?.revisionNote}
           onClose={(submitted) => {
             setShowModal(false);
             if (submitted) fetchFeedback();

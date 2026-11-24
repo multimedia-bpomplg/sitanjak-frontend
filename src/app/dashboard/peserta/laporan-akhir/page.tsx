@@ -20,6 +20,7 @@ import {
   BadgeCheck,
   Lock,
   FileSignature,
+  RotateCcw,
 } from "lucide-react";
 import LaporanAkhirUploadModal from "@/components/Laporan/LaporanAkhirModal";
 import FeedbackModal from "@/components/Laporan/FeedbackModal";
@@ -44,7 +45,10 @@ type LaporanAkhir = {
   fileLampiran2Name?: string;
   status: string;
   submittedAt: string;
-  approvedByMentor?: any;
+  approvedByMentor?: {
+    name?: string;
+    email?: string;
+  } | null;
   approvedAt?: string;
   mentorNote?: string;
 };
@@ -55,6 +59,7 @@ type Feedback = {
   status: string;
   createdAt: string;
   mentorResponse?: string;
+  revisionNote?: string;
   mentorRespondedAt?: string;
   mentorRespondedBy?: {
     name: string;
@@ -183,9 +188,9 @@ export default function LaporanAkhirPage() {
     jurusan?: string;
     kategoriMagang?: string;
   } | null>(null);
-  const [feedbackModalMode, setFeedbackModalMode] = useState<"create" | "view">(
-    "create",
-  );
+  const [feedbackModalMode, setFeedbackModalMode] = useState<
+    "create" | "view" | "revise"
+  >("create");
   const [selectedMonth, setSelectedMonth] = useState("");
   const [showFeedbackPopup, setShowFeedbackPopup] = useState(false);
 
@@ -302,7 +307,8 @@ export default function LaporanAkhirPage() {
       if (!res.ok) return;
       const data = await res.json();
       const found = data?.peserta?.find(
-        (p: any) => p.email?.toLowerCase() === email.toLowerCase(),
+        (p: { email?: string }) =>
+          p.email?.toLowerCase() === email.toLowerCase(),
       );
       if (found) {
         setPesertaInfo({
@@ -425,7 +431,8 @@ export default function LaporanAkhirPage() {
   const isSurveyResponded = feedbackList.some(
     (fb) =>
       fb.status === "Direspon" ||
-      Boolean(fb.mentorResponse && fb.mentorResponse.trim()),
+      (fb.status !== "Revisi" &&
+        Boolean(fb.mentorResponse && fb.mentorResponse.trim())),
   );
   const canDownloadCompletionDocs = isLaporanApproved && isSurveyDone;
   const canDownloadSertifikat =
@@ -486,7 +493,7 @@ export default function LaporanAkhirPage() {
 
     if (feedback) {
       setSelectedMonth(feedback.month);
-      setFeedbackModalMode("view");
+      setFeedbackModalMode(feedback.status === "Revisi" ? "revise" : "view");
     } else {
       const now = new Date();
       const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
@@ -534,6 +541,8 @@ export default function LaporanAkhirPage() {
         return "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800";
       case "Ditolak":
         return "bg-red-50 text-red-600 border-red-200 dark:bg-red-950/60 dark:text-red-300 dark:border-red-800";
+      case "Revisi":
+        return "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/60 dark:text-orange-300 dark:border-orange-800";
       default:
         return "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800";
     }
@@ -567,8 +576,10 @@ export default function LaporanAkhirPage() {
       const url = window.URL.createObjectURL(blob);
       setSertifikatPreviewUrl(url);
       setShowSertifikatModal(true);
-    } catch (err: any) {
-      showToast.error(err?.message || "Gagal membuka pratinjau sertifikat");
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Gagal membuka pratinjau sertifikat";
+      showToast.error(message);
     }
   };
 
@@ -613,8 +624,10 @@ export default function LaporanAkhirPage() {
       a.remove();
       window.URL.revokeObjectURL(url);
       showToast.success("Sertifikat Magang berhasil diunduh");
-    } catch (err: any) {
-      showToast.error(err?.message || "Gagal mengunduh Sertifikat Magang");
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Gagal mengunduh Sertifikat Magang";
+      showToast.error(message);
     }
   };
 
@@ -655,8 +668,12 @@ export default function LaporanAkhirPage() {
       a.remove();
       window.URL.revokeObjectURL(url);
       showToast.success("Surat Selesai Magang berhasil diunduh");
-    } catch (err: any) {
-      showToast.error(err?.message || "Gagal mengunduh Surat Selesai Magang");
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Gagal mengunduh Surat Selesai Magang";
+      showToast.error(message);
     }
   };
 
@@ -868,23 +885,60 @@ export default function LaporanAkhirPage() {
 
                   {/* Catatan Mentor */}
                   {laporan.mentorNote && (
-                    <div className="rounded-xl bg-[#FFFBEB] dark:bg-amber-950/40 border border-[#FDE68A] dark:border-amber-800/70 p-3.5 space-y-1">
-                      <div className="flex items-center gap-1.5 text-sm font-bold text-amber-900 dark:text-amber-200">
-                        <AlertCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-600 shrink-0" />
-                        <span>Catatan Review Mentor</span>
+                    <div
+                      className={`rounded-xl border p-3.5 space-y-1 ${
+                        laporan.status === "Revisi"
+                          ? "bg-orange-50/90 dark:bg-orange-950/40 border-orange-200 dark:border-orange-800/70"
+                          : "bg-[#FFFBEB] dark:bg-amber-950/40 border-[#FDE68A] dark:border-amber-800/70"
+                      }`}
+                    >
+                      <div
+                        className={`flex items-center gap-1.5 text-sm font-bold ${
+                          laporan.status === "Revisi"
+                            ? "text-orange-900 dark:text-orange-200"
+                            : "text-amber-900 dark:text-amber-200"
+                        }`}
+                      >
+                        {laporan.status === "Revisi" ? (
+                          <RotateCcw className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-orange-600 shrink-0" />
+                        ) : (
+                          <AlertCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-600 shrink-0" />
+                        )}
+                        <span>
+                          {laporan.status === "Revisi"
+                            ? "Permintaan Revisi dari Mentor"
+                            : "Catatan Review Mentor"}
+                        </span>
                       </div>
-                      <p className="text-sm text-amber-900 dark:text-amber-100 pl-5 whitespace-pre-line break-words [overflow-wrap:anywhere]">
+                      <p
+                        className={`text-sm pl-5 whitespace-pre-line break-words [overflow-wrap:anywhere] ${
+                          laporan.status === "Revisi"
+                            ? "text-orange-900 dark:text-orange-100"
+                            : "text-amber-900 dark:text-amber-100"
+                        }`}
+                      >
                         {laporan.mentorNote}
                       </p>
                     </div>
                   )}
 
                   {/* Action Buttons */}
-                  <div className="flex flex-wrap gap-2.5 pt-1">
+                  <div className="flex flex-col sm:flex-row gap-2.5 pt-1">
+                    {laporan.status === "Revisi" && (
+                      <button
+                        type="button"
+                        onClick={() => setShowUploadModal(true)}
+                        className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-sm font-bold shadow-2xs transition"
+                      >
+                        <Upload className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        <span>Unggah Revisi Laporan</span>
+                      </button>
+                    )}
+
                     <button
                       type="button"
                       onClick={downloadPdf}
-                      className="w-full inline-flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white text-sm font-bold transition"
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white text-sm font-bold transition"
                     >
                       <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                       <span>Unduh PDF</span>
@@ -977,15 +1031,24 @@ export default function LaporanAkhirPage() {
             <div className="mt-3 sm:mt-3.5 pt-2.5 sm:pt-3 border-t border-slate-100 dark:border-slate-700/70 flex items-center justify-between gap-2 text-sm text-slate-500 dark:text-slate-400">
               <div className="flex items-center gap-1.5 min-w-0">
                 {feedback ? (
-                  <>
-                    <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600 shrink-0" />
-                    <span className="truncate">
-                      Sudah dikirim •{" "}
-                      {feedback.mentorResponse
-                        ? "Sudah direspon Mentor"
-                        : "Menunggu respon Mentor"}
-                    </span>
-                  </>
+                  feedback.status === "Revisi" ? (
+                    <>
+                      <RotateCcw className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-orange-600 shrink-0" />
+                      <span className="truncate text-orange-700 dark:text-orange-300 font-semibold">
+                        Perlu revisi dari Mentor • Ketuk untuk memperbaiki
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600 shrink-0" />
+                      <span className="truncate">
+                        Sudah dikirim •{" "}
+                        {feedback.mentorResponse
+                          ? "Sudah direspon Mentor"
+                          : "Menunggu respon Mentor"}
+                      </span>
+                    </>
+                  )
                 ) : isLaporanApproved ? (
                   <>
                     <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#1D64F2] shrink-0" />
@@ -1056,6 +1119,18 @@ export default function LaporanAkhirPage() {
                   </span>
                 </div>
 
+                {feedback.status === "Revisi" && feedback.revisionNote && (
+                  <div className="rounded-xl bg-orange-50/90 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-800/70 p-3.5 space-y-1">
+                    <div className="flex items-center gap-1.5 text-sm font-bold text-orange-900 dark:text-orange-200">
+                      <RotateCcw className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-orange-600 shrink-0" />
+                      <span>Permintaan Revisi dari Mentor</span>
+                    </div>
+                    <p className="text-sm text-orange-900 dark:text-orange-100 pl-5 whitespace-pre-line break-words [overflow-wrap:anywhere]">
+                      {feedback.revisionNote}
+                    </p>
+                  </div>
+                )}
+
                 {feedback.mentorResponse && (
                   <div className="rounded-xl bg-[#FFFBEB] dark:bg-amber-950/40 border border-[#FDE68A] dark:border-amber-800/70 p-3.5 space-y-1">
                     <div className="flex items-center gap-1.5 text-sm font-bold text-amber-900 dark:text-amber-200">
@@ -1074,9 +1149,20 @@ export default function LaporanAkhirPage() {
                 <button
                   type="button"
                   onClick={handleOpenFeedbackModal}
-                  className="w-full py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white text-sm font-bold transition"
+                  className={`w-full py-2.5 px-3 rounded-xl text-sm font-bold transition ${
+                    feedback.status === "Revisi"
+                      ? "bg-orange-600 hover:bg-orange-700 text-white shadow-2xs inline-flex items-center justify-center gap-1.5"
+                      : "bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white"
+                  }`}
                 >
-                  Lihat Detail Isian Survei
+                  {feedback.status === "Revisi" ? (
+                    <>
+                      <RotateCcw className="w-4 h-4" />
+                      <span>Revisi Survei &amp; Feedback</span>
+                    </>
+                  ) : (
+                    "Lihat Detail Isian Survei"
+                  )}
                 </button>
               </div>
             </div>
@@ -1426,6 +1512,8 @@ export default function LaporanAkhirPage() {
       {showUploadModal && (
         <LaporanAkhirUploadModal
           isPkpa={isPkpa}
+          isRevision={laporan?.status === "Revisi"}
+          revisionNote={laporan?.mentorNote}
           onClose={async (success) => {
             setShowUploadModal(false);
             if (success) {
@@ -1443,6 +1531,8 @@ export default function LaporanAkhirPage() {
         <FeedbackModal
           month={selectedMonth}
           mode={feedbackModalMode}
+          feedbackId={feedback?._id}
+          revisionNote={feedback?.revisionNote}
           onClose={(submitted) => {
             setShowFeedbackModal(false);
             if (submitted) {

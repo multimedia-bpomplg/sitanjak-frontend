@@ -9,6 +9,7 @@ import {
   FileText,
   GraduationCap,
   RefreshCw,
+  RotateCcw,
   Search,
   Users,
   XCircle,
@@ -22,7 +23,7 @@ const ITEMS_PER_PAGE = 10;
 
 /* ================= TYPES ================= */
 
-type LaporanStatus = "Menunggu" | "Disetujui" | "Ditolak";
+type LaporanStatus = "Menunggu" | "Revisi" | "Disetujui" | "Ditolak";
 
 type LaporanSummary = {
   _id: string;
@@ -45,6 +46,7 @@ type PesertaLaporanRow = {
 type FilterTab =
   | "semua"
   | "menunggu"
+  | "revisi"
   | "disetujui"
   | "ditolak"
   | "belum_upload";
@@ -89,6 +91,13 @@ function getStatusBadge(status?: LaporanStatus) {
         icon: <XCircle className="w-3.5 h-3.5" />,
         className:
           "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/50 dark:text-rose-300 dark:border-rose-800",
+      };
+    case "Revisi":
+      return {
+        label: "Perlu Revisi",
+        icon: <RotateCcw className="w-3.5 h-3.5" />,
+        className:
+          "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/50 dark:text-orange-300 dark:border-orange-800",
       };
     case "Menunggu":
       return {
@@ -166,6 +175,9 @@ export default function ViewLaporanAkhirMentor() {
     const menunggu = pesertaList.filter(
       (p) => p.laporanAkhir?.status === "Menunggu",
     ).length;
+    const revisi = pesertaList.filter(
+      (p) => p.laporanAkhir?.status === "Revisi",
+    ).length;
     const disetujui = pesertaList.filter(
       (p) => p.laporanAkhir?.status === "Disetujui",
     ).length;
@@ -180,6 +192,7 @@ export default function ViewLaporanAkhirMentor() {
       totalPeserta,
       totalLaporan,
       menunggu,
+      revisi,
       disetujui,
       ditolak,
       belumUpload,
@@ -192,6 +205,7 @@ export default function ViewLaporanAkhirMentor() {
     return pesertaList.filter((p) => {
       const st = p.laporanAkhir?.status;
       if (activeFilter === "menunggu" && st !== "Menunggu") return false;
+      if (activeFilter === "revisi" && st !== "Revisi") return false;
       if (activeFilter === "disetujui" && st !== "Disetujui") return false;
       if (activeFilter === "ditolak" && st !== "Ditolak") return false;
       if (activeFilter === "belum_upload" && p.laporanAkhir) return false;
@@ -258,6 +272,7 @@ export default function ViewLaporanAkhirMentor() {
   const filterTabs: Array<{ id: FilterTab; label: string; count: number }> = [
     { id: "semua", label: "Semua", count: stats.totalPeserta },
     { id: "menunggu", label: "Perlu Review", count: stats.menunggu },
+    { id: "revisi", label: "Perlu Revisi", count: stats.revisi },
     { id: "disetujui", label: "Disetujui", count: stats.disetujui },
     { id: "ditolak", label: "Ditolak", count: stats.ditolak },
     { id: "belum_upload", label: "Belum Upload", count: stats.belumUpload },
@@ -369,7 +384,7 @@ export default function ViewLaporanAkhirMentor() {
             </div>
           </div>
           <p className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400">
-            {stats.ditolak} laporan berstatus ditolak
+            {stats.revisi} perlu revisi • {stats.ditolak} ditolak
           </p>
         </div>
       </div>
