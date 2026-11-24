@@ -29,6 +29,11 @@ export type AdminLaporanAkhirItem = {
     name: string;
     email: string;
   } | null;
+  mentor?: {
+    _id?: string;
+    name?: string;
+    email?: string;
+  } | null;
   mentorNote?: string;
   approvedAt?: string;
   createdAt: string;

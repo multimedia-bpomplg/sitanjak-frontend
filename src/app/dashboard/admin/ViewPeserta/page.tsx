@@ -8,10 +8,12 @@ import {
   Calendar,
   CheckCircle2,
   Clock,
+  Download,
   Eye,
   FileCheck2,
   GraduationCap,
   RefreshCw,
+  RotateCcw,
   Search,
   UserCheck,
   Users,
@@ -23,7 +25,20 @@ import AdminPesertaModal, {
 import PaginationFooter from "@/components/dashboard/PaginationFooter";
 import { TablePageSkeleton } from "@/components/dashboard/skeletons";
 import { showToast } from "@/components/ui/toastDashboard";
+import { normalizeFormasiKey } from "@/lib/formasiMentor";
+import {
+  buildPesertaFilterSummary,
+  BULAN_OPTIONS,
+  collectAvailableYears,
+  FilterBulan,
+  FilterTahun,
+  getJwtUserSummary,
+  getMentorFilterKey,
+  matchesPeriodeFilter,
+} from "@/lib/pesertaFilter";
 import { isPkpaPeserta } from "@/lib/pesertaKategori";
+import { downloadPesertaLengkapPdf } from "@/lib/pesertaPdf";
+import { fetchFormasi } from "@/services/formasiService";
 
 /* ================= TYPES & CONSTANTS ================= */
 
@@ -98,9 +113,15 @@ export default function ViewPesertaAdminPage() {
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
 
   const [search, setSearch] = useState("");
   const [filterTab, setFilterTab] = useState<FilterTab>("Semua");
+  const [filterMentor, setFilterMentor] = useState("semua");
+  const [filterFormasi, setFilterFormasi] = useState("semua");
+  const [filterBulan, setFilterBulan] = useState<FilterBulan>("semua");
+  const [filterTahun, setFilterTahun] = useState<FilterTahun>("semua");
+  const [formasiApiTitles, setFormasiApiTitles] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
 
   const [selectedPeserta, setSelectedPeserta] =
@@ -167,6 +188,13 @@ export default function ViewPesertaAdminPage() {
 
   useEffect(() => {
     fetchPeserta();
+    fetchFormasi()
+      .then((list) => {
+        if (Array.isArray(list)) {
+          setFormasiApiTitles(list.map((f) => f.title).filter(Boolean));
+        }
+      })
+      .catch(() => {});
   }, [fetchPeserta]);
 
   /* ================= STATS & FILTERING ================= */
@@ -200,6 +228,40 @@ export default function ViewPesertaAdminPage() {
     };
   }, [data, suratSelesaiMap]);
 
+  const mentorOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const p of data) {
+      if (!p.mentor?.name) continue;
+      const key = getMentorFilterKey(p.mentor);
+      if (key && !map.has(key)) {
+        map.set(key, p.mentor.name);
+      }
+    }
+    return Array.from(map.entries())
+      .map(([value, label]) => ({ value, label }))
+      .sort((a, b) => a.label.localeCompare(b.label, "id-ID"));
+  }, [data]);
+
+  const formasiOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const title of formasiApiTitles) {
+      const norm = normalizeFormasiKey(title);
+      if (norm && !map.has(norm)) map.set(norm, title.trim());
+    }
+    for (const p of data) {
+      const pos = p.posisi?.trim();
+      if (!pos) continue;
+      const norm = normalizeFormasiKey(pos);
+      if (norm && !map.has(norm)) map.set(norm, pos);
+    }
+    return Array.from(map.entries()).map(([value, label]) => ({
+      value,
+      label,
+    }));
+  }, [data, formasiApiTitles]);
+
+  const availableYears = useMemo(() => collectAvailableYears(data), [data]);
+
   const filteredData = useMemo(() => {
     const q = search.trim().toLowerCase();
 
@@ -215,6 +277,26 @@ export default function ViewPesertaAdminPage() {
         return false;
       }
 
+      if (filterMentor === "tanpa_mentor" && p.mentor) return false;
+      if (
+        filterMentor !== "semua" &&
+        filterMentor !== "tanpa_mentor" &&
+        getMentorFilterKey(p.mentor) !== filterMentor
+      ) {
+        return false;
+      }
+
+      if (
+        filterFormasi !== "semua" &&
+        normalizeFormasiKey(p.posisi) !== filterFormasi
+      ) {
+        return false;
+      }
+
+      if (!matchesPeriodeFilter(p, filterBulan, filterTahun)) {
+        return false;
+      }
+
       if (!q) return true;
 
       return (
@@ -226,7 +308,33 @@ export default function ViewPesertaAdminPage() {
         p.mentor?.name?.toLowerCase().includes(q)
       );
     });
-  }, [data, search, filterTab]);
+  }, [
+    data,
+    search,
+    filterTab,
+    filterMentor,
+    filterFormasi,
+    filterBulan,
+    filterTahun,
+  ]);
+
+  const hasActiveFilters =
+    Boolean(search.trim()) ||
+    filterTab !== "Semua" ||
+    filterMentor !== "semua" ||
+    filterFormasi !== "semua" ||
+    filterBulan !== "semua" ||
+    filterTahun !== "semua";
+
+  const handleResetFilters = () => {
+    setSearch("");
+    setFilterTab("Semua");
+    setFilterMentor("semua");
+    setFilterFormasi("semua");
+    setFilterBulan("semua");
+    setFilterTahun("semua");
+    setCurrentPage(1);
+  };
 
   const totalPages = Math.max(
     1,
@@ -251,6 +359,50 @@ export default function ViewPesertaAdminPage() {
     router.push(
       `/dashboard/admin/ViewLaporanAkhir?email=${encodeURIComponent(email)}`,
     );
+  };
+
+  const handleDownloadPdf = async () => {
+    if (filteredData.length === 0) {
+      showToast.error("Tidak ada data peserta untuk diunduh");
+      return;
+    }
+
+    try {
+      setExportingPdf(true);
+      const user = getJwtUserSummary();
+      const filterSummary = buildPesertaFilterSummary({
+        filterTab,
+        filterMentor,
+        mentorOptions,
+        filterFormasi,
+        formasiOptions,
+        filterBulan,
+        filterTahun,
+        search,
+      });
+
+      await downloadPesertaLengkapPdf(
+        filteredData.map((p) => ({
+          ...p,
+          statusMagang: getEffectiveStatusMagang(p),
+        })),
+        {
+          title: "DATA LENGKAP PESERTA MAGANG",
+          subtitle: "Balai Besar Pengawas Obat dan Makanan di Palembang",
+          roleLabel: "Admin",
+          printedByName: user.name || "Admin",
+          printedByDetail: user.email,
+          filterSummary,
+          fileName: `Data-Peserta-Magang-Admin-${new Date().toISOString().slice(0, 10)}.pdf`,
+        },
+      );
+      showToast.success("PDF data peserta berhasil diunduh");
+    } catch (err) {
+      console.error("Error export PDF peserta admin:", err);
+      showToast.error("Gagal membuat file PDF data peserta");
+    } finally {
+      setExportingPdf(false);
+    }
   };
 
   /* ================= RENDER ================= */
@@ -280,17 +432,29 @@ export default function ViewPesertaAdminPage() {
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={() => fetchPeserta(true)}
-          disabled={refreshing}
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition self-start sm:self-auto disabled:opacity-60"
-        >
-          <RefreshCw
-            className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`}
-          />
-          Refresh
-        </button>
+        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+          <button
+            type="button"
+            onClick={handleDownloadPdf}
+            disabled={exportingPdf || filteredData.length === 0}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            <Download className="w-3.5 h-3.5" />
+            {exportingPdf ? "Menyiapkan PDF..." : "Unduh PDF"}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => fetchPeserta(true)}
+            disabled={refreshing}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition disabled:opacity-60"
+          >
+            <RefreshCw
+              className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`}
+            />
+            Refresh
+          </button>
+        </div>
       </div>
 
       {/* ================= KPI CARDS ================= */}
@@ -373,72 +537,218 @@ export default function ViewPesertaAdminPage() {
       </div>
 
       {/* ================= FILTER TABS & SEARCH ================= */}
-      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/30 p-3.5 flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-1.5">
-          {(
-            [
-              "Semua",
-              "Sedang Magang",
-              "Belum Waktu Magang",
-              "Selesai",
-              "Tanpa Mentor",
-            ] as FilterTab[]
-          ).map((tab) => {
-            const active = filterTab === tab;
-            return (
-              <button
-                key={tab}
-                type="button"
-                onClick={() => {
-                  setFilterTab(tab);
-                  setCurrentPage(1);
-                }}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition inline-flex items-center gap-1.5 ${
-                  active
-                    ? "bg-[#0284c7] text-white shadow-xs"
-                    : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
-                }`}
-              >
-                <span>{tab}</span>
-                <span
-                  className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold ${
+      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/30 p-3.5 space-y-3">
+        {/* Baris 1: Tab Status + Reset */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
+          <div className="flex flex-wrap items-center gap-1.5">
+            {(
+              [
+                "Semua",
+                "Sedang Magang",
+                "Belum Waktu Magang",
+                "Selesai",
+                "Tanpa Mentor",
+              ] as FilterTab[]
+            ).map((tab) => {
+              const active = filterTab === tab;
+              return (
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => {
+                    setFilterTab(tab);
+                    setCurrentPage(1);
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition inline-flex items-center gap-1.5 ${
                     active
-                      ? "bg-white/20 text-white"
-                      : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+                      ? "bg-[#0284c7] text-white shadow-xs"
+                      : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
                   }`}
                 >
-                  {stats[tab]}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+                  <span>{tab}</span>
+                  <span
+                    className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold ${
+                      active
+                        ? "bg-white/20 text-white"
+                        : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+                    }`}
+                  >
+                    {stats[tab]}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
 
-        <div className="relative w-full xl:w-80">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setCurrentPage(1);
-            }}
-            placeholder="Cari nama, email, posisi, mentor..."
-            className="w-full pl-9 pr-9 py-2 rounded-xl text-xs sm:text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40 focus:border-[#0284c7]"
-          />
-          {search && (
+          {hasActiveFilters && (
             <button
               type="button"
-              onClick={() => {
-                setSearch("");
-                setCurrentPage(1);
-              }}
-              aria-label="Hapus pencarian"
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              onClick={handleResetFilters}
+              className="self-start sm:self-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-800 dark:text-slate-300 dark:hover:text-white bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition shrink-0"
             >
-              <X className="w-4 h-4" />
+              <RotateCcw className="w-3.5 h-3.5 text-[#0284c7]" />
+              Reset Filter
             </button>
           )}
+        </div>
+
+        {/* Baris 2: Pencarian, Filter Mentor, Formasi, & Periode Magang */}
+        <div className="pt-3 border-t border-slate-200/80 dark:border-slate-800 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-2.5">
+          {/* Pencarian */}
+          <div className="relative lg:col-span-4">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setCurrentPage(1);
+              }}
+              placeholder="Cari nama, email, posisi, mentor..."
+              className="w-full h-10 pl-9 pr-9 rounded-xl text-xs sm:text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40 focus:border-[#0284c7]"
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearch("");
+                  setCurrentPage(1);
+                }}
+                aria-label="Hapus pencarian"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+
+          {/* Filter Mentor */}
+          <div className="lg:col-span-2 h-10 inline-flex items-center gap-1.5 px-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus-within:ring-2 focus-within:ring-[#0284c7]/40 focus-within:border-[#0284c7]">
+            <UserCheck className="w-3.5 h-3.5 text-[#0284c7] shrink-0" />
+            <select
+              aria-label="Filter berdasarkan mentor"
+              value={filterMentor}
+              onChange={(e) => {
+                setFilterMentor(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="w-full text-xs font-semibold bg-transparent text-slate-700 dark:text-slate-200 focus:outline-none cursor-pointer truncate"
+            >
+              <option
+                value="semua"
+                className="bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200"
+              >
+                Semua Mentor
+              </option>
+              <option
+                value="tanpa_mentor"
+                className="bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200"
+              >
+                Belum Ditetapkan
+              </option>
+              {mentorOptions.map((m) => (
+                <option
+                  key={m.value}
+                  value={m.value}
+                  className="bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200"
+                >
+                  {m.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Filter Formasi */}
+          <div className="lg:col-span-2 h-10 inline-flex items-center gap-1.5 px-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus-within:ring-2 focus-within:ring-[#0284c7]/40 focus-within:border-[#0284c7]">
+            <Briefcase className="w-3.5 h-3.5 text-[#0284c7] shrink-0" />
+            <select
+              aria-label="Filter berdasarkan formasi"
+              value={filterFormasi}
+              onChange={(e) => {
+                setFilterFormasi(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="w-full text-xs font-semibold bg-transparent text-slate-700 dark:text-slate-200 focus:outline-none cursor-pointer truncate"
+            >
+              <option
+                value="semua"
+                className="bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200"
+              >
+                Semua Formasi
+              </option>
+              {formasiOptions.map((f) => (
+                <option
+                  key={f.value}
+                  value={f.value}
+                  className="bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200"
+                >
+                  {f.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Filter Bulan Periode Magang */}
+          <div className="lg:col-span-2 h-10 inline-flex items-center gap-1.5 px-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus-within:ring-2 focus-within:ring-[#0284c7]/40 focus-within:border-[#0284c7]">
+            <Calendar className="w-3.5 h-3.5 text-[#0284c7] shrink-0" />
+            <select
+              aria-label="Filter bulan periode magang"
+              value={filterBulan}
+              onChange={(e) => {
+                const val = e.target.value;
+                setFilterBulan(val === "semua" ? "semua" : Number(val));
+                setCurrentPage(1);
+              }}
+              className="w-full text-xs font-semibold bg-transparent text-slate-700 dark:text-slate-200 focus:outline-none cursor-pointer"
+            >
+              <option
+                value="semua"
+                className="bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200"
+              >
+                Semua Bulan
+              </option>
+              {BULAN_OPTIONS.map((opt) => (
+                <option
+                  key={opt.value}
+                  value={opt.value}
+                  className="bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200"
+                >
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Filter Tahun Periode Magang */}
+          <div className="lg:col-span-2 h-10 inline-flex items-center gap-1.5 px-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus-within:ring-2 focus-within:ring-[#0284c7]/40 focus-within:border-[#0284c7]">
+            <Calendar className="w-3.5 h-3.5 text-[#0284c7] shrink-0" />
+            <select
+              aria-label="Filter tahun periode magang"
+              value={filterTahun}
+              onChange={(e) => {
+                const val = e.target.value;
+                setFilterTahun(val === "semua" ? "semua" : Number(val));
+                setCurrentPage(1);
+              }}
+              className="w-full text-xs font-semibold bg-transparent text-slate-700 dark:text-slate-200 focus:outline-none cursor-pointer"
+            >
+              <option
+                value="semua"
+                className="bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200"
+              >
+                Semua Tahun
+              </option>
+              {availableYears.map((yr) => (
+                <option
+                  key={yr}
+                  value={yr}
+                  className="bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200"
+                >
+                  {yr}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
@@ -472,6 +782,15 @@ export default function ViewPesertaAdminPage() {
                         Ubah filter atau kata kunci pencarian untuk melihat data
                         lain.
                       </p>
+                      {hasActiveFilters && (
+                        <button
+                          type="button"
+                          onClick={handleResetFilters}
+                          className="mt-1 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-[#0284c7] hover:bg-sky-700 text-white transition"
+                        >
+                          Reset Filter
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

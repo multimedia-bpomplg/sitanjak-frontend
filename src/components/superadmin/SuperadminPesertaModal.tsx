@@ -36,6 +36,18 @@ export type SuperadminPesertaItem = {
   wa: string;
   posisi: string;
   jurusan?: string;
+  asal?: {
+    jenis?: string;
+    nama?: string;
+  } | null;
+  jenisKelamin?: string;
+  tempatLahir?: string;
+  tanggalLahir?: string;
+  provinsi?: string;
+  kota?: string;
+  kecamatan?: string;
+  kelurahan?: string;
+  alamatLengkap?: string;
   kategoriMagang?: "PKPA" | "Reguler";
   kategori?: string;
   mentor?: {
