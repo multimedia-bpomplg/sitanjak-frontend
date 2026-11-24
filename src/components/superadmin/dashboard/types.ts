@@ -142,6 +142,8 @@ export interface SuperadminDashboardSummary {
     kategori: Array<{ label: string; count: number }>;
     asalJenis: Array<{ label: string; count: number }>;
     gender: Array<{ label: string; count: number }>;
+    tipePeserta: Array<{ label: string; count: number }>;
+    formasiDemand: Array<{ label: string; count: number }>;
     jurusanBreakdown: Array<{ label: string; count: number }>;
     instansiBreakdown: Array<{ nama: string; jenis: string; count: number }>;
     topAsalNama: Array<{ nama: string; jenis: string; count: number }>;

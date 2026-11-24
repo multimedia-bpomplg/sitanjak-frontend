@@ -445,12 +445,7 @@ export default function SuperadminOversistemDashboard() {
           />
 
           {/* ================= ANALYTICS GRID (NON-PIE CHARTS) ================= */}
-          <SuperadminAnalyticsGrid
-            surveyIndicators={summary.surveyIndicators}
-            nilaiBuckets={summary.nilaiBuckets}
-            demographics={summary.demographics}
-            perkiraanSelesai={summary.perkiraanSelesai}
-          />
+          <SuperadminAnalyticsGrid demographics={summary.demographics} />
 
           {/* ================= ACTION QUEUES, MENTOR PESERTA & TIME SERIES TABLE ================= */}
           <SuperadminActionQueues
