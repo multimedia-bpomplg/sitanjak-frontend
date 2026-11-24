@@ -1,4 +1,7 @@
+import type { jsPDF as JsPdfDoc } from "jspdf";
+
 export interface EvaluasiMagangPayload {
+  submittedAt?: string;
   fasilitator: {
     nama: string;
     judulMateri: string;
@@ -109,12 +112,14 @@ export const RATING_LEGEND: Array<{ score: number; label: string }> = [
 
 function formatIndoDate(raw?: string): string {
   if (!raw || raw === "-") return "-";
-  const d = new Date(raw.includes("T") ? raw : `${raw}T00:00:00`);
+  const hasTime = raw.includes("T");
+  const d = new Date(hasTime ? raw : `${raw}T00:00:00`);
   if (Number.isNaN(d.getTime())) return raw;
   return d.toLocaleDateString("id-ID", {
     day: "numeric",
     month: "long",
     year: "numeric",
+    ...(hasTime ? { timeZone: "Asia/Jakarta" } : {}),
   });
 }
 
@@ -139,7 +144,7 @@ function loadImageDimensions(
   });
 }
 
-function drawCheckmark(doc: any, centerX: number, centerY: number) {
+function drawCheckmark(doc: JsPdfDoc, centerX: number, centerY: number) {
   doc.setDrawColor(15, 23, 42);
   doc.setLineWidth(0.55);
   doc.line(centerX - 1.5, centerY + 0.1, centerX - 0.3, centerY + 1.4);
@@ -147,7 +152,7 @@ function drawCheckmark(doc: any, centerX: number, centerY: number) {
   doc.setLineWidth(0.25);
 }
 
-function drawRatingLegend(doc: any, x: number, startY: number): number {
+function drawRatingLegend(doc: JsPdfDoc, x: number, startY: number): number {
   const boxW = 68;
   const lineH = 4.6;
   const padY = 2.2;
@@ -170,7 +175,7 @@ function drawRatingLegend(doc: any, x: number, startY: number): number {
 }
 
 function drawIntroParagraphs(
-  doc: any,
+  doc: JsPdfDoc,
   marginLeft: number,
   contentWidth: number,
   startY: number,
@@ -198,7 +203,7 @@ function drawIntroParagraphs(
 }
 
 function drawEvaluationTable(
-  doc: any,
+  doc: JsPdfDoc,
   opts: {
     marginLeft: number;
     contentWidth: number;
@@ -308,7 +313,12 @@ function drawEvaluationTable(
 
 export async function downloadEvaluasiDanPernyataanPdf(
   payload: EvaluasiMagangPayload,
-  periode?: { mulai?: string; selesai?: string; isPkpa?: boolean },
+  periode?: {
+    mulai?: string;
+    selesai?: string;
+    submittedAt?: string;
+    isPkpa?: boolean;
+  },
 ) {
   const isPkpa = Boolean(periode?.isPkpa);
   const texts = getEvaluasiTexts(isPkpa);
@@ -323,11 +333,14 @@ export async function downloadEvaluasiDanPernyataanPdf(
   const marginLeft = 22;
   const contentWidth = pageWidth - marginLeft * 2; // 166mm
 
-  const mulaiFormatted = formatIndoDate(periode?.mulai);
-  const selesaiFormatted = formatIndoDate(periode?.selesai);
+  const submitDateFormatted = formatIndoDate(
+    periode?.submittedAt ||
+      payload.submittedAt ||
+      payload.suratPernyataan.tanggalSurat,
+  );
   const periodeText =
-    mulaiFormatted !== "-" && selesaiFormatted !== "-"
-      ? `${mulaiFormatted} s.d. ${selesaiFormatted}`
+    submitDateFormatted !== "-"
+      ? submitDateFormatted
       : "....................................";
 
   /* ==================== HALAMAN 1: EVALUASI FASILITATOR / PEMBIMBING ==================== */

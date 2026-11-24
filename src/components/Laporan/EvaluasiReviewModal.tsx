@@ -315,6 +315,7 @@ export default function EvaluasiReviewModal({
       await downloadEvaluasiDanPernyataanPdf(ev, {
         mulai: item.tanggalMulaiMagang,
         selesai: item.tanggalSelesaiMagang,
+        submittedAt: ev.submittedAt,
         isPkpa,
       });
       showToast.success("File PDF berhasil diunduh");

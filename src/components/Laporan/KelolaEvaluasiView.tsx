@@ -561,6 +561,7 @@ export default function KelolaEvaluasiView({ role }: Props) {
                                   downloadEvaluasiDanPernyataanPdf(ev, {
                                     mulai: item.tanggalMulaiMagang,
                                     selesai: item.tanggalSelesaiMagang,
+                                    submittedAt: ev.submittedAt,
                                     isPkpa: pkpa,
                                   })
                                 }

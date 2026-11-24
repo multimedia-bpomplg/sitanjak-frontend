@@ -52,6 +52,7 @@ export default function EvaluasiDanPernyataanPage() {
   const [periode, setPeriode] = useState<{ mulai?: string; selesai?: string }>(
     {},
   );
+  const [submittedAt, setSubmittedAt] = useState<string>("");
 
   // Bagian A: Evaluasi Fasilitator / Pembimbing
   const [fasNama, setFasNama] = useState("");
@@ -106,7 +107,8 @@ export default function EvaluasiDanPernyataanPage() {
       if (pendRes && pendRes.ok) {
         const pendJson = await pendRes.json().catch(() => null);
         const found = pendJson?.peserta?.find(
-          (p: any) => p.email?.toLowerCase() === email.toLowerCase(),
+          (p: { email?: string }) =>
+            p.email?.toLowerCase() === email.toLowerCase(),
         );
         if (found) {
           detectedPkpa = detectedPkpa || isPkpaPeserta(found);
@@ -129,6 +131,7 @@ export default function EvaluasiDanPernyataanPage() {
         if (ev) {
           setHasSaved(true);
           setEvalStatus(ev.status || "Menunggu");
+          setSubmittedAt(ev.submittedAt || ev.createdAt || "");
           setMentorNote(ev.mentorNote || "");
           setReviewedByName(ev.reviewedByName || ev.reviewedBy?.name || "");
           setFasNama(ev.fasilitator?.nama || defaultMentorNama);
@@ -380,6 +383,7 @@ export default function EvaluasiDanPernyataanPage() {
 
       setHasSaved(true);
       setEvalStatus("Menunggu");
+      setSubmittedAt(data?.evaluasi?.submittedAt || new Date().toISOString());
       setMentorNote("");
       showToast.updateSuccess(
         toastId,
@@ -407,7 +411,11 @@ export default function EvaluasiDanPernyataanPage() {
     if (!payload) return;
     try {
       setDownloadingPdf(true);
-      await downloadEvaluasiDanPernyataanPdf(payload, { ...periode, isPkpa });
+      await downloadEvaluasiDanPernyataanPdf(payload, {
+        ...periode,
+        submittedAt,
+        isPkpa,
+      });
       showToast.success("File PDF berhasil diunduh");
     } catch {
       showToast.error("Gagal membuat file PDF");
