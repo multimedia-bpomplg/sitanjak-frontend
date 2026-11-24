@@ -20,6 +20,7 @@ import {
 import PaginationFooter from "@/components/dashboard/PaginationFooter";
 import { TablePageSkeleton } from "@/components/dashboard/skeletons";
 import { showToast } from "@/components/ui/toastDashboard";
+import { fetchFormasi } from "@/services/formasiService";
 
 /* ================= TYPES ================= */
 
@@ -117,6 +118,9 @@ export default function BuatAkunMentorAdminPage() {
     targetStatus: "Aktif" | "Nonaktif";
   } | null>(null);
   const [toggling, setToggling] = useState(false);
+  const [posisiOptions, setPosisiOptions] = useState<string[]>(
+    POSISI_MENTOR_OPTIONS,
+  );
 
   /* ================= FETCH ================= */
 
@@ -169,6 +173,16 @@ export default function BuatAkunMentorAdminPage() {
 
   useEffect(() => {
     fetchMentor();
+    fetchFormasi()
+      .then((list) => {
+        if (Array.isArray(list) && list.length > 0) {
+          const titles = list.map((f) => f.title).filter(Boolean);
+          setPosisiOptions(
+            Array.from(new Set([...POSISI_MENTOR_OPTIONS, ...titles])),
+          );
+        }
+      })
+      .catch(() => {});
   }, [fetchMentor]);
 
   /* ================= QUERY PREFILL (SAFE) ================= */
@@ -861,7 +875,7 @@ export default function BuatAkunMentorAdminPage() {
                   className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40 focus:border-[#0284c7]"
                 >
                   <option value="">-- Pilih Posisi Mentor --</option>
-                  {POSISI_MENTOR_OPTIONS.map((opt) => (
+                  {posisiOptions.map((opt) => (
                     <option key={opt} value={opt}>
                       {opt}
                     </option>
@@ -1120,7 +1134,7 @@ export default function BuatAkunMentorAdminPage() {
                   className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40 focus:border-[#0284c7]"
                 >
                   <option value="">-- Pilih Posisi Mentor --</option>
-                  {POSISI_MENTOR_OPTIONS.map((opt) => (
+                  {posisiOptions.map((opt) => (
                     <option key={opt} value={opt}>
                       {opt}
                     </option>

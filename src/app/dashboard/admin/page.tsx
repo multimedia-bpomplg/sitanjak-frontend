@@ -19,7 +19,10 @@ import {
   Users,
 } from "lucide-react";
 import AnnouncementBox from "@/components/AnnouncementBox";
+import PaginationFooter from "@/components/dashboard/PaginationFooter";
 import { AdminDashboardSkeleton } from "@/components/dashboard/skeletons";
+
+const ITEMS_PER_PAGE = 15;
 
 /* ================= TYPES ================= */
 
@@ -171,6 +174,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [nameFromToken, setNameFromToken] = useState("Administrator");
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     try {
@@ -262,6 +266,15 @@ export default function AdminDashboard() {
 
   const summary = dashboard?.summary || EMPTY_SUMMARY;
   const pendaftaranTerbaru = dashboard?.pendaftaranTerbaru || [];
+  const totalPages = Math.max(
+    1,
+    Math.ceil(pendaftaranTerbaru.length / ITEMS_PER_PAGE),
+  );
+  const safePage = Math.min(currentPage, totalPages);
+  const paginatedPendaftaran = pendaftaranTerbaru.slice(
+    (safePage - 1) * ITEMS_PER_PAGE,
+    safePage * ITEMS_PER_PAGE,
+  );
   const displayName = dashboard?.admin?.name || nameFromToken;
   const firstName = displayName.trim().split(" ")[0] || displayName;
 
@@ -471,7 +484,7 @@ export default function AdminDashboard() {
               Pendaftaran Terbaru
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              6 pengajuan magang paling baru masuk ke sistem
+              Pengajuan magang terbaru yang masuk ke sistem
             </p>
           </div>
 
@@ -492,118 +505,129 @@ export default function AdminDashboard() {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-225 w-full text-sm">
-              <thead>
-                <tr className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                  <th className="w-[5%] py-3.5 px-4 text-center">No</th>
-                  <th className="w-[24%] py-3.5 px-4 text-left">Pendaftar</th>
-                  <th className="w-[16%] py-3.5 px-4 text-left">
-                    Kategori & Posisi
-                  </th>
-                  <th className="w-[22%] py-3.5 px-4 text-left">Kontak</th>
-                  <th className="w-[14%] py-3.5 px-4 text-left">
-                    Tanggal Daftar
-                  </th>
-                  <th className="w-[11%] py-3.5 px-4 text-center">Status</th>
-                  <th className="w-[8%] py-3.5 px-4 text-center">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/70">
-                {pendaftaranTerbaru.map((item, idx) => {
-                  const lead = item.peserta[0];
-                  const asalNama = lead?.asal?.nama;
-                  return (
-                    <tr
-                      key={item._id}
-                      className="hover:bg-sky-50/50 dark:hover:bg-sky-950/20 transition"
-                    >
-                      <td className="py-3.5 px-4 text-center font-medium text-slate-500 dark:text-slate-400">
-                        {idx + 1}
-                      </td>
+          <>
+            <div className="overflow-x-auto">
+              <table className="min-w-225 w-full text-sm">
+                <thead>
+                  <tr className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    <th className="w-[5%] py-3.5 px-4 text-center">No</th>
+                    <th className="w-[24%] py-3.5 px-4 text-left">Pendaftar</th>
+                    <th className="w-[16%] py-3.5 px-4 text-left">
+                      Kategori & Posisi
+                    </th>
+                    <th className="w-[22%] py-3.5 px-4 text-left">Kontak</th>
+                    <th className="w-[14%] py-3.5 px-4 text-left">
+                      Tanggal Daftar
+                    </th>
+                    <th className="w-[11%] py-3.5 px-4 text-center">Status</th>
+                    <th className="w-[8%] py-3.5 px-4 text-center">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/70">
+                  {paginatedPendaftaran.map((item, idx) => {
+                    const rowNumber = (safePage - 1) * ITEMS_PER_PAGE + idx + 1;
+                    const lead = item.peserta[0];
+                    const asalNama = lead?.asal?.nama;
+                    return (
+                      <tr
+                        key={item._id}
+                        className="hover:bg-sky-50/50 dark:hover:bg-sky-950/20 transition"
+                      >
+                        <td className="py-3.5 px-4 text-center font-medium text-slate-500 dark:text-slate-400">
+                          {rowNumber}
+                        </td>
 
-                      <td className="py-3.5 px-4 text-left">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="w-9 h-9 rounded-full bg-linear-to-br from-[#0284c7] to-blue-700 text-white font-bold text-xs flex items-center justify-center shrink-0">
-                            {getInitials(lead?.nama || "P")}
+                        <td className="py-3.5 px-4 text-left">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-9 h-9 rounded-full bg-linear-to-br from-[#0284c7] to-blue-700 text-white font-bold text-xs flex items-center justify-center shrink-0">
+                              {getInitials(lead?.nama || "P")}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-bold text-slate-900 dark:text-white truncate">
+                                {lead?.nama || "Nama tidak tersedia"}
+                              </p>
+                              {asalNama && (
+                                <p className="inline-flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 truncate max-w-48">
+                                  <Building2 className="w-3 h-3 shrink-0" />
+                                  <span className="truncate">{asalNama}</span>
+                                </p>
+                              )}
+                            </div>
                           </div>
-                          <div className="min-w-0">
-                            <p className="font-bold text-slate-900 dark:text-white truncate">
-                              {lead?.nama || "Nama tidak tersedia"}
+                        </td>
+
+                        <td className="py-3.5 px-4 text-left">
+                          <p className="text-xs font-semibold text-slate-800 dark:text-slate-100">
+                            {item.kategori === "bersama"
+                              ? `Kelompok (${item.jumlahPeserta} peserta)`
+                              : "Mandiri (1 peserta)"}
+                          </p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-40">
+                            {lead?.posisi || "-"}
+                          </p>
+                        </td>
+
+                        <td className="py-3.5 px-4 text-left">
+                          <div className="space-y-0.5 text-xs text-slate-600 dark:text-slate-300">
+                            <p className="inline-flex items-center gap-1.5 max-w-48">
+                              <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                              <span className="truncate">
+                                {lead?.email || "-"}
+                              </span>
                             </p>
-                            {asalNama && (
-                              <p className="inline-flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 truncate max-w-48">
-                                <Building2 className="w-3 h-3 shrink-0" />
-                                <span className="truncate">{asalNama}</span>
+                            {lead?.wa && (
+                              <p className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
+                                <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                <span>{lead.wa}</span>
                               </p>
                             )}
                           </div>
-                        </div>
-                      </td>
+                        </td>
 
-                      <td className="py-3.5 px-4 text-left">
-                        <p className="text-xs font-semibold text-slate-800 dark:text-slate-100">
-                          {item.kategori === "bersama"
-                            ? `Kelompok (${item.jumlahPeserta} peserta)`
-                            : "Mandiri (1 peserta)"}
-                        </p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-40">
-                          {lead?.posisi || "-"}
-                        </p>
-                      </td>
-
-                      <td className="py-3.5 px-4 text-left">
-                        <div className="space-y-0.5 text-xs text-slate-600 dark:text-slate-300">
-                          <p className="inline-flex items-center gap-1.5 max-w-48">
-                            <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                            <span className="truncate">
-                              {lead?.email || "-"}
-                            </span>
+                        <td className="py-3.5 px-4 text-left whitespace-nowrap text-xs text-slate-600 dark:text-slate-300">
+                          <p className="inline-flex items-center gap-1.5 font-medium">
+                            <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                            {formatTanggal(item.createdAt)}
                           </p>
-                          {lead?.wa && (
-                            <p className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
-                              <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                              <span>{lead.wa}</span>
-                            </p>
-                          )}
-                        </div>
-                      </td>
+                          <p className="text-[11px] text-slate-400 mt-0.5">
+                            {hitungHariLalu(item.createdAt)}
+                          </p>
+                        </td>
 
-                      <td className="py-3.5 px-4 text-left whitespace-nowrap text-xs text-slate-600 dark:text-slate-300">
-                        <p className="inline-flex items-center gap-1.5 font-medium">
-                          <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                          {formatTanggal(item.createdAt)}
-                        </p>
-                        <p className="text-[11px] text-slate-400 mt-0.5">
-                          {hitungHariLalu(item.createdAt)}
-                        </p>
-                      </td>
+                        <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                          <span
+                            className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold border ${getStatusBadgeClass(
+                              item.status,
+                            )}`}
+                          >
+                            {item.status}
+                          </span>
+                        </td>
 
-                      <td className="py-3.5 px-4 text-center whitespace-nowrap">
-                        <span
-                          className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold border ${getStatusBadgeClass(
-                            item.status,
-                          )}`}
-                        >
-                          {item.status}
-                        </span>
-                      </td>
+                        <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                          <Link
+                            href={`/dashboard/admin/ViewPendaftaran#${item._id}`}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold bg-[#0284c7] hover:bg-sky-700 text-white transition"
+                          >
+                            Detail
+                            <ChevronRight className="w-3.5 h-3.5" />
+                          </Link>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
 
-                      <td className="py-3.5 px-4 text-center whitespace-nowrap">
-                        <Link
-                          href={`/dashboard/admin/ViewPendaftaran#${item._id}`}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold bg-[#0284c7] hover:bg-sky-700 text-white transition"
-                        >
-                          Detail
-                          <ChevronRight className="w-3.5 h-3.5" />
-                        </Link>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+            <PaginationFooter
+              currentPage={safePage}
+              totalItems={pendaftaranTerbaru.length}
+              itemsPerPage={ITEMS_PER_PAGE}
+              itemLabel="pendaftaran"
+              onPageChange={setCurrentPage}
+            />
+          </>
         )}
       </div>
     </div>

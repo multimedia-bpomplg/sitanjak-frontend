@@ -51,6 +51,19 @@ export const fetchPrediksi = async () => {
   return res.data;
 };
 
+export const createFormasi = async (payload: {
+  title: string;
+  kuota: number;
+  jurusan?: string[];
+}) => {
+  const res = await axios.post(
+    `${process.env.NEXT_PUBLIC_API_URL}/formasi`,
+    payload,
+    { headers: getAuthHeaders() },
+  );
+  return res.data;
+};
+
 export const updateKuotaFormasi = async (
   id: string,
   payload: { kuota?: number; kuotaBulanan?: IKuotaBulanan[] },

@@ -12,8 +12,10 @@ import {
   SlidersHorizontal,
   Trash2,
   Users,
+  X,
 } from "lucide-react";
 import {
+  createFormasi,
   deleteKuotaBulanan,
   fetchFormasi,
   formatMonthKeyLabel,
@@ -42,6 +44,13 @@ const NAMA_BULAN = [
   { value: "12", label: "Desember" },
 ];
 
+function getApiErrorMessage(err: unknown, fallback: string): string {
+  return (
+    (err as { response?: { data?: { message?: string } } })?.response?.data
+      ?.message || fallback
+  );
+}
+
 export default function KelolaKuotaFormasiView() {
   const [formasiList, setFormasiList] = useState<IFormasi[]>([]);
   const [loading, setLoading] = useState(true);
@@ -65,6 +74,13 @@ export default function KelolaKuotaFormasiView() {
   >({});
   const [savingBulananId, setSavingBulananId] = useState<string | null>(null);
   const [deletingKey, setDeletingKey] = useState<string | null>(null);
+
+  // Modal Tambah Formasi Baru
+  const [openCreateModal, setOpenCreateModal] = useState(false);
+  const [creatingFormasi, setCreatingFormasi] = useState(false);
+  const [newTitle, setNewTitle] = useState("");
+  const [newKuota, setNewKuota] = useState("5");
+  const [newJurusan, setNewJurusan] = useState("");
 
   const loadData = useCallback(
     async (isRefresh = false) => {
@@ -93,9 +109,9 @@ export default function KelolaKuotaFormasiView() {
 
         setDefaultDraft(nextDefault);
         setBulanDraft(nextBulan);
-      } catch (err: any) {
+      } catch (err: unknown) {
         showToast.error(
-          err?.response?.data?.message || "Gagal memuat data formasi",
+          getApiErrorMessage(err, "Gagal memuat data formasi"),
         );
       } finally {
         setLoading(false);
@@ -123,9 +139,9 @@ export default function KelolaKuotaFormasiView() {
       await updateKuotaFormasi(item._id, { kuota: nilai });
       showToast.success(`Kuota standar "${item.title}" diubah menjadi ${nilai}`);
       await loadData(true);
-    } catch (err: any) {
+    } catch (err: unknown) {
       showToast.error(
-        err?.response?.data?.message || "Gagal memperbarui kuota standar",
+        getApiErrorMessage(err, "Gagal memperbarui kuota standar"),
       );
     } finally {
       setSavingDefaultId(null);
@@ -151,9 +167,9 @@ export default function KelolaKuotaFormasiView() {
         `Kuota "${item.title}" untuk ${formatMonthKeyLabel(monthKey)} diatur menjadi ${nilai} kursi`,
       );
       await loadData(true);
-    } catch (err: any) {
+    } catch (err: unknown) {
       showToast.error(
-        err?.response?.data?.message || "Gagal menyimpan kuota bulanan",
+        getApiErrorMessage(err, "Gagal menyimpan kuota bulanan"),
       );
     } finally {
       setSavingBulananId(null);
@@ -169,12 +185,62 @@ export default function KelolaKuotaFormasiView() {
         `Penyesuaian ${formatMonthKeyLabel(monthKey)} dihapus (kembali ke kuota standar)`,
       );
       await loadData(true);
-    } catch (err: any) {
+    } catch (err: unknown) {
       showToast.error(
-        err?.response?.data?.message || "Gagal menghapus penyesuaian kuota",
+        getApiErrorMessage(err, "Gagal menghapus penyesuaian kuota"),
       );
     } finally {
       setDeletingKey(null);
+    }
+  };
+
+  const resetCreateForm = () => {
+    setNewTitle("");
+    setNewKuota("5");
+    setNewJurusan("");
+  };
+
+  const handleCreateFormasi = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanTitle = newTitle.trim();
+    const parsedKuota = Number(newKuota);
+
+    if (!cleanTitle) {
+      showToast.error("Nama formasi wajib diisi");
+      return;
+    }
+
+    if (newKuota === "" || !Number.isInteger(parsedKuota) || parsedKuota < 0) {
+      showToast.error("Kuota standar harus berupa angka bulat >= 0");
+      return;
+    }
+
+    const jurusanArray = Array.from(
+      new Set(
+        newJurusan
+          .split(",")
+          .map((j) => j.trim())
+          .filter(Boolean),
+      ),
+    );
+
+    try {
+      setCreatingFormasi(true);
+      await createFormasi({
+        title: cleanTitle,
+        kuota: parsedKuota,
+        jurusan: jurusanArray,
+      });
+      showToast.success(`Formasi "${cleanTitle}" berhasil ditambahkan`);
+      setOpenCreateModal(false);
+      resetCreateForm();
+      await loadData(true);
+    } catch (err: unknown) {
+      showToast.error(
+        getApiErrorMessage(err, "Gagal menambahkan formasi baru"),
+      );
+    } finally {
+      setCreatingFormasi(false);
     }
   };
 
@@ -216,17 +282,28 @@ export default function KelolaKuotaFormasiView() {
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={() => loadData(true)}
-          disabled={refreshing}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-sm font-semibold text-slate-700 dark:text-slate-200 transition-colors self-start sm:self-auto disabled:opacity-60"
-        >
-          <RefreshCw
-            className={`w-4 h-4 text-[#0284c7] ${refreshing ? "animate-spin" : ""}`}
-          />
-          <span>{refreshing ? "Memperbarui..." : "Refresh Data"}</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-auto">
+          <button
+            type="button"
+            onClick={() => setOpenCreateModal(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#0284c7] hover:bg-[#0369a1] text-white text-sm font-semibold shadow-2xs transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Tambah Formasi</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => loadData(true)}
+            disabled={refreshing}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-sm font-semibold text-slate-700 dark:text-slate-200 transition-colors disabled:opacity-60"
+          >
+            <RefreshCw
+              className={`w-4 h-4 text-[#0284c7] ${refreshing ? "animate-spin" : ""}`}
+            />
+            <span>{refreshing ? "Memperbarui..." : "Refresh Data"}</span>
+          </button>
+        </div>
       </div>
 
       {/* SUMMARY CARDS */}
@@ -343,6 +420,18 @@ export default function KelolaKuotaFormasiView() {
                     </strong>
                     )
                   </p>
+                  {item.jurusan && item.jurusan.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                      {item.jurusan.map((jur) => (
+                        <span
+                          key={jur}
+                          className="px-2 py-0.5 rounded-md text-[11px] font-medium bg-sky-50 dark:bg-sky-950/50 text-[#0284c7] dark:text-sky-300 border border-sky-200/80 dark:border-sky-800/70"
+                        >
+                          {jur}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* KUOTA STANDAR CONTROL */}
@@ -579,6 +668,123 @@ export default function KelolaKuotaFormasiView() {
           );
         })}
       </div>
+
+      {/* MODAL TAMBAH FORMASI BARU */}
+      {openCreateModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4"
+          onClick={() => !creatingFormasi && setOpenCreateModal(false)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div
+            className="w-full max-w-lg rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-5 sm:px-6 py-4 bg-linear-to-r from-[#0284c7] via-sky-600 to-blue-700 text-white flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-white/20 rounded-xl">
+                  <Building2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-base font-extrabold">
+                    Tambah Formasi Baru
+                  </h2>
+                  <p className="text-xs text-sky-100">
+                    Bidang / posisi baru akan otomatis muncul pada pilihan
+                    pendaftaran dan kuota
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                disabled={creatingFormasi}
+                onClick={() => setOpenCreateModal(false)}
+                aria-label="Tutup modal"
+                className="p-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateFormasi} className="p-5 sm:p-6 space-y-4">
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-200">
+                  Nama Formasi / Fungsi{" "}
+                  <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={newTitle}
+                  onChange={(e) => setNewTitle(e.target.value)}
+                  placeholder="Contoh: Fungsi Keuangan / Bagian Umum"
+                  className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40 focus:border-[#0284c7]"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-200">
+                  Kuota Standar per Bulan{" "}
+                  <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  required
+                  value={newKuota}
+                  onChange={(e) => setNewKuota(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl text-sm font-bold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40 focus:border-[#0284c7]"
+                />
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Jumlah kursi default tiap bulan sebelum ada penyesuaian
+                  khusus.
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-200">
+                  Rekomendasi Jurusan (Opsional)
+                </label>
+                <input
+                  type="text"
+                  value={newJurusan}
+                  onChange={(e) => setNewJurusan(e.target.value)}
+                  placeholder="Contoh: Akuntansi, Manajemen, Administrasi"
+                  className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40 focus:border-[#0284c7]"
+                />
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Pisahkan beberapa jurusan dengan tanda koma (,).
+                </p>
+              </div>
+
+              <div className="pt-2 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2">
+                <button
+                  type="button"
+                  disabled={creatingFormasi}
+                  onClick={() => {
+                    setOpenCreateModal(false);
+                    resetCreateForm();
+                  }}
+                  className="w-full sm:w-auto px-4 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={creatingFormasi || !newTitle.trim()}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-5 py-2 rounded-xl text-xs font-semibold bg-[#0284c7] hover:bg-[#0369a1] text-white disabled:opacity-50 disabled:cursor-not-allowed transition"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>
+                    {creatingFormasi ? "Menyimpan..." : "Simpan Formasi"}
+                  </span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
