@@ -19,6 +19,9 @@ import {
   X,
   XCircle,
 } from "lucide-react";
+import ManageInternalRolesModal, {
+  type ManageRolesTarget,
+} from "@/components/dashboard/ManageInternalRolesModal";
 import PaginationFooter from "@/components/dashboard/PaginationFooter";
 import { TablePageSkeleton } from "@/components/dashboard/skeletons";
 import { showToast } from "@/components/ui/toastDashboard";
@@ -32,6 +35,10 @@ type AdminAkun = {
   status: "Aktif" | "Nonaktif";
   isSuperAccess: boolean;
   periode: string;
+  roles: string[];
+  posisiMentor?: string;
+  nip?: string;
+  wa?: string;
 };
 
 type FilterTab = "Semua" | "Aktif" | "Nonaktif";
@@ -100,6 +107,7 @@ export default function BuatAkunAdminSuperadminPage() {
     admin: AdminAkun;
     targetValue: boolean;
   } | null>(null);
+  const [roleTarget, setRoleTarget] = useState<ManageRolesTarget | null>(null);
   const [toggling, setToggling] = useState(false);
 
   /* ================= FETCH ================= */
@@ -127,6 +135,10 @@ export default function BuatAkunAdminSuperadminPage() {
           email: string;
           status?: "Aktif" | "Nonaktif";
           isSuperAccess?: boolean;
+          roles?: string[];
+          posisiMentor?: string;
+          nip?: string;
+          wa?: string;
           periode?: string;
           createdAt?: string;
         }) => ({
@@ -135,6 +147,13 @@ export default function BuatAkunAdminSuperadminPage() {
           email: item.email,
           status: item.status === "Nonaktif" ? "Nonaktif" : "Aktif",
           isSuperAccess: Boolean(item.isSuperAccess),
+          roles:
+            Array.isArray(item.roles) && item.roles.length > 0
+              ? item.roles
+              : ["admin"],
+          posisiMentor: item.posisiMentor || "",
+          nip: item.nip || "",
+          wa: item.wa || "",
           periode:
             item.periode ||
             (item.createdAt
@@ -617,11 +636,23 @@ export default function BuatAkunAdminSuperadminPage() {
                           {getInitials(item.name)}
                         </div>
                         <div className="min-w-0">
-                          <p className="font-semibold text-slate-800 dark:text-slate-100 group-hover:text-[#0284c7] dark:group-hover:text-sky-400 truncate max-w-52 transition">
-                            {item.name}
-                          </p>
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <p className="font-semibold text-slate-800 dark:text-slate-100 group-hover:text-[#0284c7] dark:group-hover:text-sky-400 truncate max-w-52 transition">
+                              {item.name}
+                            </p>
+                            {item.roles
+                              .filter((r) => r !== "admin")
+                              .map((extraRole) => (
+                                <span
+                                  key={extraRole}
+                                  className="px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase bg-violet-50 text-violet-700 border border-violet-200 dark:bg-violet-950/50 dark:text-violet-300 dark:border-violet-800"
+                                >
+                                  +{extraRole}
+                                </span>
+                              ))}
+                          </div>
                           <p className="text-[11px] text-slate-400">
-                            Klik untuk detail
+                            Klik untuk detail &amp; kelola peran
                           </p>
                         </div>
                       </button>
@@ -844,6 +875,42 @@ export default function BuatAkunAdminSuperadminPage() {
                 <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 mt-1">
                   {selected.periode}
                 </p>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                    Peran Akun (Multi-Role)
+                  </p>
+                  <div className="flex flex-wrap gap-1.5 mt-1.5">
+                    {selected.roles.map((r) => (
+                      <span
+                        key={r}
+                        className="px-2 py-0.5 rounded-md text-[11px] font-bold uppercase bg-sky-50 text-[#0284c7] border border-sky-200 dark:bg-sky-950/60 dark:text-sky-300 dark:border-sky-800"
+                      >
+                        {r}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setRoleTarget({
+                      _id: selected._id,
+                      name: selected.name,
+                      email: selected.email,
+                      roles: selected.roles,
+                      posisiMentor: selected.posisiMentor,
+                      nip: selected.nip,
+                      wa: selected.wa,
+                    })
+                  }
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-sky-50 hover:bg-sky-100 text-[#0284c7] border border-sky-200 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800 transition cursor-pointer shrink-0"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  Kelola Peran
+                </button>
               </div>
 
               <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 flex items-center justify-between">
@@ -1072,6 +1139,28 @@ export default function BuatAkunAdminSuperadminPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* ================= MODAL KELOLA MULTI-ROLE ================= */}
+      {roleTarget && (
+        <ManageInternalRolesModal
+          target={roleTarget}
+          onClose={() => setRoleTarget(null)}
+          onSaved={(updated) => {
+            setSelected((prev) =>
+              prev && prev._id === updated._id
+                ? {
+                    ...prev,
+                    roles: updated.roles,
+                    posisiMentor: updated.posisiMentor,
+                    nip: updated.nip,
+                    wa: updated.wa,
+                  }
+                : prev,
+            );
+            void fetchAdmin(true);
+          }}
+        />
       )}
     </div>
   );

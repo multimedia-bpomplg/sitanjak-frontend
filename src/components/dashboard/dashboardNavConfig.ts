@@ -7,6 +7,7 @@ import {
   MessageSquareHeart,
   UserCheck,
   UserPlus,
+  Shield,
   ShieldCheck,
   Megaphone,
   Wrench,
@@ -139,6 +140,11 @@ export const ROLE_NAVIGATION_CONFIG: Record<RoleType, RoleConfig> = {
             href: "/dashboard/superadmin/ManajemenAkun",
             icon: Users,
             children: [
+              {
+                title: "Akun Superadmin",
+                href: "/dashboard/superadmin/ManajemenAkun/buatsuperadmin",
+                icon: Shield,
+              },
               {
                 title: "Akun Admin",
                 href: "/dashboard/superadmin/ManajemenAkun/buatadmin",

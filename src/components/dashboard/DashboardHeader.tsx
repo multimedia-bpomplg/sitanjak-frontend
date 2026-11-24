@@ -16,6 +16,9 @@ import {
   ChevronDown,
   ChevronRight,
   Shield,
+  ShieldCheck,
+  UserCheck,
+  ArrowRightLeft,
   CheckCircle2,
   AlertCircle,
   AlertTriangle,
@@ -64,6 +67,7 @@ const ROUTE_LABELS: Record<string, string> = {
   ViewLaporanAkhir: "Laporan Akhir",
   ViewFeedback: "Feedback & Ulasan",
   ManajemenAkun: "Manajemen Akun",
+  buatsuperadmin: "Akun Superadmin",
   buatadmin: "Tambah Akun Admin",
   buatmentor: "Tambah Akun Mentor",
   buatpeserta: "Tambah Akun Peserta",
@@ -339,6 +343,44 @@ export default function DashboardHeader({
       onConfirm: onSignOut,
     });
   };
+
+  const userRoles = Array.isArray(user?.roles) ? user.roles : [];
+  const hasSuperadminRole = userRoles.includes("superadmin");
+  const switchableRoleTargets = [
+    ...(hasSuperadminRole
+      ? [
+          {
+            role: "superadmin" as RoleType,
+            label: "Halaman Superadmin",
+            description: "Kontrol sistem, akun & seluruh data",
+            href: "/dashboard/superadmin",
+            icon: Shield,
+          },
+        ]
+      : []),
+    ...(userRoles.includes("admin") && !hasSuperadminRole
+      ? [
+          {
+            role: "admin" as RoleType,
+            label: "Halaman Admin",
+            description: "Kelola pendaftaran & peserta magang",
+            href: "/dashboard/admin",
+            icon: ShieldCheck,
+          },
+        ]
+      : []),
+    ...(userRoles.includes("mentor")
+      ? [
+          {
+            role: "mentor" as RoleType,
+            label: "Halaman Mentor",
+            description: "Bimbingan, logbook & penilaian",
+            href: "/dashboard/mentor",
+            icon: UserCheck,
+          },
+        ]
+      : []),
+  ];
 
   return (
     <header className="sticky top-0 z-30 h-18 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 transition-colors duration-200">
@@ -642,17 +684,91 @@ export default function DashboardHeader({
                       <span className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
                         {user?.email || "email@instansi.id"}
                       </span>
-                      <div className="mt-1">
+                      <div className="mt-1 flex flex-wrap gap-1">
                         <span
                           className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold border ${config.badgeClass}`}
                         >
                           <Shield size={10} />
                           {config.roleBadge}
                         </span>
+                        {switchableRoleTargets.length > 1 && (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-sky-50 text-[#0284c7] border border-sky-200 dark:bg-sky-950/60 dark:text-sky-300 dark:border-sky-800">
+                            {switchableRoleTargets.length} Peran
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
                 </div>
+
+                {/* Role Switcher (jika 1 akun memiliki >1 peran internal) */}
+                {switchableRoleTargets.length > 1 && (
+                  <>
+                    <div className="px-2 py-1.5 mb-1">
+                      <div className="flex items-center gap-1.5 px-1 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        <ArrowRightLeft size={11} />
+                        <span>Buka Halaman Peran</span>
+                      </div>
+                      <div className="space-y-1">
+                        {switchableRoleTargets.map((target) => {
+                          const isCurrent = target.role === role;
+                          const TargetIcon = target.icon;
+                          return (
+                            <button
+                              key={target.role}
+                              type="button"
+                              disabled={isCurrent}
+                              onClick={() => {
+                                setProfileDropdownOpen(false);
+                                if (!isCurrent) {
+                                  router.push(target.href);
+                                }
+                              }}
+                              className={`
+                                w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-left transition-colors
+                                ${
+                                  isCurrent
+                                    ? "bg-sky-50 dark:bg-sky-950/50 border border-sky-200 dark:border-sky-800/80 text-[#0284c7] dark:text-sky-300 cursor-default"
+                                    : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                                }
+                              `}
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <TargetIcon
+                                  size={15}
+                                  className={
+                                    isCurrent
+                                      ? "text-[#0284c7] dark:text-sky-400 shrink-0"
+                                      : "text-slate-400 shrink-0"
+                                  }
+                                />
+                                <div className="min-w-0">
+                                  <p className="text-xs font-semibold truncate">
+                                    {target.label}
+                                  </p>
+                                  <p className="text-[10px] text-slate-400 truncate">
+                                    {target.description}
+                                  </p>
+                                </div>
+                              </div>
+                              {isCurrent ? (
+                                <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-[#0284c7] text-white shrink-0">
+                                  Aktif
+                                </span>
+                              ) : (
+                                <ChevronRight
+                                  size={14}
+                                  className="text-slate-400 shrink-0"
+                                />
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    <div className="my-1.5 border-t border-slate-100 dark:border-slate-800" />
+                  </>
+                )}
 
                 {/* Actions */}
                 <div className="space-y-1">

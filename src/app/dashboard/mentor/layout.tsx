@@ -2,6 +2,7 @@
 
 import React from "react";
 import DashboardLayoutWrapper from "@/components/dashboard/DashboardLayoutWrapper";
+import MentorGuard from "@/components/guards/MentorGuard";
 
 export default function MentorLayout({
   children,
@@ -9,7 +10,7 @@ export default function MentorLayout({
   children: React.ReactNode;
 }) {
   return (
-    <DashboardLayoutWrapper role="mentor">
+    <DashboardLayoutWrapper role="mentor" Guard={MentorGuard}>
       {children}
     </DashboardLayoutWrapper>
   );

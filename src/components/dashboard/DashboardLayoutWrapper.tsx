@@ -48,29 +48,72 @@ export default function DashboardLayoutWrapper({
   useEffect(() => {
     setMounted(true);
 
-    const token = localStorage.getItem("token");
-    if (!token || isJwtExpired(token)) {
-      handleSignOut();
-      return;
+    const applySessionFromStorage = () => {
+      const token = localStorage.getItem("token");
+      if (!token || isJwtExpired(token)) {
+        handleSignOut();
+        return null;
+      }
+
+      const payload = parseJwtPayload(token);
+      if (!payload) {
+        handleSignOut();
+        return null;
+      }
+
+      const userRoles = Array.isArray(payload.roles) ? payload.roles : [role];
+      localStorage.setItem("roles", JSON.stringify(userRoles));
+      if (!hasBrowserCookie("token")) {
+        persistAuthCookies(token, userRoles);
+      }
+
+      setUser({
+        name: payload.name || payload.nama || "Pengguna",
+        email: payload.email || "-",
+        roles: userRoles,
+        avatar: payload.avatar,
+      });
+
+      return { token, userRoles };
+    };
+
+    const currentSession = applySessionFromStorage();
+    if (!currentSession) return;
+
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || "";
+    if (apiBase) {
+      fetch(`${apiBase}/auth/session`, {
+        headers: {
+          Authorization: `Bearer ${currentSession.token}`,
+        },
+      })
+        .then(async (res) => {
+          if (!res.ok) return;
+          const json = await res.json();
+          if (json?.token && Array.isArray(json?.roles)) {
+            localStorage.setItem("token", json.token);
+            localStorage.setItem("roles", JSON.stringify(json.roles));
+            persistAuthCookies(json.token, json.roles);
+            setUser({
+              name: json.user?.name || "Pengguna",
+              email: json.user?.email || "-",
+              roles: json.roles,
+              avatar: undefined,
+            });
+          }
+        })
+        .catch(() => {
+          // Diamkan agar tetap memakai sesi lokal bila offline
+        });
     }
 
-    const payload = parseJwtPayload(token);
-    if (!payload) {
-      handleSignOut();
-      return;
-    }
-
-    const userRoles = Array.isArray(payload.roles) ? payload.roles : [role];
-    if (!hasBrowserCookie("token")) {
-      persistAuthCookies(token, userRoles);
-    }
-
-    setUser({
-      name: payload.name || payload.nama || "Pengguna",
-      email: payload.email || "-",
-      roles: userRoles,
-      avatar: payload.avatar,
-    });
+    const onSessionUpdated = () => {
+      applySessionFromStorage();
+    };
+    window.addEventListener("auth-session-updated", onSessionUpdated);
+    return () => {
+      window.removeEventListener("auth-session-updated", onSessionUpdated);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
