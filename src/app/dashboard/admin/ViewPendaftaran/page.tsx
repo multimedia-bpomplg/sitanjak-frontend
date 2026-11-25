@@ -36,6 +36,7 @@ import {
 import PaginationFooter from "@/components/dashboard/PaginationFooter";
 import { TablePageSkeleton } from "@/components/dashboard/skeletons";
 import PendaftaranFilterToolbar, {
+  buildPendaftaranMentorOptions,
   extractPendaftaranDates,
   extractPendaftaranYears,
   INITIAL_PENDAFTARAN_EXTRA_FILTERS,
@@ -393,10 +394,22 @@ export default function ViewPendaftaranAdminPage() {
 
   const availableYears = useMemo(() => extractPendaftaranYears(data), [data]);
   const highlightedDates = useMemo(() => extractPendaftaranDates(data), [data]);
+  const mentorOptions = useMemo(
+    () =>
+      buildPendaftaranMentorOptions(data, mentors, (m) =>
+        getMentorObject(m as PesertaItem["mentor"], mentors),
+      ),
+    [data, mentors],
+  );
 
   const extraFilteredData = useMemo(
-    () => data.filter((item) => matchesPendaftaranExtraFilters(item, extraFilters)),
-    [data, extraFilters],
+    () =>
+      data.filter((item) =>
+        matchesPendaftaranExtraFilters(item, extraFilters, (m) =>
+          getMentorObject(m as PesertaItem["mentor"], mentors),
+        ),
+      ),
+    [data, extraFilters, mentors],
   );
 
   const tabStatusCounts = useMemo(() => {
@@ -855,6 +868,7 @@ export default function ViewPendaftaranAdminPage() {
       const filterSummary = buildPendaftaranFilterSummary({
         statusFilter,
         extraFilters,
+        mentorOptions,
         search,
       });
 
@@ -1038,6 +1052,7 @@ export default function ViewPendaftaranAdminPage() {
         }}
         availableYears={availableYears}
         highlightedDates={highlightedDates}
+        mentorOptions={mentorOptions}
         filteredCount={filteredData.length}
       />
 

@@ -35,6 +35,12 @@ export type AdminLaporanAkhirItem = {
     email?: string;
   } | null;
   mentorNote?: string;
+  posisi?: string;
+  jurusan?: string;
+  asal?: {
+    jenis?: string;
+    nama?: string;
+  } | null;
   approvedAt?: string;
   createdAt: string;
   fileUrl?: string;

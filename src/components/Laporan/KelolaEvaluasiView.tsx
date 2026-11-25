@@ -3,6 +3,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertCircle,
+  BookOpen,
+  Briefcase,
+  Building2,
+  Calendar,
   CheckCircle2,
   Clock,
   Download,
@@ -11,17 +15,46 @@ import {
   RefreshCw,
   RotateCcw,
   Search,
+  UserCheck,
   Users,
 } from "lucide-react";
 import EvaluasiReviewModal, {
   type EvaluasiStatus,
   type ManageEvaluasiItem,
 } from "@/components/Laporan/EvaluasiReviewModal";
+import ModernDatePickerPopover from "@/components/pendaftaran/ModernDatePickerPopover";
 import PaginationFooter from "@/components/dashboard/PaginationFooter";
 import { TablePageSkeleton } from "@/components/dashboard/skeletons";
 import { showToast } from "@/components/ui/toastDashboard";
 import { downloadEvaluasiDanPernyataanPdf } from "@/lib/evaluasiPdf";
+import {
+  buildEvaluasiFilterSummary,
+  downloadRekapEvaluasiPdf,
+} from "@/lib/evaluasiRekapPdf";
+import {
+  BULAN_OPTIONS,
+  collectAvailableYears,
+  getJwtUserSummary,
+  matchesPeriodeFilter,
+} from "@/lib/pesertaFilter";
 import { isPkpaPeserta } from "@/lib/pesertaKategori";
+
+function toWibYmdIso(dateStr?: string | null): string | null {
+  if (!dateStr) return null;
+  const trimmed = dateStr.trim();
+  const isoOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed);
+  if (isoOnly) {
+    return `${isoOnly[1]}-${isoOnly[2]}-${isoOnly[3]}`;
+  }
+  const dt = new Date(trimmed);
+  if (Number.isNaN(dt.getTime())) return null;
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Jakarta",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(dt);
+}
 
 const ITEMS_PER_PAGE = 10;
 
@@ -79,6 +112,12 @@ export default function KelolaEvaluasiView({ role }: Props) {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState<FilterTab>("semua");
   const [mentorFilter, setMentorFilter] = useState<string>("all");
+  const [formasiFilter, setFormasiFilter] = useState<string>("all");
+  const [jurusanFilter, setJurusanFilter] = useState<string>("all");
+  const [instansiFilter, setInstansiFilter] = useState<string>("all");
+  const [yearFilter, setYearFilter] = useState<string>("");
+  const [monthFilter, setMonthFilter] = useState<string>("");
+  const [dateFilter, setDateFilter] = useState<string>("");
   const [page, setPage] = useState(1);
 
   const [selectedItem, setSelectedItem] = useState<ManageEvaluasiItem | null>(
@@ -122,7 +161,17 @@ export default function KelolaEvaluasiView({ role }: Props) {
 
   useEffect(() => {
     setPage(1);
-  }, [searchQuery, activeFilter, mentorFilter]);
+  }, [
+    searchQuery,
+    activeFilter,
+    mentorFilter,
+    formasiFilter,
+    jurusanFilter,
+    instansiFilter,
+    yearFilter,
+    monthFilter,
+    dateFilter,
+  ]);
 
   const mentorOptions = useMemo(() => {
     const names = Array.from(
@@ -135,10 +184,154 @@ export default function KelolaEvaluasiView({ role }: Props) {
     return names.sort((a, b) => a.localeCompare(b, "id"));
   }, [items]);
 
+  const formasiOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const item of items) {
+      const raw = item.posisi?.trim();
+      if (!raw || raw === "-") continue;
+      const key = raw.toLowerCase();
+      if (!map.has(key)) map.set(key, raw);
+    }
+    return Array.from(map.entries())
+      .map(([value, label]) => ({ value, label }))
+      .sort((a, b) => a.label.localeCompare(b.label, "id-ID"));
+  }, [items]);
+
+  const jurusanOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const item of items) {
+      const raw = item.jurusan?.trim();
+      if (!raw || raw === "-") continue;
+      const key = raw.toLowerCase();
+      if (!map.has(key)) map.set(key, raw);
+    }
+    return Array.from(map.entries())
+      .map(([value, label]) => ({ value, label }))
+      .sort((a, b) => a.label.localeCompare(b.label, "id-ID"));
+  }, [items]);
+
+  const instansiOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const item of items) {
+      const raw = item.asal?.nama?.trim();
+      if (!raw || raw === "-") continue;
+      const key = raw.toLowerCase();
+      if (!map.has(key)) map.set(key, raw);
+    }
+    return Array.from(map.entries())
+      .map(([value, label]) => ({ value, label }))
+      .sort((a, b) => a.label.localeCompare(b.label, "id-ID"));
+  }, [items]);
+
+  const availableYears = useMemo(() => {
+    const years = new Set<number>(collectAvailableYears(items));
+    for (const item of items) {
+      const subIso = toWibYmdIso(item.evaluasi?.submittedAt);
+      if (subIso) {
+        years.add(Number(subIso.slice(0, 4)));
+      }
+    }
+    return Array.from(years).sort((a, b) => b - a);
+  }, [items]);
+
+  const highlightedDates = useMemo(() => {
+    const set = new Set<string>();
+    for (const item of items) {
+      const subIso = toWibYmdIso(item.evaluasi?.submittedAt);
+      if (subIso) set.add(subIso);
+      const startIso = toWibYmdIso(item.tanggalMulaiMagang);
+      if (startIso) set.add(startIso);
+      const endIso = toWibYmdIso(item.tanggalSelesaiMagang);
+      if (endIso) set.add(endIso);
+    }
+    return Array.from(set);
+  }, [items]);
+
+  const hasActiveAdvancedFilters = Boolean(
+    (isAdminScope && mentorFilter !== "all") ||
+      (isAdminScope && formasiFilter !== "all") ||
+      (!isAdminScope && jurusanFilter !== "all") ||
+      (!isAdminScope && instansiFilter !== "all") ||
+      yearFilter ||
+      monthFilter ||
+      dateFilter ||
+      searchQuery.trim(),
+  );
+
+  const handleResetFilters = () => {
+    setActiveFilter("semua");
+    setMentorFilter("all");
+    setFormasiFilter("all");
+    setJurusanFilter("all");
+    setInstansiFilter("all");
+    setYearFilter("");
+    setMonthFilter("");
+    setDateFilter("");
+    setSearchQuery("");
+  };
+
   const scopedItems = useMemo(() => {
-    if (!isAdminScope || mentorFilter === "all") return items;
-    return items.filter((i) => (i.mentorName || "").trim() === mentorFilter);
-  }, [items, isAdminScope, mentorFilter]);
+    return items.filter((item) => {
+      if (isAdminScope && mentorFilter !== "all") {
+        if ((item.mentorName || "").trim() !== mentorFilter) return false;
+      }
+
+      if (isAdminScope && formasiFilter !== "all") {
+        const f = (item.posisi || "").trim().toLowerCase();
+        if (f !== formasiFilter) return false;
+      }
+
+      if (!isAdminScope && jurusanFilter !== "all") {
+        const j = (item.jurusan || "").trim().toLowerCase();
+        if (j !== jurusanFilter) return false;
+      }
+
+      if (!isAdminScope && instansiFilter !== "all") {
+        const inst = (item.asal?.nama || "").trim().toLowerCase();
+        if (inst !== instansiFilter) return false;
+      }
+
+      const subIso = toWibYmdIso(item.evaluasi?.submittedAt);
+      const startIso = toWibYmdIso(item.tanggalMulaiMagang);
+      const endIso = toWibYmdIso(item.tanggalSelesaiMagang);
+
+      if (dateFilter) {
+        if (subIso !== dateFilter && startIso !== dateFilter && endIso !== dateFilter) {
+          return false;
+        }
+      } else if (yearFilter || monthFilter) {
+        const matchesSub = (() => {
+          if (!subIso) return false;
+          if (yearFilter && subIso.slice(0, 4) !== yearFilter) return false;
+          if (monthFilter) {
+            const targetMonth = String(Number(monthFilter)).padStart(2, "0");
+            if (subIso.slice(5, 7) !== targetMonth) return false;
+          }
+          return true;
+        })();
+
+        const matchesPeriode = matchesPeriodeFilter(
+          item,
+          monthFilter ? Number(monthFilter) : "semua",
+          yearFilter ? Number(yearFilter) : "semua",
+        );
+
+        if (!matchesSub && !matchesPeriode) return false;
+      }
+
+      return true;
+    });
+  }, [
+    items,
+    isAdminScope,
+    mentorFilter,
+    formasiFilter,
+    jurusanFilter,
+    instansiFilter,
+    yearFilter,
+    monthFilter,
+    dateFilter,
+  ]);
 
   const stats = useMemo(() => {
     return {
@@ -175,6 +368,7 @@ export default function KelolaEvaluasiView({ role }: Props) {
         item.nama.toLowerCase().includes(q) ||
         item.email.toLowerCase().includes(q) ||
         item.posisi.toLowerCase().includes(q) ||
+        (item.jurusan || "").toLowerCase().includes(q) ||
         (item.asal?.nama || "").toLowerCase().includes(q) ||
         (item.mentorName || "").toLowerCase().includes(q)
       );
@@ -191,56 +385,46 @@ export default function KelolaEvaluasiView({ role }: Props) {
     return filteredItems.slice(start, start + ITEMS_PER_PAGE);
   }, [filteredItems, safePage]);
 
-  const handleExportExcel = async () => {
+  const handleExportPdf = async () => {
     if (filteredItems.length === 0) {
-      showToast.error("Tidak ada data untuk diekspor");
+      showToast.error("Tidak ada data untuk diunduh");
       return;
     }
 
     try {
       setExporting(true);
-      const XLSX = await import("xlsx");
-      const rows = filteredItems.map((item, idx) => {
-        const ev = item.evaluasi;
-        return {
-          No: idx + 1,
-          Nama_Peserta: item.nama,
-          Email: item.email,
-          Kategori: isPkpaPeserta(item) ? "PKPA" : "Reguler",
-          Asal_Instansi: item.asal?.nama || "-",
-          Unit_Kerja: item.posisi,
-          Mentor: item.mentorName || "-",
-          Status: ev ? ev.status : "Belum Mengisi",
-          Fasilitator_Nama: ev?.fasilitator?.nama || "-",
-          Fasilitator_Skor_1: ev?.fasilitator?.skor1 ?? "-",
-          Fasilitator_Skor_2: ev?.fasilitator?.skor2 ?? "-",
-          Fasilitator_Skor_3: ev?.fasilitator?.skor3 ?? "-",
-          Fasilitator_Skor_4: ev?.fasilitator?.skor4 ?? "-",
-          Fasilitator_Skor_5: ev?.fasilitator?.skor5 ?? "-",
-          Saran_Fasilitator: ev?.fasilitator?.saran || "-",
-          Penyelenggara_Skor_1: ev?.penyelenggara?.skor1 ?? "-",
-          Penyelenggara_Skor_2: ev?.penyelenggara?.skor2 ?? "-",
-          Penyelenggara_Skor_3: ev?.penyelenggara?.skor3 ?? "-",
-          Penyelenggara_Skor_4: ev?.penyelenggara?.skor4 ?? "-",
-          Penyelenggara_Skor_5: ev?.penyelenggara?.skor5 ?? "-",
-          Bermanfaat: ev?.penyelenggara?.bermanfaat || "-",
-          Masukan_Penyelenggara: ev?.penyelenggara?.masukan || "-",
-          NIM_NISN: ev?.suratPernyataan?.nim || "-",
-          Program_Pendidikan: ev?.suratPernyataan?.programPendidikan || "-",
-          Catatan_Review: ev?.mentorNote || "-",
-        };
+      const user = getJwtUserSummary();
+      const filterSummary = buildEvaluasiFilterSummary({
+        activeFilter,
+        isAdminScope,
+        mentorFilter,
+        formasiFilter,
+        formasiOptions,
+        jurusanFilter,
+        jurusanOptions,
+        instansiFilter,
+        instansiOptions,
+        yearFilter,
+        monthFilter,
+        dateFilter,
+        searchQuery,
       });
 
-      const ws = XLSX.utils.json_to_sheet(rows);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Evaluasi & Pernyataan");
       const dateStamp = new Date().toLocaleDateString("en-CA", {
         timeZone: "Asia/Jakarta",
       });
-      XLSX.writeFile(wb, `Rekap_Evaluasi_Surat_Pernyataan_${dateStamp}.xlsx`);
-      showToast.success("Rekap Evaluasi & Surat Pernyataan berhasil diekspor");
-    } catch {
-      showToast.error("Gagal mengekspor data ke Excel");
+      await downloadRekapEvaluasiPdf(filteredItems, {
+        role,
+        printedByName: user.name,
+        printedByDetail: user.email,
+        filterSummary,
+        summary: stats,
+        fileName: `Rekap_Evaluasi_Surat_Pernyataan_${role}_${dateStamp}.pdf`,
+      });
+      showToast.success("Rekap Evaluasi & Surat Pernyataan (PDF) berhasil diunduh");
+    } catch (err) {
+      console.error("Gagal membuat PDF evaluasi:", err);
+      showToast.error("Gagal membuat file PDF rekap evaluasi");
     } finally {
       setExporting(false);
     }
@@ -294,7 +478,7 @@ export default function KelolaEvaluasiView({ role }: Props) {
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-2xl">
             {isAdminScope
-              ? "Pantau status, unduh PDF, edit, ekspor, atau reset data Evaluasi & Surat Pernyataan peserta magang (persetujuan/revisi dilakukan oleh Mentor)."
+              ? "Pantau status, unduh rekap PDF, edit, atau reset data Evaluasi & Surat Pernyataan peserta magang (persetujuan/revisi dilakukan oleh Mentor)."
               : "Tinjau Evaluasi & Surat Pernyataan peserta bimbingan Anda lalu berikan persetujuan atau catatan revisi."}
           </p>
         </div>
@@ -303,12 +487,12 @@ export default function KelolaEvaluasiView({ role }: Props) {
           {isAdminScope && (
             <button
               type="button"
-              onClick={handleExportExcel}
+              onClick={handleExportPdf}
               disabled={exporting || filteredItems.length === 0}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-transparent text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white whitespace-nowrap shadow-xs transition cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-transparent text-xs font-semibold bg-[#0284c7] hover:bg-sky-700 disabled:opacity-50 text-white whitespace-nowrap shadow-xs transition cursor-pointer"
             >
               <Download className="w-3.5 h-3.5 shrink-0" />
-              <span>{exporting ? "Mengekspor..." : "Ekspor Excel"}</span>
+              <span>{exporting ? "Menyiapkan PDF..." : "Unduh PDF"}</span>
             </button>
           )}
 
@@ -401,62 +585,194 @@ export default function KelolaEvaluasiView({ role }: Props) {
       </div>
 
       {/* FILTER BAR */}
-      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/30 p-3.5 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-1.5">
-          {filterTabs.map((tab) => {
-            const active = activeFilter === tab.id;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActiveFilter(tab.id)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition inline-flex items-center gap-1.5 cursor-pointer ${
-                  active
-                    ? "bg-[#0284c7] text-white shadow-xs"
-                    : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
-                }`}
-              >
-                <span>{tab.label}</span>
-                <span
-                  className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold ${
+      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/30 p-3.5 space-y-3">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-1.5">
+            {filterTabs.map((tab) => {
+              const active = activeFilter === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveFilter(tab.id)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition inline-flex items-center gap-1.5 cursor-pointer ${
                     active
-                      ? "bg-white/20 text-white"
-                      : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+                      ? "bg-[#0284c7] text-white shadow-xs"
+                      : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
                   }`}
                 >
-                  {tab.count}
-                </span>
-              </button>
-            );
-          })}
+                  <span>{tab.label}</span>
+                  <span
+                    className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold ${
+                      active
+                        ? "bg-white/20 text-white"
+                        : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+                    }`}
+                  >
+                    {tab.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+            <div className="relative w-full sm:w-64">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Cari nama, instansi, jurusan..."
+                className="w-full pl-9 pr-3 py-2 rounded-xl text-xs sm:text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40"
+              />
+            </div>
+          </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-          {isAdminScope && mentorOptions.length > 0 && (
+        {/* FILTER MENTOR, FORMASI (ADMIN/SUPERADMIN), JURUSAN, INSTANSI, TAHUN, BULAN, TANGGAL */}
+        <div className="pt-2.5 border-t border-slate-200/80 dark:border-slate-700/70 flex flex-wrap items-center gap-2">
+          {isAdminScope && (
+            <>
+              <div className="flex items-center gap-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-2.5 py-1.5 min-w-[165px] flex-1 sm:flex-initial">
+                <UserCheck className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <select
+                  value={mentorFilter}
+                  onChange={(e) => setMentorFilter(e.target.value)}
+                  aria-label="Filter berdasarkan mentor"
+                  className="w-full bg-transparent text-xs text-slate-700 dark:text-slate-200 focus:outline-none cursor-pointer"
+                >
+                  <option value="all">Semua Mentor</option>
+                  {mentorOptions.map((m) => (
+                    <option key={m} value={m}>
+                      {m}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex items-center gap-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-2.5 py-1.5 min-w-[165px] flex-1 sm:flex-initial">
+                <Briefcase className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <select
+                  value={formasiFilter}
+                  onChange={(e) => setFormasiFilter(e.target.value)}
+                  aria-label="Filter berdasarkan formasi"
+                  className="w-full bg-transparent text-xs text-slate-700 dark:text-slate-200 focus:outline-none cursor-pointer"
+                >
+                  <option value="all">Semua Formasi</option>
+                  {formasiOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </>
+          )}
+
+          {!isAdminScope && (
+            <>
+              <div className="flex items-center gap-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-2.5 py-1.5 min-w-[165px] flex-1 sm:flex-initial">
+                <BookOpen className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <select
+                  value={jurusanFilter}
+                  onChange={(e) => setJurusanFilter(e.target.value)}
+                  aria-label="Filter berdasarkan jurusan"
+                  className="w-full bg-transparent text-xs text-slate-700 dark:text-slate-200 focus:outline-none cursor-pointer"
+                >
+                  <option value="all">Semua Jurusan</option>
+                  {jurusanOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex items-center gap-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-2.5 py-1.5 min-w-[180px] flex-1 sm:flex-initial">
+                <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <select
+                  value={instansiFilter}
+                  onChange={(e) => setInstansiFilter(e.target.value)}
+                  aria-label="Filter berdasarkan instansi"
+                  className="w-full bg-transparent text-xs text-slate-700 dark:text-slate-200 focus:outline-none cursor-pointer"
+                >
+                  <option value="all">Semua Instansi</option>
+                  {instansiOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </>
+          )}
+
+          <div className="flex items-center gap-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-2.5 py-1.5">
+            <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
             <select
-              value={mentorFilter}
-              onChange={(e) => setMentorFilter(e.target.value)}
-              className="rounded-xl text-xs sm:text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-3 py-2 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40"
+              value={yearFilter}
+              onChange={(e) => {
+                setYearFilter(e.target.value);
+                if (dateFilter) setDateFilter("");
+              }}
+              aria-label="Filter berdasarkan tahun"
+              className="bg-transparent text-xs text-slate-700 dark:text-slate-200 focus:outline-none cursor-pointer"
             >
-              <option value="all">Semua Mentor</option>
-              {mentorOptions.map((m) => (
-                <option key={m} value={m}>
-                  {m}
+              <option value="">Semua Tahun</option>
+              {availableYears.map((y) => (
+                <option key={y} value={String(y)}>
+                  {y}
                 </option>
               ))}
             </select>
-          )}
-
-          <div className="relative w-full sm:w-64">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Cari nama, instansi, unit..."
-              className="w-full pl-9 pr-3 py-2 rounded-xl text-xs sm:text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40"
-            />
           </div>
+
+          <div className="flex items-center gap-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-2.5 py-1.5">
+            <select
+              value={monthFilter}
+              onChange={(e) => {
+                setMonthFilter(e.target.value);
+                if (dateFilter) setDateFilter("");
+              }}
+              aria-label="Filter berdasarkan bulan"
+              className="bg-transparent text-xs text-slate-700 dark:text-slate-200 focus:outline-none cursor-pointer"
+            >
+              <option value="">Semua Bulan</option>
+              {BULAN_OPTIONS.map((b) => (
+                <option key={b.value} value={String(b.value)}>
+                  {b.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <ModernDatePickerPopover
+            value={dateFilter}
+            onChange={(nextIso) => {
+              setDateFilter(nextIso);
+              if (nextIso) {
+                setYearFilter(nextIso.slice(0, 4));
+                setMonthFilter(String(Number(nextIso.slice(5, 7))));
+              }
+            }}
+            defaultYear={yearFilter}
+            defaultMonth={monthFilter}
+            highlightedDates={highlightedDates}
+            placeholder="Pilih Tanggal"
+            ariaLabel="Filter berdasarkan tanggal"
+          />
+
+          {(hasActiveAdvancedFilters || activeFilter !== "semua") && (
+            <button
+              type="button"
+              onClick={handleResetFilters}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              Reset
+            </button>
+          )}
         </div>
       </div>
 
@@ -506,7 +822,7 @@ export default function KelolaEvaluasiView({ role }: Props) {
                                 {item.nama}
                               </p>
                               <span
-                                className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold border ${
+                                className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold border whitespace-nowrap ${
                                   pkpa
                                     ? "bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-950/60 dark:text-violet-300 dark:border-violet-800"
                                     : "bg-blue-50 text-[#1D64F2] border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800"
@@ -528,6 +844,9 @@ export default function KelolaEvaluasiView({ role }: Props) {
                         </p>
                         <p className="text-[11px] text-slate-500 dark:text-slate-400">
                           {item.posisi}
+                          {item.jurusan && item.jurusan !== "-"
+                            ? ` · ${item.jurusan}`
+                            : ""}
                         </p>
                       </td>
 
@@ -537,9 +856,9 @@ export default function KelolaEvaluasiView({ role }: Props) {
                         </td>
                       )}
 
-                      <td className="py-3.5 px-4">
+                      <td className="py-3.5 px-4 whitespace-nowrap">
                         <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${getStatusBadge(
+                          className={`inline-flex items-center whitespace-nowrap px-2.5 py-1 rounded-full text-[11px] font-bold border ${getStatusBadge(
                             ev ? ev.status : null,
                           )}`}
                         >
@@ -551,7 +870,7 @@ export default function KelolaEvaluasiView({ role }: Props) {
                         {ev ? formatDateShort(ev.submittedAt) : "-"}
                       </td>
 
-                      <td className="py-3.5 px-4 text-right">
+                      <td className="py-3.5 px-4 text-right whitespace-nowrap">
                         {ev ? (
                           <div className="inline-flex items-center justify-end gap-1.5">
                             {ev.status === "Disetujui" && (

@@ -127,6 +127,7 @@ function formatPrintDateTimeWib(): string {
 export function buildPendaftaranFilterSummary(params: {
   statusFilter: string;
   extraFilters: PendaftaranExtraFilterState;
+  mentorOptions?: Array<{ value: string; label: string }>;
   search?: string;
 }): string {
   const parts: string[] = [];
@@ -138,6 +139,17 @@ export function buildPendaftaranFilterSummary(params: {
     parts.push("Tipe: Individu");
   } else if (params.extraFilters.kategori === "bersama") {
     parts.push("Tipe: Kelompok");
+  }
+  if (params.extraFilters.mentor && params.extraFilters.mentor !== "semua") {
+    if (params.extraFilters.mentor === "tanpa_mentor") {
+      parts.push("Mentor: Belum Ditetapkan");
+    } else {
+      const mLabel =
+        params.mentorOptions?.find(
+          (m) => m.value === params.extraFilters.mentor,
+        )?.label || params.extraFilters.mentor;
+      parts.push(`Mentor: ${mLabel}`);
+    }
   }
 
   if (params.extraFilters.date) {

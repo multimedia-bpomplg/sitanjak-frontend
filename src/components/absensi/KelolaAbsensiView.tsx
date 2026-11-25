@@ -32,12 +32,15 @@ import {
   buildMentorOptions,
   getLogbookMentorFilterKey,
 } from "@/components/logbook/LogbookFilterToolbar";
-import { BULAN_OPTIONS } from "@/lib/pesertaFilter";
+import { BULAN_OPTIONS, getJwtUserSummary } from "@/lib/pesertaFilter";
 import { normalizeFormasiKey } from "@/lib/formasiMentor";
+import {
+  buildAbsensiFilterSummary,
+  downloadAbsensiPdf,
+} from "@/lib/absensiPdf";
 import { fetchFormasi, type IFormasi } from "@/services/formasiService";
 import { showToast } from "@/components/ui/toastDashboard";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
-import { saveAs } from "file-saver";
 import AbsensiDetailModal from "./AbsensiDetailModal";
 import type {
   ManageAbsensiItem,
@@ -549,247 +552,40 @@ export default function KelolaAbsensiView({ role }: KelolaAbsensiViewProps) {
     setModalOpen(true);
   };
 
-  const handleExportExcel = async () => {
+  const handleExportPdf = async () => {
     if (filteredItems.length === 0 && filteredRekap.length === 0) {
-      showToast.error("Tidak ada data absensi untuk diekspor");
+      showToast.error("Tidak ada data absensi untuk diunduh");
       return;
     }
 
     try {
       setExporting(true);
-
-      const headerStyle = {
-        font: { bold: true, color: { rgb: "FFFFFF" }, sz: 11 },
-        fill: { fgColor: { rgb: "0369A1" } },
-        alignment: { horizontal: "center", vertical: "center", wrapText: true },
-        border: {
-          top: { style: "thin", color: { rgb: "CBD5E1" } },
-          bottom: { style: "thin", color: { rgb: "CBD5E1" } },
-          left: { style: "thin", color: { rgb: "CBD5E1" } },
-          right: { style: "thin", color: { rgb: "CBD5E1" } },
-        },
-      };
-
-      const formatAreaLabel = (
-        entry?: { location?: { isInsideBpom?: boolean; distanceMeters?: number } } | null,
-      ) => {
-        if (!entry?.location) return "-";
-        const dist = Math.round(entry.location.distanceMeters ?? 0);
-        return entry.location.isInsideBpom ? `Di BBPOM (${dist} m)` : `Luar Area (${dist} m)`;
-      };
-
-      const harianRows = filteredItems.map((row, idx) => {
-        const isMissed = row.attendanceMode === "tidak_absen" || row.isVirtualMissed;
-        return {
-          No: idx + 1,
-          Tanggal: row.date || "-",
-          "Nama Peserta": row.namaPeserta || "-",
-          Email: row.email || "-",
-          Posisi: row.posisi || "-",
-          Institusi: row.institusi || "-",
-          Pembimbing: row.mentorName || "-",
-          "Mode Kehadiran": isMissed
-            ? "Tidak Absen (0%)"
-            : row.attendanceMode === "izin"
-              ? "Izin"
-              : row.attendanceMode === "wfh"
-                ? "WFH"
-                : "Masuk (WFO)",
-          "Keterangan Izin": row.izinNote || "-",
-          "Jam Masuk (WIB)":
-            isMissed || row.attendanceMode === "izin"
-              ? "-"
-              : row.checkIn?.timeWIB || "-",
-          "Status Masuk": isMissed
-            ? "Tidak Absen"
-            : row.attendanceMode === "izin"
-              ? "Izin (100%)"
-              : row.checkIn?.timeStatusLabel || "Belum Check-In",
-          "Selisih Masuk (Menit)": row.checkIn ? (row.checkIn.diffMinutes ?? 0) : "-",
-          "Skor Masuk (%)": isMissed
-            ? 0
-            : row.attendanceMode === "izin"
-              ? 100
-              : row.checkIn
-                ? (row.checkIn.score ?? 0)
-                : 0,
-          "Area Masuk": formatAreaLabel(row.checkIn),
-          "Jam Pulang (WIB)":
-            isMissed || row.attendanceMode === "izin"
-              ? "-"
-              : row.checkOut?.timeWIB || "-",
-          "Status Pulang": isMissed
-            ? "Tidak Absen"
-            : row.attendanceMode === "izin"
-              ? "Izin"
-              : row.checkOut?.timeStatusLabel || "Belum Check-Out",
-          "Selisih Pulang (Menit)": row.checkOut ? (row.checkOut.diffMinutes ?? 0) : "-",
-          "Skor Pulang (%)": isMissed
-            ? 0
-            : row.attendanceMode === "izin"
-              ? 100
-              : row.checkOut
-                ? (row.checkOut.score ?? 0)
-                : 0,
-          "Area Pulang": formatAreaLabel(row.checkOut),
-          "Nilai Harian (%)": row.dailyScore ?? 0,
-          "Catatan Koreksi": row.koreksiNote || "-",
-          "Dikoreksi Oleh": row.koreksiBy?.name
-            ? `${row.koreksiBy.name} (${row.koreksiBy.role || "-"})`
-            : "-",
-        };
+      const user = getJwtUserSummary();
+      const filterSummary = buildAbsensiFilterSummary({
+        mentorFilter,
+        mentorOptions,
+        formasiFilter,
+        formasiOptions,
+        yearFilter,
+        monthFilter,
+        dateFilter,
+        areaFilter,
+        search: debouncedSearch,
       });
 
-      const rekapRows = filteredRekap.map((r, idx) => ({
-        No: idx + 1,
-        "Nama Peserta": r.namaPeserta || "-",
-        Email: r.email || "-",
-        Posisi: r.posisi || "-",
-        Institusi: r.institusi || "-",
-        Pembimbing: r.mentorName || "-",
-        "Status Magang": r.statusMagang || "-",
-        "Total Hari Hadir": r.totalHari ?? 0,
-        "Hari WFH": r.wfhCount ?? 0,
-        "Hari Izin": r.izinCount ?? 0,
-        "Tidak Absen 0% (Hari)": r.tidakAbsen ?? 0,
-        "Total Hari Kerja Efektif": r.totalHariKerja ?? r.totalHari ?? 0,
-        "Masuk Tepat Waktu": r.tepatWaktuMasuk ?? 0,
-        "Terlambat Masuk": r.telatMasuk ?? 0,
-        "Pulang Awal Tanpa Ket.": r.pulangAwalTanpaKet ?? 0,
-        "Absen Luar Area BBPOM": r.luarAreaBpom ?? 0,
-        "Rata-rata Skor Masuk (%)": r.avgCheckInScore ?? 0,
-        "Rata-rata Skor Pulang (%)": r.avgCheckOutScore ?? 0,
-        "Rata-rata Nilai Harian (%)": r.avgDailyScore ?? 0,
-      }));
-
-      type XlsxModule = typeof import("xlsx");
-
-      const buildExcelBuffer = (xlsxLib: XlsxModule, applyStyle: boolean) => {
-        const wb = xlsxLib.utils.book_new();
-
-        const styleWorksheetHeader = (ws: Record<string, unknown>, colCount: number) => {
-          if (!applyStyle) return;
-          for (let c = 0; c < colCount; c += 1) {
-            const cellRef = xlsxLib.utils.encode_cell({ r: 0, c });
-            const cell = ws[cellRef] as { s?: unknown } | undefined;
-            if (cell) cell.s = headerStyle;
-          }
-        };
-
-        const wsHarian = xlsxLib.utils.json_to_sheet(
-          harianRows.length > 0 ? harianRows : [{ Info: "Belum ada data absensi harian" }],
-        );
-        wsHarian["!cols"] = [
-          { wch: 5 },
-          { wch: 13 },
-          { wch: 24 },
-          { wch: 26 },
-          { wch: 18 },
-          { wch: 22 },
-          { wch: 20 },
-          { wch: 16 },
-          { wch: 28 },
-          { wch: 15 },
-          { wch: 24 },
-          { wch: 18 },
-          { wch: 14 },
-          { wch: 20 },
-          { wch: 15 },
-          { wch: 24 },
-          { wch: 18 },
-          { wch: 14 },
-          { wch: 20 },
-          { wch: 15 },
-          { wch: 28 },
-          { wch: 22 },
-        ];
-        if (harianRows.length > 0) {
-          styleWorksheetHeader(
-            wsHarian as unknown as Record<string, unknown>,
-            Object.keys(harianRows[0]).length,
-          );
-        }
-        xlsxLib.utils.book_append_sheet(wb, wsHarian, "Absensi Harian");
-
-        const wsRekap = xlsxLib.utils.json_to_sheet(
-          rekapRows.length > 0 ? rekapRows : [{ Info: "Belum ada data rekap peserta" }],
-        );
-        wsRekap["!cols"] = [
-          { wch: 5 },
-          { wch: 24 },
-          { wch: 26 },
-          { wch: 18 },
-          { wch: 22 },
-          { wch: 20 },
-          { wch: 16 },
-          { wch: 16 },
-          { wch: 12 },
-          { wch: 12 },
-          { wch: 20 },
-          { wch: 22 },
-          { wch: 18 },
-          { wch: 16 },
-          { wch: 22 },
-          { wch: 22 },
-          { wch: 22 },
-          { wch: 22 },
-          { wch: 24 },
-        ];
-        if (rekapRows.length > 0) {
-          styleWorksheetHeader(
-            wsRekap as unknown as Record<string, unknown>,
-            Object.keys(rekapRows[0]).length,
-          );
-        }
-        xlsxLib.utils.book_append_sheet(wb, wsRekap, "Rekap Nilai Peserta");
-
-        return xlsxLib.write(wb, {
-          bookType: "xlsx",
-          type: "array",
-        });
-      };
-
-      const resolveModule = (mod: unknown): XlsxModule | null => {
-        const candidate = mod as { default?: Partial<XlsxModule> } & Partial<XlsxModule>;
-        if (candidate?.default?.utils && typeof candidate.default.write === "function") {
-          return candidate.default as XlsxModule;
-        }
-        if (candidate?.utils && typeof candidate.write === "function") {
-          return candidate as XlsxModule;
-        }
-        return null;
-      };
-
-      let excelBuffer: ArrayBuffer | Uint8Array | number[] | null = null;
-      try {
-        const styledMod = await import("xlsx-js-style");
-        const styledLib = resolveModule(styledMod);
-        if (styledLib) {
-          excelBuffer = buildExcelBuffer(styledLib, true);
-        }
-      } catch (styleErr) {
-        console.warn("xlsx-js-style fallback ke xlsx standar:", styleErr);
-      }
-
-      if (!excelBuffer) {
-        const stdMod = await import("xlsx");
-        const stdLib = resolveModule(stdMod);
-        if (!stdLib) {
-          throw new Error("Library Excel gagal dimuat");
-        }
-        excelBuffer = buildExcelBuffer(stdLib, false);
-      }
-
-      const suffix = dateFilter || getTodayWibDate();
-      const fileName = `Absensi-Magang-BBPOM-${role}-${suffix}.xlsx`;
-      const blob = new Blob([excelBuffer as BlobPart], {
-        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8",
+      const suffix = dateFilter || yearFilter || getTodayWibDate();
+      await downloadAbsensiPdf(filteredItems, filteredRekap, {
+        role,
+        printedByName: user.name,
+        printedByDetail: user.email,
+        filterSummary,
+        summary: displaySummary,
+        fileName: `Laporan-Absensi-BBPOM-${role}-${suffix}.pdf`,
       });
-      saveAs(blob, fileName);
-      showToast.success("File Excel absensi berhasil diunduh");
+      showToast.success("Laporan PDF absensi berhasil diunduh");
     } catch (err) {
-      console.error("Export Excel error:", err);
-      showToast.error("Gagal mengekspor data absensi ke Excel");
+      console.error("Export PDF absensi error:", err);
+      showToast.error("Gagal membuat file PDF absensi");
     } finally {
       setExporting(false);
     }
@@ -863,12 +659,14 @@ export default function KelolaAbsensiView({ role }: KelolaAbsensiViewProps) {
 
           <button
             type="button"
-            onClick={handleExportExcel}
-            disabled={exporting}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm whitespace-nowrap transition disabled:opacity-60"
+            onClick={handleExportPdf}
+            disabled={
+              exporting || (filteredItems.length === 0 && filteredRekap.length === 0)
+            }
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#0284c7] hover:bg-sky-700 text-white text-xs font-semibold shadow-sm whitespace-nowrap transition disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
           >
             <Download className="w-4 h-4 shrink-0" />
-            {exporting ? "Mengekspor..." : "Export Excel (.xlsx)"}
+            {exporting ? "Menyiapkan PDF..." : "Unduh PDF"}
           </button>
         </div>
       </div>

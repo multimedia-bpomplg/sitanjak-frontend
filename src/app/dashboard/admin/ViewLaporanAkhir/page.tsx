@@ -11,17 +11,23 @@ import {
   RefreshCw,
   RotateCcw,
   Search,
-  UserCheck,
   X,
   XCircle,
 } from "lucide-react";
 import AdminLaporanAkhirModal, {
   type AdminLaporanAkhirItem,
 } from "@/components/admin/AdminLaporanAkhirModal";
+import LaporanAkhirFilterControls, {
+  matchesProgramAndFormasiFilter,
+  type ProgramFilter,
+} from "@/components/Laporan/LaporanAkhirFilterControls";
+import { buildFormasiOptions } from "@/components/logbook/LogbookFilterToolbar";
 import PaginationFooter from "@/components/dashboard/PaginationFooter";
 import { TablePageSkeleton } from "@/components/dashboard/skeletons";
 import { showToast } from "@/components/ui/toastDashboard";
 import { getMentorFilterKey } from "@/lib/pesertaFilter";
+import { isPkpaPeserta } from "@/lib/pesertaKategori";
+import { fetchFormasi, type IFormasi } from "@/services/formasiService";
 
 /* ================= TYPES ================= */
 
@@ -61,6 +67,7 @@ function getStatusBadge(status: string) {
 
 export default function ViewLaporanAkhirAdminPage() {
   const [laporanList, setLaporanList] = useState<AdminLaporanAkhirItem[]>([]);
+  const [formasiTitles, setFormasiTitles] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [downloading, setDownloading] = useState({ pdf: false, excel: false });
@@ -68,6 +75,8 @@ export default function ViewLaporanAkhirAdminPage() {
   const [search, setSearch] = useState("");
   const [filterTab, setFilterTab] = useState<FilterTab>("Semua");
   const [filterMentor, setFilterMentor] = useState("semua");
+  const [filterFormasi, setFilterFormasi] = useState("semua");
+  const [filterProgram, setFilterProgram] = useState<ProgramFilter>("semua");
   const [currentPage, setCurrentPage] = useState(1);
 
   const [selectedLaporan, setSelectedLaporan] =
@@ -83,9 +92,12 @@ export default function ViewLaporanAkhirAdminPage() {
       else setLoading(true);
 
       const token = localStorage.getItem("token");
-      const res = await fetch(`${API_BASE}/admin/laporan-akhir`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const [res, formasi] = await Promise.all([
+        fetch(`${API_BASE}/admin/laporan-akhir`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        fetchFormasi().catch(() => [] as IFormasi[]),
+      ]);
 
       if (!res.ok) {
         throw new Error("Gagal memuat laporan akhir");
@@ -93,6 +105,9 @@ export default function ViewLaporanAkhirAdminPage() {
 
       const json = await res.json();
       setLaporanList(Array.isArray(json) ? json : []);
+      setFormasiTitles(
+        Array.isArray(formasi) ? formasi.map((f) => f.title).filter(Boolean) : [],
+      );
     } catch (err) {
       console.error("Load ViewLaporanAkhir error:", err);
       showToast.error("Gagal memuat data laporan akhir");
@@ -130,30 +145,6 @@ export default function ViewLaporanAkhirAdminPage() {
 
   /* ================= STATS & FILTERING ================= */
 
-  const stats = useMemo(() => {
-    const counts: Record<FilterTab, number> = {
-      Semua: laporanList.length,
-      Menunggu: 0,
-      Disetujui: 0,
-      Revisi: 0,
-      Ditolak: 0,
-    };
-    let ratedCount = 0;
-
-    for (const item of laporanList) {
-      if (item.status === "Disetujui") counts.Disetujui += 1;
-      else if (item.status === "Revisi") counts.Revisi += 1;
-      else if (item.status === "Ditolak") counts.Ditolak += 1;
-      else counts.Menunggu += 1;
-
-      if (item.penilaian && Object.values(item.penilaian).some(Boolean)) {
-        ratedCount += 1;
-      }
-    }
-
-    return { counts, ratedCount };
-  }, [laporanList]);
-
   const mentorOptions = useMemo(() => {
     const map = new Map<string, string>();
     for (const item of laporanList) {
@@ -169,10 +160,56 @@ export default function ViewLaporanAkhirAdminPage() {
       .sort((a, b) => a.label.localeCompare(b.label, "id-ID"));
   }, [laporanList]);
 
+  const formasiOptions = useMemo(
+    () => buildFormasiOptions(laporanList, formasiTitles),
+    [laporanList, formasiTitles],
+  );
+
+  const scopedList = useMemo(() => {
+    return laporanList.filter((item) => {
+      const resolvedMentor = item.mentor || item.approvedByMentor || null;
+
+      if (filterMentor === "tanpa_mentor" && resolvedMentor) return false;
+      if (
+        filterMentor !== "semua" &&
+        filterMentor !== "tanpa_mentor" &&
+        getMentorFilterKey(resolvedMentor) !== filterMentor
+      ) {
+        return false;
+      }
+
+      return matchesProgramAndFormasiFilter(item, filterFormasi, filterProgram);
+    });
+  }, [laporanList, filterMentor, filterFormasi, filterProgram]);
+
+  const stats = useMemo(() => {
+    const counts: Record<FilterTab, number> = {
+      Semua: scopedList.length,
+      Menunggu: 0,
+      Disetujui: 0,
+      Revisi: 0,
+      Ditolak: 0,
+    };
+    let ratedCount = 0;
+
+    for (const item of scopedList) {
+      if (item.status === "Disetujui") counts.Disetujui += 1;
+      else if (item.status === "Revisi") counts.Revisi += 1;
+      else if (item.status === "Ditolak") counts.Ditolak += 1;
+      else counts.Menunggu += 1;
+
+      if (item.penilaian && Object.values(item.penilaian).some(Boolean)) {
+        ratedCount += 1;
+      }
+    }
+
+    return { counts, ratedCount };
+  }, [scopedList]);
+
   const filteredList = useMemo(() => {
     const q = search.trim().toLowerCase();
 
-    return laporanList.filter((item) => {
+    return scopedList.filter((item) => {
       const resolvedMentor = item.mentor || item.approvedByMentor || null;
 
       if (filterTab !== "Semua") {
@@ -185,34 +222,32 @@ export default function ViewLaporanAkhirAdminPage() {
         if (normalized !== filterTab) return false;
       }
 
-      if (filterMentor === "tanpa_mentor" && resolvedMentor) return false;
-      if (
-        filterMentor !== "semua" &&
-        filterMentor !== "tanpa_mentor" &&
-        getMentorFilterKey(resolvedMentor) !== filterMentor
-      ) {
-        return false;
-      }
-
       if (!q) return true;
       return (
         item.user?.name?.toLowerCase().includes(q) ||
         item.user?.email?.toLowerCase().includes(q) ||
         item.judul?.toLowerCase().includes(q) ||
+        item.posisi?.toLowerCase().includes(q) ||
+        item.jurusan?.toLowerCase().includes(q) ||
+        item.asal?.nama?.toLowerCase().includes(q) ||
         resolvedMentor?.name?.toLowerCase().includes(q)
       );
     });
-  }, [laporanList, search, filterTab, filterMentor]);
+  }, [scopedList, search, filterTab]);
 
   const hasActiveFilters =
     Boolean(search.trim()) ||
     filterTab !== "Semua" ||
-    filterMentor !== "semua";
+    filterMentor !== "semua" ||
+    filterFormasi !== "semua" ||
+    filterProgram !== "semua";
 
   const handleResetFilters = () => {
     setSearch("");
     setFilterTab("Semua");
     setFilterMentor("semua");
+    setFilterFormasi("semua");
+    setFilterProgram("semua");
     setCurrentPage(1);
   };
 
@@ -520,8 +555,8 @@ export default function ViewLaporanAkhirAdminPage() {
           )}
         </div>
 
-        <div className="pt-3 border-t border-slate-200/80 dark:border-slate-800 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-2.5">
-          <div className="relative lg:col-span-8">
+        <div className="pt-3 border-t border-slate-200/80 dark:border-slate-800 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2.5">
+          <div className="relative flex-1 max-w-md">
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
@@ -530,8 +565,8 @@ export default function ViewLaporanAkhirAdminPage() {
                 setSearch(e.target.value);
                 setCurrentPage(1);
               }}
-              placeholder="Cari nama peserta, judul, atau mentor..."
-              className="w-full h-10 pl-9 pr-9 rounded-xl text-xs sm:text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40 focus:border-[#0284c7]"
+              placeholder="Cari nama, judul, posisi, jurusan, atau mentor..."
+              className="w-full h-9 pl-9 pr-9 rounded-xl text-xs sm:text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40 focus:border-[#0284c7]"
             />
             {search && (
               <button
@@ -548,40 +583,26 @@ export default function ViewLaporanAkhirAdminPage() {
             )}
           </div>
 
-          <div className="lg:col-span-4 h-10 inline-flex items-center gap-1.5 px-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus-within:ring-2 focus-within:ring-[#0284c7]/40 focus-within:border-[#0284c7]">
-            <UserCheck className="w-3.5 h-3.5 text-[#0284c7] shrink-0" />
-            <select
-              aria-label="Filter berdasarkan mentor"
-              value={filterMentor}
-              onChange={(e) => {
-                setFilterMentor(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="w-full text-xs font-semibold bg-transparent text-slate-700 dark:text-slate-200 focus:outline-none cursor-pointer truncate"
-            >
-              <option
-                value="semua"
-                className="bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200"
-              >
-                Semua Mentor
-              </option>
-              <option
-                value="tanpa_mentor"
-                className="bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200"
-              >
-                Belum Ditetapkan
-              </option>
-              {mentorOptions.map((m) => (
-                <option
-                  key={m.value}
-                  value={m.value}
-                  className="bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200"
-                >
-                  {m.label}
-                </option>
-              ))}
-            </select>
-          </div>
+          <LaporanAkhirFilterControls
+            showMentorFilter
+            filterMentor={filterMentor}
+            onMentorChange={(next) => {
+              setFilterMentor(next);
+              setCurrentPage(1);
+            }}
+            mentorOptions={mentorOptions}
+            filterFormasi={filterFormasi}
+            onFormasiChange={(next) => {
+              setFilterFormasi(next);
+              setCurrentPage(1);
+            }}
+            formasiOptions={formasiOptions}
+            filterProgram={filterProgram}
+            onProgramChange={(next) => {
+              setFilterProgram(next);
+              setCurrentPage(1);
+            }}
+          />
         </div>
       </div>
 
@@ -648,12 +669,28 @@ export default function ViewLaporanAkhirAdminPage() {
                             {getInitials(item.user?.name)}
                           </div>
                           <div className="min-w-0">
-                            <p className="font-bold text-slate-900 dark:text-white truncate">
-                              {item.user?.name || "Tanpa Nama"}
-                            </p>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <p className="font-bold text-slate-900 dark:text-white truncate">
+                                {item.user?.name || "Tanpa Nama"}
+                              </p>
+                              {isPkpaPeserta({ jurusan: item.jurusan }) ? (
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-violet-50 text-violet-700 border border-violet-200 dark:bg-violet-950/60 dark:text-violet-300 dark:border-violet-800 shrink-0">
+                                  PKPA
+                                </span>
+                              ) : item.jurusan || item.posisi ? (
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-600 border border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700 shrink-0">
+                                  Reguler
+                                </span>
+                              ) : null}
+                            </div>
                             <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
                               {item.user?.email || "-"}
                             </p>
+                            {item.posisi && (
+                              <p className="text-[11px] text-[#0284c7] dark:text-sky-400 font-medium truncate">
+                                {item.posisi}
+                              </p>
+                            )}
                           </div>
                         </div>
                       </td>

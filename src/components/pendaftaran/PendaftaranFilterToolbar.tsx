@@ -5,6 +5,7 @@ import {
   CalendarDays,
   RotateCcw,
   Search,
+  UserCheck,
   Users,
   X,
 } from "lucide-react";
@@ -21,6 +22,7 @@ export type KategoriFilter = "semua" | "sendiri" | "bersama";
 
 export type PendaftaranExtraFilterState = {
   kategori: KategoriFilter;
+  mentor: string; // "semua" | "tanpa_mentor" | mentorKey
   year: string;
   month: string;
   date: string;
@@ -28,6 +30,7 @@ export type PendaftaranExtraFilterState = {
 
 export const INITIAL_PENDAFTARAN_EXTRA_FILTERS: PendaftaranExtraFilterState = {
   kategori: "semua",
+  mentor: "semua",
   year: "",
   month: "",
   date: "",
@@ -80,13 +83,75 @@ export function extractPendaftaranYears(
   return Array.from(yearSet).sort((a, b) => b.localeCompare(a));
 }
 
-export function matchesPendaftaranExtraFilters(
-  item: { kategori?: string; createdAt?: string },
+export function getPendaftaranMentorKey(
+  mentor: { _id?: string; name?: string; email?: string } | null | undefined,
+): string {
+  if (!mentor) return "tanpa_mentor";
+  return (
+    mentor._id ||
+    mentor.email?.trim().toLowerCase() ||
+    mentor.name?.trim().toLowerCase() ||
+    "tanpa_mentor"
+  );
+}
+
+export function buildPendaftaranMentorOptions<
+  TPeserta extends { mentor?: unknown },
+>(
+  items: Array<{ peserta?: TPeserta[] }>,
+  mentors: Array<{ _id: string; name: string; email?: string }>,
+  resolveMentor: (
+    mentor: TPeserta["mentor"],
+  ) => { _id?: string; name?: string; email?: string } | null,
+): Array<{ value: string; label: string }> {
+  const map = new Map<string, string>();
+  for (const m of mentors) {
+    if (!m.name) continue;
+    const key = getPendaftaranMentorKey(m);
+    if (key !== "tanpa_mentor" && !map.has(key)) {
+      map.set(key, m.name);
+    }
+  }
+  for (const item of items) {
+    for (const p of item.peserta || []) {
+      const m = resolveMentor(p.mentor);
+      if (!m?.name) continue;
+      const key = getPendaftaranMentorKey(m);
+      if (key !== "tanpa_mentor" && !map.has(key)) {
+        map.set(key, m.name);
+      }
+    }
+  }
+  return Array.from(map.entries())
+    .map(([value, label]) => ({ value, label }))
+    .sort((a, b) => a.label.localeCompare(b.label, "id-ID"));
+}
+
+export function matchesPendaftaranExtraFilters<
+  TPeserta extends { mentor?: unknown },
+>(
+  item: { kategori?: string; createdAt?: string; peserta?: TPeserta[] },
   filters: PendaftaranExtraFilterState,
+  resolveMentor?: (
+    mentor: TPeserta["mentor"],
+  ) => { _id?: string; name?: string; email?: string } | null,
 ): boolean {
   if (filters.kategori !== "semua") {
     const itemKat = item.kategori === "bersama" ? "bersama" : "sendiri";
     if (itemKat !== filters.kategori) return false;
+  }
+
+  if (filters.mentor && filters.mentor !== "semua" && resolveMentor) {
+    const pesertaArr = item.peserta || [];
+    if (filters.mentor === "tanpa_mentor") {
+      const hasUnassigned = pesertaArr.some((p) => !resolveMentor(p.mentor));
+      if (!hasUnassigned) return false;
+    } else {
+      const hasMatch = pesertaArr.some(
+        (p) => getPendaftaranMentorKey(resolveMentor(p.mentor)) === filters.mentor,
+      );
+      if (!hasMatch) return false;
+    }
   }
 
   if (filters.date || filters.year || filters.month) {
@@ -110,6 +175,7 @@ type Props = {
   onExtraFiltersChange: (next: PendaftaranExtraFilterState) => void;
   availableYears: string[];
   highlightedDates?: string[];
+  mentorOptions?: Array<{ value: string; label: string }>;
   filteredCount: number;
 };
 
@@ -123,10 +189,12 @@ export default function PendaftaranFilterToolbar({
   onExtraFiltersChange,
   availableYears,
   highlightedDates,
+  mentorOptions = [],
   filteredCount,
 }: Props) {
   const hasExtraFilter =
     extraFilters.kategori !== "semua" ||
+    extraFilters.mentor !== "semua" ||
     Boolean(extraFilters.year) ||
     Boolean(extraFilters.month) ||
     Boolean(extraFilters.date);
@@ -244,6 +312,44 @@ export default function PendaftaranFilterToolbar({
               );
             })}
           </div>
+
+          {/* Filter Mentor */}
+          <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200">
+            <UserCheck className="w-3.5 h-3.5 text-[#0284c7] shrink-0" />
+            <select
+              aria-label="Filter pendaftaran berdasarkan mentor"
+              value={extraFilters.mentor}
+              onChange={(e) =>
+                onExtraFiltersChange({
+                  ...extraFilters,
+                  mentor: e.target.value,
+                })
+              }
+              className="bg-transparent focus:outline-none cursor-pointer max-w-[175px] truncate"
+            >
+              <option
+                value="semua"
+                className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100"
+              >
+                Semua Mentor
+              </option>
+              <option
+                value="tanpa_mentor"
+                className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100"
+              >
+                Belum Ditetapkan
+              </option>
+              {mentorOptions.map((m) => (
+                <option
+                  key={m.value}
+                  value={m.value}
+                  className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100"
+                >
+                  {m.label}
+                </option>
+              ))}
+            </select>
+          </label>
 
           {/* Per Tahun */}
           <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200">

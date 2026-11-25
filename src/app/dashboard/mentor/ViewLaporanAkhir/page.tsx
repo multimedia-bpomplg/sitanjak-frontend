@@ -15,9 +15,15 @@ import {
   XCircle,
 } from "lucide-react";
 import MentorLaporanAkhirModal from "@/components/Laporan/MentorLaporanAkhirModal";
+import LaporanAkhirFilterControls, {
+  matchesProgramAndFormasiFilter,
+  type ProgramFilter,
+} from "@/components/Laporan/LaporanAkhirFilterControls";
+import { buildFormasiOptions } from "@/components/logbook/LogbookFilterToolbar";
 import PaginationFooter from "@/components/dashboard/PaginationFooter";
 import { TablePageSkeleton } from "@/components/dashboard/skeletons";
 import { isPkpaPeserta } from "@/lib/pesertaKategori";
+import { fetchFormasi, type IFormasi } from "@/services/formasiService";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -120,11 +126,14 @@ function getStatusBadge(status?: LaporanStatus) {
 
 export default function ViewLaporanAkhirMentor() {
   const [pesertaList, setPesertaList] = useState<PesertaLaporanRow[]>([]);
+  const [formasiTitles, setFormasiTitles] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState<FilterTab>("semua");
+  const [filterFormasi, setFilterFormasi] = useState("semua");
+  const [filterProgram, setFilterProgram] = useState<ProgramFilter>("semua");
   const [page, setPage] = useState(1);
   const [selectedPeserta, setSelectedPeserta] = useState<{
     id: string;
@@ -138,12 +147,12 @@ export default function ViewLaporanAkhirMentor() {
     setError(null);
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/mentor/dashboard-summary`,
-        {
+      const [res, formasi] = await Promise.all([
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/mentor/dashboard-summary`, {
           headers: { Authorization: `Bearer ${token}` },
-        },
-      );
+        }),
+        fetchFormasi().catch(() => [] as IFormasi[]),
+      ]);
 
       if (!res.ok) {
         throw new Error("Gagal memuat data laporan akhir peserta");
@@ -151,6 +160,9 @@ export default function ViewLaporanAkhirMentor() {
 
       const json = await res.json();
       setPesertaList(json.peserta || []);
+      setFormasiTitles(
+        Array.isArray(formasi) ? formasi.map((f) => f.title).filter(Boolean) : [],
+      );
     } catch (err: unknown) {
       console.error("Gagal memuat laporan akhir:", err);
       if (!silent) {
@@ -169,19 +181,32 @@ export default function ViewLaporanAkhirMentor() {
     fetchData();
   }, [fetchData]);
 
+  const formasiOptions = useMemo(
+    () => buildFormasiOptions(pesertaList, formasiTitles),
+    [pesertaList, formasiTitles],
+  );
+
+  const scopedPeserta = useMemo(
+    () =>
+      pesertaList.filter((p) =>
+        matchesProgramAndFormasiFilter(p, filterFormasi, filterProgram),
+      ),
+    [pesertaList, filterFormasi, filterProgram],
+  );
+
   const stats = useMemo(() => {
-    const totalPeserta = pesertaList.length;
-    const totalLaporan = pesertaList.filter((p) => p.laporanAkhir).length;
-    const menunggu = pesertaList.filter(
+    const totalPeserta = scopedPeserta.length;
+    const totalLaporan = scopedPeserta.filter((p) => p.laporanAkhir).length;
+    const menunggu = scopedPeserta.filter(
       (p) => p.laporanAkhir?.status === "Menunggu",
     ).length;
-    const revisi = pesertaList.filter(
+    const revisi = scopedPeserta.filter(
       (p) => p.laporanAkhir?.status === "Revisi",
     ).length;
-    const disetujui = pesertaList.filter(
+    const disetujui = scopedPeserta.filter(
       (p) => p.laporanAkhir?.status === "Disetujui",
     ).length;
-    const ditolak = pesertaList.filter(
+    const ditolak = scopedPeserta.filter(
       (p) => p.laporanAkhir?.status === "Ditolak",
     ).length;
     const belumUpload = totalPeserta - totalLaporan;
@@ -198,11 +223,11 @@ export default function ViewLaporanAkhirMentor() {
       belumUpload,
       persentase,
     };
-  }, [pesertaList]);
+  }, [scopedPeserta]);
 
   const filteredPeserta = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    return pesertaList.filter((p) => {
+    return scopedPeserta.filter((p) => {
       const st = p.laporanAkhir?.status;
       if (activeFilter === "menunggu" && st !== "Menunggu") return false;
       if (activeFilter === "revisi" && st !== "Revisi") return false;
@@ -219,11 +244,11 @@ export default function ViewLaporanAkhirMentor() {
         p.asal?.nama?.toLowerCase().includes(q)
       );
     });
-  }, [pesertaList, activeFilter, searchQuery]);
+  }, [scopedPeserta, activeFilter, searchQuery]);
 
   useEffect(() => {
     setPage(1);
-  }, [activeFilter, searchQuery]);
+  }, [activeFilter, filterFormasi, filterProgram, searchQuery]);
 
   const totalPage = Math.max(
     1,
@@ -390,7 +415,7 @@ export default function ViewLaporanAkhirMentor() {
       </div>
 
       {/* ================= FILTER & SEARCH ================= */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/30 p-3.5 space-y-3">
         <div className="flex flex-wrap items-center gap-2">
           {filterTabs.map((tab) => {
             const active = activeFilter === tab.id;
@@ -419,23 +444,54 @@ export default function ViewLaporanAkhirMentor() {
           })}
         </div>
 
-        <div className="relative w-full lg:w-80">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Cari nama, posisi, kampus/SMK..."
-            className="w-full pl-10 pr-8 py-2 rounded-xl text-sm bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40 focus:border-[#0284c7] transition"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-            >
-              ✕
-            </button>
-          )}
+        <div className="pt-2.5 border-t border-slate-200/80 dark:border-slate-800 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2.5">
+          <div className="relative flex-1 max-w-md">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Cari nama, posisi, kampus/SMK..."
+              className="w-full h-9 pl-10 pr-8 py-1.5 rounded-xl text-xs sm:text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40 focus:border-[#0284c7] transition"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <LaporanAkhirFilterControls
+              filterFormasi={filterFormasi}
+              onFormasiChange={setFilterFormasi}
+              formasiOptions={formasiOptions}
+              filterProgram={filterProgram}
+              onProgramChange={setFilterProgram}
+            />
+
+            {(filterFormasi !== "semua" ||
+              filterProgram !== "semua" ||
+              activeFilter !== "semua" ||
+              searchQuery.trim() !== "") && (
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveFilter("semua");
+                  setFilterFormasi("semua");
+                  setFilterProgram("semua");
+                  setSearchQuery("");
+                }}
+                className="h-9 inline-flex items-center gap-1.5 px-3 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-800 dark:text-slate-300 dark:hover:text-white bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+              >
+                <RotateCcw className="w-3.5 h-3.5 text-[#0284c7]" />
+                Reset
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
