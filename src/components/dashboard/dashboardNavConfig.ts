@@ -205,6 +205,11 @@ export const ROLE_NAVIGATION_CONFIG: Record<RoleType, RoleConfig> = {
                 icon: ImageIcon,
               },
               {
+                title: "Galeri Dokumentasi",
+                href: "/dashboard/superadmin/manajemenTampilan/GaleriEdit",
+                icon: ImageIcon,
+              },
+              {
                 title: "Informasi Fungsi",
                 href: "/dashboard/superadmin/manajemenTampilan/InformasiFungsi",
                 icon: Sliders,
@@ -354,6 +359,11 @@ export const ROLE_NAVIGATION_CONFIG: Record<RoleType, RoleConfig> = {
           {
             title: "Gambar Hero Landing",
             href: "/dashboard/admin/manajemenTampilan/HeroEdit",
+            icon: ImageIcon,
+          },
+          {
+            title: "Galeri Dokumentasi",
+            href: "/dashboard/admin/manajemenTampilan/GaleriEdit",
             icon: ImageIcon,
           },
           {

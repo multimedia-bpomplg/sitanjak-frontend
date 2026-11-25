@@ -16,7 +16,7 @@ import {
 import { showToast } from "@/components/ui/toastDashboard";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 
-type HolidayType = "libur_nasional" | "cuti_bersama" | "khusus";
+type HolidayType = "libur_nasional" | "cuti_bersama" | "khusus" | "hari_masuk";
 type HolidaySource = "auto" | "manual";
 
 interface HolidayItem {
@@ -24,6 +24,7 @@ interface HolidayItem {
   date: string;
   name: string;
   type: HolidayType;
+  originalType?: "libur_nasional" | "cuti_bersama" | null;
   source?: HolidaySource;
 }
 
@@ -48,6 +49,11 @@ const TYPE_META: Record<
     badgeClass:
       "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800",
   },
+  hari_masuk: {
+    label: "Tetap Masuk (Hari Kerja)",
+    badgeClass:
+      "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800",
+  },
 };
 
 function formatDisplayDate(dateIso: string): string {
@@ -66,6 +72,7 @@ function formatDisplayDate(dateIso: string): string {
 function isAutoCalendarHoliday(item: HolidayItem): boolean {
   return (
     item.source === "auto" ||
+    Boolean(item.originalType) ||
     (!item.source && item.type === "libur_nasional")
   );
 }
@@ -88,7 +95,10 @@ export default function KelolaHariLiburView() {
 
   const [date, setDate] = useState("");
   const [name, setName] = useState("");
-  const [type, setType] = useState<"khusus" | "cuti_bersama">("khusus");
+  const [type, setType] = useState<"khusus" | "cuti_bersama" | "hari_masuk">(
+    "khusus",
+  );
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   const fetchHolidays = useCallback(async (year: number) => {
     setLoading(true);
@@ -158,7 +168,10 @@ export default function KelolaHariLiburView() {
       }
 
       const savedYear = Number(date.slice(0, 4));
-      showToast.updateSuccess(toastId, "Hari libur khusus berhasil disimpan");
+      showToast.updateSuccess(
+        toastId,
+        json?.message || "Pengaturan tanggal berhasil disimpan",
+      );
       setDate("");
       setName("");
       setType("khusus");
@@ -244,6 +257,49 @@ export default function KelolaHariLiburView() {
     });
   };
 
+  const handleToggleWorkday = (item: HolidayItem) => {
+    const isCurrentlyOpen = item.type === "hari_masuk";
+    confirm({
+      title: isCurrentlyOpen ? "Kembalikan Jadi Hari Libur" : "Buka Hari Masuk",
+      message: isCurrentlyOpen
+        ? `Kembalikan tanggal ${item.date} ("${item.name}") menjadi hari libur?`
+        : `Jadikan tanggal ${item.date} ("${item.name}") tetap masuk? Peserta dapat mengisi absensi & logbook pada tanggal ini.`,
+      confirmText: isCurrentlyOpen ? "Ya, Jadikan Libur" : "Ya, Tetap Masuk",
+      onConfirm: async () => {
+        setTogglingId(item._id);
+        const toastId = showToast.loading("Memperbarui status tanggal...");
+        try {
+          const token = localStorage.getItem("token") || "";
+          const res = await fetch(
+            `${API_BASE}/holidays/${item._id}/toggle-workday`,
+            {
+              method: "PATCH",
+              headers: { Authorization: `Bearer ${token}` },
+            },
+          );
+          const json = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            throw new Error(json?.message || "Gagal mengubah status tanggal");
+          }
+          showToast.updateSuccess(
+            toastId,
+            json?.message || "Status tanggal berhasil diperbarui",
+          );
+          await fetchHolidays(selectedYear);
+        } catch (err: unknown) {
+          showToast.updateError(
+            toastId,
+            err instanceof Error
+              ? err.message
+              : "Gagal mengubah status tanggal",
+          );
+        } finally {
+          setTogglingId(null);
+        }
+      },
+    });
+  };
+
   const yearOptions = useMemo(() => {
     return [currentYear - 1, currentYear, currentYear + 1, currentYear + 2];
   }, [currentYear]);
@@ -295,10 +351,12 @@ export default function KelolaHariLiburView() {
         <Info className="w-5 h-5 text-[#1D64F2] dark:text-blue-400 shrink-0 mt-0.5" />
         <div className="text-xs sm:text-sm text-slate-700 dark:text-slate-200 leading-relaxed">
           <strong>Libur Nasional Otomatis Aktif:</strong> Pada hari Sabtu,
-          Minggu, serta tanggal merah kalender nasional Indonesia, absensi
-          peserta otomatis ditutup, pengingat pukul 19.00 WIB tidak dikirim, dan
-          tidak mengurangi skor Kehadiran &amp; Taat Jadwal. Anda hanya perlu
-          menambahkan tanggal di bawah jika ada <strong>hari libur khusus</strong>.
+          Minggu, serta tanggal merah kalender nasional Indonesia, absensi dan
+          logbook peserta otomatis ditutup, pengingat pukul 19.00 WIB tidak
+          dikirim, dan tidak mengurangi skor Kehadiran &amp; Taat Jadwal. Anda
+          dapat menambah <strong>libur khusus</strong> maupun membuka kembali
+          tanggal libur/cuti bersama menjadi{" "}
+          <strong>Tetap Masuk (Hari Kerja)</strong> jika kantor beroperasi.
         </div>
       </div>
 
@@ -345,12 +403,15 @@ export default function KelolaHariLiburView() {
             <select
               value={type}
               onChange={(e) =>
-                setType(e.target.value as "khusus" | "cuti_bersama")
+                setType(
+                  e.target.value as "khusus" | "cuti_bersama" | "hari_masuk",
+                )
               }
               className="w-full rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[#1D64F2]"
             >
               <option value="khusus">Libur Khusus</option>
               <option value="cuti_bersama">Cuti Bersama</option>
+              <option value="hari_masuk">Tetap Masuk (Hari Kerja)</option>
             </select>
           </div>
         </div>
@@ -496,6 +557,7 @@ export default function KelolaHariLiburView() {
             ) : (
               <div className="divide-y divide-slate-100 dark:divide-slate-800">
                 {autoHolidays.map((item) => {
+                  const isOpenedAsWorkday = item.type === "hari_masuk";
                   const meta = TYPE_META[item.type] || TYPE_META.libur_nasional;
                   return (
                     <div
@@ -518,9 +580,22 @@ export default function KelolaHariLiburView() {
                         </p>
                       </div>
 
-                      <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 px-2.5 py-0.5 rounded-full shrink-0">
-                        Otomatis
-                      </span>
+                      <button
+                        type="button"
+                        disabled={togglingId === item._id}
+                        onClick={() => handleToggleWorkday(item)}
+                        className={`px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold border transition shrink-0 disabled:opacity-50 ${
+                          isOpenedAsWorkday
+                            ? "bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-950/50 dark:hover:bg-rose-950 dark:text-rose-300 dark:border-rose-800"
+                            : "bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:hover:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800"
+                        }`}
+                      >
+                        {togglingId === item._id
+                          ? "Memproses..."
+                          : isOpenedAsWorkday
+                            ? "Kembalikan Jadi Libur"
+                            : "Jadikan Hari Masuk"}
+                      </button>
                     </div>
                   );
                 })}

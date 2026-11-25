@@ -168,6 +168,12 @@ export default function IsiLogbookPage() {
   const [isEditingRevisi, setIsEditingRevisi] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [todayAbsensi, setTodayAbsensi] = useState<TodayAbsensiStatus>(null);
+  const [holidayMap, setHolidayMap] = useState<
+    Record<string, { name: string; type?: string }>
+  >({});
+  const [overrideWorkdayMap, setOverrideWorkdayMap] = useState<
+    Record<string, { name: string }>
+  >({});
 
   const todayWIB = useMemo(() => getNowWIB(), []);
   const todayIso = useMemo(() => toIsoDate(todayWIB), [todayWIB]);
@@ -205,23 +211,54 @@ export default function IsiLogbookPage() {
         // ignore
       }
 
-      const [datesRes, summaryRes, pendRes, absenTodayRes] = await Promise.all([
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/logbook/filled-dates`, {
-          headers,
-        }),
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/logbook/summary`, {
-          headers,
-        }),
-        email
-          ? fetch(
-              `${process.env.NEXT_PUBLIC_API_URL}/pendaftaran/cek?email=${encodeURIComponent(email)}`,
-              { headers },
-            ).catch(() => null)
-          : Promise.resolve(null),
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/absensi/today`, {
-          headers,
-        }).catch(() => null),
-      ]);
+      const [datesRes, summaryRes, pendRes, absenTodayRes, holidaysRes] =
+        await Promise.all([
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/logbook/filled-dates`, {
+            headers,
+          }),
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/logbook/summary`, {
+            headers,
+          }),
+          email
+            ? fetch(
+                `${process.env.NEXT_PUBLIC_API_URL}/pendaftaran/cek?email=${encodeURIComponent(email)}`,
+                { headers },
+              ).catch(() => null)
+            : Promise.resolve(null),
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/absensi/today`, {
+            headers,
+          }).catch(() => null),
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/holidays`, {
+            headers,
+          }).catch(() => null),
+        ]);
+
+      if (holidaysRes && holidaysRes.ok) {
+        const holJson = await holidaysRes.json().catch(() => null);
+        const list = Array.isArray(holJson?.data)
+          ? holJson.data
+          : Array.isArray(holJson)
+            ? holJson
+            : [];
+        const map: Record<string, { name: string; type?: string }> = {};
+        const overrides: Record<string, { name: string }> = {};
+        for (const item of list) {
+          if (!item?.date) continue;
+          const dateIso = String(item.date);
+          if (item.type === "hari_masuk") {
+            overrides[dateIso] = {
+              name: String(item.name || "Hari Kerja Khusus (Tetap Masuk)"),
+            };
+          } else {
+            map[dateIso] = {
+              name: String(item.name || "Hari Libur"),
+              type: item.type ? String(item.type) : undefined,
+            };
+          }
+        }
+        setHolidayMap(map);
+        setOverrideWorkdayMap(overrides);
+      }
 
       if (datesRes.ok) {
         const datesJson = await datesRes.json();
@@ -499,7 +536,7 @@ export default function IsiLogbookPage() {
       }
     }
 
-    if (isWeekend) {
+    if (!overrideWorkdayMap[isoDate] && (isWeekend || Boolean(holidayMap[isoDate]))) {
       return {
         symbol: (
           <span
@@ -575,6 +612,20 @@ export default function IsiLogbookPage() {
   const isSelectedWeekend = selectedDateObj
     ? selectedDateObj.getDay() === 0 || selectedDateObj.getDay() === 6
     : false;
+  const selectedHoliday = selectedDate ? holidayMap[selectedDate] : undefined;
+  const selectedOverrideWorkday = selectedDate
+    ? overrideWorkdayMap[selectedDate]
+    : undefined;
+  const isSelectedHoliday = selectedOverrideWorkday
+    ? false
+    : isSelectedWeekend || Boolean(selectedHoliday);
+  const selectedHolidayReason = selectedHoliday?.name
+    ? selectedHoliday.name
+    : selectedDateObj?.getDay() === 0
+      ? "Hari Minggu"
+      : selectedDateObj?.getDay() === 6
+        ? "Hari Sabtu"
+        : "Hari Libur";
   const isSelectedToday = selectedDate === todayIso;
   const isSelectedInPeriod = useMemo(() => {
     if (!selectedDate) return false;
@@ -685,18 +736,24 @@ export default function IsiLogbookPage() {
                   const isSelected = selectedDate === iso;
                   const isToday = iso === todayIso;
                   const isWeekend = colIdx >= 5;
+                  const holidayEntry = holidayMap[iso];
+                  const overrideEntry = overrideWorkdayMap[iso];
+                  const isHolidayCell = overrideEntry
+                    ? false
+                    : isWeekend || Boolean(holidayEntry);
                   const { symbol } = renderSymbol(iso, dateObj);
 
                   return (
                     <button
                       key={iso}
                       type="button"
+                      title={overrideEntry?.name || holidayEntry?.name}
                       onClick={() => {
                         setSelectedDate(iso);
                         setIsEditingRevisi(false);
                       }}
                       className={`h-14 sm:h-16 flex flex-col items-center justify-center gap-1 transition cursor-pointer ${
-                        isWeekend
+                        isHolidayCell
                           ? "bg-slate-100/90 hover:bg-slate-200/70 dark:bg-slate-800/90 dark:hover:bg-slate-700/80"
                           : "bg-slate-50/90 hover:bg-slate-100 dark:bg-slate-800/40 dark:hover:bg-slate-800"
                       }`}
@@ -707,7 +764,7 @@ export default function IsiLogbookPage() {
                             ? "border-2 border-[#1D64F2] bg-blue-100/80 text-slate-800 dark:border-blue-400 dark:bg-blue-950/70 dark:text-white font-bold"
                             : isToday
                               ? "ring-1 ring-[#1D64F2]/60 text-[#1D64F2] dark:text-blue-400 font-bold"
-                              : isWeekend
+                              : isHolidayCell
                                 ? "text-slate-400 dark:text-slate-400 font-semibold"
                                 : "text-slate-600 dark:text-slate-200 font-semibold"
                         }`}
@@ -1000,7 +1057,7 @@ export default function IsiLogbookPage() {
               )}
             </>
             )
-          ) : isSelectedToday && isSelectedInPeriod && !isSelectedWeekend ? (
+          ) : isSelectedToday && isSelectedInPeriod && !isSelectedHoliday ? (
             Boolean(todayAbsensi?.checkIn) || todayAbsensi?.attendanceMode === "izin" ? (
               <div className="space-y-4">
                 {todayAbsensi?.attendanceMode === "izin" && !todayAbsensi?.checkIn && (
@@ -1052,7 +1109,7 @@ export default function IsiLogbookPage() {
                 <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300">
                   {!isSelectedInPeriod
                     ? "Di Luar Masa Magang"
-                    : isSelectedWeekend
+                    : isSelectedHoliday
                       ? "Hari Libur"
                       : "Belum Diisi"}
                 </span>
@@ -1063,9 +1120,9 @@ export default function IsiLogbookPage() {
                   Tanggal ini berada di luar periode magang Anda. Pengisian
                   laporan harian baru tidak tersedia.
                 </p>
-              ) : isSelectedWeekend ? (
+              ) : isSelectedHoliday ? (
                 <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-                  Tanggal ini merupakan jadwal hari libur. Laporan harian dan
+                  Tanggal ini merupakan hari libur (<b>{selectedHolidayReason}</b>). Laporan harian dan
                   kehadiran tidak perlu diisi.
                 </p>
               ) : (

@@ -54,6 +54,8 @@ type PesertaLogbookRow = {
   jurusan?: string;
   asal?: { jenis: string; nama: string } | null;
   kategori?: string;
+  tanggalMulaiMagang?: string;
+  tanggalSelesaiMagang?: string;
   logbookStats: {
     total: number;
     menunggu: number;
@@ -183,6 +185,7 @@ export default function ViewLogbookMentor() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [downloadingKey, setDownloadingKey] = useState<string | null>(null);
   const [holidayDates, setHolidayDates] = useState<string[]>([]);
+  const [overrideWorkdays, setOverrideWorkdays] = useState<string[]>([]);
 
   /* ================= FETCH PESERTA & SUMMARY ================= */
   const fetchPesertaSummary = useCallback(async (silent = false) => {
@@ -205,6 +208,9 @@ export default function ViewLogbookMentor() {
       const json = await res.json();
       setPesertaList(json.peserta || []);
       setHolidayDates(Array.isArray(json.holidayDates) ? json.holidayDates : []);
+      setOverrideWorkdays(
+        Array.isArray(json.overrideWorkdays) ? json.overrideWorkdays : [],
+      );
       setSummaryStats(
         json.summary || {
           totalPeserta: 0,
@@ -753,6 +759,9 @@ export default function ViewLogbookMentor() {
               filledDates={filledDates}
               missedDates={selectedPeserta.logbookStats.missedDates || []}
               holidayDates={holidayDates}
+              overrideWorkdays={overrideWorkdays}
+              startDate={selectedPeserta.tanggalMulaiMagang}
+              endDate={selectedPeserta.tanggalSelesaiMagang}
               disableEmptyDates
               onSelectDate={(date) => setSelectedDate(date)}
             />

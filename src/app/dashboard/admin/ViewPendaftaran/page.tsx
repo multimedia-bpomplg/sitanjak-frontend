@@ -19,7 +19,6 @@ import {
   MapPin,
   Phone,
   RefreshCw,
-  Search,
   ShieldCheck,
   Sparkles,
   Upload,
@@ -29,8 +28,6 @@ import {
   X,
   XCircle,
 } from "lucide-react";
-import * as XLSX from "xlsx";
-import { saveAs } from "file-saver";
 import {
   fetchFormasi,
   IFormasi,
@@ -38,9 +35,22 @@ import {
 } from "@/services/formasiService";
 import PaginationFooter from "@/components/dashboard/PaginationFooter";
 import { TablePageSkeleton } from "@/components/dashboard/skeletons";
+import PendaftaranFilterToolbar, {
+  extractPendaftaranDates,
+  extractPendaftaranYears,
+  INITIAL_PENDAFTARAN_EXTRA_FILTERS,
+  matchesPendaftaranExtraFilters,
+  type PendaftaranExtraFilterState,
+} from "@/components/pendaftaran/PendaftaranFilterToolbar";
 import { showToast } from "@/components/ui/toastDashboard";
 import { isMatchingMentorFormasi } from "@/lib/formasiMentor";
+import { getJwtUserSummary } from "@/lib/pesertaFilter";
 import { isPkpaPeserta } from "@/lib/pesertaKategori";
+import {
+  buildPendaftaranFilterSummary,
+  buildPendaftaranPdfRows,
+  downloadPendaftaranPdf,
+} from "@/lib/pendaftaranPdf";
 
 /* ================= TYPES ================= */
 
@@ -209,6 +219,9 @@ export default function ViewPendaftaranAdminPage() {
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("Semua");
+  const [extraFilters, setExtraFilters] = useState<PendaftaranExtraFilterState>(
+    INITIAL_PENDAFTARAN_EXTRA_FILTERS,
+  );
   const [currentPage, setCurrentPage] = useState(1);
 
   /* ---------- Detail & Action States ---------- */
@@ -241,6 +254,7 @@ export default function ViewPendaftaranAdminPage() {
   const [akunTarget, setAkunTarget] = useState<PesertaItem | null>(null);
   const [akunPassword, setAkunPassword] = useState("");
   const [creatingAkun, setCreatingAkun] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
 
   /* ================= FETCH DATA ================= */
 
@@ -377,10 +391,37 @@ export default function ViewPendaftaranAdminPage() {
     [data],
   );
 
+  const availableYears = useMemo(() => extractPendaftaranYears(data), [data]);
+  const highlightedDates = useMemo(() => extractPendaftaranDates(data), [data]);
+
+  const extraFilteredData = useMemo(
+    () => data.filter((item) => matchesPendaftaranExtraFilters(item, extraFilters)),
+    [data, extraFilters],
+  );
+
+  const tabStatusCounts = useMemo(() => {
+    const counts = {
+      Semua: extraFilteredData.length,
+      Menunggu: 0,
+      "Sedang Diproses": 0,
+      Disetujui: 0,
+      Ditolak: 0,
+    };
+
+    for (const item of extraFilteredData) {
+      if (item.status === "Menunggu") counts.Menunggu += 1;
+      else if (item.status === "Sedang Diproses") counts["Sedang Diproses"] += 1;
+      else if (item.status === "Disetujui") counts.Disetujui += 1;
+      else if (item.status === "Ditolak") counts.Ditolak += 1;
+    }
+
+    return counts;
+  }, [extraFilteredData]);
+
   const filteredData = useMemo(() => {
     const q = search.trim().toLowerCase();
 
-    return data.filter((item) => {
+    return extraFilteredData.filter((item) => {
       if (statusFilter !== "Semua" && item.status !== statusFilter) {
         return false;
       }
@@ -401,7 +442,7 @@ export default function ViewPendaftaranAdminPage() {
         );
       });
     });
-  }, [data, search, statusFilter]);
+  }, [extraFilteredData, search, statusFilter]);
 
   const totalPages = Math.max(
     1,
@@ -788,61 +829,52 @@ export default function ViewPendaftaranAdminPage() {
     }
   };
 
-  const handleDownloadExcel = () => {
+  const handleDownloadPdf = async () => {
     if (filteredData.length === 0) {
       showToast.error("Tidak ada data yang dapat diekspor");
       return;
     }
 
-    let rowNo = 0;
-    const rows: Record<string, string | number>[] = [];
-
-    for (const item of filteredData) {
-      for (const p of item.peserta) {
-        rowNo += 1;
-        const mentorObj = getMentorObject(p.mentor, mentors);
-        const computedMagang =
+    try {
+      setExportingPdf(true);
+      const user = getJwtUserSummary();
+      const rows = buildPendaftaranPdfRows(
+        filteredData,
+        (p) => getMentorObject(p.mentor, mentors)?.name,
+        (item, p) =>
           item.status === "Disetujui"
-            ? getStatusMagangByDate(p.tanggalMulaiMagang, p.tanggalSelesaiMagang)
+            ? getStatusMagangByDate(
+                p.tanggalMulaiMagang,
+                p.tanggalSelesaiMagang,
+              )
             : item.status === "Ditolak"
               ? "Tidak Magang"
-              : "Menunggu";
+              : "Menunggu",
+      );
 
-        rows.push({
-          No: rowNo,
-          "ID Pendaftaran": item._id,
-          Kategori: item.kategori === "bersama" ? "Kelompok" : "Mandiri",
-          "Nama Peserta": p.nama || "-",
-          Email: p.email || "-",
-          WhatsApp: p.wa || "-",
-          "Jenis Asal": p.asal?.jenis || "-",
-          "Asal Institusi": p.asal?.nama || "-",
-          Jurusan: p.jurusan || "-",
-          Posisi: p.posisi || "-",
-          Mentor: mentorObj?.name || "Belum Ditetapkan",
-          "Tanggal Mulai": p.tanggalMulaiMagang || "-",
-          "Tanggal Selesai": p.tanggalSelesaiMagang || "-",
-          "Status Pendaftaran": item.status,
-          "Status Magang": computedMagang,
-          "Catatan Admin": item.jawabanAdmin || "-",
-          "Tanggal Daftar": formatTanggalShort(item.createdAt),
-        });
-      }
+      const filterSummary = buildPendaftaranFilterSummary({
+        statusFilter,
+        extraFilters,
+        search,
+      });
+
+      await downloadPendaftaranPdf(rows, {
+        title: "LAPORAN REKAPITULASI DATA PENDAFTARAN MAGANG",
+        subtitle: "Balai Besar Pengawas Obat dan Makanan di Palembang",
+        roleLabel: "Admin",
+        printedByName: user.name || "Admin",
+        printedByDetail: user.email,
+        filterSummary,
+        totalPendaftaran: filteredData.length,
+        fileName: `Laporan-Pendaftaran-Magang-Admin-${getTodayWibIso()}.pdf`,
+      });
+      showToast.success(`PDF laporan (${rows.length} peserta) berhasil diunduh`);
+    } catch (err) {
+      console.error("Error export PDF pendaftaran admin:", err);
+      showToast.error("Gagal membuat file PDF laporan pendaftaran");
+    } finally {
+      setExportingPdf(false);
     }
-
-    const worksheet = XLSX.utils.json_to_sheet(rows);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Data Pendaftaran");
-
-    const excelBuffer = XLSX.write(workbook, {
-      bookType: "xlsx",
-      type: "array",
-    });
-    const blob = new Blob([excelBuffer], {
-      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8",
-    });
-    saveAs(blob, `Data_Pendaftaran_Magang_${getTodayWibIso()}.xlsx`);
-    showToast.success(`Berhasil mengekspor ${rows.length} data peserta`);
   };
 
   /* ================= RENDER ================= */
@@ -896,11 +928,12 @@ export default function ViewPendaftaranAdminPage() {
 
           <button
             type="button"
-            onClick={handleDownloadExcel}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-[#0284c7] hover:bg-sky-700 text-white shadow-sm transition"
+            onClick={handleDownloadPdf}
+            disabled={exportingPdf || filteredData.length === 0}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-[#0284c7] hover:bg-sky-700 text-white shadow-sm transition disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <Download className="w-3.5 h-3.5" />
-            Export Excel
+            {exportingPdf ? "Menyiapkan PDF..." : "Unduh PDF"}
           </button>
         </div>
       </div>
@@ -986,74 +1019,27 @@ export default function ViewPendaftaranAdminPage() {
       </div>
 
       {/* ================= FILTER BAR & SEARCH ================= */}
-      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/30 p-3.5 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-1.5">
-          {(
-            [
-              "Semua",
-              "Menunggu",
-              "Sedang Diproses",
-              "Disetujui",
-              "Ditolak",
-            ] as StatusFilter[]
-          ).map((tab) => {
-            const active = statusFilter === tab;
-            return (
-              <button
-                key={tab}
-                type="button"
-                onClick={() => {
-                  setStatusFilter(tab);
-                  setCurrentPage(1);
-                }}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition inline-flex items-center gap-1.5 ${
-                  active
-                    ? "bg-[#0284c7] text-white shadow-xs"
-                    : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
-                }`}
-              >
-                <span>{tab}</span>
-                <span
-                  className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold ${
-                    active
-                      ? "bg-white/20 text-white"
-                      : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
-                  }`}
-                >
-                  {statusCounts[tab]}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="relative w-full lg:w-80">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setCurrentPage(1);
-            }}
-            placeholder="Cari nama, email, posisi, instansi..."
-            className="w-full pl-9 pr-9 py-2 rounded-xl text-xs sm:text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0284c7]/40 focus:border-[#0284c7]"
-          />
-          {search && (
-            <button
-              type="button"
-              onClick={() => {
-                setSearch("");
-                setCurrentPage(1);
-              }}
-              aria-label="Hapus pencarian"
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
-        </div>
-      </div>
+      <PendaftaranFilterToolbar
+        statusFilter={statusFilter}
+        onStatusChange={(next) => {
+          setStatusFilter(next);
+          setCurrentPage(1);
+        }}
+        statusCounts={tabStatusCounts}
+        search={search}
+        onSearchChange={(next) => {
+          setSearch(next);
+          setCurrentPage(1);
+        }}
+        extraFilters={extraFilters}
+        onExtraFiltersChange={(next) => {
+          setExtraFilters(next);
+          setCurrentPage(1);
+        }}
+        availableYears={availableYears}
+        highlightedDates={highlightedDates}
+        filteredCount={filteredData.length}
+      />
 
       {/* ================= TABLE ================= */}
       <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-xs">

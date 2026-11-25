@@ -19,6 +19,7 @@ import { PesertaDashboardSkeleton } from "@/components/dashboard/skeletons";
 import { isPkpaPeserta } from "@/lib/pesertaKategori";
 import { usePwa } from "@/components/pwa/PwaProvider";
 import { InstallAppModal } from "@/components/peserta/InstallAppModal";
+import { HorseshoeProgressCard } from "@/components/peserta/HorseshoeProgressCard";
 import { PesertaAvatar } from "@/components/peserta/PesertaAvatar";
 import { clearAuthSession, parseJwtPayload } from "@/lib/authSession";
 
@@ -77,7 +78,49 @@ type FilledDateType = {
   approvalStatus: "menunggu" | "disetujui" | "ditolak" | "revisi";
 };
 
+type AbsensiTimeStatus = "on_time" | "late" | "on_time_note" | "early_no_note";
+
+type AbsensiRiwayatItem = {
+  _id?: string;
+  date: string;
+  attendanceMode: "masuk" | "wfh" | "izin";
+  checkIn?: {
+    timeStatus?: AbsensiTimeStatus;
+  };
+  checkOut?: {
+    timeStatus?: AbsensiTimeStatus;
+  };
+};
+
 /* ================= HELPERS ================= */
+
+function getWorkdayIsoSet(
+  startRaw?: string,
+  endRaw?: string,
+  holidaySet?: Set<string>,
+  overrideSet?: Set<string>,
+): Set<string> {
+  const result = new Set<string>();
+  if (!startRaw || !endRaw) return result;
+  const s = new Date(startRaw);
+  const e = new Date(endRaw);
+  if (isNaN(s.getTime()) || isNaN(e.getTime())) return result;
+
+  const cur = new Date(s.getFullYear(), s.getMonth(), s.getDate());
+  const endDay = new Date(e.getFullYear(), e.getMonth(), e.getDate());
+  if (endDay < cur) return result;
+
+  while (cur <= endDay) {
+    const day = cur.getDay();
+    const iso = `${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, "0")}-${String(cur.getDate()).padStart(2, "0")}`;
+    const isRegularWorkday = day !== 0 && day !== 6 && !holidaySet?.has(iso);
+    if (isRegularWorkday || overrideSet?.has(iso)) {
+      result.add(iso);
+    }
+    cur.setDate(cur.getDate() + 1);
+  }
+  return result;
+}
 
 function getNowWIB(): Date {
   return new Date(
@@ -120,8 +163,14 @@ export default function PesertaDashboard() {
   const [filledDates, setFilledDates] = useState<
     Record<string, FilledDateType>
   >({});
+  const [absensiRiwayat, setAbsensiRiwayat] = useState<AbsensiRiwayatItem[]>([]);
+  const [holidayDatesList, setHolidayDatesList] = useState<string[]>([]);
+  const [overrideWorkdaysList, setOverrideWorkdaysList] = useState<string[]>(
+    [],
+  );
   const [holidayInfo, setHolidayInfo] = useState<{
     isHoliday: boolean;
+    isWorkdayOverride?: boolean;
     reason?: string;
   }>({ isHoliday: false });
   const {
@@ -203,27 +252,63 @@ export default function PesertaDashboard() {
         Authorization: `Bearer ${token}`,
       };
 
-      const [pendRes, annRes, datesRes, holidayRes] = await Promise.all([
-        fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/pendaftaran/cek?email=${encodeURIComponent(emailLogin)}`,
-          { headers },
-        ),
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/announcements/peserta`).catch(
-          () => null,
-        ),
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/logbook/filled-dates`, {
-          headers,
-        }).catch(() => null),
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/holidays/check`, {
-          headers,
-        }).catch(() => null),
-      ]);
+      const [pendRes, annRes, datesRes, holidayRes, absensiRes, holidaysListRes] =
+        await Promise.all([
+          fetch(
+            `${process.env.NEXT_PUBLIC_API_URL}/pendaftaran/cek?email=${encodeURIComponent(emailLogin)}`,
+            { headers },
+          ),
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/announcements/peserta`).catch(
+            () => null,
+          ),
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/logbook/filled-dates`, {
+            headers,
+          }).catch(() => null),
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/holidays/check`, {
+            headers,
+          }).catch(() => null),
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/absensi/riwayat`, {
+            headers,
+          }).catch(() => null),
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/holidays`, {
+            headers,
+          }).catch(() => null),
+        ]);
+
+      if (absensiRes && absensiRes.ok) {
+        const absData = await absensiRes.json().catch(() => null);
+        if (Array.isArray(absData)) {
+          setAbsensiRiwayat(absData);
+        }
+      }
+
+      if (holidaysListRes && holidaysListRes.ok) {
+        const holListJson = await holidaysListRes.json().catch(() => null);
+        const list = Array.isArray(holListJson?.data)
+          ? holListJson.data
+          : Array.isArray(holListJson)
+            ? holListJson
+            : [];
+        const activeHolidayDates: string[] = [];
+        const activeOverrideDates: string[] = [];
+        for (const h of list as Array<{ date?: string; type?: string }>) {
+          if (typeof h?.date !== "string") continue;
+          if (h.type === "hari_masuk") {
+            activeOverrideDates.push(h.date);
+          } else {
+            activeHolidayDates.push(h.date);
+          }
+        }
+        setHolidayDatesList(activeHolidayDates);
+        setOverrideWorkdaysList(activeOverrideDates);
+      }
 
       if (holidayRes && holidayRes.ok) {
         const holData = await holidayRes.json().catch(() => null);
         if (holData && typeof holData.isHoliday === "boolean") {
           setHolidayInfo({
             isHoliday: holData.isHoliday,
+            isWorkdayOverride: Boolean(holData.isWorkdayOverride),
             reason: holData.reason,
           });
         }
@@ -299,7 +384,9 @@ export default function PesertaDashboard() {
     const day = todayWIB.getDay();
     return day === 0 || day === 6; // Minggu (0) atau Sabtu (6)
   }, [todayWIB]);
-  const isHolidayToday = isWeekend || holidayInfo.isHoliday;
+  const isHolidayToday = holidayInfo.isWorkdayOverride
+    ? false
+    : isWeekend || holidayInfo.isHoliday;
 
   const todayLogbook = filledDates[todayIso];
 
@@ -391,6 +478,68 @@ export default function PesertaDashboard() {
       persentase,
     };
   }, [peserta?.tanggalMulaiMagang, peserta?.tanggalSelesaiMagang, todayWIB]);
+
+  // Progres Logbook, Absen Masuk, dan Absen Pulang (1 chart semi-circular gauge)
+  const activityProgressChart = useMemo(() => {
+    const holidaySet = new Set(holidayDatesList);
+    const overrideSet = new Set(overrideWorkdaysList);
+    const workdaySet = getWorkdayIsoSet(
+      peserta?.tanggalMulaiMagang,
+      peserta?.tanggalSelesaiMagang,
+      holidaySet,
+      overrideSet,
+    );
+    const hasWorkdayTarget = workdaySet.size > 0;
+
+    const logbookCount = Object.entries(filledDates).filter(
+      ([dateIso, entry]) =>
+        (!hasWorkdayTarget || workdaySet.has(dateIso)) &&
+        entry.approvalStatus !== "ditolak",
+    ).length;
+
+    const absensiEntries = absensiRiwayat.filter(
+      (rec) => rec.date && (!hasWorkdayTarget || workdaySet.has(rec.date)),
+    );
+
+    let absenMasukCount = 0;
+    let absenPulangCount = 0;
+    for (const rec of absensiEntries) {
+      if (rec.attendanceMode === "izin") {
+        absenMasukCount += 1;
+        absenPulangCount += 1;
+        continue;
+      }
+      if (rec.checkIn?.timeStatus) {
+        absenMasukCount += 1;
+      }
+      if (rec.checkOut?.timeStatus) {
+        absenPulangCount += 1;
+      }
+    }
+
+    const totalDone = logbookCount + absenMasukCount + absenPulangCount;
+    const maxTotal = hasWorkdayTarget
+      ? workdaySet.size * 3
+      : Math.max(totalDone, 0);
+    const percentage =
+      maxTotal > 0 ? Math.min(100, Math.round((totalDone / maxTotal) * 100)) : 0;
+
+    return {
+      totalWorkdays: workdaySet.size,
+      maxTotal,
+      percentage,
+      logbookCount,
+      absenMasukCount,
+      absenPulangCount,
+    };
+  }, [
+    holidayDatesList,
+    overrideWorkdaysList,
+    peserta?.tanggalMulaiMagang,
+    peserta?.tanggalSelesaiMagang,
+    filledDates,
+    absensiRiwayat,
+  ]);
 
   if (loading) {
     return <PesertaDashboardSkeleton />;
@@ -790,6 +939,36 @@ export default function PesertaDashboard() {
           )}
         </div>
       </div>
+
+      {/* ================= 5. PROGRES LOGBOOK, ABSEN MASUK & ABSEN PULANG ================= */}
+      <HorseshoeProgressCard
+        title="Progres Aktivitas Harian"
+        badgeText={
+          activityProgressChart.totalWorkdays > 0
+            ? `Dari ${activityProgressChart.totalWorkdays} hari kerja`
+            : undefined
+        }
+        percentage={activityProgressChart.percentage}
+        subtitle="Aktivitas Terpenuhi"
+        maxTotal={activityProgressChart.maxTotal}
+        segments={[
+          {
+            label: "Logbook",
+            value: activityProgressChart.logbookCount,
+            color: "#1677E5",
+          },
+          {
+            label: "Absen Masuk",
+            value: activityProgressChart.absenMasukCount,
+            color: "#10B981",
+          },
+          {
+            label: "Absen Pulang",
+            value: activityProgressChart.absenPulangCount,
+            color: "#F59E0B",
+          },
+        ]}
+      />
 
       {/* ================= MODAL PENGUMUMAN ================= */}
       {showAnnouncementModal && (

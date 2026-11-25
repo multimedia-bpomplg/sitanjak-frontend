@@ -1,12 +1,15 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ScanFace,
   RefreshCw,
   Download,
   Search,
   Calendar,
+  CalendarDays,
+  Briefcase,
+  UserCheck,
   MapPin,
   Clock,
   CheckCircle2,
@@ -16,10 +19,24 @@ import {
   Award,
   ShieldCheck,
   FilterX,
+  Trash2,
+  CloudRain,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import PaginationFooter from "@/components/dashboard/PaginationFooter";
 import { TablePageSkeleton } from "@/components/dashboard/skeletons";
+import ModernDatePickerPopover from "@/components/pendaftaran/ModernDatePickerPopover";
+import {
+  buildFormasiOptions,
+  buildMentorOptions,
+  getLogbookMentorFilterKey,
+} from "@/components/logbook/LogbookFilterToolbar";
+import { BULAN_OPTIONS } from "@/lib/pesertaFilter";
+import { normalizeFormasiKey } from "@/lib/formasiMentor";
+import { fetchFormasi, type IFormasi } from "@/services/formasiService";
 import { showToast } from "@/components/ui/toastDashboard";
+import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { saveAs } from "file-saver";
 import AbsensiDetailModal from "./AbsensiDetailModal";
 import type {
@@ -34,6 +51,15 @@ const ITEMS_PER_PAGE = 10;
 
 interface KelolaAbsensiViewProps {
   role: ManageRole;
+}
+
+interface AttendanceToleranceItem {
+  _id: string;
+  date: string;
+  checkInLimitTime: string;
+  reason: string;
+  createdByName?: string;
+  createdByRole?: string;
 }
 
 const DEFAULT_SUMMARY: ManageAbsensiSummary = {
@@ -80,21 +106,37 @@ function resolvePhotoUrl(photoPath?: string): string {
 }
 
 export default function KelolaAbsensiView({ role }: KelolaAbsensiViewProps) {
+  const confirm = useConfirm();
+  const canManageTolerance = role === "admin" || role === "superadmin";
+  const showAdminFilters = role === "admin" || role === "superadmin";
   const [activeTab, setActiveTab] = useState<"harian" | "rekap">("harian");
 
   // Filters
+  const [mentorFilter, setMentorFilter] = useState<string>("semua");
+  const [formasiFilter, setFormasiFilter] = useState<string>("semua");
+  const [yearFilter, setYearFilter] = useState<string>("");
+  const [monthFilter, setMonthFilter] = useState<string>("");
   const [dateFilter, setDateFilter] = useState<string>("");
   const [areaFilter, setAreaFilter] = useState<string>("");
   const [searchInput, setSearchInput] = useState<string>("");
   const [debouncedSearch, setDebouncedSearch] = useState<string>("");
 
+  // Option pools (diakumulasi agar pilihan tidak hilang saat filter aktif)
+  const [formasiTitles, setFormasiTitles] = useState<string[]>([]);
+  const [knownMentorNames, setKnownMentorNames] = useState<string[]>([]);
+  const [knownPosisi, setKnownPosisi] = useState<string[]>([]);
+  const [knownYears, setKnownYears] = useState<string[]>(() => [
+    getTodayWibDate().slice(0, 4),
+  ]);
+  const [knownDates, setKnownDates] = useState<string[]>([]);
+
   // Data
-  const [summary, setSummary] = useState<ManageAbsensiSummary>(DEFAULT_SUMMARY);
   const [items, setItems] = useState<ManageAbsensiItem[]>([]);
   const [rekapList, setRekapList] = useState<ManageRekapPesertaItem[]>([]);
 
   // States
   const [loading, setLoading] = useState<boolean>(true);
+  const hasLoadedOnceRef = useRef<boolean>(false);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [exporting, setExporting] = useState<boolean>(false);
 
@@ -105,6 +147,16 @@ export default function KelolaAbsensiView({ role }: KelolaAbsensiViewProps) {
   // Modal
   const [selectedItem, setSelectedItem] = useState<ManageAbsensiItem | null>(null);
   const [modalOpen, setModalOpen] = useState<boolean>(false);
+
+  // Toleransi Jam Masuk (Admin & Superadmin)
+  const [showTolerancePanel, setShowTolerancePanel] = useState<boolean>(false);
+  const [tolerances, setTolerances] = useState<AttendanceToleranceItem[]>([]);
+  const [tolDate, setTolDate] = useState<string>(() => getTodayWibDate());
+  const [tolLimitTime, setTolLimitTime] = useState<string>("09:00");
+  const [tolReason, setTolReason] = useState<string>(
+    "Dispensasi Cuaca / Hujan Deras",
+  );
+  const [savingTolerance, setSavingTolerance] = useState<boolean>(false);
 
   const pageTitle =
     role === "mentor" ? "Absensi Peserta Bimbingan" : "Kelola Absensi Kehadiran";
@@ -123,31 +175,68 @@ export default function KelolaAbsensiView({ role }: KelolaAbsensiViewProps) {
   useEffect(() => {
     setHarianPage(1);
     setRekapPage(1);
-  }, [dateFilter, areaFilter, debouncedSearch]);
+  }, [
+    mentorFilter,
+    formasiFilter,
+    yearFilter,
+    monthFilter,
+    dateFilter,
+    areaFilter,
+    debouncedSearch,
+  ]);
 
   const loadData = useCallback(
     async (isManual = false) => {
       try {
         if (isManual) setRefreshing(true);
-        else setLoading((prev) => (items.length === 0 && rekapList.length === 0 ? true : prev));
+        else if (!hasLoadedOnceRef.current) setLoading(true);
 
         const token = localStorage.getItem("token");
         const headers = {
           Authorization: `Bearer ${token}`,
         };
 
+        let queryStartDate = "";
+        let queryEndDate = "";
+        if (!dateFilter && yearFilter && monthFilter) {
+          const lastDay = new Date(
+            Number(yearFilter),
+            Number(monthFilter),
+            0,
+          ).getDate();
+          queryStartDate = `${yearFilter}-${monthFilter}-01`;
+          queryEndDate = `${yearFilter}-${monthFilter}-${String(lastDay).padStart(2, "0")}`;
+        } else if (!dateFilter && yearFilter) {
+          queryStartDate = `${yearFilter}-01-01`;
+          queryEndDate = `${yearFilter}-12-31`;
+        }
+
         const listParams = new URLSearchParams();
         if (dateFilter) listParams.set("date", dateFilter);
+        else if (queryStartDate && queryEndDate) {
+          listParams.set("startDate", queryStartDate);
+          listParams.set("endDate", queryEndDate);
+        }
         if (areaFilter) listParams.set("area", areaFilter);
         if (debouncedSearch) listParams.set("search", debouncedSearch);
 
         const rekapParams = new URLSearchParams();
         if (dateFilter) rekapParams.set("date", dateFilter);
+        else if (queryStartDate && queryEndDate) {
+          rekapParams.set("startDate", queryStartDate);
+          rekapParams.set("endDate", queryEndDate);
+        }
         if (debouncedSearch) rekapParams.set("search", debouncedSearch);
 
-        const [listRes, rekapRes] = await Promise.all([
+        const [listRes, rekapRes, tolRes, formasiRes] = await Promise.all([
           fetch(`${API_BASE}/absensi/manage/list?${listParams.toString()}`, { headers }),
           fetch(`${API_BASE}/absensi/manage/rekap-peserta?${rekapParams.toString()}`, { headers }),
+          canManageTolerance
+            ? fetch(`${API_BASE}/absensi/toleransi`, { headers }).catch(() => null)
+            : Promise.resolve(null),
+          showAdminFilters
+            ? fetchFormasi().catch(() => [] as IFormasi[])
+            : Promise.resolve([] as IFormasi[]),
         ]);
 
         if (!listRes.ok || !rekapRes.ok) {
@@ -157,45 +246,298 @@ export default function KelolaAbsensiView({ role }: KelolaAbsensiViewProps) {
         const listJson = await listRes.json();
         const rekapJson = await rekapRes.json();
 
-        setSummary(listJson?.summary || DEFAULT_SUMMARY);
-        setItems(Array.isArray(listJson?.items) ? listJson.items : []);
-        setRekapList(Array.isArray(rekapJson) ? rekapJson : []);
+        const nextItems: ManageAbsensiItem[] = Array.isArray(listJson?.items)
+          ? listJson.items
+          : [];
+        const nextRekap: ManageRekapPesertaItem[] = Array.isArray(rekapJson)
+          ? rekapJson
+          : [];
+
+        setItems(nextItems);
+        setRekapList(nextRekap);
+
+        // Akumulasi pilihan filter agar opsi tetap tersedia meski sedang terfilter
+        const mentorSet = new Set<string>();
+        const posSet = new Set<string>();
+        const yearSet = new Set<string>();
+        const dateSet = new Set<string>();
+
+        for (const it of nextItems) {
+          if (it.mentorName) mentorSet.add(it.mentorName);
+          if (it.posisi) posSet.add(it.posisi);
+          const iso = it.date?.trim().slice(0, 10);
+          if (iso && /^\d{4}-\d{2}-\d{2}$/.test(iso)) {
+            yearSet.add(iso.slice(0, 4));
+            dateSet.add(iso);
+          }
+        }
+        for (const rk of nextRekap) {
+          if (rk.mentorName) mentorSet.add(rk.mentorName);
+          if (rk.posisi) posSet.add(rk.posisi);
+        }
+
+        if (mentorSet.size > 0) {
+          setKnownMentorNames((prev) =>
+            Array.from(new Set([...prev, ...mentorSet])),
+          );
+        }
+        if (posSet.size > 0) {
+          setKnownPosisi((prev) => Array.from(new Set([...prev, ...posSet])));
+        }
+        if (yearSet.size > 0) {
+          setKnownYears((prev) =>
+            Array.from(new Set([...prev, ...yearSet])).sort((a, b) =>
+              b.localeCompare(a),
+            ),
+          );
+        }
+        if (dateSet.size > 0) {
+          setKnownDates((prev) => Array.from(new Set([...prev, ...dateSet])));
+        }
+
+        if (Array.isArray(formasiRes) && formasiRes.length > 0) {
+          setFormasiTitles(formasiRes.map((f) => f.title).filter(Boolean));
+        }
+
+        if (tolRes && tolRes.ok) {
+          const tolJson = await tolRes.json().catch(() => null);
+          setTolerances(Array.isArray(tolJson?.data) ? tolJson.data : []);
+        }
       } catch (err) {
         console.error("Load KelolaAbsensi error:", err);
         showToast.error("Gagal memuat data absensi kehadiran");
       } finally {
+        hasLoadedOnceRef.current = true;
         setLoading(false);
         setRefreshing(false);
       }
     },
-    [dateFilter, areaFilter, debouncedSearch]
+    [
+      yearFilter,
+      monthFilter,
+      dateFilter,
+      areaFilter,
+      debouncedSearch,
+      canManageTolerance,
+      showAdminFilters,
+    ],
   );
+
+  const todayTolerance = useMemo(() => {
+    const todayIso = getTodayWibDate();
+    return tolerances.find((t) => t.date === todayIso) || null;
+  }, [tolerances]);
+
+  const handleSaveTolerance = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!tolDate || !tolLimitTime) {
+      showToast.error("Tanggal dan batas jam toleransi wajib diisi");
+      return;
+    }
+
+    setSavingTolerance(true);
+    const toastId = showToast.loading("Menyimpan toleransi jam masuk...");
+    try {
+      const token = localStorage.getItem("token") || "";
+      const res = await fetch(`${API_BASE}/absensi/toleransi`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          date: tolDate,
+          checkInLimitTime: tolLimitTime,
+          reason: tolReason.trim() || "Dispensasi Cuaca / Hujan",
+        }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(json?.message || "Gagal menyimpan toleransi jam masuk");
+      }
+      showToast.updateSuccess(
+        toastId,
+        json?.message || "Toleransi jam masuk berhasil disimpan",
+      );
+      await loadData(true);
+    } catch (err: unknown) {
+      showToast.updateError(
+        toastId,
+        err instanceof Error ? err.message : "Gagal menyimpan toleransi",
+      );
+    } finally {
+      setSavingTolerance(false);
+    }
+  };
+
+  const handleDeleteTolerance = (item: AttendanceToleranceItem) => {
+    confirm({
+      title: "Hapus Toleransi Jam Masuk",
+      message: `Kembalikan batas jam masuk tanggal ${formatDateShortID(item.date)} menjadi normal (08.00 WIB)? Absensi pada tanggal ini akan dihitung ulang.`,
+      confirmText: "Ya, Kembalikan 08.00",
+      onConfirm: async () => {
+        const toastId = showToast.loading("Menghapus toleransi...");
+        try {
+          const token = localStorage.getItem("token") || "";
+          const res = await fetch(`${API_BASE}/absensi/toleransi/${item._id}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const json = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            throw new Error(json?.message || "Gagal menghapus toleransi");
+          }
+          showToast.updateSuccess(
+            toastId,
+            json?.message || "Toleransi berhasil dihapus",
+          );
+          await loadData(true);
+        } catch (err: unknown) {
+          showToast.updateError(
+            toastId,
+            err instanceof Error ? err.message : "Gagal menghapus toleransi",
+          );
+        }
+      },
+    });
+  };
 
   useEffect(() => {
     loadData();
   }, [loadData]);
 
+  const mentorOptions = useMemo(
+    () =>
+      buildMentorOptions(knownMentorNames.map((mentorName) => ({ mentorName }))),
+    [knownMentorNames],
+  );
+
+  const formasiOptions = useMemo(
+    () =>
+      buildFormasiOptions(
+        knownPosisi.map((posisi) => ({ posisi })),
+        formasiTitles,
+      ),
+    [knownPosisi, formasiTitles],
+  );
+
+  const filteredItems = useMemo(() => {
+    const monthOnly = !dateFilter && !yearFilter ? monthFilter : "";
+    return items.filter((row) => {
+      if (
+        mentorFilter !== "semua" &&
+        getLogbookMentorFilterKey(row.mentorName) !== mentorFilter
+      ) {
+        return false;
+      }
+      if (
+        formasiFilter !== "semua" &&
+        normalizeFormasiKey(row.posisi) !== formasiFilter
+      ) {
+        return false;
+      }
+      if (monthOnly && row.date?.slice(5, 7) !== monthOnly) {
+        return false;
+      }
+      return true;
+    });
+  }, [items, mentorFilter, formasiFilter, dateFilter, yearFilter, monthFilter]);
+
+  const filteredRekap = useMemo(() => {
+    const monthOnly = !dateFilter && !yearFilter ? monthFilter : "";
+    const emailsInMonth = monthOnly
+      ? new Set(filteredItems.map((i) => i.email.trim().toLowerCase()))
+      : null;
+
+    return rekapList.filter((r) => {
+      if (
+        mentorFilter !== "semua" &&
+        getLogbookMentorFilterKey(r.mentorName) !== mentorFilter
+      ) {
+        return false;
+      }
+      if (
+        formasiFilter !== "semua" &&
+        normalizeFormasiKey(r.posisi) !== formasiFilter
+      ) {
+        return false;
+      }
+      if (
+        emailsInMonth &&
+        !emailsInMonth.has((r.email || "").trim().toLowerCase())
+      ) {
+        return false;
+      }
+      return true;
+    });
+  }, [
+    rekapList,
+    filteredItems,
+    mentorFilter,
+    formasiFilter,
+    dateFilter,
+    yearFilter,
+    monthFilter,
+  ]);
+
+  const displaySummary = useMemo<ManageAbsensiSummary>(() => {
+    if (filteredItems.length === 0) return DEFAULT_SUMMARY;
+    const totalRecords = filteredItems.length;
+    const tepatWaktuCount = filteredItems.filter(
+      (i) => i.checkIn?.timeStatus === "on_time",
+    ).length;
+    const terlambatCount = filteredItems.filter(
+      (i) =>
+        i.checkIn?.timeStatus === "late" ||
+        i.checkOut?.timeStatus === "early_no_note",
+    ).length;
+    const outsideBpomCount = filteredItems.filter(
+      (i) => i.attendanceMode === "masuk" && i.isAnyOutside,
+    ).length;
+    const averageDailyScore = Math.round(
+      filteredItems.reduce((sum, i) => sum + (i.dailyScore ?? 0), 0) /
+        totalRecords,
+    );
+    return {
+      totalRecords,
+      tepatWaktuCount,
+      terlambatCount,
+      outsideBpomCount,
+      averageDailyScore,
+    };
+  }, [filteredItems]);
+
   const safeHarianPage = useMemo(() => {
-    const totalPages = Math.max(1, Math.ceil(items.length / ITEMS_PER_PAGE));
+    const totalPages = Math.max(
+      1,
+      Math.ceil(filteredItems.length / ITEMS_PER_PAGE),
+    );
     return Math.min(Math.max(1, harianPage), totalPages);
-  }, [items.length, harianPage]);
+  }, [filteredItems.length, harianPage]);
 
   const paginatedItems = useMemo(() => {
     const start = (safeHarianPage - 1) * ITEMS_PER_PAGE;
-    return items.slice(start, start + ITEMS_PER_PAGE);
-  }, [items, safeHarianPage]);
+    return filteredItems.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredItems, safeHarianPage]);
 
   const safeRekapPage = useMemo(() => {
-    const totalPages = Math.max(1, Math.ceil(rekapList.length / ITEMS_PER_PAGE));
+    const totalPages = Math.max(
+      1,
+      Math.ceil(filteredRekap.length / ITEMS_PER_PAGE),
+    );
     return Math.min(Math.max(1, rekapPage), totalPages);
-  }, [rekapList.length, rekapPage]);
+  }, [filteredRekap.length, rekapPage]);
 
   const paginatedRekap = useMemo(() => {
     const start = (safeRekapPage - 1) * ITEMS_PER_PAGE;
-    return rekapList.slice(start, start + ITEMS_PER_PAGE);
-  }, [rekapList, safeRekapPage]);
+    return filteredRekap.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredRekap, safeRekapPage]);
 
   const handleResetFilters = () => {
+    setMentorFilter("semua");
+    setFormasiFilter("semua");
+    setYearFilter("");
+    setMonthFilter("");
     setDateFilter("");
     setAreaFilter("");
     setSearchInput("");
@@ -208,7 +550,7 @@ export default function KelolaAbsensiView({ role }: KelolaAbsensiViewProps) {
   };
 
   const handleExportExcel = async () => {
-    if (items.length === 0 && rekapList.length === 0) {
+    if (filteredItems.length === 0 && filteredRekap.length === 0) {
       showToast.error("Tidak ada data absensi untuk diekspor");
       return;
     }
@@ -236,7 +578,7 @@ export default function KelolaAbsensiView({ role }: KelolaAbsensiViewProps) {
         return entry.location.isInsideBpom ? `Di BBPOM (${dist} m)` : `Luar Area (${dist} m)`;
       };
 
-      const harianRows = items.map((row, idx) => {
+      const harianRows = filteredItems.map((row, idx) => {
         const isMissed = row.attendanceMode === "tidak_absen" || row.isVirtualMissed;
         return {
           No: idx + 1,
@@ -298,7 +640,7 @@ export default function KelolaAbsensiView({ role }: KelolaAbsensiViewProps) {
         };
       });
 
-      const rekapRows = rekapList.map((r, idx) => ({
+      const rekapRows = filteredRekap.map((r, idx) => ({
         No: idx + 1,
         "Nama Peserta": r.namaPeserta || "-",
         Email: r.email || "-",
@@ -467,7 +809,7 @@ export default function KelolaAbsensiView({ role }: KelolaAbsensiViewProps) {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-        <div className="space-y-1">
+        <div className="space-y-1 min-w-0 flex-1">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800 text-sky-700 dark:text-sky-300 text-xs font-semibold">
             <ScanFace className="w-3.5 h-3.5" />
             {role === "mentor"
@@ -479,19 +821,43 @@ export default function KelolaAbsensiView({ role }: KelolaAbsensiViewProps) {
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
             {pageTitle}
           </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 max-w-2xl">
+          <p className="text-sm text-slate-500 dark:text-slate-400 max-w-xl">
             {pageSubtitle}
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 shrink-0">
+          {canManageTolerance && (
+            <button
+              type="button"
+              onClick={() => setShowTolerancePanel((prev) => !prev)}
+              className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border text-xs font-semibold whitespace-nowrap transition ${
+                todayTolerance
+                  ? "border-sky-300 bg-sky-50 text-sky-800 hover:bg-sky-100 dark:border-sky-700 dark:bg-sky-950/60 dark:text-sky-200"
+                  : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+              }`}
+            >
+              <CloudRain className="w-4 h-4 text-sky-600 dark:text-sky-400 shrink-0" />
+              <span>
+                {todayTolerance
+                  ? `Toleransi Hari Ini: s.d. ${todayTolerance.checkInLimitTime.replace(":", ".")} WIB`
+                  : "Toleransi Jam Masuk"}
+              </span>
+              {showTolerancePanel ? (
+                <ChevronUp className="w-3.5 h-3.5 shrink-0" />
+              ) : (
+                <ChevronDown className="w-3.5 h-3.5 shrink-0" />
+              )}
+            </button>
+          )}
+
           <button
             type="button"
             onClick={() => loadData(true)}
             disabled={refreshing}
-            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-semibold transition disabled:opacity-60"
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-semibold whitespace-nowrap transition disabled:opacity-60"
           >
-            <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
+            <RefreshCw className={`w-4 h-4 shrink-0 ${refreshing ? "animate-spin" : ""}`} />
             Muat Ulang
           </button>
 
@@ -499,13 +865,138 @@ export default function KelolaAbsensiView({ role }: KelolaAbsensiViewProps) {
             type="button"
             onClick={handleExportExcel}
             disabled={exporting}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm transition disabled:opacity-60"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm whitespace-nowrap transition disabled:opacity-60"
           >
-            <Download className="w-4 h-4" />
+            <Download className="w-4 h-4 shrink-0" />
             {exporting ? "Mengekspor..." : "Export Excel (.xlsx)"}
           </button>
         </div>
       </div>
+
+      {/* Panel Toleransi Jam Masuk Harian (Admin & Superadmin) */}
+      {canManageTolerance && showTolerancePanel && (
+        <div className="rounded-2xl border border-sky-200/90 dark:border-sky-800/70 bg-sky-50/40 dark:bg-slate-900 p-4 sm:p-5 shadow-sm space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="flex items-start gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-sky-100 dark:bg-sky-950/70 text-sky-700 dark:text-sky-300 flex items-center justify-center shrink-0">
+                <CloudRain className="w-4 h-4" />
+              </div>
+              <div>
+                <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+                  Dispensasi / Toleransi Jam Masuk Harian
+                </h2>
+                <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
+                  Perpanjang batas jam tepat waktu masuk (default 08.00 WIB) saat kondisi hujan deras atau kendala massal. Absensi di tanggal tersebut otomatis dihitung ulang ke 100% jika tiba sebelum batas toleransi.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <form
+            onSubmit={handleSaveTolerance}
+            className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end"
+          >
+            <div className="md:col-span-3">
+              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                Tanggal
+              </label>
+              <input
+                type="date"
+                value={tolDate}
+                onChange={(e) => setTolDate(e.target.value)}
+                className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
+              />
+            </div>
+
+            <div className="md:col-span-3">
+              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                Batas Tepat Waktu (WIB)
+              </label>
+              <div className="flex items-center gap-1.5">
+                <input
+                  type="time"
+                  min="08:05"
+                  max="22:59"
+                  value={tolLimitTime}
+                  onChange={(e) => setTolLimitTime(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
+                />
+                {["08:30", "09:00", "09:30"].map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => setTolLimitTime(preset)}
+                    className={`px-2 py-2 rounded-lg text-[11px] font-bold border transition shrink-0 ${
+                      tolLimitTime === preset
+                        ? "bg-sky-600 text-white border-sky-600"
+                        : "bg-white dark:bg-slate-950 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100"
+                    }`}
+                  >
+                    {preset}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="md:col-span-4">
+              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                Keterangan / Alasan Dispensasi
+              </label>
+              <input
+                type="text"
+                value={tolReason}
+                onChange={(e) => setTolReason(e.target.value)}
+                placeholder="Contoh: Hujan deras di kota Palembang"
+                className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <button
+                type="submit"
+                disabled={savingTolerance}
+                className="w-full px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs sm:text-sm font-bold shadow-xs transition disabled:opacity-60"
+              >
+                {savingTolerance ? "Menyimpan..." : "Aktifkan"}
+              </button>
+            </div>
+          </form>
+
+          {tolerances.length > 0 && (
+            <div className="pt-2 border-t border-sky-200/70 dark:border-slate-800 space-y-2">
+              <p className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                Riwayat Toleransi Jam Masuk ({tolerances.length})
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {tolerances.slice(0, 12).map((t) => (
+                  <div
+                    key={t._id}
+                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 text-xs"
+                  >
+                    <span className="font-bold text-slate-900 dark:text-white">
+                      {formatDateShortID(t.date)}
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 font-bold">
+                      s.d. {t.checkInLimitTime.replace(":", ".")} WIB
+                    </span>
+                    <span className="text-slate-500 dark:text-slate-400 max-w-44 truncate">
+                      ({t.reason})
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteTolerance(t)}
+                      title="Hapus toleransi & kembalikan ke 08.00 WIB"
+                      className="p-1 rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Summary Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
@@ -520,10 +1011,10 @@ export default function KelolaAbsensiView({ role }: KelolaAbsensiViewProps) {
           </div>
           <div className="mt-2 flex items-baseline justify-between gap-2">
             <span className="text-2xl font-bold text-slate-900 dark:text-white">
-              {summary.totalRecords}
+              {displaySummary.totalRecords}
             </span>
             <span className="text-xs font-semibold text-sky-700 dark:text-sky-300 bg-sky-50 dark:bg-sky-950/60 px-2 py-0.5 rounded-full">
-              Rata-rata: {summary.averageDailyScore}%
+              Rata-rata: {displaySummary.averageDailyScore}%
             </span>
           </div>
         </div>
@@ -539,7 +1030,7 @@ export default function KelolaAbsensiView({ role }: KelolaAbsensiViewProps) {
           </div>
           <div className="mt-2 flex items-baseline justify-between gap-2">
             <span className="text-2xl font-bold text-slate-900 dark:text-white">
-              {summary.tepatWaktuCount}
+              {displaySummary.tepatWaktuCount}
             </span>
             <span className="text-xs text-slate-500 dark:text-slate-400">Skor 100% (&lt;= 08:00)</span>
           </div>
@@ -556,7 +1047,7 @@ export default function KelolaAbsensiView({ role }: KelolaAbsensiViewProps) {
           </div>
           <div className="mt-2 flex items-baseline justify-between gap-2">
             <span className="text-2xl font-bold text-slate-900 dark:text-white">
-              {summary.terlambatCount}
+              {displaySummary.terlambatCount}
             </span>
             <span className="text-xs text-slate-500 dark:text-slate-400">&gt; 08:00 WIB</span>
           </div>
@@ -573,7 +1064,7 @@ export default function KelolaAbsensiView({ role }: KelolaAbsensiViewProps) {
           </div>
           <div className="mt-2 flex items-baseline justify-between gap-2">
             <span className="text-2xl font-bold text-slate-900 dark:text-white">
-              {summary.outsideBpomCount}
+              {displaySummary.outsideBpomCount}
             </span>
             <span className="text-xs text-slate-500 dark:text-slate-400">Perlu verifikasi GPS</span>
           </div>
@@ -595,7 +1086,7 @@ export default function KelolaAbsensiView({ role }: KelolaAbsensiViewProps) {
               }`}
             >
               <Calendar className="w-4 h-4" />
-              Daftar Absensi Harian ({items.length})
+              Daftar Absensi Harian ({filteredItems.length})
             </button>
 
             <button
@@ -608,70 +1099,185 @@ export default function KelolaAbsensiView({ role }: KelolaAbsensiViewProps) {
               }`}
             >
               <Award className="w-4 h-4" />
-              Rekap Nilai Peserta ({rekapList.length})
+              Rekap Nilai Peserta ({filteredRekap.length})
             </button>
           </div>
         </div>
 
         {/* Filter Bar */}
-        <div className="p-4 sm:px-6 bg-slate-50/70 dark:bg-slate-900/40 border-b border-slate-200 dark:border-slate-800 flex flex-col lg:flex-row gap-3 lg:items-center lg:justify-between">
-          <div className="relative flex-1 max-w-md">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Cari nama peserta, email, posisi, atau institusi..."
-              className="w-full pl-9 pr-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-xs sm:text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500"
-            />
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="flex items-center gap-1.5">
+        <div className="p-4 sm:px-6 bg-slate-50/70 dark:bg-slate-900/40 border-b border-slate-200 dark:border-slate-800 space-y-3">
+          <div className="flex flex-col lg:flex-row gap-3 lg:items-center lg:justify-between">
+            <div className="relative flex-1 max-w-md">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
-                type="date"
-                value={dateFilter}
-                onChange={(e) => setDateFilter(e.target.value)}
-                className="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                type="text"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                placeholder="Cari nama peserta, email, posisi, atau institusi..."
+                className="w-full pl-9 pr-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-xs sm:text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500"
               />
-              <button
-                type="button"
-                onClick={() => setDateFilter(getTodayWibDate())}
-                className={`px-2.5 py-2 rounded-xl text-xs font-semibold border transition ${
-                  dateFilter === getTodayWibDate()
-                    ? "bg-sky-600 text-white border-sky-600"
-                    : "bg-white dark:bg-slate-950 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
-                }`}
-              >
-                Hari Ini
-              </button>
             </div>
 
-            {activeTab === "harian" && (
-              <select
-                value={areaFilter}
-                onChange={(e) => setAreaFilter(e.target.value)}
-                className="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500"
-              >
-                <option value="">Semua Status &amp; Area</option>
-                <option value="inside">Di Area BBPOM</option>
-                <option value="outside">Masuk • Di Luar Area BBPOM</option>
-                <option value="wfh">Mode WFH</option>
-                <option value="izin">Status Izin</option>
-                <option value="missed">Tidak Absen (0%)</option>
-              </select>
+            <div className="flex flex-wrap items-center gap-2">
+              {activeTab === "harian" && (
+                <select
+                  aria-label="Filter status dan area absensi"
+                  value={areaFilter}
+                  onChange={(e) => setAreaFilter(e.target.value)}
+                  className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-xs font-semibold text-slate-700 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                >
+                  <option value="">Semua Status &amp; Area</option>
+                  <option value="inside">Di Area BBPOM</option>
+                  <option value="outside">Masuk • Di Luar Area BBPOM</option>
+                  <option value="wfh">Mode WFH</option>
+                  <option value="izin">Status Izin</option>
+                  <option value="missed">Tidak Absen (0%)</option>
+                </select>
+              )}
+
+              {(mentorFilter !== "semua" ||
+                formasiFilter !== "semua" ||
+                yearFilter ||
+                monthFilter ||
+                dateFilter ||
+                areaFilter ||
+                searchInput) && (
+                <button
+                  type="button"
+                  onClick={handleResetFilters}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+                >
+                  <FilterX className="w-3.5 h-3.5" />
+                  Reset
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="pt-2.5 border-t border-slate-200/80 dark:border-slate-800 flex flex-wrap items-center gap-2">
+            {showAdminFilters && (
+              <>
+                {/* Filter Mentor */}
+                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200">
+                  <UserCheck className="w-3.5 h-3.5 text-[#0284c7] shrink-0" />
+                  <select
+                    aria-label="Filter absensi per mentor"
+                    value={mentorFilter}
+                    onChange={(e) => setMentorFilter(e.target.value)}
+                    className="bg-transparent pr-1 focus:outline-none cursor-pointer max-w-[175px]"
+                  >
+                    <option value="semua" className="dark:bg-slate-950">
+                      Semua Mentor
+                    </option>
+                    {mentorOptions.map((m) => (
+                      <option
+                        key={m.value}
+                        value={m.value}
+                        className="dark:bg-slate-950"
+                      >
+                        {m.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Filter Formasi */}
+                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200">
+                  <Briefcase className="w-3.5 h-3.5 text-[#0284c7] shrink-0" />
+                  <select
+                    aria-label="Filter absensi per formasi"
+                    value={formasiFilter}
+                    onChange={(e) => setFormasiFilter(e.target.value)}
+                    className="bg-transparent pr-1 focus:outline-none cursor-pointer max-w-[190px]"
+                  >
+                    <option value="semua" className="dark:bg-slate-950">
+                      Semua Formasi
+                    </option>
+                    {formasiOptions.map((f) => (
+                      <option
+                        key={f.value}
+                        value={f.value}
+                        className="dark:bg-slate-950"
+                      >
+                        {f.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </>
             )}
 
-            {(dateFilter || areaFilter || searchInput) && (
-              <button
-                type="button"
-                onClick={handleResetFilters}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+            {/* Per Tahun */}
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200">
+              <Calendar className="w-3.5 h-3.5 text-[#0284c7] shrink-0" />
+              <select
+                aria-label="Filter absensi per tahun"
+                value={yearFilter}
+                onChange={(e) => {
+                  const nextYear = e.target.value;
+                  setYearFilter(nextYear);
+                  if (dateFilter && nextYear && dateFilter.slice(0, 4) !== nextYear) {
+                    setDateFilter("");
+                  }
+                }}
+                className="bg-transparent pr-1 focus:outline-none cursor-pointer"
               >
-                <FilterX className="w-3.5 h-3.5" />
-                Reset
-              </button>
-            )}
+                <option value="" className="dark:bg-slate-950">
+                  Semua Tahun
+                </option>
+                {knownYears.map((yr) => (
+                  <option key={yr} value={yr} className="dark:bg-slate-950">
+                    Tahun {yr}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Per Bulan */}
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200">
+              <CalendarDays className="w-3.5 h-3.5 text-[#0284c7] shrink-0" />
+              <select
+                aria-label="Filter absensi per bulan"
+                value={monthFilter}
+                onChange={(e) => {
+                  const nextMonth = e.target.value;
+                  setMonthFilter(nextMonth);
+                  if (dateFilter && nextMonth && dateFilter.slice(5, 7) !== nextMonth) {
+                    setDateFilter("");
+                  }
+                }}
+                className="bg-transparent pr-1 focus:outline-none cursor-pointer"
+              >
+                <option value="" className="dark:bg-slate-950">
+                  Semua Bulan
+                </option>
+                {BULAN_OPTIONS.map((m) => {
+                  const val = String(m.value).padStart(2, "0");
+                  return (
+                    <option key={val} value={val} className="dark:bg-slate-950">
+                      {m.label}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+
+            {/* Per Tanggal (Kalender Popover) */}
+            <ModernDatePickerPopover
+              value={dateFilter}
+              defaultYear={yearFilter}
+              defaultMonth={monthFilter}
+              highlightedDates={knownDates}
+              placeholder="Pilih Tanggal"
+              ariaLabel="Filter absensi per tanggal"
+              onChange={(nextDate) => {
+                setDateFilter(nextDate);
+                if (nextDate) {
+                  setYearFilter(nextDate.slice(0, 4));
+                  setMonthFilter(nextDate.slice(5, 7));
+                }
+              }}
+            />
           </div>
         </div>
 
@@ -916,7 +1522,7 @@ export default function KelolaAbsensiView({ role }: KelolaAbsensiViewProps) {
 
             <PaginationFooter
               currentPage={safeHarianPage}
-              totalItems={items.length}
+              totalItems={filteredItems.length}
               itemsPerPage={ITEMS_PER_PAGE}
               itemLabel="catatan absensi"
               onPageChange={setHarianPage}
@@ -1075,7 +1681,7 @@ export default function KelolaAbsensiView({ role }: KelolaAbsensiViewProps) {
 
             <PaginationFooter
               currentPage={safeRekapPage}
-              totalItems={rekapList.length}
+              totalItems={filteredRekap.length}
               itemsPerPage={ITEMS_PER_PAGE}
               itemLabel="peserta"
               onPageChange={setRekapPage}

@@ -130,18 +130,34 @@ function formatTimeWIB(d: Date): string {
   );
 }
 
-function evaluateCheckInStatus(now: Date): {
+function evaluateCheckInStatus(
+  now: Date,
+  checkInLimitTime = "08:00",
+): {
   status: AttendanceTimeStatus;
   label: string;
 } {
+  const m = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(checkInLimitTime.trim());
+  const limitSec = m ? Number(m[1]) * 3600 + Number(m[2]) * 60 : 8 * 3600;
   const currentSec =
     now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
-  const limitSec = 8 * 3600;
+  const formattedLimit = checkInLimitTime.replace(":", ".");
+  const hasTolerance = checkInLimitTime !== "08:00";
 
   if (currentSec <= limitSec) {
-    return { status: "on_time", label: "Tepat Waktu" };
+    return {
+      status: "on_time",
+      label: hasTolerance
+        ? `Tepat Waktu (Toleransi ${formattedLimit} WIB)`
+        : "Tepat Waktu",
+    };
   }
-  return { status: "late", label: "Terlambat (> 08.00)" };
+  return {
+    status: "late",
+    label: hasTolerance
+      ? `Terlambat (> ${formattedLimit})`
+      : "Terlambat (> 08.00)",
+  };
 }
 
 function evaluateCheckOutStatus(
@@ -300,8 +316,14 @@ export default function AbsenPesertaPage() {
   });
   const [holidayInfo, setHolidayInfo] = useState<{
     isHoliday: boolean;
+    isWorkdayOverride?: boolean;
     reason?: string;
   }>({ isHoliday: false });
+  const [todayTolerance, setTodayTolerance] = useState<{
+    date: string;
+    checkInLimitTime: string;
+    reason: string;
+  } | null>(null);
 
   // Attendance mode & Izin state
   const [selectedMode, setSelectedMode] = useState<AttendanceMode>("masuk");
@@ -366,7 +388,9 @@ export default function AbsenPesertaPage() {
     return "Hari Libur";
   }, [holidayInfo.reason, todayWIB]);
 
-  const isHolidayToday = isWeekend || holidayInfo.isHoliday;
+  const isHolidayToday = holidayInfo.isWorkdayOverride
+    ? false
+    : isWeekend || holidayInfo.isHoliday;
 
   // Validate active internship period strictly
   const internshipPeriodStatus = useMemo(() => {
@@ -452,11 +476,13 @@ export default function AbsenPesertaPage() {
       ]);
 
       let resolvedHoliday = false;
+      let resolvedOverride = false;
       let resolvedHolidayReason: string | undefined;
       if (holidayRes && holidayRes.ok) {
         const holData = await holidayRes.json().catch(() => null);
         if (holData && typeof holData.isHoliday === "boolean") {
           resolvedHoliday = holData.isHoliday;
+          resolvedOverride = Boolean(holData.isWorkdayOverride);
           resolvedHolidayReason = holData.reason || undefined;
         }
       }
@@ -468,13 +494,23 @@ export default function AbsenPesertaPage() {
 
       if (absenRes && absenRes.ok) {
         const absenJson = await absenRes.json();
-        if (typeof absenJson?.isHoliday === "boolean" && absenJson.isHoliday) {
+        if (typeof absenJson?.isWorkdayOverride === "boolean" && absenJson.isWorkdayOverride) {
+          resolvedOverride = true;
+          resolvedHoliday = false;
+          resolvedHolidayReason =
+            absenJson.holidayReason || resolvedHolidayReason;
+        } else if (typeof absenJson?.isHoliday === "boolean" && absenJson.isHoliday) {
           resolvedHoliday = true;
           resolvedHolidayReason =
             absenJson.holidayReason || resolvedHolidayReason;
         }
         if (typeof absenJson?.hasLogbookToday === "boolean") {
           isLogbookFilled = isLogbookFilled || absenJson.hasLogbookToday;
+        }
+        if (absenJson?.tolerance?.checkInLimitTime) {
+          setTodayTolerance(absenJson.tolerance);
+        } else {
+          setTodayTolerance(null);
         }
         if (absenJson?.absensi) {
           setRecord(absenJson.absensi);
@@ -492,6 +528,7 @@ export default function AbsenPesertaPage() {
 
       setHolidayInfo({
         isHoliday: resolvedHoliday,
+        isWorkdayOverride: resolvedOverride,
         reason: resolvedHolidayReason,
       });
 
@@ -704,7 +741,7 @@ export default function AbsenPesertaPage() {
     const nowTime = formatTimeWIB(nowWib);
     const evalResult =
       activeStep === "check_in"
-        ? evaluateCheckInStatus(nowWib)
+        ? evaluateCheckInStatus(nowWib, todayTolerance?.checkInLimitTime || "08:00")
         : evaluateCheckOutStatus(
             nowWib,
             useCheckOutNote && checkOutNote.trim().length >= 5,
@@ -769,6 +806,16 @@ export default function AbsenPesertaPage() {
     }
     if (!gpsLocation) {
       showToast.error("Titik lokasi GPS wajib dikunci terlebih dahulu");
+      return;
+    }
+    if (
+      activeStep === "check_in" &&
+      selectedMode === "masuk" &&
+      !gpsLocation.isInsideBpom
+    ) {
+      showToast.error(
+        `Lokasi Anda berada di luar radius ${BBPOM_PALEMBANG_COORD.radiusMeters} m kantor BBPOM Palembang (${formatDistanceLabel(gpsLocation.distanceMeters)}). Absen Masuk wajib dilakukan di area kantor.`,
+      );
       return;
     }
     if (!capturedPhoto || !capturedBlob) {
@@ -929,7 +976,10 @@ export default function AbsenPesertaPage() {
     return `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${gpsLocation.lat}%2C${gpsLocation.lng}`;
   }, [gpsLocation]);
 
-  const currentLiveCheckInEval = evaluateCheckInStatus(getNowWIB());
+  const currentLiveCheckInEval = evaluateCheckInStatus(
+    getNowWIB(),
+    todayTolerance?.checkInLimitTime || "08:00",
+  );
   const currentLiveCheckOutEval = evaluateCheckOutStatus(
     getNowWIB(),
     useCheckOutNote && checkOutNote.trim().length >= 5,
@@ -1514,6 +1564,18 @@ export default function AbsenPesertaPage() {
                     </div>
                   )}
 
+                  {/* INFO BANNER TOLERANSI JAM MASUK HARIAN */}
+                  {activeStep === "check_in" && todayTolerance && (
+                    <div className="rounded-xl bg-sky-50/90 dark:bg-sky-950/40 border border-sky-200/90 dark:border-sky-800/70 p-3.5 text-sm text-sky-900 dark:text-sky-200 flex items-start gap-2.5">
+                      <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-[#1D64F2] dark:text-sky-400 shrink-0 mt-0.5" />
+                      <span>
+                        <b>Toleransi Jam Masuk Hari Ini:</b> Batas Check-In tepat waktu diperpanjang hingga{" "}
+                        <b>{todayTolerance.checkInLimitTime.replace(":", ".")} WIB</b>{" "}
+                        ({todayTolerance.reason}).
+                      </span>
+                    </div>
+                  )}
+
                   {/* INFO ATURAN JAM ABSEN REAL-TIME */}
               <div className="rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-700/80 p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                 <div className="flex items-start sm:items-center gap-2.5 text-sm text-slate-700 dark:text-slate-200">
@@ -1684,7 +1746,9 @@ export default function AbsenPesertaPage() {
                           className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-bold ${
                             gpsLocation.isInsideBpom
                               ? "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800"
-                              : "bg-amber-50 text-amber-800 border border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800"
+                              : activeStep === "check_in" && selectedMode === "masuk"
+                                ? "bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800"
+                                : "bg-amber-50 text-amber-800 border border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800"
                           }`}
                         >
                           <Building2 className="w-4 h-4 shrink-0" />
@@ -1729,6 +1793,24 @@ export default function AbsenPesertaPage() {
                           </b>
                         </span>
                       </div>
+
+                      {activeStep === "check_in" &&
+                        selectedMode === "masuk" &&
+                        !gpsLocation.isInsideBpom && (
+                          <div className="rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/70 p-3.5 flex items-start gap-2.5 text-sm text-rose-800 dark:text-rose-200">
+                            <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+                            <p className="leading-relaxed">
+                              <b>Absen Masuk diblokir:</b> Koordinat Anda berada
+                              di luar batas radius{" "}
+                              <b>{BBPOM_PALEMBANG_COORD.radiusMeters} m</b> dari
+                              kantor BBPOM Palembang (
+                              {formatDistanceLabel(gpsLocation.distanceMeters)}
+                              ). Silakan menuju area kantor lalu klik{" "}
+                              <b>Segarkan GPS</b>, atau pilih mode <b>WFH</b>{" "}
+                              bila sedang bekerja dari luar kantor.
+                            </p>
+                          </div>
+                        )}
 
                       {/* [DINONAKTIFKAN] Fitur Set Titik Kantor BBPOM untuk kalibrasi PC/Laptop */}
                       {/* {!gpsLocation.isInsideBpom &&
@@ -1878,6 +1960,9 @@ export default function AbsenPesertaPage() {
                     !gpsLocation ||
                     !capturedPhoto ||
                     submitting ||
+                    (activeStep === "check_in" &&
+                      selectedMode === "masuk" &&
+                      !gpsLocation.isInsideBpom) ||
                     (activeStep === "check_out" &&
                       useCheckOutNote &&
                       checkOutNote.trim().length < 5)

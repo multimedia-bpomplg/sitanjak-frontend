@@ -5,6 +5,7 @@ import Footer from "@/components/layouts/footer";
 import HeroSection from "@/components/LandingPage/Herosection/page";
 import Profil from "@/components/LandingPage/Profil/page";
 import Formasi from "@/components/LandingPage/Formasi/page";
+import Gallery from "@/components/LandingPage/Gallery/page";
 import Datastatistik from "@/components/LandingPage/Datastatistik/page";
 import Manfaat from "@/components/LandingPage/Manfaat/page";
 import Peraturan from "@/components/LandingPage/Peraturan/page";
@@ -108,6 +109,10 @@ export default function HomePage() {
 
         <AnimatedSection id="formasi">
           <Formasi />
+        </AnimatedSection>
+
+        <AnimatedSection id="galeri">
+          <Gallery />
         </AnimatedSection>
 
         <AnimatedSection id="informasi">

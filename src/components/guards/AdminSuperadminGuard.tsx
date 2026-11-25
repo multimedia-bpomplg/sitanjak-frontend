@@ -32,9 +32,15 @@ export default function AdminSuperadminGuard({
         const roles = Array.isArray(payload.roles) ? payload.roles : [];
         const path = window.location.pathname;
 
-        // Jika Superadmin membuka rute /dashboard/admin/*, arahkan ke /dashboard/superadmin/*
-        // agar layout, sidebar, dan badge role tetap Superadmin.
+        // Jika akun memiliki peran Admin, izinkan membuka /dashboard/admin/*.
+        // Jika hanya Superadmin (tanpa peran Admin) membuka /dashboard/admin/*, arahkan ke /dashboard/superadmin/*.
         if (path === "/dashboard/admin" || path.startsWith("/dashboard/admin/")) {
+          if (roles.includes("admin")) {
+            setHasAccess(true);
+            setLoading(false);
+            return;
+          }
+
           if (roles.includes("superadmin")) {
             const targetPath = path.replace(
               /^\/dashboard\/admin(?=\/|$)/,
@@ -43,12 +49,6 @@ export default function AdminSuperadminGuard({
             router.replace(
               `${targetPath}${window.location.search}${window.location.hash}`,
             );
-            return;
-          }
-
-          if (roles.includes("admin")) {
-            setHasAccess(true);
-            setLoading(false);
             return;
           }
         }

@@ -361,7 +361,7 @@ export default function DashboardHeader({
           },
         ]
       : []),
-    ...(userRoles.includes("admin") && !hasSuperadminRole
+    ...(userRoles.includes("admin")
       ? [
           {
             role: "admin" as RoleType,

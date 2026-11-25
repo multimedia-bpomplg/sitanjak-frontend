@@ -23,30 +23,30 @@ const STATUS_ROWS: Array<{
   {
     key: "aktif",
     label: "Aktif",
-    color: "#0077e6",
-    hoverColor: "#14269e",
-    dotClass: "bg-[#0077e6]",
+    color: "#2563eb",
+    hoverColor: "#1d4ed8",
+    dotClass: "bg-[#2563eb]",
   },
   {
     key: "selesai",
     label: "Selesai",
-    color: "#1ecad3",
-    hoverColor: "#0e9aa7",
-    dotClass: "bg-[#1ecad3]",
+    color: "#10b981",
+    hoverColor: "#059669",
+    dotClass: "bg-[#10b981]",
   },
   {
     key: "ditolak",
     label: "Ditolak",
-    color: "#e83b8a",
-    hoverColor: "#be185d",
-    dotClass: "bg-[#e83b8a]",
+    color: "#f97316",
+    hoverColor: "#ea580c",
+    dotClass: "bg-[#f97316]",
   },
   {
     key: "menunggu",
     label: "Menunggu",
-    color: "#6f42c1",
-    hoverColor: "#4c1d95",
-    dotClass: "bg-[#6f42c1]",
+    color: "#8b5cf6",
+    hoverColor: "#7c3aed",
+    dotClass: "bg-[#8b5cf6]",
   },
 ];
 
@@ -57,24 +57,67 @@ function polar(cx: number, cy: number, r: number, angleRad: number) {
   };
 }
 
-function createDonutArcPath(
+function createRoundedSegmentedArcPath(
   cx: number,
   cy: number,
   innerR: number,
   outerR: number,
-  startRad: number,
-  endRad: number,
+  baseStart: number,
+  baseEnd: number,
+  gapPx = 7,
+  cornerRadius = 7,
 ): string {
-  const largeArc = endRad - startRad > Math.PI ? 1 : 0;
-  const oStart = polar(cx, cy, outerR, startRad);
-  const oEnd = polar(cx, cy, outerR, endRad);
-  const iEnd = polar(cx, cy, innerR, endRad);
-  const iStart = polar(cx, cy, innerR, startRad);
+  const halfGap = gapPx / 2;
+  const maxInnerHalf = ((baseEnd - baseStart) * innerR) * 0.35;
+  const effectiveHalfGap = Math.min(halfGap, maxInnerHalf);
+
+  const sOut = baseStart + effectiveHalfGap / outerR;
+  const eOut = baseEnd - effectiveHalfGap / outerR;
+  const sIn = baseStart + effectiveHalfGap / innerR;
+  const eIn = baseEnd - effectiveHalfGap / innerR;
+
+  const cr = Math.max(
+    1.5,
+    Math.min(
+      cornerRadius,
+      (outerR - innerR) * 0.38,
+      ((eIn - sIn) * innerR) * 0.32,
+    ),
+  );
+
+  const dOut = cr / outerR;
+  const dIn = cr / innerR;
+  const rOutInset = outerR - cr;
+  const rInInset = innerR + cr;
+
+  const largeArcOut = eOut - sOut - 2 * dOut > Math.PI ? 1 : 0;
+  const largeArcIn = eIn - sIn - 2 * dIn > Math.PI ? 1 : 0;
+
+  const pStartRadialOut = polar(cx, cy, rOutInset, sOut);
+  const cOuterStart = polar(cx, cy, outerR, sOut);
+  const pOuterArcStart = polar(cx, cy, outerR, sOut + dOut);
+
+  const pOuterArcEnd = polar(cx, cy, outerR, eOut - dOut);
+  const cOuterEnd = polar(cx, cy, outerR, eOut);
+  const pEndRadialOut = polar(cx, cy, rOutInset, eOut);
+
+  const pEndRadialIn = polar(cx, cy, rInInset, eIn);
+  const cInnerEnd = polar(cx, cy, innerR, eIn);
+  const pInnerArcEnd = polar(cx, cy, innerR, eIn - dIn);
+
+  const pInnerArcStart = polar(cx, cy, innerR, sIn + dIn);
+  const cInnerStart = polar(cx, cy, innerR, sIn);
+  const pStartRadialIn = polar(cx, cy, rInInset, sIn);
+
   return [
-    `M ${oStart.x.toFixed(2)} ${oStart.y.toFixed(2)}`,
-    `A ${outerR} ${outerR} 0 ${largeArc} 1 ${oEnd.x.toFixed(2)} ${oEnd.y.toFixed(2)}`,
-    `L ${iEnd.x.toFixed(2)} ${iEnd.y.toFixed(2)}`,
-    `A ${innerR} ${innerR} 0 ${largeArc} 0 ${iStart.x.toFixed(2)} ${iStart.y.toFixed(2)}`,
+    `M ${pStartRadialOut.x.toFixed(2)} ${pStartRadialOut.y.toFixed(2)}`,
+    `Q ${cOuterStart.x.toFixed(2)} ${cOuterStart.y.toFixed(2)} ${pOuterArcStart.x.toFixed(2)} ${pOuterArcStart.y.toFixed(2)}`,
+    `A ${outerR} ${outerR} 0 ${largeArcOut} 1 ${pOuterArcEnd.x.toFixed(2)} ${pOuterArcEnd.y.toFixed(2)}`,
+    `Q ${cOuterEnd.x.toFixed(2)} ${cOuterEnd.y.toFixed(2)} ${pEndRadialOut.x.toFixed(2)} ${pEndRadialOut.y.toFixed(2)}`,
+    `L ${pEndRadialIn.x.toFixed(2)} ${pEndRadialIn.y.toFixed(2)}`,
+    `Q ${cInnerEnd.x.toFixed(2)} ${cInnerEnd.y.toFixed(2)} ${pInnerArcEnd.x.toFixed(2)} ${pInnerArcEnd.y.toFixed(2)}`,
+    `A ${innerR} ${innerR} 0 ${largeArcIn} 0 ${pInnerArcStart.x.toFixed(2)} ${pInnerArcStart.y.toFixed(2)}`,
+    `Q ${cInnerStart.x.toFixed(2)} ${cInnerStart.y.toFixed(2)} ${pStartRadialIn.x.toFixed(2)} ${pStartRadialIn.y.toFixed(2)}`,
     "Z",
   ].join(" ");
 }
@@ -136,31 +179,12 @@ export default function SuperadminStatusDonutCard({
     }, []);
   }, [hasData, legendItems, total]);
 
-  const featuredKey: StatusKey | null = useMemo(() => {
-    if (segments.length === 0) return null;
-    return segments.reduce(
-      (best, seg) => (seg.count > best.count ? seg : best),
-      segments[0],
-    ).key;
-  }, [segments]);
-
-  const protrudingKey = hoveredKey ?? featuredKey;
-
-  const orderedSegments = useMemo(() => {
-    if (!protrudingKey) return segments;
-    return [
-      ...segments.filter((s) => s.key !== protrudingKey),
-      ...segments.filter((s) => s.key === protrudingKey),
-    ];
-  }, [segments, protrudingKey]);
-
-  const activeSegment =
-    segments.find((s) => s.key === hoveredKey) ?? null;
+  const activeSegment = segments.find((s) => s.key === hoveredKey) ?? null;
 
   const cx = 120;
   const cy = 120;
-  const innerR = 52;
-  const outerR = 88;
+  const innerR = 60;
+  const outerR = 96;
   const labelR = (innerR + outerR) / 2;
 
   return (
@@ -191,7 +215,7 @@ export default function SuperadminStatusDonutCard({
         )}
       </div>
 
-      {/* Interactive Exploding Donut + Legend */}
+      {/* Rounded Segmented Donut + Center Disk */}
       <div className="my-auto pt-4 pb-2 flex flex-col items-center justify-center gap-5">
         <div className="relative w-52 h-52 sm:w-56 sm:h-56 shrink-0">
           <svg
@@ -219,11 +243,8 @@ export default function SuperadminStatusDonutCard({
                     onMouseLeave={() => setHoveredKey(null)}
                     className="cursor-pointer transition-transform duration-200 ease-out"
                     style={{
-                      transform: isActive ? "scale(1.03)" : "scale(1)",
+                      transform: isActive ? "scale(1.025)" : "scale(1)",
                       transformOrigin: `${cx}px ${cy}px`,
-                      filter: isActive
-                        ? "drop-shadow(0px 10px 14px rgba(15, 23, 42, 0.22))"
-                        : "none",
                     }}
                   >
                     <circle
@@ -240,9 +261,9 @@ export default function SuperadminStatusDonutCard({
                       textAnchor="middle"
                       dominantBaseline="central"
                       fill="#ffffff"
-                      fontSize="11.5"
+                      fontSize="11"
                       fontWeight="700"
-                      className="pointer-events-none"
+                      className="pointer-events-none select-none"
                     >
                       100%
                     </text>
@@ -250,24 +271,20 @@ export default function SuperadminStatusDonutCard({
                 );
               })()
             ) : (
-              orderedSegments.map((seg) => {
-                const isProtruding = protrudingKey === seg.key;
-                const popDist = isProtruding ? 5 : 0;
-                const dx = popDist * Math.cos(seg.midRad);
-                const dy = popDist * Math.sin(seg.midRad);
-                const rIn = isProtruding ? innerR - 2 : innerR;
-                const rOut = isProtruding ? outerR + 16 : outerR;
-                const rLabel = (rIn + rOut) / 2;
-                const pathD = createDonutArcPath(
+              segments.map((seg) => {
+                const isActive = hoveredKey === seg.key;
+                const pathD = createRoundedSegmentedArcPath(
                   cx,
                   cy,
-                  rIn,
-                  rOut,
+                  innerR,
+                  outerR,
                   seg.startRad,
                   seg.endRad,
+                  7,
+                  7,
                 );
-                const labelPos = polar(cx, cy, rLabel, seg.midRad);
-                const showPctLabel = seg.sweep >= 0.4;
+                const labelPos = polar(cx, cy, labelR, seg.midRad);
+                const showPctLabel = seg.sweep >= 0.28;
 
                 return (
                   <g
@@ -276,15 +293,16 @@ export default function SuperadminStatusDonutCard({
                     onMouseLeave={() => setHoveredKey(null)}
                     className="cursor-pointer transition-all duration-200 ease-out"
                     style={{
-                      transform: `translate(${dx.toFixed(2)}px, ${dy.toFixed(2)}px)`,
-                      filter: isProtruding
-                        ? "drop-shadow(0px 8px 16px rgba(15, 23, 42, 0.25))"
+                      transform: isActive ? "scale(1.03)" : "scale(1)",
+                      transformOrigin: `${cx}px ${cy}px`,
+                      filter: isActive
+                        ? "drop-shadow(0px 6px 12px rgba(15, 23, 42, 0.18))"
                         : "none",
                     }}
                   >
                     <path
                       d={pathD}
-                      fill={isProtruding ? seg.hoverColor : seg.color}
+                      fill={isActive ? seg.hoverColor : seg.color}
                       className="transition-colors duration-200"
                     />
                     {showPctLabel && (
@@ -294,7 +312,7 @@ export default function SuperadminStatusDonutCard({
                         textAnchor="middle"
                         dominantBaseline="central"
                         fill="#ffffff"
-                        fontSize="11"
+                        fontSize="10"
                         fontWeight="700"
                         className="pointer-events-none select-none"
                       >
@@ -307,14 +325,16 @@ export default function SuperadminStatusDonutCard({
             )}
           </svg>
 
-          {/* Center Total / Active Hint */}
-          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-6 text-center">
-            <span className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white tabular-nums leading-none">
-              {activeSegment ? activeSegment.count : total}
-            </span>
-            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-1 truncate max-w-[90px]">
-              {activeSegment ? activeSegment.label : "Total"}
-            </span>
+          {/* Subtle Inner White Disk + Total Above Number */}
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+            <div className="w-[104px] h-[104px] sm:w-[112px] sm:h-[112px] rounded-full bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-[0_2px_12px_rgba(15,23,42,0.06)] flex flex-col items-center justify-center px-3 text-center">
+              <span className="text-[11px] font-medium text-slate-400 dark:text-slate-400 truncate max-w-[84px]">
+                {activeSegment ? activeSegment.label : "Total Peserta"}
+              </span>
+              <span className="text-2xl sm:text-[28px] font-extrabold tracking-tight text-slate-900 dark:text-white tabular-nums leading-tight mt-0.5">
+                {activeSegment ? activeSegment.count : total}
+              </span>
+            </div>
           </div>
         </div>
 
