@@ -271,8 +271,8 @@ export default function KelolaKuotaFormasiView() {
   return (
     <div className="space-y-6">
       {/* HEADER */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
             Kelola Kuota Formasi
           </h1>
@@ -282,26 +282,26 @@ export default function KelolaKuotaFormasiView() {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-auto">
-          <button
-            type="button"
-            onClick={() => setOpenCreateModal(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#0284c7] hover:bg-[#0369a1] text-white text-sm font-semibold shadow-2xs transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Tambah Formasi</span>
-          </button>
-
+        <div className="flex flex-nowrap items-center gap-2 shrink-0 self-start lg:self-auto">
           <button
             type="button"
             onClick={() => loadData(true)}
             disabled={refreshing}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-sm font-semibold text-slate-700 dark:text-slate-200 transition-colors disabled:opacity-60"
+            className="inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 whitespace-nowrap transition disabled:opacity-60"
           >
             <RefreshCw
-              className={`w-4 h-4 text-[#0284c7] ${refreshing ? "animate-spin" : ""}`}
+              className={`w-3.5 h-3.5 shrink-0 ${refreshing ? "animate-spin" : ""}`}
             />
-            <span>{refreshing ? "Memperbarui..." : "Refresh Data"}</span>
+            <span>{refreshing ? "Memperbarui..." : "Refresh"}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setOpenCreateModal(true)}
+            className="inline-flex items-center justify-center gap-1.5 h-9 px-4 rounded-xl border border-transparent bg-[#0284c7] hover:bg-sky-700 text-white text-xs font-semibold whitespace-nowrap shadow-xs transition"
+          >
+            <Plus className="w-3.5 h-3.5 shrink-0" />
+            <span>Tambah Formasi</span>
           </button>
         </div>
       </div>

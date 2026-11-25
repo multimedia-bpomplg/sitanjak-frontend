@@ -492,7 +492,7 @@ export default function KelolaAbsensiView({ role }: KelolaAbsensiViewProps) {
             className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-semibold transition disabled:opacity-60"
           >
             <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
-            Muat Ulang
+            Refresh
           </button>
 
           <button
