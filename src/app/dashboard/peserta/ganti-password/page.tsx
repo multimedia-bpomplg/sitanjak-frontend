@@ -24,7 +24,7 @@ import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { PesertaDashboardSkeleton } from "@/components/dashboard/skeletons";
 import { isPkpaPeserta } from "@/lib/pesertaKategori";
 import { InstallAppCard } from "@/components/peserta/InstallAppCard";
-import { PesertaAvatar } from "@/components/peserta/PesertaAvatar";
+import { getPesertaAvatarSrc } from "@/components/peserta/PesertaAvatar";
 import { clearAuthSession } from "@/lib/authSession";
 import {
   getDevicePushStatus,
@@ -404,14 +404,20 @@ export default function AkunPesertaPage() {
           <Award className="w-5 h-5 sm:w-6 sm:h-6 text-[#FCD34D] drop-shadow-xs" />
         </div>
 
-        <div className="relative z-10 flex items-center gap-4 sm:gap-5">
-          <PesertaAvatar
-            nama={peserta?.nama || "P"}
-            jenisKelamin={peserta?.jenisKelamin}
-            className="w-16 h-16 sm:w-18 sm:h-18 bg-linear-to-br from-[#FDE68A] via-[#F59E0B] to-[#D97706] border-2 border-amber-200/80 text-[#0B2A6B] text-xl sm:text-2xl shadow-md"
-          />
+        <div className="relative z-10 flex items-stretch gap-2.5 sm:gap-4 min-h-[124px] sm:min-h-[116px]">
+          <div className="relative -ml-5 sm:-ml-6 w-29 sm:w-36 shrink-0 self-stretch">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={
+                getPesertaAvatarSrc(peserta?.jenisKelamin) ||
+                "/images/assets-new/avatar/avatar-cowok.png"
+              }
+              alt={`Avatar ${peserta?.nama || "Peserta Magang"}`}
+              className="absolute -bottom-5 sm:-bottom-6 -top-3.5 sm:-top-4 -left-4 sm:-left-2 h-[calc(100%+34px)] sm:h-[calc(100%+40px)] w-auto max-w-none object-contain object-bottom drop-shadow-[0_10px_18px_rgba(0,0,0,0.28)] select-none pointer-events-none"
+            />
+          </div>
 
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0 flex-1 flex flex-col justify-center">
             <div className="flex items-center gap-2 flex-wrap pr-12 sm:pr-14">
               <h2 className="text-lg sm:text-xl font-extrabold text-white tracking-tight truncate">
                 {peserta?.nama || "Peserta Magang"}

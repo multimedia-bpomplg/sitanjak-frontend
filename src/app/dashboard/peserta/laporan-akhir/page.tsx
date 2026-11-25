@@ -158,6 +158,7 @@ export default function LaporanAkhirPage() {
   const [dataLoaded, setDataLoaded] = useState(false);
 
   // Accordion expand state for cards
+  const [openEvaluasiSection, setOpenEvaluasiSection] = useState(false);
   const [openLaporanSection, setOpenLaporanSection] = useState(false);
   const [openSurveiSection, setOpenSurveiSection] = useState(false);
   const [openSertifikatSection, setOpenSertifikatSection] = useState(false);
@@ -698,73 +699,155 @@ export default function LaporanAkhirPage() {
       <div className="space-y-3.5 sm:space-y-4">
         {/* CARD 1: EVALUASI & SURAT PERNYATAAN */}
         <div className="rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs overflow-hidden">
-          <Link
-            href="/dashboard/peserta/evaluasi"
-            className="block w-full p-4 sm:p-5 text-left hover:bg-slate-50/70 dark:hover:bg-slate-700/40 transition"
-          >
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3 sm:gap-3.5">
-                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
-                  <FileSignature className="w-5 h-5" />
+          {!evaluasiData && !uploadScheduleInfo.canUpload ? (
+            <>
+              <button
+                type="button"
+                onClick={() => setOpenEvaluasiSection((v) => !v)}
+                className="w-full p-4 sm:p-5 text-left hover:bg-slate-50/70 dark:hover:bg-slate-700/40 transition"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 sm:gap-3.5">
+                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                      <FileSignature className="w-5 h-5" />
+                    </div>
+                    <span className="text-base font-bold text-slate-900 dark:text-white">
+                      Evaluasi &amp; Surat Pernyataan
+                    </span>
+                  </div>
+                  <ChevronRight
+                    className={`w-4 h-4 sm:w-5 sm:h-5 text-slate-400 transition-transform duration-200 shrink-0 ${
+                      openEvaluasiSection ? "rotate-90" : ""
+                    }`}
+                  />
                 </div>
-                <span className="text-base font-bold text-slate-900 dark:text-white">
-                  Evaluasi &amp; Surat Pernyataan
-                </span>
-              </div>
-              <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400 shrink-0" />
-            </div>
 
-            <div className="mt-3 sm:mt-3.5 pt-2.5 sm:pt-3 border-t border-slate-100 dark:border-slate-700/70 flex items-center justify-between gap-2 text-sm text-slate-500 dark:text-slate-400">
-              <div className="flex items-center gap-1.5 truncate">
-                {evaluasiData ? (
-                  evaluasiStatus === "Disetujui" ? (
-                    <>
-                      <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-500 shrink-0" />
-                      <span className="truncate">
-                        Disetujui mentor • Siap diunduh PDF
-                      </span>
-                    </>
-                  ) : evaluasiStatus === "Revisi" ? (
-                    <>
-                      <AlertCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-rose-500 shrink-0" />
-                      <span className="truncate text-rose-600 dark:text-rose-400">
-                        Perlu revisi • Ketuk untuk memperbaiki
-                      </span>
-                    </>
+                <div className="mt-3 sm:mt-3.5 pt-2.5 sm:pt-3 border-t border-slate-100 dark:border-slate-700/70 flex items-center justify-between gap-2 text-sm text-slate-500 dark:text-slate-400">
+                  <div className="flex items-center gap-1.5 truncate">
+                    <Lock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500 shrink-0" />
+                    <span className="truncate">
+                      {uploadScheduleInfo.reason === "inactive"
+                        ? "Terkunci • Status kepesertaan magang tidak aktif"
+                        : `Dibuka mulai H-10 selesai magang (${uploadScheduleInfo.openDateLabel}${
+                            uploadScheduleInfo.daysUntilOpen > 0
+                              ? ` • ${uploadScheduleInfo.daysUntilOpen} hari lagi`
+                              : ""
+                          })`}
+                    </span>
+                  </div>
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold border shrink-0 bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800">
+                    Terkunci
+                  </span>
+                </div>
+              </button>
+
+              {openEvaluasiSection && (
+                <div className="px-4 sm:px-5 pb-4 sm:pb-5 pt-2.5 border-t border-slate-100 dark:border-slate-700/70 bg-slate-50/40 dark:bg-slate-800/40">
+                  <div className="rounded-xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/70 p-4 sm:p-5 text-center space-y-2.5">
+                    <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/60 text-amber-600 dark:text-amber-300 flex items-center justify-center mx-auto">
+                      <Lock className="w-5 h-5" />
+                    </div>
+                    <p className="text-sm font-bold text-slate-900 dark:text-white">
+                      {uploadScheduleInfo.reason === "inactive"
+                        ? "Pengisian Evaluasi & Surat Pernyataan Tidak Tersedia"
+                        : "Pengisian Evaluasi & Surat Pernyataan Belum Dibuka"}
+                    </p>
+                    <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed max-w-md mx-auto">
+                      {uploadScheduleInfo.reason === "inactive" ? (
+                        "Status kepesertaan magang Anda sedang tidak aktif."
+                      ) : (
+                        <>
+                          Pengisian Evaluasi &amp; Surat Pernyataan dibuka mulai{" "}
+                          <b>H-10</b> sebelum masa magang berakhir, yaitu mulai
+                          tanggal <b>{uploadScheduleInfo.openDateLabel}</b>
+                          {uploadScheduleInfo.daysUntilOpen > 0
+                            ? ` (${uploadScheduleInfo.daysUntilOpen} hari lagi)`
+                            : ""}
+                          .
+                        </>
+                      )}
+                    </p>
+                    <button
+                      type="button"
+                      disabled
+                      className="w-full py-2.5 sm:py-3 px-4 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-sm font-bold inline-flex items-center justify-center gap-2 cursor-not-allowed"
+                    >
+                      <Lock className="w-4 h-4" />
+                      <span>Evaluasi &amp; Surat Pernyataan Terkunci</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            <Link
+              href="/dashboard/peserta/evaluasi"
+              className="block w-full p-4 sm:p-5 text-left hover:bg-slate-50/70 dark:hover:bg-slate-700/40 transition"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 sm:gap-3.5">
+                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                    <FileSignature className="w-5 h-5" />
+                  </div>
+                  <span className="text-base font-bold text-slate-900 dark:text-white">
+                    Evaluasi &amp; Surat Pernyataan
+                  </span>
+                </div>
+                <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400 shrink-0" />
+              </div>
+
+              <div className="mt-3 sm:mt-3.5 pt-2.5 sm:pt-3 border-t border-slate-100 dark:border-slate-700/70 flex items-center justify-between gap-2 text-sm text-slate-500 dark:text-slate-400">
+                <div className="flex items-center gap-1.5 truncate">
+                  {evaluasiData ? (
+                    evaluasiStatus === "Disetujui" ? (
+                      <>
+                        <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-500 shrink-0" />
+                        <span className="truncate">
+                          Disetujui mentor • Siap diunduh PDF
+                        </span>
+                      </>
+                    ) : evaluasiStatus === "Revisi" ? (
+                      <>
+                        <AlertCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-rose-500 shrink-0" />
+                        <span className="truncate text-rose-600 dark:text-rose-400">
+                          Perlu revisi • Ketuk untuk memperbaiki
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500 shrink-0" />
+                        <span className="truncate">
+                          Menunggu penindakan mentor pembimbing
+                        </span>
+                      </>
+                    )
                   ) : (
                     <>
-                      <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500 shrink-0" />
+                      <AlertCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 shrink-0" />
                       <span className="truncate">
-                        Menunggu penindakan mentor pembimbing
+                        Belum diisi • Isi evaluasi &amp; surat pernyataan
                       </span>
                     </>
-                  )
-                ) : (
-                  <>
-                    <AlertCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 shrink-0" />
-                    <span className="truncate">
-                      Belum diisi • Isi evaluasi &amp; surat pernyataan
-                    </span>
-                  </>
-                )}
+                  )}
+                </div>
+                <span
+                  className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border shrink-0 ${
+                    !evaluasiData
+                      ? "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-700/60 dark:text-slate-300 dark:border-slate-600"
+                      : evaluasiStatus === "Disetujui"
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800/60"
+                        : evaluasiStatus === "Revisi"
+                          ? "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/50 dark:text-rose-300 dark:border-rose-800/60"
+                          : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800/60"
+                  }`}
+                >
+                  {!evaluasiData
+                    ? "Belum Diisi"
+                    : evaluasiStatus || "Menunggu"}
+                </span>
               </div>
-              <span
-                className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border shrink-0 ${
-                  !evaluasiData
-                    ? "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-700/60 dark:text-slate-300 dark:border-slate-600"
-                    : evaluasiStatus === "Disetujui"
-                      ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800/60"
-                      : evaluasiStatus === "Revisi"
-                        ? "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/50 dark:text-rose-300 dark:border-rose-800/60"
-                        : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800/60"
-                }`}
-              >
-                {!evaluasiData
-                  ? "Belum Diisi"
-                  : evaluasiStatus || "Menunggu"}
-              </span>
-            </div>
-          </Link>
+            </Link>
+          )}
         </div>
 
         {/* CARD 2: LAPORAN AKHIR */}

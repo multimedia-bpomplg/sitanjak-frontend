@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   AlertCircle,
@@ -37,6 +37,42 @@ function getTodayWibIso(): string {
   return `${y}-${m}-${d}`;
 }
 
+function parseDateIso(raw?: string): string | null {
+  if (!raw || raw === "-") return null;
+  const parsed = new Date(raw);
+  if (isNaN(parsed.getTime())) return null;
+  const y = parsed.getFullYear();
+  const m = String(parsed.getMonth() + 1).padStart(2, "0");
+  const d = String(parsed.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function shiftIsoDate(dateIso: string, deltaDays: number): string {
+  const [y, m, d] = dateIso.split("-").map(Number);
+  const dt = new Date(y, m - 1, d + deltaDays);
+  const yy = dt.getFullYear();
+  const mm = String(dt.getMonth() + 1).padStart(2, "0");
+  const dd = String(dt.getDate()).padStart(dt.getDate() < 10 ? 2 : 2, "0");
+  return `${yy}-${mm}-${dd}`;
+}
+
+function diffDaysIso(fromIso: string, toIso: string): number {
+  const [fy, fm, fd] = fromIso.split("-").map(Number);
+  const [ty, tm, td] = toIso.split("-").map(Number);
+  const fromMs = Date.UTC(fy, fm - 1, fd);
+  const toMs = Date.UTC(ty, tm - 1, td);
+  return Math.round((toMs - fromMs) / (24 * 60 * 60 * 1000));
+}
+
+function formatIsoToIndo(dateIso: string): string {
+  const [y, m, d] = dateIso.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
 export default function EvaluasiDanPernyataanPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -49,9 +85,11 @@ export default function EvaluasiDanPernyataanPage() {
   const [reviewedByName, setReviewedByName] = useState("");
   const [isPkpa, setIsPkpa] = useState(false);
 
-  const [periode, setPeriode] = useState<{ mulai?: string; selesai?: string }>(
-    {},
-  );
+  const [periode, setPeriode] = useState<{
+    mulai?: string;
+    selesai?: string;
+    statusMagang?: string;
+  }>({});
   const [submittedAt, setSubmittedAt] = useState<string>("");
 
   // Bagian A: Evaluasi Fasilitator / Pembimbing
@@ -120,6 +158,7 @@ export default function EvaluasiDanPernyataanPage() {
           setPeriode({
             mulai: found.tanggalMulaiMagang,
             selesai: found.tanggalSelesaiMagang,
+            statusMagang: found.statusMagang,
           });
         }
       }
@@ -347,10 +386,55 @@ export default function EvaluasiDanPernyataanPage() {
     };
   };
 
-  const isLocked = evalStatus === "Menunggu" || evalStatus === "Disetujui";
+  const evaluasiScheduleInfo = useMemo(() => {
+    if (periode.statusMagang === "Tidak Magang") {
+      return {
+        canFill: false,
+        reason: "inactive" as const,
+        openDateLabel: "-",
+        daysUntilOpen: 0,
+      };
+    }
+
+    const endIso = parseDateIso(periode.selesai);
+    if (!endIso) {
+      return {
+        canFill: true,
+        reason: "ok" as const,
+        openDateLabel: "-",
+        daysUntilOpen: 0,
+      };
+    }
+
+    const todayIso = getTodayWibIso();
+    const openEvaluasiIso = shiftIsoDate(endIso, -10);
+    const daysUntilOpen = Math.max(0, diffDaysIso(todayIso, openEvaluasiIso));
+
+    return {
+      canFill: todayIso >= openEvaluasiIso,
+      reason:
+        todayIso >= openEvaluasiIso ? ("ok" as const) : ("too_early" as const),
+      openDateLabel: formatIsoToIndo(openEvaluasiIso),
+      daysUntilOpen,
+    };
+  }, [periode.selesai, periode.statusMagang]);
+
+  const isScheduleLocked = !hasSaved && !evaluasiScheduleInfo.canFill;
+  const isLocked =
+    evalStatus === "Menunggu" ||
+    evalStatus === "Disetujui" ||
+    isScheduleLocked;
   const canDownloadPdf = evalStatus === "Disetujui";
 
   const handleSave = async () => {
+    if (isScheduleLocked) {
+      showToast.error(
+        evaluasiScheduleInfo.reason === "inactive"
+          ? "Status kepesertaan magang Anda sedang tidak aktif."
+          : `Pengisian Evaluasi & Surat Pernyataan baru dibuka mulai H-10 selesai magang (${evaluasiScheduleInfo.openDateLabel}).`,
+      );
+      return;
+    }
     if (isLocked) {
       showToast.error(
         evalStatus === "Disetujui"
@@ -478,6 +562,36 @@ export default function EvaluasiDanPernyataanPage() {
       </div>
 
       {/* STATUS BANNER */}
+      {isScheduleLocked && (
+        <div className="rounded-2xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/70 p-3.5 sm:p-4 flex items-start gap-2.5 sm:gap-3">
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-amber-100 dark:bg-amber-900/60 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+            <Lock className="w-4 h-4 sm:w-5 sm:h-5" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-bold text-amber-900 dark:text-amber-200">
+              {evaluasiScheduleInfo.reason === "inactive"
+                ? "Pengisian Evaluasi & Surat Pernyataan Tidak Tersedia"
+                : "Pengisian Evaluasi & Surat Pernyataan Belum Dibuka"}
+            </p>
+            <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5 leading-relaxed">
+              {evaluasiScheduleInfo.reason === "inactive" ? (
+                "Status kepesertaan magang Anda sedang tidak aktif."
+              ) : (
+                <>
+                  Pengisian Evaluasi &amp; Surat Pernyataan baru dapat dilakukan
+                  mulai <b>H-10</b> sebelum masa magang berakhir, yaitu mulai
+                  tanggal <b>{evaluasiScheduleInfo.openDateLabel}</b>
+                  {evaluasiScheduleInfo.daysUntilOpen > 0
+                    ? ` (${evaluasiScheduleInfo.daysUntilOpen} hari lagi)`
+                    : ""}
+                  .
+                </>
+              )}
+            </p>
+          </div>
+        </div>
+      )}
+
       {hasSaved && evalStatus === "Disetujui" && (
         <div className="rounded-2xl bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/70 p-3.5 sm:p-4 flex items-start gap-2.5 sm:gap-3">
           <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-emerald-100 dark:bg-emerald-900/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
@@ -1004,6 +1118,15 @@ export default function EvaluasiDanPernyataanPage() {
             <Lock className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
             <span>
               Menunggu Persetujuan Mentor • Unduh PDF Terkunci
+            </span>
+          </div>
+        ) : isScheduleLocked ? (
+          <div className="w-full rounded-xl border border-amber-200 dark:border-amber-800/70 bg-amber-50/70 dark:bg-amber-950/30 px-4 py-3 text-sm font-semibold text-amber-800 dark:text-amber-200 inline-flex items-center justify-center gap-2">
+            <Lock className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+            <span>
+              {evaluasiScheduleInfo.reason === "inactive"
+                ? "Terkunci • Status Kepesertaan Tidak Aktif"
+                : `Terkunci • Dibuka Mulai H-10 Selesai Magang (${evaluasiScheduleInfo.openDateLabel})`}
             </span>
           </div>
         ) : (
