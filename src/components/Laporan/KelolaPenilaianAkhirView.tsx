@@ -371,27 +371,27 @@ export default function KelolaPenilaianAkhirView({ role }: Props) {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+        <div className="flex flex-nowrap items-center gap-2 shrink-0 self-start sm:self-auto">
+          <button
+            type="button"
+            onClick={() => fetchData()}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 whitespace-nowrap transition"
+          >
+            <RefreshCw className="w-3.5 h-3.5 shrink-0" />
+            <span>Refresh</span>
+          </button>
+
           {isAdminScope && (
             <button
               type="button"
               onClick={handleExportExcel}
               disabled={exporting || filteredItems.length === 0}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white shadow-2xs transition"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-transparent text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white whitespace-nowrap shadow-2xs transition"
             >
-              <Download className="w-3.5 h-3.5" />
+              <Download className="w-3.5 h-3.5 shrink-0" />
               <span>{exporting ? "Mengekspor..." : "Ekspor Excel"}</span>
             </button>
           )}
-
-          <button
-            type="button"
-            onClick={() => fetchData()}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-            <span>Refresh</span>
-          </button>
         </div>
       </div>
 
