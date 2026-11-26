@@ -1,14 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import * as XLSX from "xlsx";
-import { saveAs } from "file-saver";
 import { format } from "date-fns";
 import {
   AlertTriangle,
   Clock,
   DatabaseZap,
-  Download,
   RefreshCw,
   ShieldCheck,
   XCircle,
@@ -22,7 +19,6 @@ import type {
   DashboardFilterState,
   SuperadminDashboardSummary,
 } from "@/components/superadmin/dashboard/types";
-import { showToast } from "@/components/ui/toastDashboard";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
@@ -49,7 +45,6 @@ export default function SuperadminOversistemDashboard() {
   );
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [exporting, setExporting] = useState(false);
   const [apiStatus, setApiStatus] = useState<
     "connected" | "disconnected" | "checking"
   >("checking");
@@ -128,217 +123,6 @@ export default function SuperadminOversistemDashboard() {
     return () => clearInterval(interval);
   }, [fetchSummary]);
 
-  const exportToExcel = async () => {
-    if (!summary) {
-      showToast.error("Data dashboard belum tersedia untuk diekspor");
-      return;
-    }
-
-    setExporting(true);
-    const toastId = showToast.loading("Menyiapkan laporan Excel lengkap...");
-
-    try {
-      const workbook = XLSX.utils.book_new();
-      const c = summary.cards;
-
-      const kpiRows = [
-        {
-          Kategori: "Peserta",
-          Indikator: "Peserta Sedang Magang",
-          Jumlah: c.pesertaSedangMagang,
-        },
-        {
-          Kategori: "Peserta",
-          Indikator: "Peserta Belum Mulai",
-          Jumlah: c.pesertaBelumMulai,
-        },
-        {
-          Kategori: "Peserta",
-          Indikator: "Peserta Selesai",
-          Jumlah: c.pesertaSelesai,
-        },
-        {
-          Kategori: "Peserta",
-          Indikator: "Peserta Tanpa Mentor",
-          Jumlah: c.pesertaTanpaMentor,
-        },
-        {
-          Kategori: "Pendaftaran",
-          Indikator: "Pendaftaran Menunggu",
-          Jumlah: c.pendaftaranMenunggu,
-        },
-        {
-          Kategori: "Pendaftaran",
-          Indikator: "Pendaftaran Sedang Diproses",
-          Jumlah: c.pendaftaranSedangDiproses,
-        },
-        {
-          Kategori: "Pendaftaran",
-          Indikator: "Pendaftaran Disetujui",
-          Jumlah: c.pendaftaranDisetujui,
-        },
-        {
-          Kategori: "Pendaftaran",
-          Indikator: "Pendaftaran Ditolak",
-          Jumlah: c.pendaftaranDitolak,
-        },
-        {
-          Kategori: "Logbook",
-          Indikator: "Logbook Belum Diverifikasi (Menunggu)",
-          Jumlah: c.logbookMenunggu,
-        },
-        {
-          Kategori: "Logbook",
-          Indikator: "Logbook Disetujui",
-          Jumlah: c.logbookDisetujui,
-        },
-        {
-          Kategori: "Logbook",
-          Indikator: "Logbook Revisi",
-          Jumlah: c.logbookRevisi,
-        },
-        {
-          Kategori: "Logbook",
-          Indikator: "Logbook Ditolak",
-          Jumlah: c.logbookDitolak,
-        },
-        {
-          Kategori: "Laporan Akhir",
-          Indikator: "Laporan Menunggu Review",
-          Jumlah: c.laporanMenunggu,
-        },
-        {
-          Kategori: "Laporan Akhir",
-          Indikator: "Laporan Revisi",
-          Jumlah: c.laporanRevisi,
-        },
-        {
-          Kategori: "Laporan Akhir",
-          Indikator: "Laporan Disetujui",
-          Jumlah: c.laporanDisetujui,
-        },
-        {
-          Kategori: "Laporan Akhir",
-          Indikator: "Laporan Ditolak",
-          Jumlah: c.laporanDitolak,
-        },
-        {
-          Kategori: "Evaluasi & Penilaian",
-          Indikator: "Evaluasi Menunggu Review",
-          Jumlah: c.evaluasiMenunggu,
-        },
-        {
-          Kategori: "Evaluasi & Penilaian",
-          Indikator: "Peserta Selesai Belum Dinilai",
-          Jumlah: c.belumDinilaiSelesai,
-        },
-        {
-          Kategori: "Evaluasi & Penilaian",
-          Indikator: "Feedback Belum Direspon Mentor",
-          Jumlah: c.feedbackBelumDirespon,
-        },
-        {
-          Kategori: "Dokumen Selesai",
-          Indikator: "Belum Upload Surat Selesai",
-          Jumlah: c.selesaiBelumSurat,
-        },
-        {
-          Kategori: "Dokumen Selesai",
-          Indikator: "Belum Upload Sertifikat",
-          Jumlah: c.selesaiBelumSertifikat,
-        },
-      ];
-      XLSX.utils.book_append_sheet(
-        workbook,
-        XLSX.utils.json_to_sheet(kpiRows),
-        "KPI & Antrean Verifikasi",
-      );
-
-      XLSX.utils.book_append_sheet(
-        workbook,
-        XLSX.utils.json_to_sheet(
-          summary.pipelineStatus.map((p) => ({
-            Modul: p.label,
-            "Disetujui / Selesai": p.selesai,
-            Menunggu: p.menunggu,
-            Revisi: p.revisi,
-            Ditolak: p.ditolak,
-          })),
-        ),
-        "Status Lintas Modul",
-      );
-
-      XLSX.utils.book_append_sheet(
-        workbook,
-        XLSX.utils.json_to_sheet(
-          summary.formasiOccupancy.map((f) => ({
-            Formasi: f.title,
-            "Kapasitas Kuota": f.kuota,
-            "Kuota Terisi": f.terisi,
-            "Sisa Kuota": f.sisaKuota,
-            "Pendaftar Menunggu": f.menungguPendaftar,
-          })),
-        ),
-        "Okupansi Formasi",
-      );
-
-      XLSX.utils.book_append_sheet(
-        workbook,
-        XLSX.utils.json_to_sheet(
-          summary.mentorWorkload.map((m) => ({
-            "Nama Mentor": m.name,
-            "Posisi / Fungsi": m.posisiMentor,
-            "Peserta Aktif": m.pesertaAktif,
-            "Total Peserta Bimbingan": m.pesertaTotal,
-            "Logbook Menunggu": m.logbookMenunggu,
-            "Laporan Menunggu": m.laporanMenunggu,
-            "Evaluasi Menunggu": m.evaluasiMenunggu,
-          })),
-        ),
-        "Beban Mentor",
-      );
-
-      const timeSeriesRows = summary.trendChart.labels.map((lbl, idx) => ({
-        Periode: lbl,
-        "Pendaftaran Masuk": summary.trendChart.pendaftaranMasuk[idx] || 0,
-        "Pendaftaran Disetujui":
-          summary.trendChart.pendaftaranDisetujui[idx] || 0,
-        "Logbook Masuk": summary.trendChart.logbookMasuk[idx] || 0,
-        "Logbook Disetujui": summary.trendChart.logbookDisetujui[idx] || 0,
-        "Logbook Menunggu": summary.trendChart.logbookMenunggu[idx] || 0,
-        "Absensi Hadir": summary.trendChart.absensiHadir[idx] || 0,
-        "Absensi Terlambat": summary.trendChart.absensiTelat[idx] || 0,
-        "Absensi Izin": summary.trendChart.absensiIzin[idx] || 0,
-      }));
-      XLSX.utils.book_append_sheet(
-        workbook,
-        XLSX.utils.json_to_sheet(timeSeriesRows),
-        "Time Series Terfilter",
-      );
-
-      const excelBuffer = XLSX.write(workbook, {
-        bookType: "xlsx",
-        type: "array",
-      });
-      const blob = new Blob([excelBuffer], {
-        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      });
-
-      saveAs(
-        blob,
-        `oversistem-superadmin-${filters.year}-${format(new Date(), "yyyyMMdd-HHmm")}.xlsx`,
-      );
-      showToast.updateSuccess(toastId, "Laporan Excel berhasil diunduh");
-    } catch (err) {
-      showToast.updateError(
-        toastId,
-        err instanceof Error ? err.message : "Gagal mengekspor Excel",
-      );
-    } finally {
-      setExporting(false);
-    }
-  };
-
   if (loading && !summary) {
     return <SuperAdminDashboardSkeleton />;
   }
@@ -407,16 +191,6 @@ export default function SuperadminOversistemDashboard() {
             />
             {refreshing ? "Memuat..." : "Refresh"}
           </button>
-
-          <button
-            type="button"
-            onClick={exportToExcel}
-            disabled={loading || exporting || !summary}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-[#0284c7] hover:bg-sky-700 text-white shadow-xs transition disabled:opacity-60"
-          >
-            <Download className="w-3.5 h-3.5" />
-            {exporting ? "Menyiapkan..." : "Download Excel"}
-          </button>
         </div>
       </div>
 
@@ -445,7 +219,10 @@ export default function SuperadminOversistemDashboard() {
           />
 
           {/* ================= ANALYTICS GRID (NON-PIE CHARTS) ================= */}
-          <SuperadminAnalyticsGrid demographics={summary.demographics} />
+          <SuperadminAnalyticsGrid
+            demographics={summary.demographics}
+            filterOptions={summary.filterOptions}
+          />
 
           {/* ================= ACTION QUEUES, MENTOR PESERTA & TIME SERIES TABLE ================= */}
           <SuperadminActionQueues

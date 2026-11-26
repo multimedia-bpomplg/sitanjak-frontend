@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Loader2, PieChart } from "lucide-react";
+import ChartDownloadButton from "./ChartDownloadButton";
 import type { SuperadminDashboardSummary } from "./types";
 
 type StatusSummary = SuperadminDashboardSummary["participantStatusSummary"];
@@ -128,6 +129,7 @@ export default function SuperadminStatusDonutCard({
   isLoading = false,
 }: Props) {
   const [hoveredKey, setHoveredKey] = useState<StatusKey | null>(null);
+  const donutCardRef = useRef<HTMLDivElement>(null);
 
   const safeSummary = useMemo(
     () =>
@@ -189,6 +191,7 @@ export default function SuperadminStatusDonutCard({
 
   return (
     <div
+      ref={donutCardRef}
       className={`lg:col-span-3 rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-[0_10px_35px_-15px_rgba(15,23,42,0.08)] p-5 sm:p-6 flex flex-col justify-between transition-opacity ${
         isLoading ? "opacity-65" : "opacity-100"
       }`}
@@ -210,9 +213,16 @@ export default function SuperadminStatusDonutCard({
             )}
           </div>
         </div>
-        {isLoading && (
-          <Loader2 className="w-4 h-4 animate-spin text-blue-500 shrink-0" />
-        )}
+        <div className="flex items-center gap-2 shrink-0">
+          {isLoading && (
+            <Loader2 className="w-4 h-4 animate-spin text-blue-500 shrink-0" />
+          )}
+          <ChartDownloadButton
+            targetRef={donutCardRef}
+            fileName="grafik-status-peserta"
+            label="Status Peserta"
+          />
+        </div>
       </div>
 
       {/* Rounded Segmented Donut + Center Disk */}

@@ -23,6 +23,7 @@ import {
   TrendingUp,
   Users,
 } from "lucide-react";
+import ChartDownloadButton from "./ChartDownloadButton";
 import SuperadminStatusDonutCard from "./SuperadminStatusDonutCard";
 import type { SuperadminDashboardSummary } from "./types";
 
@@ -162,6 +163,7 @@ export default function SuperadminActivityCharts({
   } | null>(null);
   const [loadingKey, setLoadingKey] = useState<string | null>(null);
   const requestSeqRef = useRef(0);
+  const trendCardRef = useRef<HTMLDivElement>(null);
 
   const filterKey = `${filters.year}|${filters.month}|${filters.posisi}|${filters.instansi}|${filters.jurusan}|${filters.jenisKelamin}`;
   const isDefaultFilter =
@@ -604,7 +606,10 @@ export default function SuperadminActivityCharts({
 
       {/* ================= 70% TREN + 30% STATUS DONUT ================= */}
       <div className="grid grid-cols-1 lg:grid-cols-10 gap-5 items-stretch">
-        <div className="lg:col-span-7 rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-[0_10px_35px_-15px_rgba(15,23,42,0.08)]">
+        <div
+          ref={trendCardRef}
+          className="lg:col-span-7 rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-[0_10px_35px_-15px_rgba(15,23,42,0.08)]"
+        >
           <div className="p-5 sm:p-7 space-y-5">
             {/* ================= HEADER ROW ================= */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -665,6 +670,11 @@ export default function SuperadminActivityCharts({
                     <span>Batang</span>
                   </button>
                 </div>
+                <ChartDownloadButton
+                  targetRef={trendCardRef}
+                  fileName="grafik-tren-peserta-magang"
+                  label="Tren Peserta Magang"
+                />
               </div>
             </div>
 

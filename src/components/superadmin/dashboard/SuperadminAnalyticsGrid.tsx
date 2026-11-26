@@ -1,10 +1,24 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { type ChartData, type ChartOptions, type Plugin } from "chart.js";
 import { Bar } from "react-chartjs-2";
-import { Briefcase, Users, UsersRound } from "lucide-react";
+import {
+  Briefcase,
+  Calendar,
+  CalendarDays,
+  Loader2,
+  RotateCcw,
+  SlidersHorizontal,
+  Users,
+  UsersRound,
+} from "lucide-react";
+import ModernDatePickerPopover from "@/components/pendaftaran/ModernDatePickerPopover";
+import { BULAN_OPTIONS } from "@/lib/pesertaFilter";
+import ChartDownloadButton from "./ChartDownloadButton";
 import type { SuperadminDashboardSummary } from "./types";
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
 type LimitChoice = 5 | 10 | "all";
 
@@ -94,6 +108,7 @@ function createPieWedgePath(
 
 type Props = {
   demographics: SuperadminDashboardSummary["demographics"];
+  filterOptions?: SuperadminDashboardSummary["filterOptions"];
 };
 
 function TopLimitSelect({
@@ -150,18 +165,135 @@ function createBarValueLabelsPlugin(id: string): Plugin<"bar"> {
   };
 }
 
-export default function SuperadminAnalyticsGrid({ demographics }: Props) {
+export default function SuperadminAnalyticsGrid({
+  demographics,
+  filterOptions,
+}: Props) {
   const [prodiLimit, setProdiLimit] = useState<LimitChoice>(5);
   const [instansiLimit, setInstansiLimit] = useState<LimitChoice>(5);
 
+  const prodiCardRef = useRef<HTMLDivElement>(null);
+  const instansiCardRef = useRef<HTMLDivElement>(null);
+  const formasiCardRef = useRef<HTMLDivElement>(null);
+  const tipeCardRef = useRef<HTMLDivElement>(null);
+  const genderCardRef = useRef<HTMLDivElement>(null);
+
+  const [yearFilter, setYearFilter] = useState<string>("all");
+  const [monthFilter, setMonthFilter] = useState<string>("all");
+  const [dateFilter, setDateFilter] = useState<string>("");
+  const [remoteDemographics, setRemoteDemographics] = useState<{
+    key: string;
+    demographics: SuperadminDashboardSummary["demographics"];
+  } | null>(null);
+  const [loadingKey, setLoadingKey] = useState<string | null>(null);
+  const requestSeqRef = useRef(0);
+
+  const filterKey = `${yearFilter}|${monthFilter}|${dateFilter}`;
+  const isDefaultFilter =
+    yearFilter === "all" && monthFilter === "all" && dateFilter === "";
+
+  useEffect(() => {
+    if (isDefaultFilter) return;
+
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    const reqId = ++requestSeqRef.current;
+
+    const loadFilteredDemographics = async () => {
+      try {
+        const params = new URLSearchParams();
+        params.set("range", "all");
+        params.set("analyticsYear", yearFilter);
+        params.set("analyticsMonth", monthFilter);
+        if (dateFilter) {
+          params.set("analyticsDate", dateFilter);
+        }
+
+        const res = await fetch(
+          `${API_BASE_URL}/oversistem/superadmin-summary?${params.toString()}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+            cache: "no-store",
+          },
+        );
+        if (!res.ok) return;
+        const json = (await res.json().catch(() => null)) as
+          | SuperadminDashboardSummary
+          | null;
+        if (requestSeqRef.current !== reqId) return;
+        if (json?.success && json.demographics) {
+          setRemoteDemographics({
+            key: filterKey,
+            demographics: json.demographics,
+          });
+        }
+      } catch {
+        // Diamkan bila jaringan gagal sementara
+      } finally {
+        if (requestSeqRef.current === reqId) {
+          setLoadingKey(null);
+        }
+      }
+    };
+
+    void loadFilteredDemographics();
+  }, [yearFilter, monthFilter, dateFilter, filterKey, isDefaultFilter]);
+
+  const applyPeriodUpdate = (next: {
+    year: string;
+    month: string;
+    date: string;
+  }) => {
+    const nextKey = `${next.year}|${next.month}|${next.date}`;
+    const nextIsDefault =
+      next.year === "all" && next.month === "all" && next.date === "";
+    setYearFilter(next.year);
+    setMonthFilter(next.month);
+    setDateFilter(next.date);
+    if (nextIsDefault || remoteDemographics?.key === nextKey) {
+      setLoadingKey(null);
+    } else {
+      setLoadingKey(nextKey);
+    }
+  };
+
+  const resetPeriodFilters = () => {
+    setLoadingKey(null);
+    setYearFilter("all");
+    setMonthFilter("all");
+    setDateFilter("");
+  };
+
+  const isFetching = !isDefaultFilter && loadingKey === filterKey;
+  const activeDemographics =
+    !isDefaultFilter && remoteDemographics?.key === filterKey
+      ? remoteDemographics.demographics
+      : demographics;
+
+  const yearChoices = useMemo(() => {
+    const nowYear = new Date().getFullYear();
+    const detected = filterOptions?.years || [];
+    const maxYear = Math.max(nowYear + 1, ...detected);
+    const minYear = Math.min(2022, ...detected, nowYear);
+    const set = new Set<number>(detected);
+    for (let y = maxYear; y >= minYear; y -= 1) {
+      set.add(y);
+    }
+    return Array.from(set).sort((a, b) => b - a);
+  }, [filterOptions?.years]);
+
   const prodiListRaw = useMemo(
-    () => demographics.jurusanBreakdown ?? [],
-    [demographics.jurusanBreakdown],
+    () => activeDemographics.jurusanBreakdown ?? [],
+    [activeDemographics.jurusanBreakdown],
   );
 
   const instansiListRaw = useMemo(
-    () => demographics.instansiBreakdown ?? demographics.topAsalNama ?? [],
-    [demographics.instansiBreakdown, demographics.topAsalNama],
+    () =>
+      activeDemographics.instansiBreakdown ??
+      activeDemographics.topAsalNama ??
+      [],
+    [activeDemographics.instansiBreakdown, activeDemographics.topAsalNama],
   );
 
   const prodiTotal = useMemo(
@@ -322,21 +454,21 @@ export default function SuperadminAnalyticsGrid({ demographics }: Props) {
 
   // Row 2 Card 1: Formasi Paling Diminati (Top 5 Funnel)
   const formasiDemandList = useMemo(
-    () => (demographics.formasiDemand ?? []).slice(0, 5),
-    [demographics.formasiDemand],
+    () => (activeDemographics.formasiDemand ?? []).slice(0, 5),
+    [activeDemographics.formasiDemand],
   );
   const formasiDemandTotal = useMemo(
     () =>
-      (demographics.formasiDemand ?? []).reduce(
+      (activeDemographics.formasiDemand ?? []).reduce(
         (sum, item) => sum + item.count,
         0,
       ),
-    [demographics.formasiDemand],
+    [activeDemographics.formasiDemand],
   );
 
   // Row 2 Card 2: Jumlah Peserta Individu vs Kelompok (Exploded Striped Pie)
   const tipeRows = useMemo(() => {
-    const raw = demographics.tipePeserta ?? [];
+    const raw = activeDemographics.tipePeserta ?? [];
     const indCount =
       raw.find((r) => r.label.toLowerCase() === "individu")?.count ?? 0;
     const kelCount =
@@ -367,12 +499,12 @@ export default function SuperadminAnalyticsGrid({ demographics }: Props) {
         },
       ],
     };
-  }, [demographics.tipePeserta]);
+  }, [activeDemographics.tipePeserta]);
 
   // Row 2 Card 3: Gender Peserta (Overlapping Proportional Bubbles + Progress Bars)
   const genderSummary = useMemo(() => {
     const map = new Map<string, number>();
-    for (const g of demographics.gender ?? []) {
+    for (const g of activeDemographics.gender ?? []) {
       const k = g.label.trim().toLowerCase();
       map.set(k, (map.get(k) || 0) + g.count);
     }
@@ -412,23 +544,142 @@ export default function SuperadminAnalyticsGrid({ demographics }: Props) {
       items: rawItems,
       bubbles,
     };
-  }, [demographics.gender]);
+  }, [activeDemographics.gender]);
 
   return (
     <div className="space-y-6">
+      {/* Filter Bar Khusus 5 Card Demografi & Formasi */}
+      <div className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 sm:p-5 shadow-[0_10px_35px_-15px_rgba(15,23,42,0.08)] flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3.5">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-100 dark:border-blue-900/70 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
+            <SlidersHorizontal className="w-4 h-4" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm sm:text-base font-extrabold tracking-tight text-slate-900 dark:text-white">
+                Statistik Demografi &amp; Formasi
+              </h2>
+              {isFetching && (
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-600" />
+              )}
+            </div>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              Filter data 5 kartu analitik berdasarkan tahun, bulan, atau tanggal
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-1.5 rounded-xl bg-slate-50/90 dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-700 px-3 py-1.5">
+            <Calendar className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+            <select
+              aria-label="Filter tahun statistik demografi"
+              value={yearFilter}
+              onChange={(e) =>
+                applyPeriodUpdate({
+                  year: e.target.value,
+                  month: monthFilter,
+                  date: "",
+                })
+              }
+              className="bg-transparent text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none cursor-pointer"
+            >
+              <option value="all">Semua Tahun</option>
+              {yearChoices.map((yr) => (
+                <option key={yr} value={String(yr)}>
+                  {yr}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center gap-1.5 rounded-xl bg-slate-50/90 dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-700 px-3 py-1.5">
+            <CalendarDays className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+            <select
+              aria-label="Filter bulan statistik demografi"
+              value={monthFilter}
+              onChange={(e) =>
+                applyPeriodUpdate({
+                  year: yearFilter,
+                  month: e.target.value,
+                  date: "",
+                })
+              }
+              className="bg-transparent text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none cursor-pointer"
+            >
+              <option value="all">Semua Bulan</option>
+              {BULAN_OPTIONS.map((b) => (
+                <option key={b.value} value={String(b.value)}>
+                  {b.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <ModernDatePickerPopover
+            value={dateFilter}
+            onChange={(nextIso) => {
+              if (nextIso) {
+                applyPeriodUpdate({
+                  year: nextIso.slice(0, 4),
+                  month: String(Number(nextIso.slice(5, 7))),
+                  date: nextIso,
+                });
+              } else {
+                applyPeriodUpdate({
+                  year: yearFilter,
+                  month: monthFilter,
+                  date: "",
+                });
+              }
+            }}
+            defaultYear={yearFilter === "all" ? undefined : yearFilter}
+            defaultMonth={monthFilter === "all" ? undefined : monthFilter}
+            highlightedDates={filterOptions?.analyticsDates ?? []}
+            placeholder="Pilih Tanggal"
+            ariaLabel="Filter tanggal statistik demografi"
+          />
+
+          {!isDefaultFilter && (
+            <button
+              type="button"
+              onClick={resetPeriodFilters}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              Reset
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* Row 1: Peserta Berdasarkan Program Studi & Peserta Berdasarkan Instansi */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div
+        className={`grid grid-cols-1 lg:grid-cols-2 gap-6 transition-opacity ${
+          isFetching ? "opacity-60" : "opacity-100"
+        }`}
+      >
         {/* Left Card: Peserta Berdasarkan Program Studi */}
-        <div className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 sm:p-6 shadow-[0_10px_35px_-15px_rgba(15,23,42,0.08)] flex flex-col justify-between space-y-5">
+        <div
+          ref={prodiCardRef}
+          className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 sm:p-6 shadow-[0_10px_35px_-15px_rgba(15,23,42,0.08)] flex flex-col justify-between space-y-5"
+        >
           <div className="flex items-center justify-between gap-3">
             <h3 className="text-base sm:text-lg font-extrabold tracking-tight text-slate-900 dark:text-white">
               Peserta Berdasarkan Program Studi
             </h3>
-            <TopLimitSelect
-              ariaLabel="Batasi jumlah program studi"
-              value={prodiLimit}
-              onChange={setProdiLimit}
-            />
+            <div className="flex items-center gap-2 shrink-0">
+              <TopLimitSelect
+                ariaLabel="Batasi jumlah program studi"
+                value={prodiLimit}
+                onChange={setProdiLimit}
+              />
+              <ChartDownloadButton
+                targetRef={prodiCardRef}
+                fileName="grafik-program-studi"
+                label="Peserta Berdasarkan Program Studi"
+              />
+            </div>
           </div>
 
           {prodiDisplayRows.length === 0 ? (
@@ -479,16 +730,26 @@ export default function SuperadminAnalyticsGrid({ demographics }: Props) {
         </div>
 
         {/* Right Card: Peserta Berdasarkan Instansi */}
-        <div className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 sm:p-6 shadow-[0_10px_35px_-15px_rgba(15,23,42,0.08)] flex flex-col justify-between space-y-4">
+        <div
+          ref={instansiCardRef}
+          className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 sm:p-6 shadow-[0_10px_35px_-15px_rgba(15,23,42,0.08)] flex flex-col justify-between space-y-4"
+        >
           <div className="flex items-center justify-between gap-3">
             <h3 className="text-base sm:text-lg font-extrabold tracking-tight text-slate-900 dark:text-white">
               Peserta Berdasarkan Instansi
             </h3>
-            <TopLimitSelect
-              ariaLabel="Batasi jumlah instansi"
-              value={instansiLimit}
-              onChange={setInstansiLimit}
-            />
+            <div className="flex items-center gap-2 shrink-0">
+              <TopLimitSelect
+                ariaLabel="Batasi jumlah instansi"
+                value={instansiLimit}
+                onChange={setInstansiLimit}
+              />
+              <ChartDownloadButton
+                targetRef={instansiCardRef}
+                fileName="grafik-instansi-peserta"
+                label="Peserta Berdasarkan Instansi"
+              />
+            </div>
           </div>
 
           <div className="h-60 sm:h-64">
@@ -508,21 +769,35 @@ export default function SuperadminAnalyticsGrid({ demographics }: Props) {
       </div>
 
       {/* Row 2: Minimalist Modern Trio (Formasi Diminati | Individu vs Kelompok | Gender) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div
+        className={`grid grid-cols-1 lg:grid-cols-3 gap-6 transition-opacity ${
+          isFetching ? "opacity-60" : "opacity-100"
+        }`}
+      >
         {/* 1. Kiri: Formasi Paling Diminati (Funnel Chart) */}
-        <div className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 sm:p-6 shadow-[0_10px_35px_-15px_rgba(15,23,42,0.08)] flex flex-col justify-between space-y-5">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-2xl bg-blue-50 dark:bg-blue-950/60 border border-blue-100 dark:border-blue-900/70 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
-              <Briefcase className="w-4 h-4" />
+        <div
+          ref={formasiCardRef}
+          className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 sm:p-6 shadow-[0_10px_35px_-15px_rgba(15,23,42,0.08)] flex flex-col justify-between space-y-5"
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-9 h-9 rounded-2xl bg-blue-50 dark:bg-blue-950/60 border border-blue-100 dark:border-blue-900/70 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
+                <Briefcase className="w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-base font-extrabold tracking-tight text-slate-900 dark:text-white">
+                  Formasi Paling Diminati
+                </h3>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Peringkat teratas jumlah pendaftar per formasi
+                </p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-base font-extrabold tracking-tight text-slate-900 dark:text-white">
-                Formasi Paling Diminati
-              </h3>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                Peringkat teratas jumlah pendaftar per formasi
-              </p>
-            </div>
+            <ChartDownloadButton
+              targetRef={formasiCardRef}
+              fileName="grafik-formasi-diminati"
+              label="Formasi Paling Diminati"
+            />
           </div>
 
           {formasiDemandList.length === 0 ? (
@@ -614,13 +889,16 @@ export default function SuperadminAnalyticsGrid({ demographics }: Props) {
         </div>
 
         {/* 2. Tengah: Jumlah Peserta Individu vs Kelompok (Exploded Striped Pie) */}
-        <div className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 sm:p-6 shadow-[0_10px_35px_-15px_rgba(15,23,42,0.08)] flex flex-col justify-between space-y-3">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
+        <div
+          ref={tipeCardRef}
+          className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 sm:p-6 shadow-[0_10px_35px_-15px_rgba(15,23,42,0.08)] flex flex-col justify-between space-y-3"
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
               <div className="w-9 h-9 rounded-2xl bg-blue-50 dark:bg-blue-950/60 border border-blue-100 dark:border-blue-900/70 flex items-center justify-center text-[#2563eb] dark:text-blue-400 shrink-0">
                 <UsersRound className="w-4 h-4" />
               </div>
-              <div>
+              <div className="min-w-0">
                 <h3 className="text-base font-extrabold tracking-tight text-slate-900 dark:text-white">
                   Peserta Individu vs Kelompok
                 </h3>
@@ -629,9 +907,16 @@ export default function SuperadminAnalyticsGrid({ demographics }: Props) {
                 </p>
               </div>
             </div>
-            <span className="text-xs font-bold text-slate-400 tabular-nums">
-              {tipeRows.total} Total
-            </span>
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="text-xs font-bold text-slate-400 tabular-nums">
+                {tipeRows.total} Total
+              </span>
+              <ChartDownloadButton
+                targetRef={tipeCardRef}
+                fileName="grafik-individu-vs-kelompok"
+                label="Peserta Individu vs Kelompok"
+              />
+            </div>
           </div>
 
           <div className="my-auto flex items-center justify-center">
@@ -844,13 +1129,16 @@ export default function SuperadminAnalyticsGrid({ demographics }: Props) {
         </div>
 
         {/* 3. Kanan: Peserta Berdasarkan Gender (Overlapping Bubbles) */}
-        <div className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 sm:p-6 shadow-[0_10px_35px_-15px_rgba(15,23,42,0.08)] flex flex-col justify-between space-y-5">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
+        <div
+          ref={genderCardRef}
+          className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 sm:p-6 shadow-[0_10px_35px_-15px_rgba(15,23,42,0.08)] flex flex-col justify-between space-y-5"
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
               <div className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-700 dark:text-slate-200 shrink-0">
                 <Users className="w-4 h-4" />
               </div>
-              <div>
+              <div className="min-w-0">
                 <h3 className="text-base font-extrabold tracking-tight text-slate-900 dark:text-white">
                   Gender Peserta
                 </h3>
@@ -859,9 +1147,16 @@ export default function SuperadminAnalyticsGrid({ demographics }: Props) {
                 </p>
               </div>
             </div>
-            <span className="text-xs font-bold text-slate-400 tabular-nums">
-              {genderSummary.total} Total
-            </span>
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="text-xs font-bold text-slate-400 tabular-nums">
+                {genderSummary.total} Total
+              </span>
+              <ChartDownloadButton
+                targetRef={genderCardRef}
+                fileName="grafik-gender-peserta"
+                label="Gender Peserta"
+              />
+            </div>
           </div>
 
           {/* Overlapping Proportional Bubbles */}

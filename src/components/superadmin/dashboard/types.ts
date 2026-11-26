@@ -16,6 +16,7 @@ export interface SuperadminDashboardSummary {
   generatedAt: string;
   filterOptions: {
     years: number[];
+    analyticsDates?: string[];
     formasiTitles: string[];
     instansiList: string[];
     jurusanList: string[];

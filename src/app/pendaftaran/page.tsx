@@ -44,6 +44,7 @@ import CalendarPopup from "@/components/calendar/CalendarPopup";
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const waRegex = /^08[0-9]{8,11}$/;
+const GMAIL_DOMAIN = "@gmail.com";
 
 // ==================== POSISI MAGANG YANG BARU ====================
 const POSISI_MAGANG = [
@@ -1957,21 +1958,52 @@ function PendaftaranForm() {
                       >
                         <HiMail className="form-icon" />
                         <input
-                          type="email"
-                          value={peserta[i].email}
-                          placeholder="contoh@domain.com"
+                          name={`email-${i}`}
+                          type="text"
+                          inputMode="email"
+                          autoComplete="email"
+                          value={
+                            peserta[i].email
+                              .toLowerCase()
+                              .endsWith(GMAIL_DOMAIN)
+                              ? peserta[i].email.slice(0, -GMAIL_DOMAIN.length)
+                              : peserta[i].email
+                          }
+                          placeholder="contoh.nama"
                           onChange={(e) => {
-                            update(i, "email", e.target.value);
+                            const cleaned = e.target.value.replace(/\s+/g, "");
+                            const localPart = cleaned.split("@")[0] ?? "";
+                            update(
+                              i,
+                              "email",
+                              localPart ? `${localPart}${GMAIL_DOMAIN}` : "",
+                            );
                             setErrors((prev) => ({
                               ...prev,
                               [`email-${i}`]: false,
                             }));
                           }}
                         />
+                        <span className="shrink-0 rounded-lg bg-slate-100 border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-600 select-none">
+                          @gmail.com
+                        </span>
                       </div>
-                      {errors[`email-${i}`] && (
+                      {errors[`email-${i}`] ? (
                         <p className="text-xs text-rose-500 mt-1">
                           Format email tidak valid atau belum diisi
+                        </p>
+                      ) : (
+                        <p className="text-xs text-slate-400 mt-1">
+                          {peserta[i].email ? (
+                            <>
+                              Email:{" "}
+                              <span className="font-medium text-slate-600">
+                                {peserta[i].email}
+                              </span>
+                            </>
+                          ) : (
+                            "Cukup ketik nama sebelum @, akhiran @gmail.com otomatis ditambahkan."
+                          )}
                         </p>
                       )}
                     </div>
