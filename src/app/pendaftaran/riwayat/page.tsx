@@ -3,14 +3,13 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { plusJakarta, caveat } from '@/lib/font';
+import { plusJakarta } from '@/lib/font';
 import Navbar from "@/components/layouts/Navbar";
 import {
   HiMail,
   HiSearch,
   HiUserGroup,
   HiPhone,
-  HiBriefcase,
   HiLocationMarker,
   HiOfficeBuilding,
   HiCheckCircle,
@@ -24,16 +23,54 @@ import {
   HiChatAlt2,
 } from "react-icons/hi";
 
+type RiwayatPesertaItem = {
+  nama?: string;
+  posisi?: string;
+  tanggalMulaiMagang?: string;
+  tanggalSelesaiMagang?: string;
+  asal?: {
+    nama?: string;
+    jurusan?: string;
+  } | null;
+  email?: string;
+  wa?: string;
+  alamatLengkap?: string;
+  kelurahan?: string;
+  kecamatan?: string;
+  kota?: string;
+  provinsi?: string;
+};
 
+type RiwayatPendaftaranResult = {
+  kategori?: string;
+  status: string;
+  jawabanAdmin?: string;
+  suratPengantar?: string;
+  suratBalasan?: string;
+  peserta?: RiwayatPesertaItem[];
+};
 
 export default function RiwayatPendaftaran() {
   const [email, setEmail] = useState("");
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<RiwayatPendaftaranResult | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL;
-  const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
-  const FILE_BASE_URL = `${BASE_URL}/api/uploads`;
+  const API_URL = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
+
+  const resolveDocumentUrl = (filePath?: string | null): string => {
+    if (!filePath) return "#";
+    const trimmed = filePath.trim();
+    if (/^https?:\/\//i.test(trimmed)) return trimmed;
+    const cleaned = trimmed.replace(/^\/+/, "");
+    if (cleaned.startsWith("api/uploads/")) {
+      const originBase = API_URL.replace(/\/api$/i, "");
+      return `${originBase}/${cleaned}`;
+    }
+    if (cleaned.startsWith("uploads/")) {
+      return `${API_URL}/${cleaned}`;
+    }
+    return `${API_URL}/uploads/${cleaned}`;
+  };
 
   const [popup, setPopup] = useState<{
     show: boolean;
@@ -355,7 +392,7 @@ export default function RiwayatPendaftaran() {
                 <div className="mt-6 flex flex-wrap gap-3">
                   {result.suratPengantar && (
                     <a
-                      href={`${FILE_BASE_URL}/${result.suratPengantar}`}
+                      href={resolveDocumentUrl(result.suratPengantar)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-700 font-semibold text-xs sm:text-sm shadow-2xs hover:border-[#0088FF] hover:text-[#0088FF] transition-colors"
@@ -368,7 +405,7 @@ export default function RiwayatPendaftaran() {
                   {/* SURAT BALASAN RESMI */}
                   {result.suratBalasan ? (
                     <a
-                      href={`${FILE_BASE_URL}/${result.suratBalasan}`}
+                      href={resolveDocumentUrl(result.suratBalasan)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs sm:text-sm shadow-sm transition-colors"
@@ -402,7 +439,7 @@ export default function RiwayatPendaftaran() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  {result.peserta?.map((p: any, i: number) => (
+                  {result.peserta?.map((p, i) => (
                     <div
                       key={i}
                       className="relative rounded-2xl p-5 sm:p-6 bg-slate-50/50 border border-slate-200/80 hover:border-[#0088FF]/30 transition-all space-y-4"

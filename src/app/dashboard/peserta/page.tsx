@@ -317,7 +317,9 @@ export default function PesertaDashboard() {
       if (annRes && annRes.ok) {
         const annData = await annRes.json().catch(() => null);
         if (Array.isArray(annData)) {
-          setAnnouncements(annData.filter((item: any) => item.isActive));
+          setAnnouncements(
+            annData.filter((item: Announcement) => item.isActive),
+          );
         }
       }
 
@@ -755,7 +757,7 @@ export default function PesertaDashboard() {
 
         {/* Card Body: Period Check -> Holiday vs Workday */}
         {periodStatus.isAfterEnd ? (
-          <div className="py-5 sm:py-6 px-3 text-center space-y-3 sm:space-y-3.5">
+          <div className="py-5 sm:py-6 px-3 text-center space-y-3.5 sm:space-y-4">
             <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto">
               <CalendarCheck2 className="w-6 h-6 sm:w-7 sm:h-7" />
             </div>
@@ -769,10 +771,35 @@ export default function PesertaDashboard() {
                 Pengisian kehadiran dan laporan harian baru sudah ditutup.
               </p>
             </div>
-            <div className="pt-1">
+
+            {/* Peringatan Penghapusan/Penonaktifan Akun Setelah 7 Hari */}
+            <div className="max-w-lg mx-auto rounded-xl bg-amber-50/90 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/70 p-3.5 sm:p-4 text-left flex items-start gap-2.5 sm:gap-3">
+              <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+              <div className="space-y-1 text-xs sm:text-sm">
+                <p className="font-bold text-amber-900 dark:text-amber-200">
+                  Perhatian: Akun Akan Dihapus Setelah 7 Hari
+                </p>
+                <p className="text-amber-800/95 dark:text-amber-300/90 leading-relaxed">
+                  Akun Anda akan otomatis dihapus/dinonaktifkan <b>7 hari</b>{" "}
+                  setelah masa magang berakhir. Pastikan Anda segera mengunduh
+                  dan menyimpan <b>Sertifikat Magang</b>,{" "}
+                  <b>Surat Selesai Magang</b>, <b>Evaluasi &amp; Surat Pernyataan</b>,
+                  serta dokumen penting lainnya.
+                </p>
+              </div>
+            </div>
+
+            <div className="pt-1 flex flex-col sm:flex-row items-center justify-center gap-2.5">
+              <Link
+                href="/dashboard/peserta/laporan-akhir"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 rounded-xl text-sm font-bold bg-[#1D64F2] hover:bg-blue-700 text-white shadow-2xs transition"
+              >
+                <FileText className="w-4 h-4" />
+                <span>Simpan Sertifikat &amp; Dokumen</span>
+              </Link>
               <Link
                 href="/dashboard/peserta/isi-logbook"
-                className="inline-flex items-center justify-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 rounded-xl text-sm font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white transition"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 rounded-xl text-sm font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white transition"
               >
                 <FileText className="w-4 h-4" />
                 <span>Lihat Riwayat Kehadiran</span>

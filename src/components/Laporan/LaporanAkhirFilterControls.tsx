@@ -34,6 +34,53 @@ export function matchesProgramAndFormasiFilter(
   return true;
 }
 
+export function buildLaporanAkhirFilterSummary(params: {
+  filterTab: string;
+  filterMentor?: string;
+  mentorOptions?: Array<{ value: string; label: string }>;
+  filterFormasi: string;
+  formasiOptions: Array<{ value: string; label: string }>;
+  filterProgram: ProgramFilter;
+  search?: string;
+}): string {
+  const parts: string[] = [];
+
+  if (params.filterTab && params.filterTab !== "Semua") {
+    parts.push(`Status: ${params.filterTab}`);
+  }
+
+  if (params.filterMentor && params.filterMentor !== "semua") {
+    if (params.filterMentor === "tanpa_mentor") {
+      parts.push("Mentor: Belum ditetapkan");
+    } else {
+      const mLabel =
+        params.mentorOptions?.find((m) => m.value === params.filterMentor)
+          ?.label || params.filterMentor;
+      parts.push(`Mentor: ${mLabel}`);
+    }
+  }
+
+  if (params.filterFormasi !== "semua") {
+    const fLabel =
+      params.formasiOptions.find((f) => f.value === params.filterFormasi)
+        ?.label || params.filterFormasi;
+    parts.push(`Formasi: ${fLabel}`);
+  }
+
+  if (params.filterProgram === "pkpa") {
+    parts.push("Program: PKPA");
+  } else if (params.filterProgram === "reguler") {
+    parts.push("Program: Reguler");
+  }
+
+  const q = params.search?.trim();
+  if (q) {
+    parts.push(`Pencarian: "${q}"`);
+  }
+
+  return parts.length > 0 ? parts.join(" | ") : "Semua Data Laporan Akhir";
+}
+
 type Props = {
   filterFormasi: string;
   onFormasiChange: (next: string) => void;

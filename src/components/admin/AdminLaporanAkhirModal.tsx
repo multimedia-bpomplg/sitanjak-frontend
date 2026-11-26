@@ -8,7 +8,6 @@ import {
   ExternalLink,
   FileText,
   Mail,
-  Star,
   User,
   X,
   XCircle,
@@ -57,17 +56,6 @@ type Props = {
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
 
-const ASPEK_PENILAIAN: Array<{ key: string; label: string }> = [
-  { key: "kehadiranDisiplin", label: "Kehadiran & Disiplin" },
-  { key: "sikapPerilaku", label: "Sikap & Perilaku" },
-  { key: "kemampuanKomunikasi", label: "Kemampuan Komunikasi" },
-  { key: "inisiatifTanggungJawab", label: "Inisiatif & Tanggung Jawab" },
-  { key: "kemampuanAdaptasi", label: "Kemampuan Adaptasi" },
-  { key: "pengetahuanTeknis", label: "Pengetahuan Teknis" },
-  { key: "produktivitasKetepatanWaktu", label: "Produktivitas & Ketepatan Waktu" },
-  { key: "kerjaSamaTim", label: "Kerja Sama Tim" },
-];
-
 function getStatusBadge(status: string) {
   switch (status) {
     case "Disetujui":
@@ -79,23 +67,6 @@ function getStatusBadge(status: string) {
     default:
       return "bg-sky-50 text-[#0284c7] border-sky-200 dark:bg-sky-950/50 dark:text-sky-300 dark:border-sky-800";
   }
-}
-
-function getNilaiBadge(val?: string) {
-  const lower = (val || "").toLowerCase();
-  if (lower === "sangat baik") {
-    return "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800";
-  }
-  if (lower === "baik") {
-    return "bg-sky-50 text-[#0284c7] border-sky-200 dark:bg-sky-950/50 dark:text-sky-300 dark:border-sky-800";
-  }
-  if (lower === "buruk") {
-    return "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800";
-  }
-  if (lower === "sangat buruk") {
-    return "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/50 dark:text-rose-300 dark:border-rose-800";
-  }
-  return "bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700";
 }
 
 function formatFileSize(bytes?: number) {
@@ -304,46 +275,6 @@ export default function AdminLaporanAkhirModal({ laporan, onClose }: Props) {
               </p>
             </div>
           )}
-
-          {/* Penilaian Mentor (8 Aspek) */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <Star className="w-4 h-4 text-amber-500" />
-              <h3 className="text-sm font-bold text-slate-800 dark:text-white">
-                Hasil Penilaian Kinerja Mentor
-              </h3>
-            </div>
-
-            {laporan.penilaian &&
-            Object.values(laporan.penilaian).some(Boolean) ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                {ASPEK_PENILAIAN.map((aspek) => {
-                  const val = laporan.penilaian?.[aspek.key];
-                  return (
-                    <div
-                      key={aspek.key}
-                      className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between gap-2"
-                    >
-                      <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
-                        {aspek.label}
-                      </span>
-                      <span
-                        className={`px-2.5 py-0.5 rounded-full border text-[11px] font-bold capitalize shrink-0 ${getNilaiBadge(
-                          val,
-                        )}`}
-                      >
-                        {val || "-"}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="p-4 rounded-xl border border-dashed border-slate-200 dark:border-slate-700 text-center text-xs text-slate-500 dark:text-slate-400">
-                Belum ada penilaian kinerja yang diisikan oleh mentor.
-              </div>
-            )}
-          </div>
         </div>
       </div>
     </div>

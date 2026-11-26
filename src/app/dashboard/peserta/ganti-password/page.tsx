@@ -396,12 +396,12 @@ export default function AkunPesertaPage() {
           className="pointer-events-none absolute -right-10 -bottom-14 w-44 h-44 rounded-full border border-white/10"
         />
 
-        {/* Icon lencana emas di pojok kanan atas */}
+        {/* Icon lencana emas di pojok kanan atas (sembunyikan di mobile) */}
         <div
           aria-hidden="true"
-          className="absolute top-4 right-4 sm:top-5 sm:right-5 w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white/10 border border-amber-300/60 flex items-center justify-center shadow-md"
+          className="hidden sm:flex absolute top-5 right-5 w-11 h-11 rounded-full bg-white/10 border border-amber-300/60 items-center justify-center shadow-md"
         >
-          <Award className="w-5 h-5 sm:w-6 sm:h-6 text-[#FCD34D] drop-shadow-xs" />
+          <Award className="w-6 h-6 text-[#FCD34D] drop-shadow-xs" />
         </div>
 
         <div className="relative z-10 flex items-stretch gap-2.5 sm:gap-4 min-h-[124px] sm:min-h-[116px]">
@@ -418,7 +418,7 @@ export default function AkunPesertaPage() {
           </div>
 
           <div className="min-w-0 flex-1 flex flex-col justify-center">
-            <div className="flex items-center gap-2 flex-wrap pr-12 sm:pr-14">
+            <div className="flex items-center gap-2 flex-wrap sm:pr-14">
               <h2 className="text-lg sm:text-xl font-extrabold text-white tracking-tight truncate">
                 {peserta?.nama || "Peserta Magang"}
               </h2>

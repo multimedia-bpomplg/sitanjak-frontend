@@ -6,7 +6,6 @@ import {
   Clock,
   Download,
   Eye,
-  FileSpreadsheet,
   FileText,
   RefreshCw,
   RotateCcw,
@@ -18,6 +17,7 @@ import AdminLaporanAkhirModal, {
   type AdminLaporanAkhirItem,
 } from "@/components/admin/AdminLaporanAkhirModal";
 import LaporanAkhirFilterControls, {
+  buildLaporanAkhirFilterSummary,
   matchesProgramAndFormasiFilter,
   type ProgramFilter,
 } from "@/components/Laporan/LaporanAkhirFilterControls";
@@ -25,7 +25,7 @@ import { buildFormasiOptions } from "@/components/logbook/LogbookFilterToolbar";
 import PaginationFooter from "@/components/dashboard/PaginationFooter";
 import { TablePageSkeleton } from "@/components/dashboard/skeletons";
 import { showToast } from "@/components/ui/toastDashboard";
-import { getMentorFilterKey } from "@/lib/pesertaFilter";
+import { getJwtUserSummary, getMentorFilterKey } from "@/lib/pesertaFilter";
 import { isPkpaPeserta } from "@/lib/pesertaKategori";
 import { fetchFormasi, type IFormasi } from "@/services/formasiService";
 
@@ -70,7 +70,7 @@ export default function ViewLaporanAkhirAdminPage() {
   const [formasiTitles, setFormasiTitles] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [downloading, setDownloading] = useState({ pdf: false, excel: false });
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
 
   const [search, setSearch] = useState("");
   const [filterTab, setFilterTab] = useState<FilterTab>("Semua");
@@ -265,16 +265,32 @@ export default function ViewLaporanAkhirAdminPage() {
   /* ================= EXPORTS ================= */
 
   const handleDownloadAllPDF = async () => {
-    if (laporanList.length === 0) {
+    if (filteredList.length === 0) {
       showToast.error("Tidak ada laporan untuk diunduh");
       return;
     }
 
-    setDownloading((prev) => ({ ...prev, pdf: true }));
+    setDownloadingPdf(true);
     const toastId = showToast.loading("Menyiapkan laporan PDF...");
 
     try {
       const token = localStorage.getItem("token");
+      const user = getJwtUserSummary();
+      const filterSummary = buildLaporanAkhirFilterSummary({
+        filterTab,
+        filterMentor,
+        mentorOptions,
+        filterFormasi,
+        formasiOptions,
+        filterProgram,
+        search,
+      });
+      const printedByLabel = user.name
+        ? `Admin: ${user.name}${user.email ? ` (${user.email})` : ""}`
+        : user.email
+          ? `Admin: ${user.email}`
+          : "Admin";
+
       const res = await fetch(
         `${API_BASE}/superadmin/laporan-akhir/download-all-pdf`,
         {
@@ -284,9 +300,11 @@ export default function ViewLaporanAkhirAdminPage() {
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
-            laporanList,
-            totalPeserta: laporanList.length,
+            laporanList: filteredList,
+            totalPeserta: filteredList.length,
             date: new Date().toISOString(),
+            filterSummary,
+            printedByLabel,
           }),
         },
       );
@@ -297,7 +315,10 @@ export default function ViewLaporanAkhirAdminPage() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `laporan-akhir-all-${new Date().toISOString().split("T")[0]}.pdf`;
+      const dateStamp = new Date().toLocaleDateString("en-CA", {
+        timeZone: "Asia/Jakarta",
+      });
+      a.download = `Laporan-Akhir-Peserta-Magang-${dateStamp}.pdf`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -307,61 +328,7 @@ export default function ViewLaporanAkhirAdminPage() {
     } catch {
       showToast.updateError(toastId, "Gagal mengunduh PDF");
     } finally {
-      setDownloading((prev) => ({ ...prev, pdf: false }));
-    }
-  };
-
-  const handleDownloadAllExcel = async () => {
-    if (laporanList.length === 0) {
-      showToast.error("Tidak ada laporan untuk diunduh");
-      return;
-    }
-
-    setDownloading((prev) => ({ ...prev, excel: true }));
-    const toastId = showToast.loading("Menyiapkan laporan Excel...");
-
-    try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(
-        `${API_BASE}/superadmin/laporan-akhir/download-all-excel`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            laporanList,
-            pesertaLaporan: laporanList.map((l) => ({
-              _id: l.user?._id || l._id,
-              name: l.user?.name || "-",
-              email: l.user?.email || "-",
-              status: l.status,
-              judul: l.judul,
-              createdAt: l.createdAt,
-            })),
-            date: new Date().toISOString(),
-          }),
-        },
-      );
-
-      if (!res.ok) throw new Error("Gagal mengunduh Excel");
-
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `laporan-akhir-all-${new Date().toISOString().split("T")[0]}.xlsx`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
-
-      showToast.updateSuccess(toastId, "Laporan Excel berhasil diunduh");
-    } catch {
-      showToast.updateError(toastId, "Gagal mengunduh Excel");
-    } finally {
-      setDownloading((prev) => ({ ...prev, excel: false }));
+      setDownloadingPdf(false);
     }
   };
 
@@ -387,8 +354,8 @@ export default function ViewLaporanAkhirAdminPage() {
             Laporan Akhir Peserta
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Tinjau dokumen laporan akhir magang, hasil penilaian mentor, serta
-            ekspor rekapitulasi
+            Tinjau dokumen laporan akhir magang, hasil verifikasi mentor, serta
+            unduh rekapitulasi PDF
           </p>
         </div>
 
@@ -407,22 +374,12 @@ export default function ViewLaporanAkhirAdminPage() {
 
           <button
             type="button"
-            disabled={downloading.excel}
-            onClick={handleDownloadAllExcel}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 transition disabled:opacity-60"
-          >
-            <FileSpreadsheet className="w-3.5 h-3.5" />
-            {downloading.excel ? "Menyiapkan..." : "Rekap Excel"}
-          </button>
-
-          <button
-            type="button"
-            disabled={downloading.pdf}
+            disabled={downloadingPdf || filteredList.length === 0}
             onClick={handleDownloadAllPDF}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-[#0284c7] hover:bg-sky-700 text-white shadow-xs transition disabled:opacity-60"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-[#0284c7] hover:bg-sky-700 text-white shadow-xs transition disabled:opacity-60 cursor-pointer"
           >
             <Download className="w-3.5 h-3.5" />
-            {downloading.pdf ? "Menyiapkan..." : "Rekap PDF"}
+            {downloadingPdf ? "Menyiapkan PDF..." : "Unduh PDF"}
           </button>
         </div>
       </div>
